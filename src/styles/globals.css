@@ -18,3 +18,40 @@ a{color:inherit;text-decoration:none;}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
 input,select{font-family:inherit;}
 .wrap{max-width:1140px;margin:0 auto;padding:0 28px;}
+
+/* ───────── diamond divider ───────── */
+.diamond{display:inline-block;width:5px;height:5px;background:var(--accent);transform:rotate(45deg);flex-shrink:0;}
+.diamond.hollow{background:transparent;border:1px solid var(--silver-dim);}
+
+/* ───────── top nav ───────── */
+header.nav{position:fixed;top:0;left:0;right:0;z-index:50;
+  transition:background .5s var(--ease), border-color .5s var(--ease), backdrop-filter .5s;
+  border-bottom:1px solid transparent;}
+header.nav.scrolled{background:rgba(10,22,40,0.72);backdrop-filter:blur(22px) saturate(1.2);border-bottom:1px solid var(--hairline);}
+.navrow{display:flex;align-items:center;justify-content:space-between;height:78px;}
+.brand{display:flex;align-items:center;gap:13px;}
+.mark{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg, rgba(180,195,220,0.16), rgba(20,34,56,0) 62%), var(--ocean);
+  border:1px solid var(--border-hi);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 18px rgba(5,12,26,0.45);}
+.brand .wordmark{display:flex;flex-direction:column;line-height:1;}
+.brand .name{font-family:var(--disp);font-weight:400;font-size:23px;letter-spacing:.02em;color:#fff;}
+.brand .tag{display:flex;align-items:center;gap:7px;margin-top:3px;font-size:9px;letter-spacing:.30em;text-transform:uppercase;color:var(--silver-dim);font-weight:500;}
+.navlinks{display:flex;align-items:center;gap:34px;}
+.navlinks a{font-size:13px;font-weight:400;color:var(--silver);letter-spacing:.01em;transition:color .3s;}
+.navlinks a:hover{color:#fff;}
+.btn-ghost{font-size:13px;font-weight:500;color:var(--mist);padding:10px 20px;border-radius:11px;border:1px solid var(--border-hi);transition:.3s var(--ease);background:rgba(255,255,255,0.02);}
+.btn-ghost:hover{background:rgba(255,255,255,0.06);border-color:var(--silver-dim);}
+@media(max-width:760px){.navlinks .desk{display:none;}}
+
+/* ───────── footer ───────── */
+footer{border-top:1px solid var(--hairline);padding:54px 0 64px;}
+.foot-row{display:flex;align-items:flex-start;justify-content:space-between;gap:40px;flex-wrap:wrap;}
+.foot-brand .name{font-family:var(--disp);font-size:28px;color:#fff;font-weight:400;letter-spacing:.02em;}
+.foot-brand .tg{margin-top:8px;font-size:12px;color:var(--silver-dim);letter-spacing:.18em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.foot-brand p{margin-top:18px;font-size:13px;color:var(--silver);font-weight:300;max-width:330px;line-height:1.7;}
+.foot-cols{display:flex;gap:64px;}
+.foot-col h4{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver-dim);font-weight:600;margin-bottom:16px;}
+.foot-col a{display:block;font-size:13px;color:var(--silver);font-weight:300;margin-bottom:11px;transition:color .3s;}
+.foot-col a:hover{color:#fff;}
+.foot-base{margin-top:46px;padding-top:24px;border-top:1px solid var(--hairline);display:flex;justify-content:space-between;font-size:11.5px;color:var(--silver-dim);font-weight:300;flex-wrap:wrap;gap:12px;}
