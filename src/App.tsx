@@ -1,20 +1,24 @@
 import { Routes, Route } from "react-router-dom";
+import { BookingProvider, useBooking } from "./booking/BookingContext";
 import Landing from "./pages/Landing";
+import BookingOverlay from "./components/booking/BookingOverlay";
+
+function AppRoutes() {
+  const { open } = useBooking();
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<Landing onOpenBooking={open} />} />
+      </Routes>
+      <BookingOverlay />
+    </>
+  );
+}
 
 export default function App() {
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <Landing
-            onOpenBooking={(journeyKey) => {
-              // TODO(Task 10): open booking overlay
-              console.log("openBooking", journeyKey);
-            }}
-          />
-        }
-      />
-    </Routes>
+    <BookingProvider>
+      <AppRoutes />
+    </BookingProvider>
   );
 }
