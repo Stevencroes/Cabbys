@@ -9,8 +9,14 @@ import StepParty from "./steps/StepParty";
 import StepVehicle from "./steps/StepVehicle";
 import StepQuote from "./steps/StepQuote";
 import StepAccount from "./steps/StepAccount";
+import StepPayment from "./steps/StepPayment";
+import type { ConfirmedBooking } from "./steps/StepPayment";
 
-function renderStep(step: number) {
+interface BookingOverlayProps {
+  onConfirmed?: (booking: ConfirmedBooking) => void;
+}
+
+function renderStep(step: number, onConfirmed?: (booking: ConfirmedBooking) => void) {
   switch (step) {
     case 0: return <StepJourney />;
     case 1: return <StepRoute />;
@@ -19,15 +25,17 @@ function renderStep(step: number) {
     case 4: return <StepVehicle />;
     case 5: return <StepQuote />;
     case 6: return <StepAccount />;
-    case 7: return <div>Step 8</div>;
+    case 7: return <StepPayment onConfirmed={onConfirmed} />;
     default: return <div>Step {step + 1}</div>;
   }
 }
 
-export default function BookingOverlay() {
+export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   const { state, close, back } = useBooking();
   const overlayClass = ["overlay", state.open ? "open" : ""].filter(Boolean).join(" ");
   const backClass = ["btn-back", state.step === 0 ? "hidden" : ""].filter(Boolean).join(" ");
+  // On the payment step, hide the standard "Continue" footer (StepPayment has its own Confirm button)
+  const showFooter = state.step !== 7;
 
   return (
     <div className={overlayClass} aria-modal="true" role="dialog">
@@ -89,10 +97,10 @@ export default function BookingOverlay() {
           </div>
 
           <div className="stage-body">
-            {renderStep(state.step)}
+            {renderStep(state.step, onConfirmed)}
           </div>
 
-          <StageFooter />
+          {showFooter && <StageFooter />}
         </main>
       </div>
     </div>
