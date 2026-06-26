@@ -8,6 +8,7 @@ import StepSchedule from "./steps/StepSchedule";
 import StepParty from "./steps/StepParty";
 import StepVehicle from "./steps/StepVehicle";
 import StepQuote from "./steps/StepQuote";
+import StepAccount from "./steps/StepAccount";
 
 function renderStep(step: number) {
   switch (step) {
@@ -17,7 +18,7 @@ function renderStep(step: number) {
     case 3: return <StepParty />;
     case 4: return <StepVehicle />;
     case 5: return <StepQuote />;
-    case 6: return <div>Step 7</div>;
+    case 6: return <StepAccount />;
     case 7: return <div>Step 8</div>;
     default: return <div>Step {step + 1}</div>;
   }
