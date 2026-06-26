@@ -1,7 +1,7 @@
 import Diamond from "./Diamond";
 import EntryCard from "./EntryCard";
 
-export default function Hero({ onBegin }: { onBegin: () => void }) {
+export default function Hero({ onBegin }: { onBegin: (journeyKey?: string) => void }) {
   return (
     <section className="hero">
       <div className="wrap hero-grid">

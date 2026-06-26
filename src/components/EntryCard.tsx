@@ -1,4 +1,6 @@
-export default function EntryCard({ onBegin }: { onBegin: () => void }) {
+import { JOURNEYS } from "../data/journeys";
+
+export default function EntryCard({ onBegin }: { onBegin: (journeyKey?: string) => void }) {
   return (
     <div className="entry">
       <div className="entry-head">
@@ -8,9 +10,16 @@ export default function EntryCard({ onBegin }: { onBegin: () => void }) {
         </span>
       </div>
       <div className="chips">
-        <span className="chip on">Airport transfer</span>
-        <span className="chip">Hotel to hotel</span>
-        <span className="chip">By the hour</span>
+        {JOURNEYS.map((j) => (
+          <button
+            key={j.key}
+            type="button"
+            className="chip"
+            onClick={() => onBegin(j.key)}
+          >
+            {j.title}
+          </button>
+        ))}
       </div>
       <div className="route">
         <div className="rfield">
@@ -29,7 +38,7 @@ export default function EntryCard({ onBegin }: { onBegin: () => void }) {
           </div>
         </div>
       </div>
-      <button className="entry-cta" onClick={onBegin}>
+      <button className="entry-cta" onClick={() => onBegin()}>
         Begin <span className="arr">→</span>
       </button>
     </div>

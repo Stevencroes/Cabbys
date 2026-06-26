@@ -2,13 +2,17 @@ import { useBooking } from "../../booking/BookingContext";
 import Diamond from "../Diamond";
 import ProgressRail from "./ProgressRail";
 import StageFooter from "./StageFooter";
+import StepJourney from "./steps/StepJourney";
+import StepRoute from "./steps/StepRoute";
+import StepSchedule from "./steps/StepSchedule";
+import StepParty from "./steps/StepParty";
 
 function renderStep(step: number) {
   switch (step) {
-    case 0: return <div>Step 1</div>;
-    case 1: return <div>Step 2</div>;
-    case 2: return <div>Step 3</div>;
-    case 3: return <div>Step 4</div>;
+    case 0: return <StepJourney />;
+    case 1: return <StepRoute />;
+    case 2: return <StepSchedule />;
+    case 3: return <StepParty />;
     case 4: return <div>Step 5</div>;
     case 5: return <div>Step 6</div>;
     case 6: return <div>Step 7</div>;

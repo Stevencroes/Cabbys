@@ -8,7 +8,7 @@ export default function Landing({ onOpenBooking }: { onOpenBooking: (journeyKey?
   return (
     <>
       <Nav onSignIn={() => onOpenBooking()} />
-      <Hero onBegin={() => onOpenBooking()} />
+      <Hero onBegin={(key) => onOpenBooking(key)} />
       <Ethos />
       <Fleet />
       <Footer />
