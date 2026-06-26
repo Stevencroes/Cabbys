@@ -38,6 +38,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
         <nav className="navlinks">
           <a href="#ethos" className="desk">The service</a>
           <a href="#fleet" className="desk">Fleet</a>
+          <a href="/trips" className="desk">My trips</a>
           <button className="btn-ghost" onClick={onSignIn}>Sign in</button>
         </nav>
       </div>

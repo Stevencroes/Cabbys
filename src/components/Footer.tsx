@@ -16,7 +16,7 @@ export default function Footer() {
               <a href="#">Book a transfer</a>
               <a href="#fleet">The fleet</a>
               <a href="#ethos">How it works</a>
-              <a href="#">My trips</a>
+              <a href="/trips">My trips</a>
             </div>
             <div className="foot-col">
               <h4>Island</h4>

@@ -4,6 +4,7 @@ import { BookingProvider, useBooking } from "./booking/BookingContext";
 import Landing from "./pages/Landing";
 import BookingOverlay from "./components/booking/BookingOverlay";
 import AuthCallback from "./pages/AuthCallback";
+import MyTrips from "./pages/MyTrips";
 import Confirmation from "./components/Confirmation";
 import type { ConfirmedBooking } from "./components/booking/steps/StepPayment";
 
@@ -25,6 +26,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Landing onOpenBooking={open} />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/trips" element={<MyTrips />} />
       </Routes>
       <BookingOverlay onConfirmed={handleConfirmed} />
       <Confirmation booking={confirmedBooking} onDone={handleDone} />
