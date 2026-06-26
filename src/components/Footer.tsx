@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="foot-row">
           <div className="foot-brand">
             <div className="name">Cabby's</div>
-            <div className="tg"><Diamond />&nbsp;Arrive in silence</div>
+            <div className="tg"><Diamond />&nbsp;Private transfers · Aruba</div>
             <p>Private, fixed-price transfers across Aruba. Booked from anywhere, settled before you land.</p>
           </div>
           <div className="foot-cols">
