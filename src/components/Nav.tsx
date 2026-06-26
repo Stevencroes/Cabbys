@@ -15,18 +15,18 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   }, []);
 
   return (
-    <header className="nav" ref={headerRef}>
+    <header id="nav" className="nav" ref={headerRef}>
       <div className="wrap navrow">
         <div className="brand">
           <div className="mark">
             <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
               <defs>
-                <linearGradient id="mg" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+                <linearGradient id="nav-mg" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
                   <stop offset="0" stopColor="#EEF2F8" />
                   <stop offset="1" stopColor="#7E94B4" />
                 </linearGradient>
               </defs>
-              <path d="M32 13.76 A 13 13 0 1 0 32 34.24" stroke="url(#mg)" strokeWidth="3.2" strokeLinecap="round" />
+              <path d="M32 13.76 A 13 13 0 1 0 32 34.24" stroke="url(#nav-mg)" strokeWidth="3.2" strokeLinecap="round" />
               <circle cx="32" cy="34.24" r="3" fill="var(--accent)" />
             </svg>
           </div>

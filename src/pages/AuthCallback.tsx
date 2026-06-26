@@ -18,7 +18,7 @@ export default function AuthCallback() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100vh",
-        color: "var(--mist, #c8d0dc)",
+        color: "var(--mist, #EEF2F8)",
         fontSize: "15px",
         fontWeight: 300,
         letterSpacing: "0.04em",

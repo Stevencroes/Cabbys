@@ -1,19 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../../../booking/useAuth";
-import { useBooking } from "../../../booking/BookingContext";
 
 export default function StepAccount() {
   const { user, loading, signInWithProvider, signInWithEmail } = useAuth();
-  const { setField, state } = useBooking();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
-
-  useEffect(() => {
-    if (user && !state.signedIn) {
-      setField("signedIn", true);
-    }
-  }, [user, state.signedIn, setField]);
 
   async function handleEmailContinue() {
     if (!email.trim()) return;
