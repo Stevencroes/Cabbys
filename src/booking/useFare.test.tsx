@@ -77,7 +77,7 @@ function renderUseFare(opts: {
 describe("useFare", () => {
   beforeEach(() => { clearPricingCache(); });
 
-  it("starts in loading state", () => {
+  it("starts in loading state then settles", async () => {
     const { result } = renderUseFare({
       from: "Queen Beatrix International Airport",
       to: "Palm Beach",
@@ -85,7 +85,10 @@ describe("useFare", () => {
       time: "14:00",
       vehicle: "sedan",
     });
+    // Synchronously true before pricing resolves
     expect(result.current.loading).toBe(true);
+    // Drain the pending async state update so no act() warning leaks
+    await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
   it("computes total ≈ 42.4 for Airport→Palm Beach, sedan, daytime", async () => {
