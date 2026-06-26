@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useReducer } from "react";
 
 export const STEP_NAMES = [
   "Occasion",
@@ -78,6 +78,7 @@ function reducer(state: BookingState, action: Action): BookingState {
     case "RESET":
       return { ...initialState };
     case "SET_FIELD":
+      if (state[action.key] === action.value) return state;
       return { ...state, [action.key]: action.value };
     default:
       return state;
@@ -126,19 +127,19 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const canContinue = computeCanContinue(state);
 
-  const value: BookingContextValue = {
-    state,
-    canContinue,
-    STEP_NAMES,
-    open: (journeyKey?: string) => dispatch({ type: "OPEN", journeyKey }),
-    close: () => dispatch({ type: "CLOSE" }),
-    next: () => dispatch({ type: "NEXT" }),
-    back: () => dispatch({ type: "BACK" }),
-    goTo: (step: number) => dispatch({ type: "GO_TO", step }),
-    reset: () => dispatch({ type: "RESET" }),
-    setField: <K extends StateKey>(key: K, value: StateValue<K>) =>
-      dispatch({ type: "SET_FIELD", key, value: value as BookingState[StateKey] }),
-  };
+  const open = useCallback((journeyKey?: string) => dispatch({ type: "OPEN", journeyKey }), []);
+  const close = useCallback(() => dispatch({ type: "CLOSE" }), []);
+  const next = useCallback(() => dispatch({ type: "NEXT" }), []);
+  const back = useCallback(() => dispatch({ type: "BACK" }), []);
+  const goTo = useCallback((step: number) => dispatch({ type: "GO_TO", step }), []);
+  const reset = useCallback(() => dispatch({ type: "RESET" }), []);
+  const setField = useCallback(<K extends StateKey>(key: K, val: StateValue<K>) =>
+    dispatch({ type: "SET_FIELD", key, value: val as BookingState[StateKey] }), []);
+
+  const value = useMemo<BookingContextValue>(
+    () => ({ state, canContinue, STEP_NAMES, open, close, setField, next, back, goTo, reset }),
+    [state, canContinue, open, close, setField, next, back, goTo, reset],
+  );
 
   return (
     <BookingContext.Provider value={value}>{children}</BookingContext.Provider>
