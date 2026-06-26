@@ -1,5 +1,5 @@
 export type BookingState = {
-  journey: string | null;
+  journey?: string | null;
   from: string; to: string;
   date: string; time: string;
   passengers: number; luggage: number;

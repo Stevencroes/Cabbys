@@ -5,21 +5,32 @@ import { BookingProvider, useBooking } from "./BookingContext";
 const wrapper = ({ children }: { children: React.ReactNode }) => <BookingProvider>{children}</BookingProvider>;
 
 describe("BookingContext", () => {
-  it("opens on a journey and gates step 0 until a journey is chosen", () => {
+  it("gates Trip until from+to+when+passengers are set", () => {
     const { result } = renderHook(() => useBooking(), { wrapper });
-    expect(result.current.state.open).toBe(false);
     act(() => result.current.open());
     expect(result.current.state.open).toBe(true);
     expect(result.current.canContinue).toBe(false);
-    act(() => result.current.setField("journey", "airport"));
+    act(() => {
+      result.current.setField("from", "Airport");
+      result.current.setField("to", "Palm Beach");
+      result.current.setField("date", "2026-07-01");
+      result.current.setField("time", "14:00");
+    });
     expect(result.current.canContinue).toBe(true);
   });
-  it("requires both route ends before leaving step 1", () => {
+
+  it("gates Ride on vehicle and Confirm on signedIn", () => {
     const { result } = renderHook(() => useBooking(), { wrapper });
-    act(() => { result.current.open("airport"); result.current.next(); });
-    expect(result.current.state.step).toBe(1);
+    act(() => {
+      result.current.open();
+      result.current.goTo(1);
+    });
     expect(result.current.canContinue).toBe(false);
-    act(() => { result.current.setField("from", "Airport"); result.current.setField("to", "Palm Beach"); });
+    act(() => result.current.setField("vehicle", "sedan"));
+    expect(result.current.canContinue).toBe(true);
+    act(() => result.current.goTo(2));
+    expect(result.current.canContinue).toBe(false);
+    act(() => result.current.setField("signedIn", true));
     expect(result.current.canContinue).toBe(true);
   });
 });

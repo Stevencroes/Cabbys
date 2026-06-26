@@ -341,3 +341,30 @@ input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,2
 .conf-done{margin-top:28px;min-width:180px;justify-content:center;
   opacity:0;transition:opacity .4s var(--ease) .6s;}
 .conf-visible .conf-done{opacity:1;}
+
+/* ── destination picker (quick-booking redesign) ── */
+.dfield{margin-top:14px;}
+.dfield .txt{margin-bottom:12px;}
+.cat-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.cat-chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:400;color:var(--silver);padding:8px 13px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,0.025);transition:.25s var(--ease);}
+.cat-chip:hover{color:#fff;border-color:var(--silver-dim);}
+.cat-chip.on{color:#fff;background:var(--accent-soft);border-color:var(--border-hi);}
+.cat-chip svg{width:15px;height:15px;}
+.place-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;}
+
+/* ── trip screen ── */
+.trip-fields{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.trip-row{display:flex;align-items:center;gap:14px;padding:15px 18px;border-radius:13px;border:1px solid var(--border);background:var(--card);width:100%;text-align:left;transition:.25s var(--ease);}
+.trip-row:hover{border-color:var(--silver-dim);}
+.trip-row.on{border-color:var(--border-hi);background:var(--card-hi);}
+.trip-row .tr-lbl{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver-dim);font-weight:600;margin-bottom:3px;}
+.trip-row .tr-val{font-size:15px;color:var(--mist);font-weight:300;}
+.trip-row .tr-val.placeholder{color:var(--silver-dim);}
+.seg{display:inline-flex;gap:3px;padding:4px;border-radius:12px;border:1px solid var(--border);background:rgba(10,22,40,0.5);margin-top:18px;}
+.seg button{padding:8px 18px;border-radius:9px;font-size:12.5px;font-weight:500;color:var(--silver);transition:.25s;}
+.seg button.on{background:var(--accent-soft);color:#fff;}
+
+/* ── ride screen ── */
+.fare-tag{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.06em;color:var(--silver-dim);font-weight:500;margin-top:14px;}
+.fare-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--silver);}
+.fare-tag.estimate .dot{background:var(--steel);}

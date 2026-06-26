@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useBooking } from "../booking/BookingContext";
 import { formatMoney } from "../lib/currency";
-import type { ConfirmedBooking } from "./booking/steps/StepPayment";
+import type { ConfirmedBooking } from "./booking/steps/StepConfirm";
 
 interface ConfirmationProps {
   booking: ConfirmedBooking | null;
@@ -113,7 +113,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
         )}
         <div className="conf-row conf-total-row">
           <span className="conf-rl">Total fare</span>
-          <span className="conf-rr conf-total">{formatMoney(booking.total, booking.currency)}</span>
+          <span className="conf-rr conf-total">{formatMoney(booking.total, "USD")}</span>
         </div>
       </div>
 
