@@ -19,7 +19,7 @@ describe("BookingContext", () => {
     expect(result.current.canContinue).toBe(true);
   });
 
-  it("gates Ride on vehicle and Confirm on signedIn", () => {
+  it("gates Ride on vehicle + signedIn", () => {
     const { result } = renderHook(() => useBooking(), { wrapper });
     act(() => {
       result.current.open();
@@ -27,8 +27,6 @@ describe("BookingContext", () => {
     });
     expect(result.current.canContinue).toBe(false);
     act(() => result.current.setField("vehicle", "sedan"));
-    expect(result.current.canContinue).toBe(true);
-    act(() => result.current.goTo(2));
     expect(result.current.canContinue).toBe(false);
     act(() => result.current.setField("signedIn", true));
     expect(result.current.canContinue).toBe(true);

@@ -27,7 +27,15 @@ vi.mock("../../../lib/supabase", () => {
     };
     return b;
   };
-  return { supabase: { from: builder } };
+  return {
+    supabase: {
+      from: builder,
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null } }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      },
+    },
+  };
 });
 
 import { BookingProvider, useBooking } from "../../../booking/BookingContext";

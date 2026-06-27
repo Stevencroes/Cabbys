@@ -4,8 +4,7 @@ import ProgressRail from "./ProgressRail";
 import StageFooter from "./StageFooter";
 import StepTrip from "./steps/StepTrip";
 import StepRide from "./steps/StepRide";
-import StepConfirm from "./steps/StepConfirm";
-import type { ConfirmedBooking } from "./steps/StepConfirm";
+import type { ConfirmedBooking } from "./steps/StepRide";
 
 interface BookingOverlayProps {
   onConfirmed?: (booking: ConfirmedBooking) => void;
@@ -14,8 +13,7 @@ interface BookingOverlayProps {
 function renderStep(step: number, onConfirmed?: (booking: ConfirmedBooking) => void) {
   switch (step) {
     case 0: return <StepTrip />;
-    case 1: return <StepRide />;
-    case 2: return <StepConfirm onConfirmed={onConfirmed} />;
+    case 1: return <StepRide onConfirmed={onConfirmed} />;
     default: return <StepTrip />;
   }
 }
@@ -24,8 +22,8 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   const { state, close, back } = useBooking();
   const overlayClass = ["overlay", state.open ? "open" : ""].filter(Boolean).join(" ");
   const backClass = ["btn-back", state.step === 0 ? "hidden" : ""].filter(Boolean).join(" ");
-  // On the Confirm step, hide the standard "Continue" footer (StepConfirm has its own Confirm button)
-  const showFooter = state.step !== 2;
+  // On the Ride step, hide the standard "Continue" footer (StepRide has its own Request button)
+  const showFooter = state.step !== 1;
 
   return (
     <div className={overlayClass} aria-modal="true" role="dialog">
@@ -77,7 +75,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
               Back
             </button>
 
-            <span className="mob-prog">Step {state.step + 1} of 3</span>
+            <span className="mob-prog">Step {state.step + 1} of 2</span>
 
             <button className="ov-close" onClick={close} aria-label="Close booking">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -86,7 +84,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
             </button>
           </div>
 
-          <div className="stage-body">
+          <div className={`stage-body${state.step === 1 ? " wide" : ""}`}>
             {renderStep(state.step, onConfirmed)}
           </div>
 

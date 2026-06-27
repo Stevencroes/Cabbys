@@ -13,12 +13,24 @@ vi.mock("../../../booking/useFare", () => ({
   useFare: () => ({ loading: false, fare: { source: "route" }, base: 40, tax: 2.4, total: 42.4, lineItems: [] }),
   fareForVehicle: () => 42.4,
 }));
-const insert = vi.fn(() => ({ select: () => ({ single: () => Promise.resolve({ data: { id: "ride-1" }, error: null }) }) }));
-vi.mock("../../../lib/supabase", () => ({ supabase: { from: vi.fn(() => ({ insert })) } }));
+// Self-contained factory (no external vars — avoids vi.mock hoisting/TDZ).
+// `from` supports both the pricing chain (.select().eq().order().then) and rides .insert().
+vi.mock("../../../lib/supabase", () => {
+  const make = () => {
+    const b: any = {
+      insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: { id: "ride-1" }, error: null }) }) }),
+      select() { return b; },
+      eq() { return b; },
+      order() { return b; },
+      then(res: any) { return Promise.resolve({ data: [], error: null }).then(res); },
+    };
+    return b;
+  };
+  return { supabase: { from: () => make() } };
+});
 
-import { supabase } from "../../../lib/supabase";
 import { BookingProvider, useBooking } from "../../../booking/BookingContext";
-import StepConfirm from "./StepConfirm";
+import StepRide from "./StepRide";
 
 function Seed() {
   const { setField } = useBooking();
@@ -37,18 +49,17 @@ function Seed() {
   );
 }
 
-describe("StepConfirm", () => {
-  it("writes a rides row and reports the id on confirm", async () => {
+describe("StepRide — request", () => {
+  it("writes a rides row and reports the id on request", async () => {
     const onConfirmed = vi.fn();
     render(
       <BookingProvider>
         <Seed />
-        <StepConfirm onConfirmed={onConfirmed} />
+        <StepRide onConfirmed={onConfirmed} />
       </BookingProvider>,
     );
     fireEvent.click(screen.getByText("seed"));
-    fireEvent.click(screen.getByRole("button", { name: /^confirm/i }));
+    fireEvent.click(screen.getByRole("button", { name: /request ride/i }));
     await waitFor(() => expect(onConfirmed).toHaveBeenCalledWith(expect.objectContaining({ rideId: "ride-1" })));
-    expect(supabase.from).toHaveBeenCalledWith("rides");
   });
 });

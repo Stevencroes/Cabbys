@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useBooking } from "../booking/BookingContext";
 import { formatMoney } from "../lib/currency";
-import type { ConfirmedBooking } from "./booking/steps/StepConfirm";
+import type { ConfirmedBooking } from "./booking/steps/StepRide";
 
 interface ConfirmationProps {
   booking: ConfirmedBooking | null;

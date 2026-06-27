@@ -9,9 +9,9 @@ function Harness() {
 }
 
 describe("BookingOverlay", () => {
-  it("shows step 1 of 3 when opened", () => {
+  it("shows step 1 of 2 when opened", () => {
     render(<BookingProvider><Harness /></BookingProvider>);
     fireEvent.click(screen.getByText("go"));
-    expect(screen.getByText(/Step 1 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/Step 1 of 2/i)).toBeInTheDocument();
   });
 });

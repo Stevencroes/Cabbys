@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from "react";
 
-export const STEP_NAMES = ["Trip", "Ride", "Confirm"] as const;
+export const STEP_NAMES = ["Where to", "Ride"] as const;
 
 export interface BookingState {
   from: string;
@@ -65,12 +65,10 @@ function reducer(state: BookingState, action: Action): BookingState {
 
 function computeCanContinue(state: BookingState): boolean {
   switch (state.step) {
-    case 0: // Trip
+    case 0: // Where to
       return !!state.from && !!state.to && !!state.date && !!state.time && state.passengers >= 1;
-    case 1: // Ride
-      return !!state.vehicle;
-    case 2: // Confirm
-      return state.signedIn;
+    case 1: // Ride (final screen — the Request button handles its own validation)
+      return !!state.vehicle && state.signedIn;
     default:
       return true;
   }
