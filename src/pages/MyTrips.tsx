@@ -72,7 +72,7 @@ export default function MyTrips() {
       <main
         style={{
           minHeight: "100vh",
-          background: "var(--midnight)",
+          background: "var(--zone-glow), var(--midnight)",
           paddingTop: "7rem",
           paddingBottom: "4rem",
         }}
@@ -191,12 +191,11 @@ export default function MyTrips() {
                 return (
                   <article
                     key={ride.id}
+                    className="trip-card"
                     style={{
                       background: "var(--card)",
-                      border: "1px solid var(--border)",
                       borderRadius: "12px",
                       padding: "1.5rem 1.75rem",
-                      transition: "border-color 0.2s",
                     }}
                   >
                     <div

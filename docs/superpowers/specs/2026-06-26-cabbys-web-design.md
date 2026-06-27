@@ -179,3 +179,34 @@ surfaces, any schema or RLS changes, real card capture until keys are provided.
 2. Booking overlay + 8 steps + live fare engine (real pricing data).
 3. Auth + booking write to `rides` + confirmation.
 4. My Trips + Stripe scaffold + Vercel deploy config.
+
+---
+
+## Addendum (2026-06-27): Color-zoned sections
+
+Brings more of the brand palette into the UI by giving sections distinct, low-opacity
+blue zones instead of one uniform dark field. **No new hues** — all tones are
+steel/ocean rgba helper tints already permitted by §2. Diamonds, eyebrows, and type
+remain silver/mist/white; text contrast is unchanged.
+
+**Vertical rhythm** down the page: `midnight (hero) → steel-tinted (ethos) → deep
+ocean (fleet) → midnight (footer)`. Steel (`#2A4A72`), the most underused brand color,
+surfaces as the warm midpoint.
+
+New tokens in `tokens.css`:
+- `--zone-ethos` — ocean→steel-tinted band + faint steel radial glow (the colorful zone)
+- `--zone-fleet` — deep-ocean band, darker/quieter than ethos
+- `--steel-edge` — `rgba(42,74,114,…)` for card left-accents / top-stripes
+
+Surfaces:
+- **Hero** — unchanged (darkest arrival point).
+- **Ethos** — full-bleed steel-tinted band, top hairline marks the zone change; `.ecard`
+  gains a steel left-edge + steel-tinted icon tile.
+- **Fleet** — full-bleed deep-ocean band; `.fcard` gains a thin steel top-stripe.
+- **Booking overlay** — keeps rail(midnight)/stage(ocean) split, strengthened as zoning:
+  steel radial glow in the stage; quote + payment-summary cards get a steel-tinted
+  header band.
+- **My Trips** — steel radial glow on the page background; ride cards gain a steel
+  left-edge accent (stronger on hover).
+
+Guardrails: steel bands ~8–14% over ocean; restraint and quiet-luxury voice intact.

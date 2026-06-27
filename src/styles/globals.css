@@ -114,21 +114,23 @@ h1.hero-title .accent{font-style:italic;font-weight:400;color:var(--silver);}
 .section-label{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--silver-dim);font-weight:600;display:flex;align-items:center;gap:13px;margin-bottom:30px;}
 .section-label::after{content:"";flex:1;height:1px;background:var(--hairline);}
 
-.ethos{padding:34px 0 110px;}
+.ethos{padding:74px 0 110px;position:relative;background:var(--zone-ethos);border-top:1px solid var(--hairline);}
 .ethos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;}
 @media(max-width:820px){.ethos-grid{grid-template-columns:1fr;max-width:460px;}}
-.ecard{border-radius:20px;padding:30px 28px;background:var(--card);border:1px solid var(--border);transition:.4s var(--ease);}
-.ecard:hover{background:var(--card-hi);border-color:var(--border-hi);transform:translateY(-3px);}
-.ecard .ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:var(--silver);background:rgba(180,195,220,0.06);border:1px solid var(--border);margin-bottom:22px;}
+.ecard{position:relative;border-radius:20px;padding:30px 28px 30px 30px;background:var(--card);border:1px solid var(--border);border-left:2px solid var(--steel-edge);transition:.4s var(--ease);}
+.ecard:hover{background:var(--card-hi);border-color:var(--border-hi);border-left-color:var(--silver);transform:translateY(-3px);}
+.ecard .ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:var(--silver);background:rgba(42,74,114,0.28);border:1px solid var(--accent-line);margin-bottom:22px;}
 .ecard h3{font-family:var(--disp);font-weight:500;font-size:23px;color:#fff;letter-spacing:.01em;}
 .ecard p{margin-top:11px;font-size:13.5px;font-weight:300;line-height:1.7;color:var(--silver);}
 
 /* ───────── fleet ribbon ───────── */
-.fleet{padding:0 0 116px;}
+.fleet{padding:74px 0 116px;background:var(--zone-fleet);border-top:1px solid var(--hairline);}
 .fleet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
 @media(max-width:820px){.fleet-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:480px){.fleet-grid{grid-template-columns:1fr;}}
-.fcard{border-radius:18px;padding:24px 22px;background:var(--card);border:1px solid var(--border);}
+.fcard{position:relative;border-radius:18px;padding:24px 22px;background:var(--card);border:1px solid var(--border);overflow:hidden;transition:.3s var(--ease);}
+.fcard::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--steel-edge),rgba(42,74,114,0));}
+.fcard:hover{border-color:var(--border-hi);background:var(--card-hi);}
 .fcard .cls{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver-dim);font-weight:600;}
 .fcard .fname{font-family:var(--disp);font-weight:500;font-size:21px;color:#fff;margin-top:6px;}
 .fcard .cap{margin-top:14px;display:flex;gap:16px;font-size:12px;color:var(--silver);font-weight:300;}
@@ -165,7 +167,8 @@ h1.hero-title .accent{font-style:italic;font-weight:400;color:var(--silver);}
 
 /* stage */
 .stage{background:
-    radial-gradient(ellipse 50% 40% at 88% -4%, #15294a 0%, transparent 58%),
+    radial-gradient(ellipse 50% 40% at 88% -4%, rgba(42,74,114,0.45) 0%, transparent 58%),
+    radial-gradient(ellipse 46% 36% at 6% 102%, rgba(42,74,114,0.22) 0%, transparent 60%),
     var(--ocean);
   overflow-y:auto;position:relative;}
 .stage-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
@@ -267,7 +270,7 @@ input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,2
 
 /* ───────── quote card ───────── */
 .quote{margin-top:26px;border-radius:20px;border:1px solid var(--border-hi);background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025));overflow:hidden;box-shadow:var(--shadow-card);}
-.quote-head{padding:24px 26px;border-bottom:1px solid var(--hairline);}
+.quote-head{padding:24px 26px;border-bottom:1px solid var(--hairline);background:linear-gradient(180deg,rgba(42,74,114,0.22),rgba(42,74,114,0));}
 .quote-route{display:flex;align-items:center;gap:13px;}
 .quote-route .qr-text{font-family:var(--disp);font-size:21px;color:#fff;font-weight:400;line-height:1.2;}
 .quote-sub{font-size:12px;color:var(--silver);font-weight:300;margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;}
@@ -277,7 +280,7 @@ input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,2
 .qline .ql-l{color:var(--silver);font-weight:300;}
 .qline .ql-r{color:var(--mist);font-weight:400;}
 .qline.muted .ql-l,.qline.muted .ql-r{color:var(--silver-dim);font-size:12.5px;}
-.qtotal{padding:22px 26px;border-top:1px solid var(--hairline);display:flex;align-items:flex-end;justify-content:space-between;background:rgba(10,22,40,0.3);}
+.qtotal{padding:22px 26px;border-top:1px solid var(--hairline);display:flex;align-items:flex-end;justify-content:space-between;background:rgba(42,74,114,0.18);}
 .qtotal .qt-l{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver-dim);font-weight:600;}
 .qtotal .qt-r{font-family:var(--disp);font-weight:500;font-size:38px;color:#fff;line-height:1;}
 .qtotal .qt-r .sym{font-size:22px;color:var(--silver);font-weight:400;margin-right:3px;}
@@ -298,7 +301,7 @@ input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,2
 .ps-row:last-child{border-bottom:none;}
 .ps-l{font-size:12px;color:var(--silver);font-weight:300;letter-spacing:.02em;}
 .ps-r{font-size:14px;color:var(--mist);font-weight:400;}
-.ps-total{background:rgba(10,22,40,0.25);}
+.ps-total{background:rgba(42,74,114,0.18);}
 .ps-total .ps-l{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver-dim);font-weight:600;}
 .ps-amount{font-family:var(--disp);font-size:22px;color:#fff;font-weight:500;}
 
@@ -363,6 +366,10 @@ input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,2
 .seg{display:inline-flex;gap:3px;padding:4px;border-radius:12px;border:1px solid var(--border);background:rgba(10,22,40,0.5);margin-top:18px;}
 .seg button{padding:8px 18px;border-radius:9px;font-size:12.5px;font-weight:500;color:var(--silver);transition:.25s;}
 .seg button.on{background:var(--accent-soft);color:#fff;}
+
+/* ── my trips ride cards ── */
+.trip-card{border:1px solid var(--border);border-left:2px solid var(--steel-edge);transition:border-color .25s var(--ease),background .25s var(--ease);}
+.trip-card:hover{border-color:var(--border-hi);border-left-color:var(--silver);background:var(--card-hi)!important;}
 
 /* ── ride screen ── */
 .fare-tag{display:inline-flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.06em;color:var(--silver-dim);font-weight:500;margin-top:14px;}
