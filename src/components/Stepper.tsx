@@ -3,9 +3,10 @@ interface StepperProps {
   min: number;
   max?: number;
   onChange: (next: number) => void;
+  testId?: string;
 }
 
-export default function Stepper({ value, min, max, onChange }: StepperProps) {
+export default function Stepper({ value, min, max, onChange, testId }: StepperProps) {
   const atMin = value <= min;
   const atMax = max !== undefined && value >= max;
 
@@ -19,7 +20,7 @@ export default function Stepper({ value, min, max, onChange }: StepperProps) {
       >
         −
       </button>
-      <span className="num">{value}</span>
+      <span className="num" data-testid={testId}>{value}</span>
       <button
         type="button"
         aria-label="+"

@@ -1,28 +1,15 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from "react";
 
-export const STEP_NAMES = [
-  "Occasion",
-  "Route",
-  "Schedule",
-  "Party",
-  "Vehicle",
-  "Fare",
-  "Account",
-  "Payment",
-] as const;
+export const STEP_NAMES = ["Where to", "Ride"] as const;
 
 export interface BookingState {
-  journey: string | null;
   from: string;
   to: string;
-  fromCustom: string;
-  toCustom: string;
   date: string;
   time: string;
   passengers: number;
   luggage: number;
   vehicle: string | null;
-  currency: "AWG" | "USD" | "EUR";
   step: number;
   open: boolean;
   signedIn: boolean;
@@ -32,24 +19,20 @@ type StateKey = keyof BookingState;
 type StateValue<K extends StateKey> = BookingState[K];
 
 const initialState: BookingState = {
-  journey: null,
   from: "",
   to: "",
-  fromCustom: "",
-  toCustom: "",
   date: "",
   time: "",
   passengers: 2,
   luggage: 2,
   vehicle: null,
-  currency: "AWG",
   step: 0,
   open: false,
   signedIn: false,
 };
 
 type Action =
-  | { type: "OPEN"; journeyKey?: string }
+  | { type: "OPEN" }
   | { type: "CLOSE" }
   | { type: "NEXT" }
   | { type: "BACK" }
@@ -60,12 +43,7 @@ type Action =
 function reducer(state: BookingState, action: Action): BookingState {
   switch (action.type) {
     case "OPEN":
-      return {
-        ...state,
-        open: true,
-        step: 0,
-        journey: action.journeyKey ?? null,
-      };
+      return { ...state, open: true, step: 0 };
     case "CLOSE":
       return { ...state, open: false };
     case "NEXT":
@@ -87,22 +65,10 @@ function reducer(state: BookingState, action: Action): BookingState {
 
 function computeCanContinue(state: BookingState): boolean {
   switch (state.step) {
-    case 0:
-      return !!state.journey;
-    case 1:
-      return !!state.from && !!state.to;
-    case 2:
-      return !!state.date && !!state.time;
-    case 3:
-      return state.passengers >= 1;
-    case 4:
-      return !!state.vehicle;
-    case 5:
-      return true;
-    case 6:
-      return state.signedIn;
-    case 7:
-      return true;
+    case 0: // Where to
+      return !!state.from && !!state.to && !!state.date && !!state.time && state.passengers >= 1;
+    case 1: // Ride (final screen — the Request button handles its own validation)
+      return !!state.vehicle && state.signedIn;
     default:
       return true;
   }
@@ -112,7 +78,7 @@ interface BookingContextValue {
   state: BookingState;
   canContinue: boolean;
   STEP_NAMES: typeof STEP_NAMES;
-  open: (journeyKey?: string) => void;
+  open: () => void;
   close: () => void;
   next: () => void;
   back: () => void;
@@ -127,7 +93,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const canContinue = computeCanContinue(state);
 
-  const open = useCallback((journeyKey?: string) => dispatch({ type: "OPEN", journeyKey }), []);
+  const open = useCallback(() => dispatch({ type: "OPEN" }), []);
   const close = useCallback(() => dispatch({ type: "CLOSE" }), []);
   const next = useCallback(() => dispatch({ type: "NEXT" }), []);
   const back = useCallback(() => dispatch({ type: "BACK" }), []);
