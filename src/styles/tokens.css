@@ -9,8 +9,11 @@
 
   /* former --gold usages remap here (strict brand) */
   --accent:#B4C3DC;                 /* diamonds, eyebrows, check-ring, done-node */
-  --accent-soft:rgba(42,74,114,0.40);/* active tile fill (steel tint) */
+  --accent-soft:#2A4A72;            /* selected tile fill — solid steel block */
   --accent-line:rgba(180,195,220,0.45);
+
+  --silver-hi:#CBD6E8;              /* brighter silver for button hover */
+  --ink:#3A4F70;                   /* readable steel-ink body text on light surfaces */
 
   --card:rgba(255,255,255,0.045);
   --card-hi:rgba(255,255,255,0.07);
@@ -30,6 +33,9 @@
   --zone-glow:                                /* steel radial glow for page/stage backgrounds */
     radial-gradient(ellipse 60% 45% at 14% -6%, rgba(42,74,114,0.32) 0%, transparent 56%),
     radial-gradient(ellipse 55% 55% at 90% 4%, rgba(42,74,114,0.20) 0%, transparent 60%);
+  --zone-light:                               /* light mist section — dark/light rotation */
+    radial-gradient(ellipse 60% 50% at 12% 0%, rgba(180,195,220,0.35) 0%, transparent 60%),
+    linear-gradient(180deg, #F4F7FB 0%, #E9EFF7 100%);
 
   --disp:'Cormorant Garamond',serif;
   --ui:'Outfit',sans-serif;

@@ -210,3 +210,24 @@ Surfaces:
   left-edge accent (stronger on hover).
 
 Guardrails: steel bands ~8–14% over ocean; restraint and quiet-luxury voice intact.
+
+### v2 (2026-06-27): bold solid fills + dark/light rotation
+
+Per the brand PDF (`Cabbys_Brand_Identity.pdf`) — which confirms the same six colors
+and shows them as **solid blocks** (silver "Confirm & Pay" button, midnight/white/steel/
+silver wordmark blocks). Goal: use brand colors as real fills and rotate them, not just
+tint text.
+
+- **Primary buttons → solid silver, midnight text** (`.entry-cta`, `.btn-primary` →
+  covers StageFooter, StepRide, Confirmation/conf-done, pay-confirm). Hover brightens to
+  `--silver-hi`. Mirrors the PDF's Confirm & Pay.
+- **Selected states → solid steel blocks** — `--accent-soft` is now solid `#2A4A72`
+  (was 40% rgba); hardcoded `.chip.on` / `.cur-toggle .on` made solid too.
+- **Ethos is now the LIGHT zone** — mist surface (`--zone-light`) with white cards,
+  midnight headings, `--ink` body text. Page rhythm: `midnight (hero) → LIGHT mist
+  (ethos) → ocean (fleet) → midnight (footer)`.
+- **Color rotation across repeated elements** — Ethos icon tiles cycle solid
+  steel → silver → ocean; Fleet card top-stripes alternate steel / silver (`nth-child`).
+
+New tokens: `--silver-hi` (button hover), `--ink` (light-surface body text),
+`--zone-light` (mist section background).
