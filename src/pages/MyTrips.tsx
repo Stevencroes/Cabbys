@@ -187,7 +187,7 @@ export default function MyTrips() {
               {rides.map((ride) => {
                 const fare = formatMoney(
                   Number(ride.fare_total ?? ride.price ?? 0),
-                  "AWG"
+                  "USD"
                 );
                 const vehicle = [ride.vehicle_class, ride.vehicle_type]
                   .filter(Boolean)

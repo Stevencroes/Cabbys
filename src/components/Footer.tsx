@@ -28,7 +28,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="foot-base">
-          <span>© 2026 Cabby's Aruba. Fares shown in Aruban florin, settled in AWG, USD or EUR.</span>
+          <span>© 2026 Cabby's Aruba. Fares shown in US dollars.</span>
           <span>Privacy · Terms · A 6% government &amp; facility tax applies to every fare.</span>
         </div>
       </div>
