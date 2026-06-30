@@ -32,7 +32,7 @@ const initialState: BookingState = {
 };
 
 type Action =
-  | { type: "OPEN" }
+  | { type: "OPEN"; step?: number }
   | { type: "CLOSE" }
   | { type: "NEXT" }
   | { type: "BACK" }
@@ -43,7 +43,7 @@ type Action =
 function reducer(state: BookingState, action: Action): BookingState {
   switch (action.type) {
     case "OPEN":
-      return { ...state, open: true, step: 0 };
+      return { ...state, open: true, step: action.step ?? 0 };
     case "CLOSE":
       return { ...state, open: false };
     case "NEXT":
@@ -78,7 +78,7 @@ interface BookingContextValue {
   state: BookingState;
   canContinue: boolean;
   STEP_NAMES: typeof STEP_NAMES;
-  open: () => void;
+  open: (step?: number) => void;
   close: () => void;
   next: () => void;
   back: () => void;
@@ -93,7 +93,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const canContinue = computeCanContinue(state);
 
-  const open = useCallback(() => dispatch({ type: "OPEN" }), []);
+  const open = useCallback((step?: number) => dispatch({ type: "OPEN", step }), []);
   const close = useCallback(() => dispatch({ type: "CLOSE" }), []);
   const next = useCallback(() => dispatch({ type: "NEXT" }), []);
   const back = useCallback(() => dispatch({ type: "BACK" }), []);

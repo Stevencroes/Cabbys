@@ -13,29 +13,18 @@
   --accent-line:rgba(180,195,220,0.45);
 
   --silver-hi:#CBD6E8;              /* brighter silver for button hover */
+  --silver-focus:#C9D6EC;          /* brightened silver — interactive focus/active glow ONLY */
+  --silver-wash:#DCE4F0;           /* soft silver tint — calm light section fill */
   --ink:#3A4F70;                   /* readable steel-ink body text on light surfaces */
+
+  /* focus / active glow ring (silver-focus) */
+  --focus-glow:0 0 0 1px rgba(201,214,236,0.55), 0 0 0 4px rgba(201,214,236,0.16), 0 0 24px rgba(201,214,236,0.20);
 
   --card:rgba(255,255,255,0.045);
   --card-hi:rgba(255,255,255,0.07);
   --border:rgba(180,195,220,0.16);
   --border-hi:rgba(180,195,220,0.28);
   --hairline:rgba(180,195,220,0.12);
-
-  /* ── color-zoned section backgrounds (steel/ocean helper tints) ── */
-  --steel-edge:rgba(42,74,114,0.55);          /* card left-accents / top-stripes */
-  --zone-ethos:                               /* steel-tinted band — the warm midpoint */
-    radial-gradient(ellipse 70% 60% at 18% 6%, rgba(42,74,114,0.30) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 88% 96%, rgba(42,74,114,0.16) 0%, transparent 64%),
-    linear-gradient(180deg, rgba(20,34,56,0) 0%, rgba(42,74,114,0.10) 100%);
-  --zone-fleet:                               /* deep-ocean band — darker, quieter */
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(42,74,114,0.12) 0%, transparent 58%),
-    linear-gradient(180deg, rgba(10,22,40,0.55), rgba(10,22,40,0.30));
-  --zone-glow:                                /* steel radial glow for page/stage backgrounds */
-    radial-gradient(ellipse 60% 45% at 14% -6%, rgba(42,74,114,0.32) 0%, transparent 56%),
-    radial-gradient(ellipse 55% 55% at 90% 4%, rgba(42,74,114,0.20) 0%, transparent 60%);
-  --zone-light:                               /* light mist section — dark/light rotation */
-    radial-gradient(ellipse 60% 50% at 12% 0%, rgba(180,195,220,0.35) 0%, transparent 60%),
-    linear-gradient(180deg, #F4F7FB 0%, #E9EFF7 100%);
 
   --disp:'Cormorant Garamond',serif;
   --ui:'Outfit',sans-serif;

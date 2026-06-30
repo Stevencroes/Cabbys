@@ -26,6 +26,10 @@ export function useAuth() {
       supabase.auth.signInWithOAuth({ provider, options: { redirectTo } }),
     signInWithEmail: (email: string) =>
       supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } }),
+    signInWithPassword: (email: string, password: string) =>
+      supabase.auth.signInWithPassword({ email, password }),
+    signUpWithPassword: (email: string, password: string) =>
+      supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } }),
     signOut: () => supabase.auth.signOut(),
   };
 }

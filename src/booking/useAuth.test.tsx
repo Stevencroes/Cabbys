@@ -10,6 +10,8 @@ vi.mock("../lib/supabase", () => ({
       }),
       signInWithOtp: vi.fn().mockResolvedValue({ data: {}, error: null }),
       signInWithOAuth: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      signInWithPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      signUp: vi.fn().mockResolvedValue({ data: {}, error: null }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
     },
   },
@@ -26,6 +28,8 @@ describe("useAuth", () => {
     } as never);
     vi.mocked(supabase.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null } as never);
     vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: {}, error: null } as never);
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: {}, error: null } as never);
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({ data: {}, error: null } as never);
   });
 
   it("starts with loading true and no user, then settles", async () => {
@@ -55,6 +59,31 @@ describe("useAuth", () => {
     expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
       provider: "google",
       options: { redirectTo: expect.any(String) },
+    });
+  });
+
+  it("calls signInWithPassword with email and password", async () => {
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await result.current.signInWithPassword("a@b.com", "secret123");
+
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      email: "a@b.com",
+      password: "secret123",
+    });
+  });
+
+  it("calls signUp with email, password and emailRedirectTo", async () => {
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await result.current.signUpWithPassword("a@b.com", "secret123");
+
+    expect(supabase.auth.signUp).toHaveBeenCalledWith({
+      email: "a@b.com",
+      password: "secret123",
+      options: { emailRedirectTo: expect.any(String) },
     });
   });
 

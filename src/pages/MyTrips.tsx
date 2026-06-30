@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../booking/useAuth";
 import { supabase } from "../lib/supabase";
 import { formatMoney } from "../lib/currency";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
+import { useAuthModal } from "../components/auth/AuthModal";
 
 interface Ride {
   id: string;
@@ -47,6 +47,7 @@ function statusLabel(status: string | undefined): string {
 
 export default function MyTrips() {
   const { user, loading: authLoading } = useAuth();
+  const { openAuth } = useAuthModal();
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +69,11 @@ export default function MyTrips() {
 
   return (
     <>
-      <Nav onSignIn={() => {}} />
+      <Nav onSignIn={openAuth} />
       <main
         style={{
           minHeight: "100vh",
-          background: "var(--zone-glow), var(--midnight)",
+          background: "var(--midnight)",
           paddingTop: "7rem",
           paddingBottom: "4rem",
         }}
@@ -127,20 +128,23 @@ export default function MyTrips() {
               >
                 Sign in to view your transfers.
               </p>
-              <Link
-                to="/"
+              <button
+                type="button"
+                onClick={openAuth}
                 style={{
                   color: "var(--mist)",
                   fontSize: "0.875rem",
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  textDecoration: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  border: "none",
                   borderBottom: "1px solid var(--accent-line)",
                   paddingBottom: "2px",
                 }}
               >
-                Return home
-              </Link>
+                Sign in
+              </button>
             </div>
           )}
 

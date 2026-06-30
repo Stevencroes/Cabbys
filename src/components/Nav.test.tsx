@@ -7,7 +7,8 @@ describe("Nav", () => {
     const onSignIn = vi.fn();
     render(<Nav onSignIn={onSignIn} />);
     expect(screen.getByText("Cabby's")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    // Sign in appears in both the desktop pill and the mobile dropdown.
+    fireEvent.click(screen.getAllByRole("button", { name: /sign in/i })[0]);
     expect(onSignIn).toHaveBeenCalledOnce();
   });
 });

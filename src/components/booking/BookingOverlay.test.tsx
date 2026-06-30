@@ -9,9 +9,11 @@ function Harness() {
 }
 
 describe("BookingOverlay", () => {
-  it("shows step 1 of 2 when opened", () => {
+  it("marks the first step active when opened", () => {
     render(<BookingProvider><Harness /></BookingProvider>);
     fireEvent.click(screen.getByText("go"));
-    expect(screen.getByText(/Step 1 of 2/i)).toBeInTheDocument();
+    const nav = screen.getByLabelText("Booking progress");
+    const active = nav.querySelector(".pstep.active .plbl");
+    expect(active).toHaveTextContent("Where to");
   });
 });
