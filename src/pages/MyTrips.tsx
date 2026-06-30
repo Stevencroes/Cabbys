@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../booking/useAuth";
 import { supabase } from "../lib/supabase";
-import { formatMoney } from "../lib/currency";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuthModal } from "../components/auth/AuthModal";
@@ -185,10 +184,7 @@ export default function MyTrips() {
           {!authLoading && user && !loading && !error && rides.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {rides.map((ride) => {
-                const fare = formatMoney(
-                  Number(ride.fare_total ?? ride.price ?? 0),
-                  "USD"
-                );
+                const fare = `$${Number(ride.fare_total ?? ride.price ?? 0).toFixed(2)}`;
                 const vehicle = [ride.vehicle_class, ride.vehicle_type]
                   .filter(Boolean)
                   .join(" · ");
