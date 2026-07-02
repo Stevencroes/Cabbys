@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useAuth } from "../../booking/useAuth";
 
 type Mode = "signin" | "signup";
@@ -25,6 +25,10 @@ export default function AuthForm({ onSuccess, heading = "Sign in", compact }: Au
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const uid = useId();
+  const emailId = `${uid}-email`;
+  const pwId = `${uid}-password`;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,34 +74,50 @@ export default function AuthForm({ onSuccess, heading = "Sign in", compact }: Au
       <div className="auth-or" aria-hidden="true"><span>or</span></div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+        <label className="sr-only" htmlFor={emailId}>Email</label>
         <input
+          id={emailId}
           className="txt"
           type="email"
+          inputMode="email"
           autoComplete="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <input
-          className="txt"
-          type="password"
-          autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <label className="sr-only" htmlFor={pwId}>Password</label>
+        <div className="auth-pw">
+          <input
+            id={pwId}
+            className="txt"
+            type={showPassword ? "text" : "password"}
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            className="auth-pw-toggle"
+            type="button"
+            aria-pressed={showPassword}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            onClick={() => setShowPassword((s) => !s)}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
+        </div>
         <button className="btn-ghost" type="submit" disabled={busy || !email.trim() || !password}>
           {busy ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
       </form>
 
       {error && (
-        <p className="acct-note" style={{ color: "var(--danger, #e88)", textAlign: "left" }}>
+        <p className="acct-note" role="alert" style={{ color: "var(--danger, #f2a3a3)", textAlign: "left" }}>
           {error}
         </p>
       )}
       {notice && (
-        <p className="acct-note" style={{ textAlign: "left" }}>
+        <p className="acct-note" role="status" style={{ textAlign: "left" }}>
           {notice}
         </p>
       )}

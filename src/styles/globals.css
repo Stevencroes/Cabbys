@@ -371,7 +371,7 @@ h1.hero-title .accent{display:block;font-style:italic;font-weight:300;color:var(
 .opt.on .check{opacity:1;}
 input.txt{width:100%;padding:15px 18px;border-radius:13px;border:1px solid var(--border);background:rgba(10,22,40,0.5);color:var(--mist);font-size:14.5px;font-weight:300;transition:.3s;}
 input.txt::placeholder{color:var(--silver-dim);}
-input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,22,40,0.7);}
+input.txt:focus{outline:none;border-color:var(--silver-focus);background:rgba(10,22,40,0.7);box-shadow:var(--focus-glow);}
 .field-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:520px){.field-pair{grid-template-columns:1fr;}}
 
@@ -574,3 +574,17 @@ input.txt:focus{outline:none;border-color:var(--silver-dim);background:rgba(10,2
 .auth-toggle{display:block;margin:16px auto 0;font-size:12px;color:var(--silver-dim);font-weight:400;letter-spacing:.02em;background:none;border:none;cursor:pointer;transition:.3s var(--ease);}
 .auth-toggle:hover{color:var(--mist);}
 @keyframes auth-fade{from{opacity:0;}to{opacity:1;}}
+
+/* ───────── keyboard focus visibility + a11y utilities ───────── */
+/* Visible focus ring for keyboard users on non-input controls (inputs keep their own glow). */
+a:focus-visible,button:focus-visible,[role="tab"]:focus-visible,[role="button"]:focus-visible,summary:focus-visible{
+  outline:2px solid var(--silver-focus);outline-offset:2px;border-radius:9px;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* password field show/hide toggle */
+.auth-pw{position:relative;display:flex;align-items:center;}
+.auth-pw .txt{padding-right:62px;}
+.auth-pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:6px 10px;border-radius:8px;
+  font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--silver);
+  border:1px solid var(--border);background:rgba(255,255,255,0.03);transition:.25s var(--ease);}
+.auth-pw-toggle:hover{color:var(--mist);border-color:var(--silver-dim);}
