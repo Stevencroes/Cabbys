@@ -3,7 +3,9 @@ import Diamond from "../Diamond";
 import StageFooter from "./StageFooter";
 import StepTrip from "./steps/StepTrip";
 import StepRide from "./steps/StepRide";
-import type { ConfirmedBooking } from "./steps/StepRide";
+import StepDetails from "./steps/StepDetails";
+import StepPay from "./steps/StepPay";
+import type { ConfirmedBooking } from "../../booking/types";
 
 interface BookingOverlayProps {
   onConfirmed?: (booking: ConfirmedBooking) => void;
@@ -12,7 +14,9 @@ interface BookingOverlayProps {
 function renderStep(step: number, onConfirmed?: (booking: ConfirmedBooking) => void) {
   switch (step) {
     case 0: return <StepTrip />;
-    case 1: return <StepRide onConfirmed={onConfirmed} />;
+    case 1: return <StepRide />;
+    case 2: return <StepDetails />;
+    case 3: return <StepPay onConfirmed={onConfirmed} />;
     default: return <StepTrip />;
   }
 }
@@ -21,8 +25,8 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   const { state, close, back, STEP_NAMES } = useBooking();
   const overlayClass = ["overlay", state.open ? "open" : ""].filter(Boolean).join(" ");
   const backClass = ["btn-back", state.step === 0 ? "hidden" : ""].filter(Boolean).join(" ");
-  // On the Ride step, hide the standard "Continue" footer (StepRide has its own Request button)
-  const showFooter = state.step !== 1;
+  // Pay owns its confirm button; every other step uses the shared footer.
+  const showFooter = state.step !== 3;
 
   return (
     <div className={overlayClass} aria-modal="true" role="dialog">
@@ -83,8 +87,10 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
             </button>
           </header>
 
-          <div className={`stage-body${state.step === 1 ? " wide" : ""}`}>
-            {renderStep(state.step, onConfirmed)}
+          <div className={`stage-body${state.step === 1 || state.step === 3 ? " wide" : ""}`}>
+            {/* Mount steps only while open so a finished booking never leaks
+                local state (ride refs, payment phase) into the next one. */}
+            {state.open && renderStep(state.step, onConfirmed)}
           </div>
 
           {showFooter && <StageFooter />}

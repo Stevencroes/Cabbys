@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from "react";
+import { isValidPhone, isValidEmail } from "../lib/contact";
+import { isValidFlightNumber } from "../lib/flight";
 
-export const STEP_NAMES = ["Where to", "Ride"] as const;
+export const STEP_NAMES = ["Where to", "Ride", "Details", "Pay"] as const;
 
 export interface BookingState {
   from: string;
@@ -10,6 +12,13 @@ export interface BookingState {
   passengers: number;
   luggage: number;
   vehicle: string | null;
+  // Lead passenger — guest checkout, no account required.
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  // Airport transfers — lets Cabby's meet the flight, not the clock.
+  flightNumber: string;
+  notes: string;
   step: number;
   open: boolean;
   signedIn: boolean;
@@ -26,6 +35,11 @@ const initialState: BookingState = {
   passengers: 2,
   luggage: 2,
   vehicle: null,
+  contactName: "",
+  contactPhone: "",
+  contactEmail: "",
+  flightNumber: "",
+  notes: "",
   step: 0,
   open: false,
   signedIn: false,
@@ -48,13 +62,14 @@ function reducer(state: BookingState, action: Action): BookingState {
       return { ...state, open: false };
     case "NEXT":
       if (!computeCanContinue(state)) return state;
-      return { ...state, step: state.step + 1 };
+      return { ...state, step: Math.min(STEP_NAMES.length - 1, state.step + 1) };
     case "BACK":
       return { ...state, step: Math.max(0, state.step - 1) };
     case "GO_TO":
       return { ...state, step: action.step };
     case "RESET":
-      return { ...initialState };
+      // Preserve session flag — resetting a finished booking doesn't sign out.
+      return { ...initialState, signedIn: state.signedIn };
     case "SET_FIELD":
       if (state[action.key] === action.value) return state;
       return { ...state, [action.key]: action.value };
@@ -67,8 +82,17 @@ function computeCanContinue(state: BookingState): boolean {
   switch (state.step) {
     case 0: // Where to
       return !!state.from && !!state.to && !!state.date && !!state.time && state.passengers >= 1;
-    case 1: // Ride (final screen — the Request button handles its own validation)
-      return !!state.vehicle && state.signedIn;
+    case 1: // Ride — guest checkout: choosing a car is all it takes to move on
+      return !!state.vehicle;
+    case 2: // Details — lead passenger we can actually reach on the day
+      return (
+        state.contactName.trim().length >= 2 &&
+        isValidPhone(state.contactPhone) &&
+        (!state.contactEmail || isValidEmail(state.contactEmail)) &&
+        (!state.flightNumber || isValidFlightNumber(state.flightNumber))
+      );
+    case 3: // Pay — the review screen owns its own confirm button
+      return true;
     default:
       return true;
   }
@@ -118,4 +142,9 @@ export function useBooking(): BookingContextValue {
     throw new Error("useBooking must be used within a BookingProvider");
   }
   return ctx;
+}
+
+/** Like useBooking, but returns null outside a provider (e.g. standalone pages). */
+export function useBookingOptional(): BookingContextValue | null {
+  return useContext(BookingContext);
 }
