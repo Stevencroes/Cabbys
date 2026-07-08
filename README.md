@@ -80,12 +80,15 @@ vercel.json                  # SPA rewrite rules
 
 Before accepting real bookings:
 
-- [ ] **Supabase Auth providers** — enable Google OAuth and Apple Sign In under Authentication → Providers in the Supabase dashboard. Add the Vercel production URL as an allowed redirect URL.
-- [ ] **Supabase RLS** — review row-level security policies on the `rides` table so passengers can only read their own rows.
-- [ ] **Stripe publishable key** — add `VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...` to Vercel env vars. The `getStripe()` helper in `src/lib/stripe.ts` returns `null` until this is set, so no Stripe JS loads in production until then.
-- [ ] **Stripe secret key** — add `STRIPE_SECRET_KEY=sk_live_...` to Vercel env vars. The `api/create-payment-intent` function returns HTTP 501 until this is present.
-- [ ] **Install stripe package** — run `npm i stripe` and commit `package.json` / `package-lock.json` once you are ready to wire real payment intents. The `api/` function uses a dynamic import so the Vite build succeeds without `stripe` installed.
-- [ ] **Webhook** — configure a Stripe webhook endpoint pointing at `/api/stripe-webhook` (to be implemented) and add `STRIPE_WEBHOOK_SECRET` to env vars.
+- [ ] **Schema migration** — run `docs/schema.sql` in the Supabase SQL editor. It adds the booking-flow columns (booking ref, guest contact, flight, payment, driver), relaxes `passenger_id` for guest checkout, and sets the RLS policies.
+- [ ] **Anonymous sign-ins** — enable under Authentication → Providers → Anonymous. Guest checkout uses `signInAnonymously()` so every booking still has an `auth.uid()`.
+- [ ] **Supabase Auth providers** — enable Google OAuth under Authentication → Providers. Add the Vercel production URL as an allowed redirect URL.
+- [ ] **Realtime** — add the `rides` table to the `supabase_realtime` publication so My Trips reflects driver assignment live.
+- [ ] **Stripe publishable key** — add `VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...` to Vercel env vars. Until it is set the flow runs in "Reserve now, settle on the day" mode; with it set, cards are authorized at booking (manual capture).
+- [ ] **Stripe secret key + service role** — add `STRIPE_SECRET_KEY`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Vercel env vars. `api/create-payment-intent` prices the intent **server-side from the ride row** (never from the client) and returns HTTP 501 until configured.
+- [ ] **Install stripe package** — run `npm i stripe` and commit `package.json` / `package-lock.json`. The `api/` functions use a dynamic import so the Vite build succeeds without `stripe` installed.
+- [ ] **Webhook** — point a Stripe webhook at `/api/stripe-webhook` (events: `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`) and add `STRIPE_WEBHOOK_SECRET`. Authorization → ride `confirmed`; capture when the dispatcher assigns a driver.
+- [ ] **WhatsApp** — add `VITE_WHATSAPP_NUMBER` (digits with country code) to light up "WhatsApp us" links on confirmation and My Trips.
 - [ ] **Custom domain** — point your domain to Vercel and update `VITE_SUPABASE_URL` site URL + redirect URLs accordingly.
 
 ---
@@ -96,8 +99,13 @@ Before accepting real bookings:
 |---|---|---|
 | `VITE_SUPABASE_URL` | Yes | Your Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anon/public key |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | No | Stripe publishable key — activates client-side Stripe.js |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | No | Stripe publishable key — activates card payment (auth-then-capture) in the booking flow |
+| `VITE_MAPBOX_TOKEN` | No | Mapbox token — live address autocomplete (curated places otherwise) |
+| `VITE_WHATSAPP_NUMBER` | No | WhatsApp business number — enables "WhatsApp us" deep links |
 | `STRIPE_SECRET_KEY` | No (server) | Stripe secret key — activates the payment intent API function |
+| `STRIPE_WEBHOOK_SECRET` | No (server) | Stripe webhook signing secret — activates `/api/stripe-webhook` |
+| `SUPABASE_URL` | No (server) | Supabase project URL for API functions (falls back to `VITE_SUPABASE_URL`) |
+| `SUPABASE_SERVICE_ROLE_KEY` | No (server) | Service-role key — server-side ride lookup/status updates |
 
 ---
 

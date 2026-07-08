@@ -8,7 +8,7 @@ import BookingOverlay from "./components/booking/BookingOverlay";
 import AuthCallback from "./pages/AuthCallback";
 import MyTrips from "./pages/MyTrips";
 import Confirmation from "./components/Confirmation";
-import type { ConfirmedBooking } from "./components/booking/steps/StepRide";
+import type { ConfirmedBooking } from "./booking/types";
 
 function AppRoutes() {
   const { setField } = useBooking();

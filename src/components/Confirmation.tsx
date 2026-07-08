@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useBooking } from "../booking/BookingContext";
 import { formatMoney } from "../lib/currency";
-import type { ConfirmedBooking } from "./booking/steps/StepRide";
+import { refFromRideId } from "../lib/bookingRef";
+import { downloadIcs } from "../lib/ics";
+import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
+import { VEHICLES } from "../data/vehicles";
+import type { ConfirmedBooking } from "../booking/types";
 
 interface ConfirmationProps {
   booking: ConfirmedBooking | null;
@@ -25,13 +30,36 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
 
   if (!booking) return null;
 
+  const bookingRef = booking.bookingRef ?? refFromRideId(booking.rideId);
+  const vehicleName = VEHICLES.find((v) => v.id === booking.vehicle)?.name ?? booking.vehicle;
   const dateLabel = booking.date
     ? new Date(booking.date + "T12:00:00").toLocaleDateString("en-US", {
+        weekday: "short",
         month: "short",
         day: "numeric",
         year: "numeric",
       })
     : "—";
+
+  const waHref = whatsappLink(
+    `Hi Cabby's — booking ${bookingRef} (${booking.from} → ${booking.to}, ${booking.date} ${booking.time}).`,
+  );
+
+  function handleCalendar() {
+    if (!booking) return;
+    downloadIcs(
+      {
+        title: `Cabby's transfer — ${booking.from} → ${booking.to}`,
+        description: `Booking ${bookingRef}. ${booking.flightNumber ? `Flight ${booking.flightNumber}. ` : ""}Your driver meets you with a name board.`,
+        location: booking.from,
+        date: booking.date,
+        time: booking.time || "12:00",
+        durationMinutes: 60,
+        uid: `${booking.rideId}@cabbys.aw`,
+      },
+      `cabbys-${bookingRef}.ics`,
+    );
+  }
 
   function handleDone() {
     reset();
@@ -44,82 +72,113 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
       {/* Full-screen midnight backdrop */}
       <div className="conf-backdrop" />
 
-      {/* Animated check ring */}
-      <div className="conf-icon">
-        <svg
-          className="conf-ring"
-          width="96"
-          height="96"
-          viewBox="0 0 96 96"
-          fill="none"
-          aria-hidden="true"
-        >
-          <circle
-            className="conf-ring-track"
-            cx="48"
-            cy="48"
-            r="40"
-            stroke="var(--silver)"
-            strokeOpacity="0.15"
-            strokeWidth="3"
-          />
-          <circle
-            className="conf-ring-fill"
-            cx="48"
-            cy="48"
-            r="40"
-            stroke="var(--accent)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray="251.2"
-            strokeDashoffset="251.2"
-          />
-          <path
-            className="conf-check"
-            d="M30 49l13 13 23-24"
-            stroke="var(--accent)"
-            strokeWidth="3.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-
-      <h2 className="conf-title">Booking confirmed.</h2>
-      <p className="conf-sub">Your ride is reserved. We will see you on the day.</p>
-
-      {/* Glass card */}
-      <div className="conf-card">
-        <div className="conf-ref">
-          <span className="conf-ref-label">Booking reference</span>
-          <span className="conf-ref-id">{booking.rideId.toUpperCase()}</span>
+      <div className="conf-scroll">
+        {/* Animated check ring */}
+        <div className="conf-icon">
+          <svg
+            className="conf-ring"
+            width="84"
+            height="84"
+            viewBox="0 0 96 96"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              className="conf-ring-track"
+              cx="48" cy="48" r="40"
+              stroke="var(--silver)" strokeOpacity="0.15" strokeWidth="3"
+            />
+            <circle
+              className="conf-ring-fill"
+              cx="48" cy="48" r="40"
+              stroke="var(--accent)" strokeWidth="3" strokeLinecap="round"
+              strokeDasharray="251.2" strokeDashoffset="251.2"
+            />
+            <path
+              className="conf-check"
+              d="M30 49l13 13 23-24"
+              stroke="var(--accent)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"
+            />
+          </svg>
         </div>
 
-        <div className="conf-divider" />
+        <h2 className="conf-title">{booking.paid ? "Booked & paid." : "Booking confirmed."}</h2>
+        <p className="conf-sub">
+          {booking.contactName ? `${booking.contactName.split(" ")[0]}, your` : "Your"} ride is
+          reserved{booking.paid ? " — your card is only charged once your driver is assigned" : ""}.
+        </p>
 
-        <div className="conf-row">
-          <span className="conf-rl">Route</span>
-          <span className="conf-rr">{booking.from} → {booking.to}</span>
-        </div>
-        <div className="conf-row">
-          <span className="conf-rl">Date</span>
-          <span className="conf-rr">{dateLabel}{booking.time ? ` · ${booking.time}` : ""}</span>
-        </div>
-        {booking.vehicle && (
-          <div className="conf-row">
-            <span className="conf-rl">Vehicle</span>
-            <span className="conf-rr" style={{ textTransform: "capitalize" }}>{booking.vehicle}</span>
+        {/* Ticket */}
+        <div className="conf-card">
+          <div className="conf-ref">
+            <span className="conf-ref-label">Booking reference</span>
+            <span className="conf-ref-id">{bookingRef}</span>
           </div>
-        )}
-        <div className="conf-row conf-total-row">
-          <span className="conf-rl">Total fare</span>
-          <span className="conf-rr conf-total">{formatMoney(booking.total, "USD")}</span>
-        </div>
-      </div>
 
-      <button className="conf-done btn-primary" onClick={handleDone}>
-        Done <span className="arr">→</span>
-      </button>
+          <div className="conf-divider" />
+
+          <div className="conf-rail">
+            <div className="rr-stop"><span className="ring" /><span>{booking.from}</span></div>
+            <div className="rr-line" />
+            <div className="rr-stop"><span className="rdiamond" /><span>{booking.to}</span></div>
+          </div>
+
+          <div className="conf-row">
+            <span className="conf-rl">When</span>
+            <span className="conf-rr">{dateLabel}{booking.time ? ` · ${booking.time}` : ""}</span>
+          </div>
+          {booking.flightNumber && (
+            <div className="conf-row">
+              <span className="conf-rl">Flight</span>
+              <span className="conf-rr">{booking.flightNumber} — tracked; if it's late, we wait</span>
+            </div>
+          )}
+          {vehicleName && (
+            <div className="conf-row">
+              <span className="conf-rl">Vehicle</span>
+              <span className="conf-rr">{vehicleName}</span>
+            </div>
+          )}
+          <div className="conf-row conf-total-row">
+            <span className="conf-rl">{booking.paid ? "Total · authorized" : "Total · pay on the day"}</span>
+            <span className="conf-rr conf-total">{formatMoney(booking.total, "USD")}</span>
+          </div>
+        </div>
+
+        {/* What happens next */}
+        <div className="conf-next">
+          <div className="cn-step done">
+            <span className="cn-node" />
+            <div><b>Reserved</b><span>Your route and fare are locked in.</span></div>
+          </div>
+          <div className="cn-step">
+            <span className="cn-node" />
+            <div><b>Driver assigned</b><span>Name, photo and plate — sent before pickup.</span></div>
+          </div>
+          <div className="cn-step">
+            <span className="cn-node" />
+            <div><b>Meet your driver</b><span>Name board at arrivals · 60 min wait included.</span></div>
+          </div>
+        </div>
+
+        <div className="conf-actions">
+          <button className="btn-ghost" type="button" onClick={handleCalendar}>
+            Add to calendar
+          </button>
+          {whatsappEnabled && waHref && (
+            <a className="btn-ghost" href={waHref} target="_blank" rel="noreferrer">
+              WhatsApp us
+            </a>
+          )}
+          <Link className="btn-ghost" to="/trips" onClick={handleDone}>
+            My trips
+          </Link>
+        </div>
+
+        <button className="conf-done btn-primary" onClick={handleDone}>
+          Done <span className="arr">→</span>
+        </button>
+      </div>
     </div>
   );
 }
