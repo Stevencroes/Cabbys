@@ -113,14 +113,14 @@ export default function StepPay({ onConfirmed }: StepPayProps) {
     elementsRef.current = stripe.elements({
       clientSecret,
       appearance: {
-        theme: "night",
+        theme: "stripe",
         variables: {
-          colorPrimary: "#B4C3DC",
-          colorBackground: "#142238",
-          colorText: "#EEF2F8",
-          colorDanger: "#F2A3A3",
-          fontFamily: "Outfit, sans-serif",
-          borderRadius: "12px",
+          colorPrimary: "#B93F33",
+          colorBackground: "#EADFC4",
+          colorText: "#2E211A",
+          colorDanger: "#8E2E26",
+          fontFamily: "Jost, sans-serif",
+          borderRadius: "10px",
         },
       },
     });
@@ -183,8 +183,8 @@ export default function StepPay({ onConfirmed }: StepPayProps) {
 
   return (
     <div className="pay2">
-      <div className="step-eyebrow">Review &amp; confirm</div>
-      <h2 className="step-title">One last look.</h2>
+      <div className="step-eyebrow">Step 04 · Confirm</div>
+      <h2 className="step-title">Nearly <em>there.</em></h2>
       <p className="step-desc">{policyLabel} {STRIPE_KEY ? "Your card is authorized now and only charged once your driver is assigned." : ""}</p>
 
       <div className="pay2-grid">
@@ -287,8 +287,8 @@ export default function StepPay({ onConfirmed }: StepPayProps) {
             </button>
           ) : (
             <button className="btn-primary pay-confirm" type="button" onClick={handleConfirm} disabled={busy || loading}>
-              {phase === "creating" ? "Confirming…" : (
-                <>{STRIPE_KEY ? "Continue to payment" : "Confirm booking"} <span className="arr">→</span></>
+              {phase === "creating" ? "Reserving…" : (
+                <>{STRIPE_KEY ? "Continue to payment" : "Reserve your car"} <span className="arr">→</span></>
               )}
             </button>
           )}

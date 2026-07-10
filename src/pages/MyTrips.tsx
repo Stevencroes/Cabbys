@@ -284,8 +284,8 @@ export default function MyTrips() {
       <Nav onSignIn={openAuth} />
       <main className="tp-main">
         <div className="wrap tp-wrap">
-          <h1 className="tp-title">My trips</h1>
-          <p className="tp-sub">Your transfers with Cabby's Aruba.</p>
+          <h1 className="tp-title">Your trips</h1>
+          <p className="tp-sub">Every arrival, kept on file.</p>
 
           {authLoading && <p className="tp-quiet">Loading…</p>}
 
@@ -311,10 +311,10 @@ export default function MyTrips() {
 
           {!authLoading && user && !loading && !error && rides.length === 0 && (
             <div className="tp-empty">
-              <p>No trips yet — where are you landing?</p>
+              <p>No trips yet. The island is waiting.</p>
               {booking && (
                 <button type="button" className="tp-link" onClick={() => booking.open(0)}>
-                  Book your first transfer
+                  Reserve your first car
                 </button>
               )}
             </div>

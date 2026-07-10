@@ -25,7 +25,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
     <header className="float-nav">
       <div className="float-nav-inner">
         <div className="nav-pill">
-          <a className="nav-wordmark" href="/" aria-label="Cabby's — Home">Cabby's</a>
+          <a className="nav-wordmark" href="/" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</a>
           <span className="nav-divider" aria-hidden="true" />
 
           <nav className="nav-links" aria-label="Main navigation" ref={navRef} onMouseLeave={clearHighlight}>

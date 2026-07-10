@@ -39,8 +39,8 @@ export default function StepDetails() {
 
   return (
     <div>
-      <div className="step-eyebrow">Almost there</div>
-      <h2 className="step-title">Who's travelling?</h2>
+      <div className="step-eyebrow">Step 03 · Details</div>
+      <h2 className="step-title">Who are we <em>meeting?</em></h2>
       <p className="step-desc">
         No account needed — just how we reach you on the day. Your driver confirms on WhatsApp.
       </p>

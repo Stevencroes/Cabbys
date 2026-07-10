@@ -79,7 +79,7 @@ describe("StepPay — reserve flow (no Stripe key)", () => {
       </BookingProvider>,
     );
     fireEvent.click(screen.getByText("seed"));
-    fireEvent.click(screen.getByRole("button", { name: /confirm booking/i }));
+    fireEvent.click(screen.getByRole("button", { name: /reserve your car/i }));
     await waitFor(() =>
       expect(onConfirmed).toHaveBeenCalledWith(
         expect.objectContaining({

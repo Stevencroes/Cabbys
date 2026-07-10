@@ -26,8 +26,8 @@ export default function StepTrip() {
 
   return (
     <div>
-      <div className="step-eyebrow">Your trip</div>
-      <h2 className="step-title">Where to?</h2>
+      <div className="step-eyebrow">Step 01 · Trip</div>
+      <h2 className="step-title">Where to, <em>quietly?</em></h2>
       <p className="step-desc">Pick a place or type an address. Choose your pickup, when, and who is travelling.</p>
 
       <div className="trip-fields">

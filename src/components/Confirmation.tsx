@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import StripedSun from "./StripedSun";
 import { useBooking } from "../booking/BookingContext";
 import { formatMoney } from "../lib/currency";
 import { refFromRideId } from "../lib/bookingRef";
@@ -73,45 +74,22 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
       <div className="conf-backdrop" />
 
       <div className="conf-scroll">
-        {/* Animated check ring */}
+        {/* The striped sun — the arrival moment */}
         <div className="conf-icon">
-          <svg
-            className="conf-ring"
-            width="84"
-            height="84"
-            viewBox="0 0 96 96"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              className="conf-ring-track"
-              cx="48" cy="48" r="40"
-              stroke="var(--silver)" strokeOpacity="0.15" strokeWidth="3"
-            />
-            <circle
-              className="conf-ring-fill"
-              cx="48" cy="48" r="40"
-              stroke="var(--accent)" strokeWidth="3" strokeLinecap="round"
-              strokeDasharray="251.2" strokeDashoffset="251.2"
-            />
-            <path
-              className="conf-check"
-              d="M30 49l13 13 23-24"
-              stroke="var(--accent)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"
-            />
-          </svg>
+          <StripedSun variant="confirm" />
         </div>
 
-        <h2 className="conf-title">{booking.paid ? "Booked & paid." : "Booking confirmed."}</h2>
+        <h2 className="conf-title">Your car is confirmed.</h2>
         <p className="conf-sub">
-          {booking.contactName ? `${booking.contactName.split(" ")[0]}, your` : "Your"} ride is
-          reserved{booking.paid ? " — your card is only charged once your driver is assigned" : ""}.
+          {booking.contactName ? `${booking.contactName.split(" ")[0]}, your` : "Your"} car is
+          set{booking.paid ? " — the fare is authorized and only charged once your driver is assigned" : ""}.
+          {booking.flightNumber ? " Your driver tracks the flight — no need to rush the exit." : ""}
         </p>
 
         {/* Ticket */}
         <div className="conf-card">
           <div className="conf-ref">
-            <span className="conf-ref-label">Booking reference</span>
+            <span className="conf-ref-label">Arrival · Confirmed</span>
             <span className="conf-ref-id">{bookingRef}</span>
           </div>
 
