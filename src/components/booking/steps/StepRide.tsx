@@ -32,8 +32,8 @@ export default function StepRide() {
 
   return (
     <div className="ride-screen">
-      <div className="step-eyebrow">Your ride</div>
-      <h2 className="step-title">Choose your car.</h2>
+      <div className="step-eyebrow">Step 02 · Car</div>
+      <h2 className="step-title">Your <em>car,</em> your party.</h2>
       <p className="step-desc">
         Fares are fixed and shown in US dollars, with the 6% government &amp; facility tax included.
         No surge, no meter.

@@ -228,7 +228,7 @@ export default function HeroBooking() {
                         aria-pressed={on}
                         onClick={() => fits && setField("vehicle", v.id)}
                       >
-                        <span className="hbk-vname">{v.name.replace(/Executive |Luxury |Private /, "")}</span>
+                        <span className="hbk-vname">{v.name.replace(/^The /, "")}</span>
                         <span className="hbk-vpax">{v.pax} pax</span>
                       </button>
                     );
@@ -259,7 +259,7 @@ export default function HeroBooking() {
               </div>
 
               <button type="button" className="hbk-cta" onClick={handleConfirm} disabled={!ready}>
-                Confirm &amp; Pay <span className="arr">→</span>
+                Reserve <span className="arr">→</span>
               </button>
             </div>
           </motion.div>

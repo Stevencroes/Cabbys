@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Diamond from "./Diamond";
 import HeroBooking from "./booking/HeroBooking";
+import StripedSun from "./StripedSun";
 import { stagger, wordRise, EASE_CALM } from "../lib/motion";
 
 const TITLE_WORDS = ["Arrive", "in"];
@@ -11,6 +12,9 @@ export default function Hero() {
 
   return (
     <section className="hero">
+      <div className="hero-sun" aria-hidden="true">
+        <StripedSun />
+      </div>
       <div className="wrap hero-grid">
         <div className="hero-copy">
           <motion.div

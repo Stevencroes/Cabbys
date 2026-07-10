@@ -70,7 +70,7 @@ describe("StepRide", () => {
     render(<BookingProvider><Setup pax={7} bags={8} /><StepRide /></BookingProvider>);
     fireEvent.click(screen.getByText("seed"));
     await waitFor(() => {
-      const sedan = screen.getByRole("button", { name: /Executive Sedan/i });
+      const sedan = screen.getByRole("button", { name: /The Saloon/i });
       expect(sedan).toBeDisabled();
     });
   });
