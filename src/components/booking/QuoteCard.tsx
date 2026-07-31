@@ -7,7 +7,7 @@ import { VEHICLES, fitsParty, type Vehicle } from "../../data/vehicles";
 import { loadPricing, type Pricing } from "../../lib/pricing";
 import { quote, usd } from "../../lib/quote";
 import { isOnIsland, locate } from "../../lib/geo";
-import { areaByName, selFromCustom } from "../../data/places";
+import { AIRPORT, selFromCustom, selFromPlace } from "../../data/places";
 
 export function autoVehicle(pax: number, bags: number): Vehicle {
   return VEHICLES.find((v) => fitsParty(v, pax, bags)) ?? VEHICLES[VEHICLES.length - 1];
@@ -28,6 +28,13 @@ export default function QuoteCard() {
     return () => { cancelled = true; };
   }, []);
 
+  // §3.8 — planning from abroad: pickup pre-fills to the airport; guests
+  // already on the island get an empty form (they know where they are).
+  useEffect(() => {
+    if (!onIsland && !state.from) setField("from", selFromPlace(AIRPORT));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Same auto-selection rule as the modal (§3.4): bags default to
   // min(guests, 2), so hero and modal always agree on the vehicle.
   const bags = Math.min(state.pax, 2);
@@ -41,9 +48,9 @@ export default function QuoteCard() {
     setLocMsg(res.message);
     if (res.ok && res.area) {
       setField("from", selFromCustom(`Near ${res.area.name}`, res.area));
-    } else if (!res.ok) {
-      const airportArea = areaByName("Oranjestad");
-      void airportArea; // pickup falls back to the airport via the modal default
+    } else {
+      // off-island or denied — fall back kindly to the airport
+      setField("from", selFromPlace(AIRPORT));
     }
   }
 

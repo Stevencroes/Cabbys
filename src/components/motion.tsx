@@ -66,7 +66,9 @@ interface SplitPart {
   em?: boolean;
 }
 
-/** Word-by-word reveal heading. Text content stays a clean sentence. */
+/** Word-by-word reveal heading. Text content stays a clean sentence —
+ *  spaces live BETWEEN the overflow-hidden word spans, never inside them
+ *  (an inline-block swallows its own trailing space). */
 export function SplitHeading({
   parts,
   as: Tag = "h2",
@@ -81,15 +83,16 @@ export function SplitHeading({
     <Tag className={`wsplit ${className}`.trim()}>
       {parts.map((part, pi) => {
         const words = part.text.split(/\s+/).filter(Boolean);
-        const nodes = words.map((w, wi) => {
+        const nodes: React.ReactNode[] = [];
+        words.forEach((w, wi) => {
           const delay = idx * 0.055;
           idx++;
-          return (
+          nodes.push(
             <span key={wi} className="w">
               <i style={{ transitionDelay: `${delay}s` }}>{w}</i>
-              {wi < words.length - 1 ? " " : ""}
-            </span>
+            </span>,
           );
+          if (wi < words.length - 1) nodes.push(" ");
         });
         const trail = /\s$/.test(part.text) || pi < parts.length - 1 ? " " : "";
         return part.em ? (

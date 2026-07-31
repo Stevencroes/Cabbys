@@ -42,9 +42,11 @@ describe("Landing", () => {
     expect(container.querySelector("h1 br")).toBeNull();
     // trust strip + hero badge both carry the promise
     expect(screen.getAllByText(/Settled in advance/i).length).toBeGreaterThanOrEqual(1);
-    // the fare card is symmetric: pickup and drop-off are the same control
-    expect(screen.getByLabelText(/pick up/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/drop off/i)).toBeInTheDocument();
+    // the fare card is symmetric: pickup and drop-off are the same control,
+    // and planning-from-abroad pre-fills pickup to the airport (§3.8)
+    const pickup = screen.getByRole("combobox", { name: "Pick up" });
+    expect(pickup).toHaveValue("Queen Beatrix International Airport");
+    expect(screen.getByRole("combobox", { name: "Drop off" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /swap pickup and drop-off/i })).toBeInTheDocument();
     // certainty needs no exclamation mark
     expect(container.textContent).not.toContain("!");
