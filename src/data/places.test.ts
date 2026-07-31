@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  PLACES, GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName,
+  GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName,
   searchPlaces, selFromCustom, areaByName,
 } from "./places";
 

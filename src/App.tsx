@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { BookingProvider, useBooking } from "./booking/BookingContext";
-import { useAuth } from "./booking/useAuth";
 import { AuthModalProvider } from "./components/auth/AuthModal";
 import Landing from "./pages/Landing";
 import BookingOverlay from "./components/booking/BookingOverlay";
@@ -11,16 +10,12 @@ import Confirmation from "./components/Confirmation";
 import type { ConfirmedBooking } from "./booking/types";
 
 function AppRoutes() {
-  const { setField } = useBooking();
-  const { user } = useAuth();
+  const { close } = useBooking();
   const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
-
-  useEffect(() => {
-    setField("signedIn", !!user);
-  }, [user, setField]);
 
   function handleConfirmed(booking: ConfirmedBooking) {
     setConfirmedBooking(booking);
+    close();
   }
 
   function handleDone() {

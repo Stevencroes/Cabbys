@@ -1,24 +1,25 @@
-export type BookingState = {
-  journey?: string | null;
+export type RideDraft = {
   from: string; to: string;
-  date: string; time: string;
+  date: string; time: string;          // effective (possibly derived) pickup time
   passengers: number; luggage: number;
-  vehicle: string | null;
-  fareBase: number; fareTotal: number;
+  vehicle: string;
+  fareBase: number; fareTotal: number; // AWG — the driver dashboard reads florin
   addonKeys: string[];
-  // Guest-checkout contact + airport details (all optional for compat)
   bookingRef?: string;
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
   flightNumber?: string;
   notes?: string;
+  childSeats?: number;
+  returnDate?: string;
+  returnTime?: string;
 };
 
 // The production `rides` table has evolved; not every deployment has every
-// column. We build three payload tiers, richest first, and the caller inserts
-// with progressive fallback so a booking never fails on a missing column.
-export function buildRidePayload(s: BookingState, userId: string | null) {
+// column. Three payload tiers, richest first — the caller inserts with
+// progressive fallback so a booking never fails on a missing column.
+export function buildRidePayload(s: RideDraft, userId: string | null) {
   const scheduledAt = new Date(`${s.date}T${s.time || "00:00"}`).toISOString();
   const core = {
     passenger_id: userId,
@@ -50,6 +51,12 @@ export function buildRidePayload(s: BookingState, userId: string | null) {
     flight_number: s.flightNumber || null,
     notes: s.notes || null,
     luggage_count: s.luggage,
+    child_seats: s.childSeats ?? 0,
+    return_date: s.returnDate || null,
+    return_time: s.returnTime || null,
   };
   return { full, withCoords, core, tiers: [full, withCoords, core] };
 }
+
+// Back-compat alias for older imports/tests.
+export type BookingState = RideDraft;

@@ -10,3 +10,17 @@ class IntersectionObserverStub {
   }
 }
 globalThis.IntersectionObserver = IntersectionObserverStub as unknown as typeof IntersectionObserver;
+
+// jsdom has no matchMedia; the motion system and the mobile picker sheet use it.
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() { return false; },
+  })) as unknown as typeof window.matchMedia;
+}
