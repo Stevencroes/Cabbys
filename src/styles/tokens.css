@@ -1,103 +1,100 @@
 /* ==========================================================================
-   CABBY'S — DESIGN TOKENS · "Jet-Set / Golden Hour"
-   Source of truth: the rebrand package (tokens.css + BRAND-SPEC.md).
-   The web app runs the TOURIST (light) theme; semantics default on :root so
-   every component reads correctly even before data-theme is stamped.
+   CABBY'S — v3 DESIGN TOKENS
+   Bone ground · Cocoa ink · Persimmon spark · Amber sun
+   Square by default: 2px rules, hard offset shadows, full-bleed bands.
    ========================================================================== */
-:root,
-[data-theme="tourist"] {
-  /* ---------- brand primitives ---------- */
-  --c-vanilla:      #F1E7D0;  /* aged-poster cream */
-  --c-vanilla-2:    #EADFC4;  /* raised warm surface */
-  --c-vanilla-3:    #E2D6B8;  /* hover / deeper surface */
-  --c-cocoa:        #2E211A;  /* rich warm brown — ink & dark ground */
-  --c-cocoa-2:      #3A2C22;  /* dark raised surface */
-  --c-cocoa-3:      #241A14;  /* deepest — backdrop */
-  --c-cocoa-soft:   #5A4839;  /* secondary text on light */
-  --c-cocoa-line:   #4A3A2D;  /* border on dark */
-  --c-lacquer:      #B93F33;  /* signature red — a spark, not a field */
-  --c-lacquer-dark: #C9483B;  /* signature red tuned for dark ground */
-  --c-lacquer-deep: #8E2E26;  /* pressed / hover red */
-  --c-camel:        #CF9B58;  /* sun · leather · sand */
-  --c-palm:         #48583B;  /* deep foliage green */
-  --c-palm-2:       #5E7049;
-  --c-muted:        #B9A78D;  /* muted text on dark */
-  --c-on-dark:      #C9B79A;  /* subtext on dark */
-  --c-on-dark-2:    #D8C9B4;
-  --c-sea:          #E4DBC5;  /* map tint — never blue */
+:root{
+  /* ---------- colour ---------- */
+  --bone:#F2E9D5;        --bone-2:#E9DEC4;      --bone-3:#DFD2B4;
+  --cocoa:#2B1F19;       --cocoa-2:#3A2B22;
+  --cocoa-soft:#5A4839;  --cocoa-line:#4A3A2D;
+  --persimmon:#C6452C;   --persimmon-deep:#9B3221;
+  --amber:#E2A03F;       --olive:#4C5A33;
+  --lagoon:#2E6360;      --plum:#7A3444;        --clay:#D98E5F;
+  --muted:#B9A78D;
+  /* WCAG-safe placeholder on bone-2 (the old #a89880 was 2.11:1) */
+  --placeholder:#6E5C48;
 
-  /* ---------- semantic (tourist) ---------- */
-  --bg:           var(--c-vanilla);
-  --bg-deep:      var(--c-vanilla);
-  --surface:      var(--c-vanilla-2);
-  --surface-hi:   var(--c-vanilla-3);
-  --ink2:         var(--c-cocoa);
-  --ink-soft:     var(--c-cocoa-soft);
-  --line:         var(--c-cocoa);              /* strong 1.5px borders */
-  --line-soft:    rgba(46,33,26,.20);          /* hairlines / dashes */
-  --accent:       var(--c-lacquer);
-  --accent-press: var(--c-lacquer-deep);
-  --secondary:    var(--c-camel);
-  --success:      var(--c-palm);
-  --on-accent:    var(--c-vanilla);
+  /* ---------- type ---------- */
+  --serif:'Cormorant Garamond', Georgia, serif;   /* display */
+  --sans:'Jost', system-ui, sans-serif;           /* everything else */
 
-  /* ---------- typography ---------- */
-  --disp: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --ui:   'Jost', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --ls-wordmark: .34em;
-  --ls-label:    .24em;
+  /* ---------- layout ---------- */
+  --maxw:1200px;
+  --gutter:clamp(20px,5vw,60px);
+  --ease:cubic-bezier(.22,.68,.24,1);
+  --tap:46px;                                     /* minimum touch target */
 
-  /* ---------- signature shadow (hard offset — the sticker/tag look) ---------- */
-  --shadow-sticker:    8px 10px 0 rgba(46,33,26,.12);
-  --shadow-sticker-sm: 6px 8px 0 rgba(46,33,26,.10);
-  --shadow-soft: var(--shadow-sticker);
-  --shadow-card: var(--shadow-sticker-sm);
+  /* ---------- the one z-scale (no component sets a raw z-index) ---------- */
+  --z-sun:0;
+  --z-content:1;
+  --z-nav:100;
+  --z-modal:200;
+  --z-sheet:300;
 
-  /* ---------- motion ---------- */
-  --ease: cubic-bezier(.2,.7,.2,1);
+  /* ---------- signature shadow — hard offset, no blur ---------- */
+  --shadow-hard:7px 9px 0 rgba(43,31,25,.14);
+  --shadow-hard-lg:9px 11px 0 rgba(43,31,25,.16);
 
   /* ---------- filmic grain ---------- */
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
   /* ---------- legacy aliases ----------
-     The previous (navy) identity's variable names, remapped so every
-     component keeps reading sensible values. New code should prefer the
-     semantic tokens above. */
-  --midnight:     var(--c-cocoa);        /* "darkest" → cocoa, never black */
-  --ocean:        var(--c-vanilla);      /* stage/page ground is now light */
-  --steel:        var(--c-cocoa-soft);
-  --silver:       var(--c-cocoa-soft);   /* inline SVG strokes on light */
-  --silver-dim:   #8A7660;               /* warm muted small text */
-  --mist:         var(--c-cocoa);        /* primary ink */
-  --white:        #FFFFFF;
-  --accent-soft:  var(--c-cocoa);        /* selected fill — cocoa block */
-  --accent-line:  rgba(185,63,51,.45);
-  --silver-hi:    var(--c-lacquer-deep);
-  --silver-focus: var(--c-lacquer);
-  --silver-wash:  var(--c-vanilla-2);
-  --ink:          var(--c-cocoa-soft);
-  --danger:       var(--c-lacquer);
-  --focus-glow:   0 0 0 2px rgba(185,63,51,.30);
-  --card:         var(--c-vanilla-2);
-  --card-hi:      var(--c-vanilla-3);
-  --border:       var(--c-cocoa);
-  --border-hi:    var(--c-cocoa);
-  --hairline:     rgba(46,33,26,.20);
-}
-
-/* Driver (dark) theme — ready for the driver dashboard surface. */
-[data-theme="driver"] {
-  --bg:           var(--c-cocoa);
-  --bg-deep:      var(--c-cocoa-3);
-  --surface:      var(--c-cocoa-2);
-  --surface-hi:   var(--c-cocoa-2);
-  --ink2:         var(--c-vanilla);
-  --ink-soft:     var(--c-muted);
-  --line:         var(--c-cocoa-line);
-  --line-soft:    var(--c-cocoa-line);
-  --accent:       var(--c-lacquer-dark);
-  --accent-press: var(--c-lacquer-deep);
-  --secondary:    var(--c-camel);
-  --success:      var(--c-palm-2);
-  --on-accent:    var(--c-vanilla);
+     Older components (auth modal, trips, inline SVGs) still read these
+     names; keep them resolving to v3 values. New code uses v3 tokens. */
+  --disp:var(--serif);
+  --ui:var(--sans);
+  --bg:var(--bone);
+  --surface:var(--bone-2);
+  --surface-hi:var(--bone-3);
+  --ink-soft:var(--cocoa-soft);
+  --line:var(--cocoa);
+  --line-soft:rgba(43,31,25,.20);
+  --accent:var(--persimmon);
+  --accent-press:var(--persimmon-deep);
+  --secondary:var(--amber);
+  --success:var(--olive);
+  --on-accent:var(--bone);
+  --midnight:var(--cocoa);
+  --ocean:var(--bone);
+  --steel:var(--cocoa-soft);
+  --silver:var(--cocoa-soft);
+  --silver-dim:#8A7660;
+  --mist:var(--cocoa);
+  --white:#FFFFFF;
+  --accent-soft:var(--cocoa);
+  --accent-line:rgba(198,69,44,.45);
+  --silver-hi:var(--persimmon-deep);
+  --silver-focus:var(--persimmon);
+  --silver-wash:var(--bone-2);
+  --ink:var(--cocoa-soft);
+  --danger:var(--persimmon);
+  --focus-glow:0 0 0 2px rgba(198,69,44,.30);
+  --card:var(--bone-2);
+  --card-hi:var(--bone-3);
+  --border:var(--cocoa);
+  --border-hi:var(--cocoa);
+  --hairline:rgba(43,31,25,.20);
+  --shadow-sticker:var(--shadow-hard);
+  --shadow-sticker-sm:var(--shadow-hard);
+  --shadow-soft:var(--shadow-hard);
+  --shadow-card:var(--shadow-hard);
+  --c-vanilla:var(--bone);
+  --c-vanilla-2:var(--bone-2);
+  --c-vanilla-3:var(--bone-3);
+  --c-cocoa:var(--cocoa);
+  --c-cocoa-2:var(--cocoa-2);
+  --c-cocoa-3:#241A14;
+  --c-cocoa-soft:var(--cocoa-soft);
+  --c-cocoa-line:var(--cocoa-line);
+  --c-lacquer:var(--persimmon);
+  --c-lacquer-dark:var(--persimmon);
+  --c-lacquer-deep:var(--persimmon-deep);
+  --c-camel:var(--amber);
+  --c-palm:var(--olive);
+  --c-palm-2:#5E7049;
+  --c-muted:var(--muted);
+  --c-on-dark:var(--muted);
+  --c-on-dark-2:#D8C9B4;
+  --c-sea:var(--bone-2);
 }

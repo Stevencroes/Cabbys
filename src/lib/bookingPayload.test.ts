@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildRidePayload, type BookingState } from "./bookingPayload";
+import { buildRidePayload, type RideDraft } from "./bookingPayload";
 
-const base: BookingState = {
-  journey: "airport", from: "Queen Beatrix International Airport", to: "Palm Beach",
-  date: "2026-07-01", time: "14:30", passengers: 2, luggage: 2,
-  vehicle: "sedan", fareBase: 40, fareTotal: 42.4, addonKeys: [],
+const base: RideDraft = {
+  from: "Queen Beatrix International Airport", to: "The Ritz-Carlton Aruba",
+  date: "2026-07-01", time: "14:35", passengers: 2, luggage: 2,
+  vehicle: "sedan", fareBase: 75.18, fareTotal: 75.18, addonKeys: [],
 };
 
 describe("buildRidePayload", () => {
@@ -13,21 +13,21 @@ describe("buildRidePayload", () => {
     expect(core).toMatchObject({
       passenger_id: "user-123",
       pickup_location: "Queen Beatrix International Airport",
-      dropoff_location: "Palm Beach",
+      dropoff_location: "The Ritz-Carlton Aruba",
       vehicle_type: "sedan", passengers_count: 2,
-      price: 42.4, status: "pending",
+      price: 75.18, status: "pending",
     });
   });
 
   it("builds withCoords with canonical fare + scheduled_at", () => {
     const { withCoords } = buildRidePayload(base, "user-123");
     expect(withCoords).toMatchObject({
-      vehicle_class: "sedan", fare_base: 40, fare_total: 42.4, is_asap: false,
+      vehicle_class: "sedan", fare_base: 75.18, fare_total: 75.18, is_asap: false,
     });
     expect(typeof withCoords.scheduled_at).toBe("string");
   });
 
-  it("adds guest contact + flight columns on the full tier, richest first", () => {
+  it("adds v3 fields on the full tier — child seats, return leg, contact", () => {
     const { full, tiers } = buildRidePayload(
       {
         ...base,
@@ -36,7 +36,10 @@ describe("buildRidePayload", () => {
         contactPhone: "+15551234567",
         contactEmail: "ada@example.com",
         flightNumber: "AA1234",
-        notes: "Child seat please",
+        notes: "Child seats: 2 (ages 2 and 5)",
+        childSeats: 2,
+        returnDate: "2026-07-08",
+        returnTime: "11:00",
       },
       null,
     );
@@ -44,15 +47,13 @@ describe("buildRidePayload", () => {
       passenger_id: null,
       booking_ref: "CB-7KM4Q",
       contact_name: "Ada Lovelace",
-      contact_phone: "+15551234567",
-      contact_email: "ada@example.com",
       flight_number: "AA1234",
-      notes: "Child seat please",
+      child_seats: 2,
+      return_date: "2026-07-08",
+      return_time: "11:00",
       luggage_count: 2,
     });
     expect(tiers).toHaveLength(3);
-    expect(tiers[0]).toBe(full);
-    // Fallback tiers keep the legacy shapes so older DBs still take bookings.
-    expect(tiers[2]).not.toHaveProperty("booking_ref");
+    expect(tiers[2]).not.toHaveProperty("child_seats");
   });
 });

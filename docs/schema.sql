@@ -13,6 +13,10 @@ alter table public.rides add column if not exists contact_email      text;
 alter table public.rides add column if not exists flight_number      text;
 alter table public.rides add column if not exists notes              text;
 alter table public.rides add column if not exists luggage_count      integer;
+-- v3 booking: child seats + "Bring us back" return leg
+alter table public.rides add column if not exists child_seats        integer;
+alter table public.rides add column if not exists return_date       text;
+alter table public.rides add column if not exists return_time       text;
 alter table public.rides add column if not exists payment_intent_id  text;
 alter table public.rides add column if not exists payment_status     text;  -- authorized | paid | failed
 -- Driver assignment (surfaced on My Trips once the dispatcher assigns)

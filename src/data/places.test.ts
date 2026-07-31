@@ -1,26 +1,46 @@
 import { describe, it, expect } from "vitest";
-import { CATEGORIES, placesByCategory, findPlaceByName, searchPlaces } from "./places";
+import {
+  GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName,
+  searchPlaces, selFromCustom, areaByName,
+} from "./places";
 
-describe("places catalog", () => {
-  it("exposes the five categories in order", () => {
-    expect(CATEGORIES.map((c) => c.key)).toEqual(["airport", "hotels", "beaches", "dining", "sights"]);
+describe("places catalog (§3.1)", () => {
+  it("km is SIGNED — northwest positive, southeast negative", () => {
+    expect(findPlaceByName("Palm Beach")!.km).toBeGreaterThan(0);
+    expect(findPlaceByName("Savaneta")!.km).toBeLessThan(0);
+    expect(AIRPORT.km).toBe(0);
+    // the money-losing bug: these two must NOT look one km apart
+    const gap = Math.abs(findPlaceByName("Palm Beach")!.km - findPlaceByName("Savaneta")!.km);
+    expect(gap).toBeGreaterThan(20);
   });
-  it("keeps hotel names matching the pricing data (exact strings)", () => {
-    const hotels = placesByCategory("hotels").map((p) => p.name);
-    expect(hotels).toContain("The Ritz-Carlton Aruba");
-    expect(hotels).toContain("Aruba Marriott Resort");
-    expect(hotels).toContain("Renaissance Aruba");
+
+  it("covers more than resorts", () => {
+    for (const g of GROUPS) {
+      expect(placesByGroup(g).length, `group ${g}`).toBeGreaterThan(0);
+    }
   });
-  it("groups places by category", () => {
-    expect(placesByCategory("airport").map((p) => p.name)).toEqual(["Queen Beatrix International Airport"]);
-    expect(placesByCategory("beaches").length).toBeGreaterThanOrEqual(3);
+
+  it("keeps names matching the pricing rows (exact strings)", () => {
+    expect(findPlaceByName("The Ritz-Carlton Aruba")).toBeTruthy();
+    expect(findPlaceByName("Aruba Marriott Resort")).toBeTruthy();
+    expect(findPlaceByName("Queen Beatrix International Airport")!.id).toBe("airport");
   });
-  it("finds a place by exact (case-insensitive) name", () => {
-    expect(findPlaceByName("eagle beach")?.id).toBe("eagle-beach");
-    expect(findPlaceByName("nowhere")).toBeUndefined();
+
+  it("remote detour spots carry floor duration", () => {
+    expect(findPlaceByName("Arikok National Park")!.md).toBeGreaterThanOrEqual(30);
+    expect(findPlaceByName("Natural Pool (Conchi)")!.md).toBeGreaterThanOrEqual(40);
   });
-  it("search matches name and meta, empty query returns nothing", () => {
+
+  it("search filters across name and area", () => {
+    expect(searchPlaces("palm").some((p) => p.id === "palm-beach")).toBe(true);
+    expect(searchPlaces("savaneta").some((p) => p.id === "flying-fishbone")).toBe(true);
     expect(searchPlaces("").length).toBe(0);
-    expect(searchPlaces("palm").map((p) => p.id)).toContain("palm-beach");
+  });
+
+  it("custom addresses anchor to one of the ten areas", () => {
+    expect(AREAS).toHaveLength(10);
+    const s = selFromCustom("Casa Bunita 7", areaByName("Noord")!, "Blue door");
+    expect(s.custom).toBe(true);
+    expect(s.km).toBe(areaByName("Noord")!.km);
   });
 });

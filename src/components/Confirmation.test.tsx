@@ -10,16 +10,16 @@ const booking = {
   from: "Queen Beatrix International Airport",
   to: "The Ritz-Carlton Aruba",
   date: "2026-07-20",
-  time: "14:30",
+  time: "14:35",
   vehicle: "premium",
-  total: 84.8,
+  total: 58, // USD — the only currency in the UI
   paid: false,
   flightNumber: "AA1234",
   contactName: "Ada Lovelace",
 };
 
 describe("Confirmation", () => {
-  it("renders the ticket with ref, route, flight promise and next steps", () => {
+  it("renders the v3 tag with ref, route, derived pickup and USD fare", () => {
     render(
       <MemoryRouter>
         <BookingProvider>
@@ -28,13 +28,14 @@ describe("Confirmation", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("CB-7KM4Q")).toBeInTheDocument();
-    expect(screen.getByText(/Queen Beatrix International Airport/)).toBeInTheDocument();
+    expect(screen.getByText(/Queen Beatrix International Airport →/)).toBeInTheDocument();
+    expect(screen.getByText("14:35")).toBeInTheDocument();
+    expect(screen.getByText("$58")).toBeInTheDocument();
     expect(screen.getByText(/AA1234 — tracked/)).toBeInTheDocument();
-    expect(screen.getByText("Driver assigned")).toBeInTheDocument();
+    expect(screen.getByText(/Arrivals hall, AUA/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /add to calendar/i })).toBeInTheDocument();
-    // Reserve mode → settle on the day, and the traveler is greeted by name.
-    expect(screen.getByText(/pay on the day/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ada, your/)).toBeInTheDocument();
+    // flight moves → we move with it (only promised when a flight exists)
+    expect(screen.getByText(/if it moves, we move with it/i)).toBeInTheDocument();
   });
 
   it("renders nothing without a booking", () => {
@@ -45,6 +46,6 @@ describe("Confirmation", () => {
         </BookingProvider>
       </MemoryRouter>,
     );
-    expect(container.querySelector(".conf-screen")).toBeNull();
+    expect(container.querySelector(".conf")).toBeNull();
   });
 });

@@ -7,8 +7,8 @@ describe("vehicles", () => {
   });
   it("fitsParty validates passengers and luggage capacity", () => {
     const sedan = VEHICLES.find(v => v.id === "sedan")!;
-    expect(fitsParty(sedan, 3, 3)).toBe(true);
-    expect(fitsParty(sedan, 4, 3)).toBe(false);
-    expect(fitsParty(sedan, 3, 4)).toBe(false);
+    expect(fitsParty(sedan, 3, 2)).toBe(true);
+    expect(fitsParty(sedan, 4, 2)).toBe(false);
+    expect(fitsParty(sedan, 3, 3)).toBe(false); // the Saloon takes 2 bags
   });
 });

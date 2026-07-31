@@ -1,82 +1,40 @@
-import { Fragment } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import Diamond from "./Diamond";
-import HeroBooking from "./booking/HeroBooking";
-import StripedSun from "./StripedSun";
-import { stagger, wordRise, EASE_CALM } from "../lib/motion";
-
-const TITLE_WORDS = ["Arrive", "in"];
+import { SplitHeading } from "./motion";
+import SunGraphic from "./SunGraphic";
+import QuoteCard from "./booking/QuoteCard";
 
 export default function Hero() {
-  const prefersReduced = useReducedMotion();
-
   return (
-    <section className="hero">
-      <div className="hero-sun" aria-hidden="true">
-        <StripedSun />
-      </div>
-      <div className="wrap hero-grid">
+    <header className="hero" id="top">
+      <div className="hero-grid">
         <div className="hero-copy">
-          <motion.div
-            className="eyebrow"
-            initial={prefersReduced ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: EASE_CALM }}
-          >
-            <Diamond />
-            Private transfers · Aruba
-          </motion.div>
-
-          <motion.h1
-            className="hero-title"
-            variants={prefersReduced ? undefined : stagger(0.12, 0.15)}
-            initial={prefersReduced ? false : "hidden"}
-            animate="show"
-          >
-            {TITLE_WORDS.map((w) => (
-              <Fragment key={w}>
-                <motion.span className="word" variants={wordRise}>
-                  {w}
-                </motion.span>{" "}
-              </Fragment>
-            ))}
-            <motion.span className="word accent" variants={wordRise}>
-              silence.
-            </motion.span>
-          </motion.h1>
-
-          <motion.p
-            className="hero-sub"
-            initial={prefersReduced ? false : { opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE_CALM, delay: 0.55 }}
-          >
-            A car waiting before you ask. A driver who knows the island. The quiet
-            certainty of a fixed price, settled before you arrive.
-          </motion.p>
-
-          {/* trust strip */}
-          <motion.div
-            className="hero-trust"
-            initial={prefersReduced ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, ease: EASE_CALM, delay: 0.8 }}
-          >
-            <span>Fixed prices</span>
-            <Diamond hollow />
-            <span>Licensed drivers</span>
-            <Diamond hollow />
-            <span>Flat-rate, no surge</span>
-          </motion.div>
+          <div className="hero-eyebrow rise">
+            <span className="eyebrow">Private transfers · Aruba</span>
+            <span className="l" />
+          </div>
+          <SplitHeading
+            as="h1"
+            className=""
+            parts={[{ text: "Getting there was " }, { text: "always the point.", em: true }]}
+          />
+          <div className="hero-tag rise">
+            <span className="big">Sent for you.</span>
+            <span className="sm">Aruba · door to door</span>
+          </div>
+          <div className="hero-trust stagger">
+            <span>Settled in advance</span>
+            <span>Met at the gate</span>
+            <span>On your hour</span>
+          </div>
         </div>
 
-        <HeroBooking />
+        <QuoteCard />
       </div>
 
-      <div className="hero-scroll" aria-hidden="true">
-        <span>Scroll</span>
-        <span className="hero-scroll-line" />
+      <div className="hero-sun par" data-speed="-.06" aria-hidden="true">
+        <div className="sun-rise"><div className="sun-float">
+          <SunGraphic />
+        </div></div>
       </div>
-    </section>
+    </header>
   );
 }

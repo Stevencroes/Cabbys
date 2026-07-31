@@ -1,21 +1,27 @@
 import Nav from "../components/Nav";
 import Hero from "../components/Hero";
+import TrustStrip from "../components/TrustStrip";
 import HowItWorks from "../components/HowItWorks";
-import Ethos from "../components/Ethos";
 import Fleet from "../components/Fleet";
+import Faq from "../components/Faq";
+import Closer from "../components/Closer";
 import Footer from "../components/Footer";
+import { useRevealObserver, useParallax } from "../components/motion";
 import { useAuthModal } from "../components/auth/AuthModal";
 
 export default function Landing() {
   const { openAuth } = useAuthModal();
+  useRevealObserver();
+  useParallax();
   return (
     <>
       <Nav onSignIn={openAuth} />
       <Hero />
-      {/* section rhythm: Midnight hero → Steel → Ocean → Mist → Midnight */}
+      <TrustStrip />
       <HowItWorks />
       <Fleet />
-      <Ethos />
+      <Faq />
+      <Closer />
       <Footer />
     </>
   );

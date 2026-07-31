@@ -1,75 +1,103 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from "react";
-import { isValidPhone, isValidEmail } from "../lib/contact";
-import { isValidFlightNumber } from "../lib/flight";
+import { AIRPORT, selFromPlace, type PlaceSel } from "../data/places";
+import { isOnIsland } from "../lib/geo";
 
-export const STEP_NAMES = ["Where to", "Ride", "Details", "Pay"] as const;
+// v3 booking — two steps, not four: the ride, then you.
+export const STEP_NAMES = ["The ride", "Your details"] as const;
 
 export interface BookingState {
-  from: string;
-  to: string;
-  date: string;
-  time: string;
-  passengers: number;
-  luggage: number;
-  vehicle: string | null;
-  // Lead passenger — guest checkout, no account required.
-  contactName: string;
-  contactPhone: string;
-  contactEmail: string;
-  // Airport transfers — lets Cabby's meet the flight, not the clock.
-  flightNumber: string;
-  notes: string;
-  step: number;
   open: boolean;
-  signedIn: boolean;
+  step: 1 | 2;
+  // the ride — symmetric: airport arrival is just the case where pickup
+  // happens to be the airport. No mode toggle.
+  from: PlaceSel | null;
+  to: PlaceSel | null;
+  date: string;
+  journey: "one" | "return";
+  // §3.6 — derived timing. Which fields apply follows from the route.
+  flightNumber: string;   // pickup = airport
+  flightLanding: string;  // scheduled landing HH:MM
+  depTime: string;        // drop-off = airport: departure HH:MM
+  destUS: boolean;        // flying to the US? (island pre-clearance → 3 h)
+  pickupTime: string;     // neither end is the airport
+  // §3.7 — "Bring us back" opens real fields
+  returnDate: string;
+  returnTime: string;     // collect-us-at, or return flight departure
+  returnDestUS: boolean;
+  // party
+  pax: number;
+  bags: number;
+  seats: number;          // child seats
+  seatAges: string;       // revealed when seats > 0 (the FAQ's promise)
+  vehicle: string;        // vehicle id
+  // you
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  notes: string;
 }
 
 type StateKey = keyof BookingState;
-type StateValue<K extends StateKey> = BookingState[K];
 
 const initialState: BookingState = {
-  from: "",
-  to: "",
-  date: "",
-  time: "",
-  passengers: 2,
-  luggage: 2,
-  vehicle: null,
-  contactName: "",
-  contactPhone: "",
-  contactEmail: "",
-  flightNumber: "",
-  notes: "",
-  step: 0,
   open: false,
-  signedIn: false,
+  step: 1,
+  from: null,
+  to: null,
+  date: new Date().toISOString().slice(0, 10),
+  journey: "one",
+  flightNumber: "",
+  flightLanding: "",
+  depTime: "",
+  destUS: true,
+  pickupTime: "",
+  returnDate: "",
+  returnTime: "",
+  returnDestUS: true,
+  pax: 2,
+  bags: 2,
+  seats: 0,
+  seatAges: "",
+  vehicle: "sedan",
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
+  notes: "",
 };
 
+export type Prefill = Partial<Pick<BookingState, "from" | "to" | "date" | "pax" | "vehicle">>;
+
 type Action =
-  | { type: "OPEN"; step?: number }
+  | { type: "OPEN"; prefill?: Prefill }
   | { type: "CLOSE" }
-  | { type: "NEXT" }
-  | { type: "BACK" }
-  | { type: "GO_TO"; step: number }
+  | { type: "GO_TO"; step: 1 | 2 }
+  | { type: "SWAP" }
   | { type: "RESET" }
   | { type: "SET_FIELD"; key: StateKey; value: BookingState[StateKey] };
 
 function reducer(state: BookingState, action: Action): BookingState {
   switch (action.type) {
-    case "OPEN":
-      return { ...state, open: true, step: action.step ?? 0 };
+    case "OPEN": {
+      const next = { ...state, ...action.prefill, open: true, step: 1 as const };
+      // Planning from abroad? Pickup defaults to the airport (§3.8's
+      // timezone hint) — on-island guests know where they are.
+      if (!next.from && !isOnIsland()) next.from = selFromPlace(AIRPORT);
+      // Same-vehicle guarantee between hero and modal (§3.4): default
+      // bags from guests so auto-selection can't diverge.
+      if (action.prefill?.pax !== undefined && state.bags === initialState.bags) {
+        next.bags = Math.min(next.pax, 2);
+      }
+      return next;
+    }
     case "CLOSE":
       return { ...state, open: false };
-    case "NEXT":
-      if (!computeCanContinue(state)) return state;
-      return { ...state, step: Math.min(STEP_NAMES.length - 1, state.step + 1) };
-    case "BACK":
-      return { ...state, step: Math.max(0, state.step - 1) };
     case "GO_TO":
       return { ...state, step: action.step };
+    case "SWAP":
+      // exchanges pickup and drop-off, including custom addresses
+      return { ...state, from: state.to, to: state.from };
     case "RESET":
-      // Preserve session flag — resetting a finished booking doesn't sign out.
-      return { ...initialState, signedIn: state.signedIn };
+      return { ...initialState, date: new Date().toISOString().slice(0, 10) };
     case "SET_FIELD":
       if (state[action.key] === action.value) return state;
       return { ...state, [action.key]: action.value };
@@ -78,73 +106,45 @@ function reducer(state: BookingState, action: Action): BookingState {
   }
 }
 
-function computeCanContinue(state: BookingState): boolean {
-  switch (state.step) {
-    case 0: // Where to
-      return !!state.from && !!state.to && !!state.date && !!state.time && state.passengers >= 1;
-    case 1: // Ride — guest checkout: choosing a car is all it takes to move on
-      return !!state.vehicle;
-    case 2: // Details — lead passenger we can actually reach on the day
-      return (
-        state.contactName.trim().length >= 2 &&
-        isValidPhone(state.contactPhone) &&
-        (!state.contactEmail || isValidEmail(state.contactEmail)) &&
-        (!state.flightNumber || isValidFlightNumber(state.flightNumber))
-      );
-    case 3: // Pay — the review screen owns its own confirm button
-      return true;
-    default:
-      return true;
-  }
-}
-
 interface BookingContextValue {
   state: BookingState;
-  canContinue: boolean;
   STEP_NAMES: typeof STEP_NAMES;
-  open: (step?: number) => void;
+  open: (prefill?: Prefill) => void;
   close: () => void;
-  next: () => void;
-  back: () => void;
-  goTo: (step: number) => void;
+  goTo: (step: 1 | 2) => void;
+  swap: () => void;
   reset: () => void;
-  setField: <K extends StateKey>(key: K, value: StateValue<K>) => void;
+  setField: <K extends StateKey>(key: K, value: BookingState[K]) => void;
 }
 
 const BookingContext = createContext<BookingContextValue | null>(null);
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const canContinue = computeCanContinue(state);
 
-  const open = useCallback((step?: number) => dispatch({ type: "OPEN", step }), []);
+  const open = useCallback((prefill?: Prefill) => dispatch({ type: "OPEN", prefill }), []);
   const close = useCallback(() => dispatch({ type: "CLOSE" }), []);
-  const next = useCallback(() => dispatch({ type: "NEXT" }), []);
-  const back = useCallback(() => dispatch({ type: "BACK" }), []);
-  const goTo = useCallback((step: number) => dispatch({ type: "GO_TO", step }), []);
+  const goTo = useCallback((step: 1 | 2) => dispatch({ type: "GO_TO", step }), []);
+  const swap = useCallback(() => dispatch({ type: "SWAP" }), []);
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
-  const setField = useCallback(<K extends StateKey>(key: K, val: StateValue<K>) =>
-    dispatch({ type: "SET_FIELD", key, value: val as BookingState[StateKey] }), []);
+  const setField = useCallback(<K extends StateKey>(key: K, value: BookingState[K]) =>
+    dispatch({ type: "SET_FIELD", key, value }), []);
 
   const value = useMemo<BookingContextValue>(
-    () => ({ state, canContinue, STEP_NAMES, open, close, setField, next, back, goTo, reset }),
-    [state, canContinue, open, close, setField, next, back, goTo, reset],
+    () => ({ state, STEP_NAMES, open, close, goTo, swap, reset, setField }),
+    [state, open, close, goTo, swap, reset, setField],
   );
 
-  return (
-    <BookingContext.Provider value={value}>{children}</BookingContext.Provider>
-  );
+  return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;
 }
 
 export function useBooking(): BookingContextValue {
   const ctx = useContext(BookingContext);
-  if (!ctx) {
-    throw new Error("useBooking must be used within a BookingProvider");
-  }
+  if (!ctx) throw new Error("useBooking must be used within a BookingProvider");
   return ctx;
 }
 
-/** Like useBooking, but returns null outside a provider (e.g. standalone pages). */
+/** Like useBooking, but null outside a provider (standalone pages/tests). */
 export function useBookingOptional(): BookingContextValue | null {
   return useContext(BookingContext);
 }

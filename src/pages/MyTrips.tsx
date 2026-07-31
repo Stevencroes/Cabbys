@@ -6,6 +6,8 @@ import { cancelRide } from "../lib/rides";
 import { refFromRideId } from "../lib/bookingRef";
 import { cancellationInfo, scheduledDate } from "../lib/policy";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
+import { usd, AWG_PER_USD } from "../lib/quote";
+import { findPlaceByName, selFromPlace } from "../data/places";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuthModal } from "../components/auth/AuthModal";
@@ -127,7 +129,8 @@ function TripCard({
   const cancelled = c === "cancelled" || c === "canceled";
   const completed = c === "completed";
   const upcoming = isUpcoming(ride);
-  const fare = `$${Number(ride.fare_total ?? ride.price ?? 0).toFixed(2)}`;
+  // rides rows store florin for the driver dashboard; guests see USD only
+  const fare = usd(Number(ride.fare_total ?? ride.price ?? 0) / AWG_PER_USD);
   const vehicle = [ride.vehicle_class, ride.vehicle_type].filter(Boolean).join(" · ");
   const bookingRef = ride.booking_ref ?? refFromRideId(ride.id);
   const policy = cancellationInfo(pickupDate(ride));
@@ -271,9 +274,12 @@ export default function MyTrips() {
   function handleBookReturn(ride: Ride) {
     if (!booking) return;
     booking.reset();
-    booking.setField("from", ride.dropoff_location);
-    booking.setField("to", ride.pickup_location);
-    booking.open(0);
+    const from = findPlaceByName(ride.dropoff_location);
+    const to = findPlaceByName(ride.pickup_location);
+    booking.open({
+      from: from ? selFromPlace(from) : undefined,
+      to: to ? selFromPlace(to) : undefined,
+    });
   }
 
   const upcoming = rides.filter(isUpcoming);
@@ -313,8 +319,8 @@ export default function MyTrips() {
             <div className="tp-empty">
               <p>No trips yet. The island is waiting.</p>
               {booking && (
-                <button type="button" className="tp-link" onClick={() => booking.open(0)}>
-                  Reserve your first car
+                <button type="button" className="tp-link" onClick={() => booking.open()}>
+                  Book a transfer
                 </button>
               )}
             </div>
