@@ -9,8 +9,10 @@
   --cocoa:#2B1F19;       --cocoa-2:#3A2B22;
   --cocoa-soft:#5A4839;  --cocoa-line:#4A3A2D;
   --persimmon:#C6452C;   --persimmon-deep:#9B3221;
-  --amber:#E2A03F;       --olive:#4C5A33;
-  --lagoon:#2E6360;      --plum:#7A3444;        --clay:#D98E5F;
+  --amber:#E2A03F;       --plum:#7A3444;        --clay:#D98E5F;
+  /* Retired: olive green and lagoon teal. The palette is a sunset —
+     bone → clay → persimmon → plum → cocoa — with amber as the sun.
+     Nothing cool-toned; good news wears amber, not green. */
   --muted:#B9A78D;
   /* WCAG-safe placeholder on bone-2 (the old #a89880 was 2.11:1) */
   --placeholder:#6E5C48;
@@ -25,6 +27,13 @@
   --ease:cubic-bezier(.22,.68,.24,1);
   --tap:46px;                                     /* minimum touch target */
 
+  /* ---------- rounded system ---------- */
+  --r-xs:10px;
+  --r-sm:14px;
+  --r-md:20px;
+  --r-lg:28px;
+  --r-pill:100px;
+
   /* ---------- the one z-scale (no component sets a raw z-index) ---------- */
   --z-sun:0;
   --z-content:1;
@@ -32,9 +41,9 @@
   --z-modal:200;
   --z-sheet:300;
 
-  /* ---------- signature shadow — hard offset, no blur ---------- */
-  --shadow-hard:7px 9px 0 rgba(43,31,25,.14);
-  --shadow-hard-lg:9px 11px 0 rgba(43,31,25,.16);
+  /* ---------- shadows — a gentler offset with a warm soft wash ---------- */
+  --shadow-hard:5px 7px 0 rgba(43,31,25,.10), 0 22px 44px -22px rgba(43,31,25,.25);
+  --shadow-hard-lg:6px 8px 0 rgba(43,31,25,.12), 0 30px 60px -26px rgba(43,31,25,.30);
 
   /* ---------- filmic grain ---------- */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -53,7 +62,7 @@
   --accent:var(--persimmon);
   --accent-press:var(--persimmon-deep);
   --secondary:var(--amber);
-  --success:var(--olive);
+  --success:var(--amber);   /* good news wears the sun, not green */
   --on-accent:var(--bone);
   --midnight:var(--cocoa);
   --ocean:var(--bone);
@@ -91,8 +100,8 @@
   --c-lacquer-dark:var(--persimmon);
   --c-lacquer-deep:var(--persimmon-deep);
   --c-camel:var(--amber);
-  --c-palm:var(--olive);
-  --c-palm-2:#5E7049;
+  --c-palm:var(--amber);
+  --c-palm-2:var(--amber);
   --c-muted:var(--muted);
   --c-on-dark:var(--muted);
   --c-on-dark-2:#D8C9B4;
