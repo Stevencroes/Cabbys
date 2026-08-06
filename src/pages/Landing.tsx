@@ -1,6 +1,5 @@
 import Nav from "../components/Nav";
 import Hero from "../components/Hero";
-import TrustStrip from "../components/TrustStrip";
 import HowItWorks from "../components/HowItWorks";
 import Fleet from "../components/Fleet";
 import Faq from "../components/Faq";
@@ -17,7 +16,6 @@ export default function Landing() {
     <>
       <Nav onSignIn={openAuth} />
       <Hero />
-      <TrustStrip />
       <HowItWorks />
       <Fleet />
       <Faq />
