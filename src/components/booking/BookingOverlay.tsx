@@ -1,9 +1,11 @@
 // The v3 booking modal — two steps, real URLs per step (§3.10), a running
-// total pinned to the bottom, iOS-safe scroll lock, and a focus trap.
+// total that sits flat at the end of the step, iOS-safe scroll lock, and a
+// focus trap.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import Step1Ride, { type StepProblem } from "./steps/Step1Ride";
 import Step2Details, { type PayPhase } from "./steps/Step2Details";
+import StepFoot from "./StepFoot";
 import { VEHICLES } from "../../data/vehicles";
 import { loadPricing, type Pricing } from "../../lib/pricing";
 import { quote, usd } from "../../lib/quote";
@@ -133,6 +135,17 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     : phase === "payment" ? `Pay ${q ? usd(q.totalUsd) : ""}`
     : STRIPE_KEY ? "Continue to payment" : "Reserve your car";
 
+  const foot = (
+    <StepFoot
+      total={state.step === 1 ? (q ? usd(q.totalUsd) : "—") : undefined}
+      meta={q ? `${q.minutes} min · ${vehicle.name}${state.journey === "return" ? " · return" : ""}` : "Route sets the fare"}
+      primaryLabel={primaryLabel}
+      onPrimary={handlePrimary}
+      onBack={state.step === 2 ? () => history.back() : undefined}
+      busy={busy}
+    />
+  );
+
   return (
     <div className="book open" role="dialog" aria-modal="true" aria-label="Book your transfer" ref={bookRef}>
       <div className="bhead">
@@ -149,9 +162,11 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
         </div>
       </div>
 
+      {/* the running total travels with the step's own column, flat under
+          the last choice — no pinned bar stealing a fifth of the viewport */}
       <div className="bbody" ref={bodyRef}>
         {state.step === 1 ? (
-          <Step1Ride pricing={pricing} hint={hint} registerValidator={registerValidator} />
+          <Step1Ride pricing={pricing} hint={hint} registerValidator={registerValidator} foot={foot} />
         ) : (
           <Step2Details
             pricing={pricing}
@@ -165,25 +180,9 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
             needsAuth={needsAuth}
             setNeedsAuth={setNeedsAuth}
             registerConfirm={registerConfirm}
+            foot={foot}
           />
         )}
-      </div>
-
-      {/* running total — visible on every step, always the same number */}
-      <div className="totalbar">
-        <div className="tb-l">
-          <span className="tk">Total · all in</span>
-          <span className="tv">{q ? usd(q.totalUsd) : "—"}</span>
-          <span className="tm">{q ? `${q.minutes} min · ${vehicle.name}${state.journey === "return" ? " · return" : ""}` : "Route sets the fare"}</span>
-        </div>
-        <div className="tb-r">
-          {state.step === 2 && (
-            <button type="button" className="btn back" onClick={() => history.back()} disabled={busy}>Back</button>
-          )}
-          <button type="button" className="btn primary" onClick={handlePrimary} disabled={busy}>
-            {primaryLabel}
-          </button>
-        </div>
       </div>
     </div>
   );

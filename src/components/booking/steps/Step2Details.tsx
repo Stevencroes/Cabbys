@@ -32,8 +32,10 @@ interface Step2Props {
   setError: (e: string | null) => void;
   needsAuth: boolean;
   setNeedsAuth: (b: boolean) => void;
-  /** invoked by the total bar's primary button */
+  /** invoked by the step foot's primary button */
   registerConfirm: (fn: () => Promise<void>) => void;
+  /** the total + primary action, rendered flat under the contact fields */
+  foot: React.ReactNode;
 }
 
 export function effectivePickupTime(state: ReturnType<typeof useBooking>["state"]): string {
@@ -46,7 +48,7 @@ export function effectivePickupTime(state: ReturnType<typeof useBooking>["state"
 
 export default function Step2Details({
   pricing, hint, registerValidator, phase, setPhase, onConfirmed,
-  error, setError, needsAuth, setNeedsAuth, registerConfirm,
+  error, setError, needsAuth, setNeedsAuth, registerConfirm, foot,
 }: Step2Props) {
   const { state, setField, goTo } = useBooking();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -225,9 +227,13 @@ export default function Step2Details({
 
   return (
     <div className="panel">
-      <div className="pkick">Step 02 · Your details</div>
-      <h2>Confirm and <em>you're set.</em></h2>
+      <div className="phead">
+        <div className="pkick">Step 02 · Your details</div>
+        <h2>Confirm and <em>you're set.</em></h2>
+      </div>
 
+      <div className="pcols">
+      <div className="pcol">
       <div className="review">
         <div className="rrow"><span className="rl">Route</span><span className="rv">{state.from?.name} → {state.to?.name}</span></div>
         <div className="rrow"><span className="rl">Journey</span><span className="rv">{state.journey === "return" ? "Return" : "One way"}</span></div>
@@ -243,7 +249,9 @@ export default function Step2Details({
           <button type="button" onClick={() => goTo(1)}>← Change something</button>
         </div>
       </div>
+      </div>
 
+      <div className="pcol">
       <div className="fld">
         <label htmlFor="b-name">{airportTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
         <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName} onChange={(e) => setField("contactName", e.target.value)} />
@@ -274,10 +282,14 @@ export default function Step2Details({
       )}
       {hint && <div className="hint" role="alert">{hint}</div>}
 
+      {foot}
+
       <div className="secure">
         {STRIPE_KEY
           ? "Secured by Stripe · charged in US dollars · free cancellation up to 24h before pickup"
           : "No charge today — the fixed fare is settled with your driver, in US dollars. Free cancellation up to 24h before pickup."}
+      </div>
+      </div>
       </div>
     </div>
   );

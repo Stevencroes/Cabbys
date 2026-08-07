@@ -23,9 +23,11 @@ interface Step1Props {
   pricing: Pricing | null;
   hint: string;
   registerValidator: (fn: () => StepProblem | null) => void;
+  /** the total + primary action, rendered flat under the car list */
+  foot: React.ReactNode;
 }
 
-export default function Step1Ride({ pricing, hint, registerValidator }: Step1Props) {
+export default function Step1Ride({ pricing, hint, registerValidator, foot }: Step1Props) {
   const { state, setField, swap } = useBooking();
   const fromInput = useRef<HTMLInputElement | null>(null);
   const toInput = useRef<HTMLInputElement | null>(null);
@@ -64,7 +66,7 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
   }, [selectedFits, state.pax, state.bags, setField]);
 
   // §3.10-adjacent — the validator lives here, the Continue button in the
-  // total bar. Never disabled: focus the gap and say why.
+  // step's own foot. Never disabled: focus the gap and say why.
   const validate = useMemo(() => () => {
     if (!state.from) return { message: "Tell us where to pick you up first.", focus: () => fromInput.current?.focus() };
     if (!state.to) return { message: "And where you're headed.", focus: () => toInput.current?.focus() };
@@ -107,10 +109,14 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
 
   return (
     <div className="panel">
-      <div className="pkick">{heading.kick}</div>
-      <h2>{heading.h}</h2>
-      <p className="psub">{heading.sub}</p>
+      <div className="phead">
+        <div className="pkick">{heading.kick}</div>
+        <h2>{heading.h}</h2>
+        <p className="psub">{heading.sub}</p>
+      </div>
 
+      <div className="pcols">
+      <div className="pcol">
       <PlaceCombobox label="Pick up" value={state.from} onSelect={(s) => setField("from", s)} inputRef={fromInput} />
       <div className="qswap-row">
         <button type="button" className="qswap" aria-label="Swap pickup and drop-off" onClick={swap}>⇅</button>
@@ -241,7 +247,9 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
           </p>
         </div>
       )}
+      </div>
 
+      <div className="pcol">
       <div className="subh">Guests &amp; bags</div>
       <div className="steppers">
         <div className="stw">
@@ -299,6 +307,11 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
       </div>
 
       {hint && <div className="hint" role="alert">{hint}</div>}
+
+      {/* the fare, flat under the cars it belongs to */}
+      {foot}
+      </div>
+      </div>
     </div>
   );
 }
