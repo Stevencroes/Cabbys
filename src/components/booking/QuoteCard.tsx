@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import PlaceCombobox from "./PlaceCombobox";
+import DateField from "./DateField";
+import { todayInAruba } from "../../lib/datetime";
 import { VEHICLES, fitsParty, type Vehicle } from "../../data/vehicles";
 import { loadPricing, type Pricing } from "../../lib/pricing";
 import { quote, usd } from "../../lib/quote";
@@ -109,13 +111,12 @@ export default function QuoteCard() {
 
       <div className="qmini">
         <div className="qfld">
-          <label htmlFor="q-date">Date</label>
-          <input
+          <DateField
             id="q-date"
-            type="date"
+            label="Date"
             value={state.date}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setField("date", e.target.value)}
+            min={todayInAruba()}
+            onChange={(iso) => setField("date", iso)}
           />
         </div>
         <div className="qfld">

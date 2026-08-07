@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBooking } from "../booking/BookingContext";
 import { usd } from "../lib/quote";
+import { formatDate, formatTime, ARUBA_TZ_LABEL } from "../lib/datetime";
 import { refFromRideId } from "../lib/bookingRef";
 import { downloadIcs } from "../lib/ics";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
@@ -32,9 +33,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
 
   const bookingRef = booking.bookingRef ?? refFromRideId(booking.rideId);
   const vehicleName = VEHICLES.find((v) => v.id === booking.vehicle)?.name ?? booking.vehicle;
-  const dateLabel = booking.date
-    ? new Date(booking.date + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
-    : "—";
+  const dateLabel = formatDate(booking.date) || "—";
   const waHref = whatsappLink(`Hi Cabby's — booking ${bookingRef} (${booking.from} → ${booking.to}, ${booking.date} ${booking.time}).`);
 
   function handleCalendar() {
@@ -84,7 +83,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
               )}
               <div><div className="tl">Route</div><div className="tv">{booking.from} → {booking.to}</div></div>
               <div><div className="tl">When</div><div className="tv">{dateLabel}</div></div>
-              <div><div className="tl">Pickup</div><div className="tv">{booking.time || "—"}</div></div>
+              <div><div className="tl">Pickup</div><div className="tv">{formatTime(booking.time) || "—"}<span className="tv-zone">{ARUBA_TZ_LABEL}</span></div></div>
               <div><div className="tl">Car</div><div className="tv">{vehicleName}</div></div>
               <div>
                 <div className="tl">{booking.paid ? "Paid" : "Fare, all in"}</div>
