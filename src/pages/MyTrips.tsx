@@ -249,6 +249,9 @@ const FILTERS: { key: Bucket; label: string }[] = [
   { key: "past", label: "Past" },
 ];
 
+/** How many trips a shelf shows before it asks to be opened. */
+const SHELF_PAGE = 5;
+
 const EMPTY_COPY: Record<Bucket, string> = {
   upcoming: "Nothing on the calendar. The island is waiting.",
   cancelled: "Nothing cancelled — long may it last.",
@@ -260,6 +263,9 @@ export default function MyTrips() {
   const { openAuth } = useAuthModal();
   const booking = useBookingOptional();
   const [params, setParams] = useSearchParams();
+  // Only one shelf can be open at a time, so switching shelves collapses
+  // the previous one without needing an effect to reset it.
+  const [openShelf, setOpenShelf] = useState<Bucket | null>(null);
   const raw = params.get("show");
   // null = "no explicit choice yet"; the render picks a sensible shelf.
   const filter: Bucket | null = FILTERS.some((f) => f.key === raw) ? (raw as Bucket) : null;
@@ -348,6 +354,9 @@ export default function MyTrips() {
     ) ?? "upcoming";
   const active: Bucket = filter ?? fallback;
   const group = allGroups.find((g) => g.key === active)!;
+  const expanded = openShelf === active;
+  const visible = expanded ? group.rides : group.rides.slice(0, SHELF_PAGE);
+  const hidden = group.rides.length - visible.length;
 
   return (
     <>
@@ -402,7 +411,10 @@ export default function MyTrips() {
                       type="button"
                       className={`tp-tab${active === f.key ? " on" : ""}`}
                       aria-pressed={active === f.key}
-                      onClick={() => setParams({ show: f.key })}
+                      onClick={() => {
+                        setParams({ show: f.key });
+                        setOpenShelf(null); // a new shelf always opens folded
+                      }}
                     >
                       {f.label}
                       <span className="tp-tab-n">{count}</span>
@@ -422,18 +434,37 @@ export default function MyTrips() {
                     )}
                   </div>
                 ) : (
-                  <div className="tp-list">
-                    {group.rides.map((ride) => (
-                      <TripCard
-                        key={ride.id}
-                        ride={ride}
-                        onCancelled={handleCancelled}
-                        // rebooking makes sense once a trip is behind you —
-                        // whether it ran or you called it off
-                        onRebook={booking && active !== "upcoming" ? handleRebook : undefined}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="tp-list">
+                      {visible.map((ride) => (
+                        <TripCard
+                          key={ride.id}
+                          ride={ride}
+                          onCancelled={handleCancelled}
+                          // rebooking makes sense once a trip is behind you —
+                          // whether it ran or you called it off
+                          onRebook={booking && active !== "upcoming" ? handleRebook : undefined}
+                        />
+                      ))}
+                    </div>
+
+                    {/* a long history stays folded away until asked for */}
+                    {(hidden > 0 || expanded) && (
+                      <button
+                        type="button"
+                        className={`tp-more${expanded ? " open" : ""}`}
+                        aria-expanded={expanded}
+                        onClick={() => setOpenShelf(expanded ? null : active)}
+                      >
+                        {expanded ? "Show less" : `${hidden} more`}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                          strokeLinejoin="round" aria-hidden="true">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                    )}
+                  </>
                 )}
               </section>
             </>
