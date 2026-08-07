@@ -26,9 +26,12 @@ vi.mock("../lib/supabase", () => {
     { id: "r-cancelled", booking_ref: "CB-CANX", pickup_location: "Eagle Beach Hotel",
       dropoff_location: "Palm Beach Marriott", scheduled_date: dateOf(now + 5 * day),
       scheduled_time: "09:15", fare_total: 100, status: "cancelled" },
-    { id: "r-done", booking_ref: "CB-DONE", pickup_location: "Oranjestad",
-      dropoff_location: "Arikok National Park", scheduled_date: dateOf(now - 8 * day),
-      scheduled_time: "10:00", fare_total: 100, status: "completed" },
+    // seven finished trips, so the shelf has to fold (5 shown + 2 hidden)
+    ...Array.from({ length: 7 }, (_, i) => ({
+      id: `r-done-${i}`, booking_ref: `CB-DONE${i}`, pickup_location: "Oranjestad",
+      dropoff_location: "Arikok National Park", scheduled_date: dateOf(now - (i + 1) * day),
+      scheduled_time: "10:00", fare_total: 100, status: "completed",
+    })),
   ];
   const orderMock = vi.fn().mockResolvedValue({ data: rows, error: null });
   const eqMock = vi.fn().mockReturnValue({ order: orderMock });
@@ -76,7 +79,42 @@ describe("MyTrips", () => {
     const picker = screen.getByRole("group", { name: /which trips to show/i });
     expect(
       [...picker.querySelectorAll("button")].map((b) => b.textContent),
-    ).toEqual(["Upcoming2", "Cancelled1", "Past1"]);
+    ).toEqual(["Upcoming2", "Cancelled1", "Past7"]);
+  });
+
+  it("shows five per shelf and folds the rest away", async () => {
+    renderTrips("/trips?show=past");
+    expect(await screen.findByText("CB-DONE0")).toBeInTheDocument();
+
+    // newest first, capped at five
+    expect(refs()).toEqual(["CB-DONE0", "CB-DONE1", "CB-DONE2", "CB-DONE3", "CB-DONE4"]);
+    const more = screen.getByRole("button", { name: /2 more/i });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(more);
+    expect(refs()).toHaveLength(7);
+    expect(screen.getByText("CB-DONE6")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /show less/i }));
+    expect(refs()).toHaveLength(5);
+  });
+
+  it("re-folds a shelf when another is chosen", async () => {
+    renderTrips("/trips?show=past");
+    expect(await screen.findByText("CB-DONE0")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /2 more/i }));
+    expect(refs()).toHaveLength(7);
+
+    fireEvent.click(tab(/^upcoming/i));
+    fireEvent.click(tab(/^past/i));
+    expect(refs()).toHaveLength(5);
+  });
+
+  it("offers no reveal on a short shelf", async () => {
+    renderTrips();
+    expect(await screen.findByText("CB-SOON")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /more$/i })).toBeNull();
   });
 
   it("opens on Upcoming and shows only those trips, soonest first", async () => {
@@ -99,15 +137,15 @@ describe("MyTrips", () => {
     expect(screen.queryByText("CB-SOON")).toBeNull();
 
     fireEvent.click(tab(/^past/i));
-    expect(refs()).toEqual(["CB-DONE"]);
+    expect(refs()[0]).toBe("CB-DONE0");
     expect(screen.queryByText("CB-CANX")).toBeNull();
   });
 
   it("honours the shelf named in the URL", async () => {
     renderTrips("/trips?show=past");
-    expect(await screen.findByText("CB-DONE")).toBeInTheDocument();
-    expect(refs()).toEqual(["CB-DONE"]);
+    expect(await screen.findByText("CB-DONE0")).toBeInTheDocument();
     expect(tab(/^past/i)).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText("CB-SOON")).toBeNull();
   });
 
   it("offers rebooking behind you, cancelling ahead of you", async () => {
@@ -118,7 +156,7 @@ describe("MyTrips", () => {
     expect(screen.queryByRole("button", { name: /book (return|again)/i })).toBeNull();
 
     fireEvent.click(tab(/^past/i));
-    expect(screen.getByRole("button", { name: /book return/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /book return/i })).toHaveLength(5);
 
     fireEvent.click(tab(/^cancelled/i));
     expect(screen.getByRole("button", { name: /book again/i })).toBeInTheDocument();

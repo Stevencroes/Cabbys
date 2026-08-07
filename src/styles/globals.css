@@ -427,6 +427,14 @@ h2.sec em{font-style:italic;}
 .tp-tab.on .tp-tab-n{background:rgba(242,233,213,.22);color:var(--bone);}
 @media(max-width:420px){.tp-tab{flex:1 1 auto;justify-content:center;padding:0 12px;letter-spacing:.08em;}}
 .tp-list{display:flex;flex-direction:column;gap:16px;}
+/* the reveal — lighter than a card so it reads as a control, not a trip */
+.tp-more{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:var(--tap);
+  margin-top:16px;padding:0 20px;border:2px dashed rgba(43,31,25,.35);border-radius:var(--r-pill);
+  background:transparent;color:var(--cocoa-soft);
+  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.25s var(--ease);}
+.tp-more:hover{border-color:var(--cocoa);color:var(--cocoa);background:var(--bone-2);}
+.tp-more svg{transition:transform .3s var(--ease);}
+.tp-more.open svg{transform:rotate(180deg);}
 .tp-card{position:relative;background:var(--bone-2);border:2px solid var(--cocoa);padding:20px 24px;box-shadow:var(--shadow-hard);transition:transform .25s var(--ease);}
 .tp-card:hover{transform:translateY(-2px);}
 .tp-card.cancelled{opacity:.55;}
