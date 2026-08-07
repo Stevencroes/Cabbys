@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../booking/useAuth";
 import { useBookingOptional } from "../booking/BookingContext";
 import { supabase } from "../lib/supabase";
@@ -89,12 +90,26 @@ function formatTripDate(ride: Ride): string {
   return "—";
 }
 
-function isUpcoming(ride: Ride): boolean {
+// Three shelves: what's ahead, what you called off, what already happened.
+type Bucket = "upcoming" | "cancelled" | "past";
+
+function bucketOf(ride: Ride): Bucket {
   const c = canonicalStatus(ride.status);
-  if (c === "completed" || c === "cancelled" || c === "canceled") return false;
+  if (c === "cancelled" || c === "canceled") return "cancelled";
+  if (c === "completed") return "past";
   const d = pickupDate(ride);
-  if (!d) return true; // undated but active — keep it in front of the traveler
-  return d.getTime() > Date.now() - 6 * 3_600_000; // grace window after pickup
+  if (!d) return "upcoming"; // undated but active — keep it in front of the traveler
+  return d.getTime() > Date.now() - 6 * 3_600_000 ? "upcoming" : "past"; // grace after pickup
+}
+
+function isUpcoming(ride: Ride): boolean {
+  return bucketOf(ride) === "upcoming";
+}
+
+
+/** Sort key — undated rides sort last. */
+function whenMs(ride: Ride): number {
+  return pickupDate(ride)?.getTime() ?? 0;
 }
 
 function TripTimeline({ status }: { status: string | undefined }) {
@@ -115,11 +130,12 @@ function TripTimeline({ status }: { status: string | undefined }) {
 function TripCard({
   ride,
   onCancelled,
-  onBookReturn,
+  onRebook,
 }: {
   ride: Ride;
   onCancelled: (id: string) => void;
-  onBookReturn?: (ride: Ride) => void;
+  /** reverse=true books the way home; false repeats the same route */
+  onRebook?: (ride: Ride, reverse: boolean) => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -194,9 +210,13 @@ function TripCard({
       {error && <div className="pay-error" role="alert" style={{ marginTop: "12px" }}>{error}</div>}
 
       <footer className="tp-actions">
-        {completed && onBookReturn && (
-          <button className="btn-ghost" type="button" onClick={() => onBookReturn(ride)}>
-            Book return
+        {onRebook && (completed || cancelled) && (
+          <button
+            className="btn-ghost"
+            type="button"
+            onClick={() => onRebook(ride, completed)}
+          >
+            {cancelled ? "Book again" : "Book return"}
           </button>
         )}
         {upcoming && !cancelled && waHref && whatsappEnabled && (
@@ -223,10 +243,26 @@ function TripCard({
   );
 }
 
+const FILTERS: { key: Bucket; label: string }[] = [
+  { key: "upcoming", label: "Upcoming" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "past", label: "Past" },
+];
+
+const EMPTY_COPY: Record<Bucket, string> = {
+  upcoming: "Nothing on the calendar. The island is waiting.",
+  cancelled: "Nothing cancelled — long may it last.",
+  past: "No finished trips yet.",
+};
+
 export default function MyTrips() {
   const { user, loading: authLoading } = useAuth();
   const { openAuth } = useAuthModal();
   const booking = useBookingOptional();
+  const [params, setParams] = useSearchParams();
+  const raw = params.get("show");
+  // null = "no explicit choice yet"; the render picks a sensible shelf.
+  const filter: Bucket | null = FILTERS.some((f) => f.key === raw) ? (raw as Bucket) : null;
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -271,19 +307,47 @@ export default function MyTrips() {
     setRides((rs) => rs.map((r) => (r.id === id ? { ...r, status: "cancelled" } : r)));
   }
 
-  function handleBookReturn(ride: Ride) {
+  function handleRebook(ride: Ride, reverse: boolean) {
     if (!booking) return;
     booking.reset();
-    const from = findPlaceByName(ride.dropoff_location);
-    const to = findPlaceByName(ride.pickup_location);
+    // a completed trip rebooks the way home; a cancelled one repeats itself
+    const a = findPlaceByName(reverse ? ride.dropoff_location : ride.pickup_location);
+    const b = findPlaceByName(reverse ? ride.pickup_location : ride.dropoff_location);
     booking.open({
-      from: from ? selFromPlace(from) : undefined,
-      to: to ? selFromPlace(to) : undefined,
+      from: a ? selFromPlace(a) : undefined,
+      to: b ? selFromPlace(b) : undefined,
     });
   }
 
-  const upcoming = rides.filter(isUpcoming);
-  const past = rides.filter((r) => !isUpcoming(r));
+  // Upcoming reads soonest-first (the next car is the one you care about);
+  // the two backward-looking shelves read most-recent-first.
+  const allGroups: { key: Bucket; label: string; rides: Ride[] }[] = [
+    {
+      key: "upcoming",
+      label: "Upcoming",
+      rides: rides.filter((r) => bucketOf(r) === "upcoming").sort((a, b) => whenMs(a) - whenMs(b)),
+    },
+    {
+      key: "cancelled",
+      label: "Cancelled",
+      rides: rides.filter((r) => bucketOf(r) === "cancelled").sort((a, b) => whenMs(b) - whenMs(a)),
+    },
+    {
+      key: "past",
+      label: "Past",
+      rides: rides.filter((r) => bucketOf(r) === "past").sort((a, b) => whenMs(b) - whenMs(a)),
+    },
+  ];
+  const ready = !authLoading && user && !loading && !error;
+  // One shelf at a time — the page never stacks all three at once.
+  // With no explicit choice, open on the first shelf that has something,
+  // preferring what's ahead of you.
+  const fallback: Bucket =
+    (["upcoming", "past", "cancelled"] as Bucket[]).find(
+      (k) => allGroups.find((g) => g.key === k)!.rides.length > 0,
+    ) ?? "upcoming";
+  const active: Bucket = filter ?? fallback;
+  const group = allGroups.find((g) => g.key === active)!;
 
   return (
     <>
@@ -326,31 +390,53 @@ export default function MyTrips() {
             </div>
           )}
 
-          {!authLoading && user && !loading && !error && upcoming.length > 0 && (
-            <section className="tp-section">
-              <h2 className="tp-section-h">Upcoming</h2>
-              <div className="tp-list">
-                {upcoming.map((ride) => (
-                  <TripCard key={ride.id} ride={ride} onCancelled={handleCancelled} />
-                ))}
+          {ready && rides.length > 0 && (
+            <>
+              {/* the picker is the heading — one shelf shows at a time */}
+              <div className="tp-tabs" role="group" aria-label="Which trips to show">
+                {FILTERS.map((f) => {
+                  const count = allGroups.find((g) => g.key === f.key)!.rides.length;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      className={`tp-tab${active === f.key ? " on" : ""}`}
+                      aria-pressed={active === f.key}
+                      onClick={() => setParams({ show: f.key })}
+                    >
+                      {f.label}
+                      <span className="tp-tab-n">{count}</span>
+                    </button>
+                  );
+                })}
               </div>
-            </section>
-          )}
 
-          {!authLoading && user && !loading && !error && past.length > 0 && (
-            <section className="tp-section">
-              <h2 className="tp-section-h">Past</h2>
-              <div className="tp-list">
-                {past.map((ride) => (
-                  <TripCard
-                    key={ride.id}
-                    ride={ride}
-                    onCancelled={handleCancelled}
-                    onBookReturn={booking ? handleBookReturn : undefined}
-                  />
-                ))}
-              </div>
-            </section>
+              <section className="tp-section" aria-label={`${group.label} trips`}>
+                {group.rides.length === 0 ? (
+                  <div className="tp-empty">
+                    <p>{EMPTY_COPY[active]}</p>
+                    {booking && active === "upcoming" && (
+                      <button type="button" className="tp-link" onClick={() => booking.open()}>
+                        Book a transfer
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="tp-list">
+                    {group.rides.map((ride) => (
+                      <TripCard
+                        key={ride.id}
+                        ride={ride}
+                        onCancelled={handleCancelled}
+                        // rebooking makes sense once a trip is behind you —
+                        // whether it ran or you called it off
+                        onRebook={booking && active !== "upcoming" ? handleRebook : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
           )}
         </div>
       </main>
