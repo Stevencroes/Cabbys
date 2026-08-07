@@ -6,7 +6,20 @@
   <title>Cabby's — Arrive in silence.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Loaded off the critical path. A plain rel="stylesheet" here is
+       render-blocking: nothing paints until Google answers, so on airport
+       wifi the page is blank for as long as the round trip takes. Fetching
+       it as a preload and promoting it on load lets the hero paint in the
+       fallback face immediately; display=swap brings the real face in. -->
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  </noscript>
 </head>
 <body>
   <div id="root"></div>

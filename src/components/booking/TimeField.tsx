@@ -68,6 +68,7 @@ export default function TimeField({
           className="tmf-sel"
           aria-label={`${label} — hour`}
           aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           value={hour}
           onChange={(e) => { setHour(e.target.value); emit(e.target.value, minute, meridiem); }}
         >
@@ -79,6 +80,7 @@ export default function TimeField({
           className="tmf-sel"
           aria-label={`${label} — minute`}
           aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           value={minute}
           onChange={(e) => { setMinute(e.target.value); emit(hour, e.target.value, meridiem); }}
         >
@@ -91,6 +93,7 @@ export default function TimeField({
           className="tmf-sel tmf-ap"
           aria-label={`${label} — AM or PM`}
           aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           value={meridiem}
           onChange={(e) => { setMeridiem(e.target.value); emit(hour, minute, e.target.value); }}
         >

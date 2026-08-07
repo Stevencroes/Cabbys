@@ -5,7 +5,11 @@
    ========================================================================== */
 *{box-sizing:border-box;margin:0;padding:0;}
 /* the pill floats — keep anchored headings clear of it */
-html{scroll-behavior:smooth;scroll-padding-top:110px;}
+html{scroll-behavior:smooth;scroll-padding-top:var(--nav-clear);}
+/* belt-and-braces: scroll-padding on the scroller covers same-page jumps,
+   scroll-margin on the target covers arriving with the hash already set
+   (a shared /#fleet link), where the scroller has no say. */
+[id]{scroll-margin-top:var(--nav-clear);}
 body{
   font-family:var(--sans);
   color:var(--cocoa);
@@ -45,6 +49,13 @@ h2.sec em{font-style:italic;}
 .flow{opacity:0;transform:translateY(38px) scale(.985);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);}
 .flow.in{opacity:1;transform:none;}
 .par{will-change:transform;}
+/* Phase 3A — the hero headline and console are content, not decoration:
+   they land inside the first ~600ms. Section headings keep the slower,
+   more deliberate entrance further down the page. */
+.hero .wsplit .w i{transition-duration:.4s;}
+.hero .rise,.hero .stagger > *{transition-duration:.5s;}
+.hero .flow{transition-duration:.55s;}
+
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
@@ -441,7 +452,9 @@ h2.sec em{font-style:italic;}
 .btn.primary:disabled{opacity:.6;cursor:wait;transform:none;}
 .btn.back{flex:0 0 auto;background:none;border:2px solid var(--cocoa);color:var(--cocoa);padding:17px 26px;}
 .btn.back:hover{background:var(--bone-2);}
-.hint{font-size:13px;color:var(--persimmon);margin:-6px 0 14px;min-height:16px;font-weight:500;}
+/* one reason, under the field it belongs to (Phase 4) */
+.ferr{font-size:13px;line-height:1.45;color:var(--persimmon);font-weight:500;margin:7px 0 14px;}
+.combo .cfield.invalid{border-color:var(--persimmon);}
 .secure{margin-top:14px;font-size:12px;color:var(--cocoa-soft);text-align:center;letter-spacing:.05em;font-weight:500;}
 .pay-error{margin:0 0 16px;padding:14px 16px;border:2px solid var(--persimmon);background:rgba(198,69,44,.07);font-size:13.5px;color:var(--persimmon-deep);font-weight:400;}
 

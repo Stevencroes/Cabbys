@@ -15,6 +15,7 @@ import { normalizePhone, isValidPhone, isValidEmail } from "../../../lib/contact
 import { createRide } from "../../../lib/rides";
 import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
+import FieldError from "../FieldError";
 import type { StepProblem } from "./Step1Ride";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
@@ -23,7 +24,7 @@ export type PayPhase = "review" | "creating" | "payment" | "paying";
 
 interface Step2Props {
   pricing: Pricing | null;
-  hint: string;
+  problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
   phase: PayPhase;
   setPhase: (p: PayPhase) => void;
@@ -47,7 +48,7 @@ export function effectivePickupTime(state: ReturnType<typeof useBooking>["state"
 }
 
 export default function Step2Details({
-  pricing, hint, registerValidator, phase, setPhase, onConfirmed,
+  pricing, problem, registerValidator, phase, setPhase, onConfirmed,
   error, setError, needsAuth, setNeedsAuth, registerConfirm, foot,
 }: Step2Props) {
   const { state, setField, goTo } = useBooking();
@@ -74,14 +75,17 @@ export default function Step2Details({
 
   const validate = useMemo(() => () => {
     if (state.contactName.trim().length < 2)
-      return { message: airportTrip ? "A name lets the driver hold the right sign." : "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
+      return { field: "name", message: airportTrip ? "A name lets the driver hold the right sign." : "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
     if (!isValidEmail(state.contactEmail))
-      return { message: "We need an email to send your confirmation.", focus: () => emailRef.current?.focus() };
+      return { field: "email", message: "We need an email to send your confirmation.", focus: () => emailRef.current?.focus() };
     if (!isValidPhone(state.contactPhone))
-      return { message: "A WhatsApp number lets your driver reach you on the day.", focus: () => phoneRef.current?.focus() };
+      return { field: "phone", message: "A WhatsApp number lets your driver reach you on the day.", focus: () => phoneRef.current?.focus() };
     return null;
   }, [state.contactName, state.contactEmail, state.contactPhone, airportTrip]);
   useEffect(() => registerValidator(validate), [validate, registerValidator]);
+
+  const err = (f: string) => (problem?.field === f ? problem.message : undefined);
+  const errId = (f: string) => (problem?.field === f ? `err-${f}` : undefined);
 
   async function ensureRide(): Promise<boolean> {
     if (rideRef.current) return true;
@@ -116,9 +120,9 @@ export default function Step2Details({
       returnDate: state.journey === "return" ? state.returnDate : "",
       returnTime: state.journey === "return" ? state.returnTime : "",
     };
-    const { ride, error: err, needsAuth: wall } = await createRide(draft);
+    const { ride, error: createErr, needsAuth: wall } = await createRide(draft);
     if (!ride) {
-      setError(err);
+      setError(createErr);
       setNeedsAuth(wall);
       return false;
     }
@@ -254,16 +258,25 @@ export default function Step2Details({
       <div className="pcol">
       <div className="fld">
         <label htmlFor="b-name">{airportTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
-        <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName} onChange={(e) => setField("contactName", e.target.value)} />
+        <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName}
+          aria-invalid={!!err("name") || undefined} aria-describedby={errId("name")}
+          onChange={(e) => setField("contactName", e.target.value)} />
+        <FieldError id="err-name" message={err("name")} />
       </div>
       <div className="frow">
         <div className="fld">
           <label htmlFor="b-email">Email</label>
-          <input id="b-email" ref={emailRef} type="email" inputMode="email" autoComplete="email" placeholder="For your confirmation" value={state.contactEmail} onChange={(e) => setField("contactEmail", e.target.value)} />
+          <input id="b-email" ref={emailRef} type="email" inputMode="email" autoComplete="email" placeholder="For your confirmation" value={state.contactEmail}
+            aria-invalid={!!err("email") || undefined} aria-describedby={errId("email")}
+            onChange={(e) => setField("contactEmail", e.target.value)} />
+          <FieldError id="err-email" message={err("email")} />
         </div>
         <div className="fld">
           <label htmlFor="b-phone">WhatsApp / phone</label>
-          <input id="b-phone" ref={phoneRef} type="tel" inputMode="tel" autoComplete="tel" placeholder="+1 555 000 0000" value={state.contactPhone} onChange={(e) => setField("contactPhone", e.target.value)} />
+          <input id="b-phone" ref={phoneRef} type="tel" inputMode="tel" autoComplete="tel" placeholder="+1 555 000 0000" value={state.contactPhone}
+            aria-invalid={!!err("phone") || undefined} aria-describedby={errId("phone")}
+            onChange={(e) => setField("contactPhone", e.target.value)} />
+          <FieldError id="err-phone" message={err("phone")} />
         </div>
       </div>
 
@@ -280,8 +293,6 @@ export default function Step2Details({
           {needsAuth && <div style={{ marginTop: 12 }}>Sign in from the top of the page, then try again — or message us on WhatsApp and we'll book it by hand.</div>}
         </div>
       )}
-      {hint && <div className="hint" role="alert">{hint}</div>}
-
       {foot}
 
       <div className="secure">

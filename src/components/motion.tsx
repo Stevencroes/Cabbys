@@ -73,10 +73,13 @@ export function SplitHeading({
   parts,
   as: Tag = "h2",
   className = "",
+  step = 0.055,
 }: {
   parts: SplitPart[];
   as?: "h1" | "h2";
   className?: string;
+  /** seconds between word reveals — the hero uses a tighter step (Phase 3A) */
+  step?: number;
 }) {
   let idx = 0;
   return (
@@ -85,7 +88,7 @@ export function SplitHeading({
         const words = part.text.split(/\s+/).filter(Boolean);
         const nodes: React.ReactNode[] = [];
         words.forEach((w, wi) => {
-          const delay = idx * 0.055;
+          const delay = idx * step;
           idx++;
           nodes.push(
             <span key={wi} className="w">

@@ -3,6 +3,11 @@
 
 export const FREE_CANCEL_HOURS = 24;
 
+// TODO: confirm timing with client. How long after a booking lands does a
+// human actually reply on WhatsApp? Everything that promises a window reads
+// this one number.
+export const CONFIRM_WINDOW_MINUTES = 15;
+
 export interface CancellationInfo {
   /** Cancelling now is free of charge. */
   free: boolean;

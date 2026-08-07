@@ -6,28 +6,32 @@ import { useBooking } from "../../../booking/BookingContext";
 import PlaceCombobox from "../PlaceCombobox";
 import DateField from "../DateField";
 import TimeField from "../TimeField";
+import FieldError from "../FieldError";
 import Stepper from "../../Stepper";
-import { formatTime, todayInAruba } from "../../../lib/datetime";
+import { formatDate, formatTime, todayInAruba } from "../../../lib/datetime";
 import { VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
-import { driverWaitsFrom, collectAt, insideMinNotice } from "../../../lib/derivedTime";
+import { driverWaitsFrom, collectAt, insideMinNotice, MIN_NOTICE_HOURS } from "../../../lib/derivedTime";
+import { CONFIRM_WINDOW_MINUTES } from "../../../lib/policy";
 import { AIRPORT_ID } from "../../../data/places";
 
 export interface StepProblem {
+  /** which control the message belongs under */
+  field: string;
   message: string;
   focus?: () => void;
 }
 
 interface Step1Props {
   pricing: Pricing | null;
-  hint: string;
+  problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
   /** the total + primary action, rendered flat under the car list */
   foot: React.ReactNode;
 }
 
-export default function Step1Ride({ pricing, hint, registerValidator, foot }: Step1Props) {
+export default function Step1Ride({ pricing, problem, registerValidator, foot }: Step1Props) {
   const { state, setField, swap } = useBooking();
   const fromInput = useRef<HTMLInputElement | null>(null);
   const toInput = useRef<HTMLInputElement | null>(null);
@@ -68,19 +72,29 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
   // §3.10-adjacent — the validator lives here, the Continue button in the
   // step's own foot. Never disabled: focus the gap and say why.
   const validate = useMemo(() => () => {
-    if (!state.from) return { message: "Tell us where to pick you up first.", focus: () => fromInput.current?.focus() };
-    if (!state.to) return { message: "And where you're headed.", focus: () => toInput.current?.focus() };
-    if (state.from.id === state.to.id) return { message: "Pickup and drop-off are the same place — change one.", focus: () => toInput.current?.focus() };
-    if (!state.date) return { message: "Which day is this for?", focus: focusById("b-date") };
+    if (!state.from) return { field: "from", message: "Tell us where to pick you up first.", focus: () => fromInput.current?.focus() };
+    if (!state.to) return { field: "to", message: "And where you're headed.", focus: () => toInput.current?.focus() };
+    if (state.from.id === state.to.id) return { field: "to", message: "Pickup and drop-off are the same place — change one.", focus: () => toInput.current?.focus() };
+    if (!state.date) return { field: "date", message: "Which day is this for?", focus: focusById("b-date") };
     // an incomplete time never reaches state, so these also catch "2:__ PM"
-    if (fromAirport && !state.flightLanding) return { message: "When does your flight land? Set the hour, minutes and AM/PM.", focus: focusById("b-landing") };
-    if (toAirport && !state.depTime) return { message: "When does your flight leave? Set the hour, minutes and AM/PM.", focus: focusById("b-dep") };
-    if (!fromAirport && !toAirport && !state.pickupTime) return { message: "What time should the car be there? Set the hour, minutes and AM/PM.", focus: focusById("b-time") };
-    if (state.journey === "return" && !state.returnDate) return { message: "When are we bringing you back?", focus: () => document.getElementById("b-retdate")?.focus() };
-    if (state.journey === "return" && !state.returnTime) return { message: "And at what time?", focus: () => document.getElementById("b-rettime")?.focus() };
+    if (fromAirport && !state.flightLanding) return { field: "landing", message: "When does your flight land? Set the hour, minutes and AM/PM.", focus: focusById("b-landing") };
+    if (toAirport && !state.depTime) return { field: "dep", message: "When does your flight leave? Set the hour, minutes and AM/PM.", focus: focusById("b-dep") };
+    if (!fromAirport && !toAirport && !state.pickupTime) return { field: "time", message: "What time should the car be there? Set the hour, minutes and AM/PM.", focus: focusById("b-time") };
+    if (state.journey === "return") {
+      if (!state.returnDate) return { field: "retdate", message: "When are we bringing you back?", focus: focusById("b-retdate") };
+      // the picker floors at the outbound date, but a value chosen before the
+      // outbound moved would otherwise sail through
+      if (state.date && state.returnDate < state.date)
+        return { field: "retdate", message: `The way back can't be before ${formatDate(state.date)}.`, focus: focusById("b-retdate") };
+      if (!state.returnTime) return { field: "rettime", message: "And at what time?", focus: focusById("b-rettime") };
+    }
     return null;
   }, [state, fromAirport, toAirport]);
   useEffect(() => registerValidator(validate), [validate, registerValidator]);
+
+  // one problem is surfaced at a time, under the control it belongs to
+  const err = (f: string) => (problem?.field === f ? problem.message : undefined);
+  const errId = (f: string) => (problem?.field === f ? `err-${f}` : undefined);
 
   // §3.7 return labels follow the route
   const returnTimeLabel = fromAirport
@@ -117,11 +131,15 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
 
       <div className="pcols">
       <div className="pcol">
-      <PlaceCombobox label="Pick up" value={state.from} onSelect={(s) => setField("from", s)} inputRef={fromInput} />
+      <PlaceCombobox label="Pick up" value={state.from} onSelect={(s) => setField("from", s)} inputRef={fromInput}
+        invalid={!!err("from")} describedBy={errId("from")} />
+      <FieldError id="err-from" message={err("from")} />
       <div className="qswap-row">
         <button type="button" className="qswap" aria-label="Swap pickup and drop-off" onClick={swap}>⇅</button>
       </div>
-      <PlaceCombobox label="Drop off" value={state.to} onSelect={(s) => setField("to", s)} inputRef={toInput} />
+      <PlaceCombobox label="Drop off" value={state.to} onSelect={(s) => setField("to", s)} inputRef={toInput}
+        invalid={!!err("to")} describedBy={errId("to")} />
+      <FieldError id="err-to" message={err("to")} />
 
       <div className="frow" style={{ marginTop: 18 }}>
         <div className="fld">
@@ -131,7 +149,10 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
             value={state.date}
             min={todayInAruba()}
             onChange={(iso) => setField("date", iso)}
+            invalid={!!err("date")}
+            describedBy={errId("date")}
           />
+          <FieldError id="err-date" message={err("date")} />
         </div>
         {fromAirport ? (
           <div className="fld">
@@ -140,7 +161,10 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
               label="Flight lands at"
               value={state.flightLanding}
               onChange={(t) => setField("flightLanding", t)}
+              invalid={!!err("landing")}
+              describedBy={errId("landing")}
             />
+            <FieldError id="err-landing" message={err("landing")} />
           </div>
         ) : toAirport ? (
           <div className="fld">
@@ -149,7 +173,10 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
               label="Flight departs at"
               value={state.depTime}
               onChange={(t) => setField("depTime", t)}
+              invalid={!!err("dep")}
+              describedBy={errId("dep")}
             />
+            <FieldError id="err-dep" message={err("dep")} />
           </div>
         ) : (
           <div className="fld">
@@ -158,7 +185,10 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
               label="Pickup time"
               value={state.pickupTime}
               onChange={(t) => setField("pickupTime", t)}
+              invalid={!!err("time")}
+              describedBy={errId("time")}
             />
+            <FieldError id="err-time" message={err("time")} />
           </div>
         )}
       </div>
@@ -202,8 +232,8 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
 
       {shortNotice && (
         <div className="notice" role="status">
-          Rides inside 3 hours need a human. Book it here and we'll confirm on WhatsApp within
-          10 minutes — or message us first if you'd rather.
+          Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we'll confirm on
+          WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes — or message us first if you'd rather.
         </div>
       )}
 
@@ -225,7 +255,10 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
               // the way back can't precede the way out
               min={state.date || todayInAruba()}
               onChange={(iso) => setField("returnDate", iso)}
+              invalid={!!err("retdate")}
+              describedBy={errId("retdate")}
             />
+            <FieldError id="err-retdate" message={err("retdate")} />
           </div>
           <div className="fld">
             <TimeField
@@ -233,7 +266,10 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
               label={returnTimeLabel}
               value={state.returnTime}
               onChange={(t) => setField("returnTime", t)}
+              invalid={!!err("rettime")}
+              describedBy={errId("rettime")}
             />
+            <FieldError id="err-rettime" message={err("rettime")} />
           </div>
         </div>
       )}
@@ -305,8 +341,6 @@ export default function Step1Ride({ pricing, hint, registerValidator, foot }: St
           );
         })}
       </div>
-
-      {hint && <div className="hint" role="alert">{hint}</div>}
 
       {/* the fare, flat under the cars it belongs to */}
       {foot}

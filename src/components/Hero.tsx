@@ -14,6 +14,7 @@ export default function Hero() {
           <SplitHeading
             as="h1"
             className=""
+            step={0.03}
             parts={[{ text: "Getting there was " }, { text: "always the point.", em: true }]}
           />
           <div className="hero-tag rise">

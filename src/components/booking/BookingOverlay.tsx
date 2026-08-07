@@ -21,7 +21,7 @@ interface BookingOverlayProps {
 export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   const { state, close, goTo } = useBooking();
   const [pricing, setPricing] = useState<Pricing | null>(null);
-  const [hint, setHint] = useState("");
+  const [problem, setProblem] = useState<StepProblem | null>(null);
   const [phase, setPhase] = useState<PayPhase>("review");
   const [error, setError] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -49,7 +49,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     if (state.open && !wasOpen.current) {
       wasOpen.current = true;
       lockBody();
-      setHint("");
+      setProblem(null);
       setPhase("review");
       setError(null);
       history.pushState({ cb: 1 }, "", "#step-1");
@@ -66,7 +66,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     function onPop() {
       if (!wasOpen.current) return;
       if (location.hash === "#step-2") goTo(2);
-      else if (location.hash === "#step-1") { goTo(1); setHint(""); }
+      else if (location.hash === "#step-1") { goTo(1); setProblem(null); }
       else close(); // the back gesture leaves the modal, not the site
     }
     addEventListener("popstate", onPop);
@@ -101,7 +101,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     if (bodyRef.current && typeof bodyRef.current.scrollTo === "function") {
       bodyRef.current.scrollTo(0, 0);
     }
-    setHint("");
+    setProblem(null);
   }, [state.step]);
 
   if (!state.open) return null;
@@ -112,13 +112,13 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     : null;
 
   function handlePrimary() {
-    const problem = validatorRef.current?.();
-    if (problem) {
-      setHint(problem.message);
-      problem.focus?.();
+    const found = validatorRef.current?.();
+    if (found) {
+      setProblem(found);
+      found.focus?.();
       return;
     }
-    setHint("");
+    setProblem(null);
     if (state.step === 1) {
       history.pushState({ cb: 2 }, "", "#step-2");
       goTo(2);
@@ -166,11 +166,11 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
           the last choice — no pinned bar stealing a fifth of the viewport */}
       <div className="bbody" ref={bodyRef}>
         {state.step === 1 ? (
-          <Step1Ride pricing={pricing} hint={hint} registerValidator={registerValidator} foot={foot} />
+          <Step1Ride pricing={pricing} problem={problem} registerValidator={registerValidator} foot={foot} />
         ) : (
           <Step2Details
             pricing={pricing}
-            hint={hint}
+            problem={problem}
             registerValidator={registerValidator}
             phase={phase}
             setPhase={setPhase}
