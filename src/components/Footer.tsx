@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer>
+    <footer className="site-foot">
       <div className="wrap">
         <div className="ftop">
           <div>

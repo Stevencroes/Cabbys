@@ -248,7 +248,10 @@ h2.sec em{font-style:italic;}
 .csun svg{display:block;width:100%;}
 
 /* ============ FOOTER — full-bleed cocoa ============ */
-footer{background:var(--cocoa);color:var(--muted);padding:56px 0 30px;}
+/* Scoped to the site footer on purpose: a bare `footer{}` selector also
+   paints every <footer> inside a card (trip actions), which turned them
+   into solid cocoa blocks. */
+.site-foot{background:var(--cocoa);color:var(--muted);padding:56px 0 30px;}
 .ftop{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;padding-bottom:38px;border-bottom:1.5px solid var(--cocoa-line);}
 .fbrand{font-family:var(--serif);font-weight:500;letter-spacing:.32em;text-transform:uppercase;font-size:22px;color:var(--bone);padding-left:.32em;}
 .fbrand .ap{color:var(--amber);}
@@ -412,8 +415,17 @@ footer{background:var(--cocoa);color:var(--muted);padding:56px 0 30px;}
   background-size:200% 100%;animation:shimmer 1.4s infinite;}
 @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 .tp-section{margin-bottom:38px;}
-.tp-section-h{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--persimmon);font-weight:600;display:flex;align-items:center;gap:14px;margin-bottom:16px;}
-.tp-section-h::after{content:"";flex:1;height:2px;background:rgba(43,31,25,.15);}
+/* the shelf picker — one group at a time, counts on the chip */
+.tp-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px;}
+.tp-tab{display:inline-flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 20px;
+  border:2px solid var(--cocoa);border-radius:var(--r-pill);background:transparent;color:var(--cocoa);
+  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.25s var(--ease);}
+.tp-tab:hover{background:var(--bone-2);}
+.tp-tab.on{background:var(--cocoa);color:var(--bone);}
+.tp-tab-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;
+  border-radius:var(--r-pill);background:rgba(43,31,25,.12);font-size:11px;letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+.tp-tab.on .tp-tab-n{background:rgba(242,233,213,.22);color:var(--bone);}
+@media(max-width:420px){.tp-tab{flex:1 1 auto;justify-content:center;padding:0 12px;letter-spacing:.08em;}}
 .tp-list{display:flex;flex-direction:column;gap:16px;}
 .tp-card{position:relative;background:var(--bone-2);border:2px solid var(--cocoa);padding:20px 24px;box-shadow:var(--shadow-hard);transition:transform .25s var(--ease);}
 .tp-card:hover{transform:translateY(-2px);}
@@ -437,7 +449,12 @@ footer{background:var(--cocoa);color:var(--muted);padding:56px 0 30px;}
 .tp-tl-step{display:flex;align-items:center;color:var(--cocoa-soft);}
 .tp-tl-node{width:9px;height:9px;border-radius:50%;border:2px solid var(--cocoa-soft);background:transparent;flex-shrink:0;}
 .tp-tl-bar{width:26px;height:0;border-top:2px dashed rgba(43,31,25,.3);margin:0 7px;flex-shrink:0;}
-.tp-tl-lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-left:6px;white-space:nowrap;}
+@media(max-width:520px){.tp-tl-bar{width:13px;margin:0 5px;}}
+/* Five labels need ~700px and the card only ever offers ~650, so they
+   used to clip mid-word. Dots carry the progress; only the step you're
+   actually on is named. */
+.tp-tl-lbl{display:none;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-left:6px;white-space:nowrap;}
+.tp-tl-step.now .tp-tl-lbl{display:inline;}
 .tp-tl-step.done .tp-tl-node{border-color:var(--cocoa);background:var(--cocoa);}
 .tp-tl-step.done{color:var(--cocoa);}
 .tp-tl-step.now{color:var(--persimmon);}
