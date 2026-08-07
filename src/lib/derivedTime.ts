@@ -23,8 +23,15 @@ export function collectAt(departure: string, flyingToUS: boolean): string {
   return shiftTime(departure, -(flyingToUS ? LEAD_US_MIN : LEAD_INTL_MIN));
 }
 
-/** Rides inside 3 hours need a human (§3.6) — shown, never blocking. */
-export const MIN_NOTICE_MS = 3 * 3_600_000;
+// ── Minimum lead time ────────────────────────────────────────────────
+// TODO: set the real number. 3 hours is a placeholder — change MIN_NOTICE_HOURS
+// and every message and check follows, there is no second copy of it.
+export const MIN_NOTICE_HOURS = 3;
+/**
+ * Rides inside the window are shown a notice but are NOT blocked: a late
+ * booking is still a booking, and the dispatcher confirms it by hand.
+ */
+export const MIN_NOTICE_MS = MIN_NOTICE_HOURS * 3_600_000;
 export function insideMinNotice(date: string, time: string, now: Date = new Date()): boolean {
   if (!date || !time) return false;
   const d = new Date(`${date}T${time}:00`);

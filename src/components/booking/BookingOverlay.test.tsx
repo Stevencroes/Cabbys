@@ -97,6 +97,68 @@ describe("BookingOverlay — the two-step booking", () => {
     );
   });
 
+  it("puts the reason under the field it belongs to, wired for a screen reader (Phase 4)", () => {
+    function BareOpener() {
+      const { open, setField } = useBooking();
+      return <button onClick={() => { open(); setField("from", null); }}>launch</button>;
+    }
+    render(
+      <BookingProvider>
+        <BareOpener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    fireEvent.click(screen.getByRole("button", { name: /your details/i }));
+
+    // the sentence is announced, not just a red border
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(/tell us where to pick you up first/i);
+
+    // and the control points at it, so the reason is read with the field
+    const pickup = screen.getByRole("combobox", { name: /pick up/i });
+    expect(pickup).toHaveAttribute("aria-invalid", "true");
+    expect(pickup).toHaveAttribute("aria-describedby", alert.id);
+    expect(alert.id).toBeTruthy();
+  });
+
+  it("refuses a return date that precedes the outbound date (Phase 4)", () => {
+    function ReturnOpener() {
+      const { open, setField } = useBooking();
+      return (
+        <button
+          onClick={() => {
+            open({
+              from: selFromPlace(placeById("ritz")!),
+              to: selFromPlace(AIRPORT),
+              date: "2026-09-10",
+              pax: 2,
+            });
+            setField("journey", "return");
+            setField("depTime", "14:00");
+            // the way back, a day before the way out
+            setField("returnDate", "2026-09-09");
+            setField("returnTime", "10:00");
+          }}
+        >
+          launch
+        </button>
+      );
+    }
+    render(
+      <BookingProvider>
+        <ReturnOpener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    fireEvent.click(screen.getByRole("button", { name: /your details/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/can't be before Thu 10 Sep 2026/i);
+    // still on step 1 — the contact fields never appear
+    expect(screen.queryByLabelText(/name for the driver's sign/i)).toBeNull();
+  });
+
   it("blocks with a reason instead of a disabled button", () => {
     function BareOpener() {
       const { open, setField } = useBooking();

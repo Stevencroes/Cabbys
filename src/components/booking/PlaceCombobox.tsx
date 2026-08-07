@@ -16,6 +16,9 @@ interface PlaceComboboxProps {
   onSelect: (sel: PlaceSel | null) => void;
   placeholder?: string;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  /** id of the error paragraph, so a screen reader reads the reason */
+  describedBy?: string;
+  invalid?: boolean;
 }
 
 interface Row {
@@ -43,7 +46,7 @@ function buildRows(query: string): Row[] {
 
 const isSheet = () => window.matchMedia("(max-width:760px)").matches;
 
-export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef }: PlaceComboboxProps) {
+export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid }: PlaceComboboxProps) {
   const uid = useId();
   const listId = `${uid}-listbox`;
   const [open, setOpen] = useState(false);
@@ -131,7 +134,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
 
   return (
     <div className={`combo${open ? " open" : ""}`} ref={wrapRef}>
-      <div className="cfield">
+      <div className={`cfield${invalid ? " invalid" : ""}`}>
         <div className="cwrap">
           <label htmlFor={`${uid}-in`}>{label}</label>
           <input
@@ -142,6 +145,8 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             aria-controls={listId}
             aria-activedescendant={open ? activeId : undefined}
             aria-autocomplete="list"
+            aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
             autoComplete="off"
             placeholder={placeholder ?? "Type a hotel, beach or address"}
             value={shown}

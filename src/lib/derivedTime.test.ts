@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { shiftTime, driverWaitsFrom, collectAt, insideMinNotice } from "./derivedTime";
+import { MIN_NOTICE_HOURS, MIN_NOTICE_MS, collectAt, driverWaitsFrom, insideMinNotice, shiftTime } from "./derivedTime";
 
 describe("derived pickup times (§3.6)", () => {
   it("driver waits from landing + 30", () => {
@@ -22,5 +22,21 @@ describe("derived pickup times (§3.6)", () => {
     expect(insideMinNotice("2026-07-20", "11:30", now)).toBe(true);
     expect(insideMinNotice("2026-07-20", "16:00", now)).toBe(false);
     expect(insideMinNotice("", "", now)).toBe(false);
+  });
+});
+
+describe("minimum lead time (Phase 4)", () => {
+  it("keeps the window in one named constant", () => {
+    expect(MIN_NOTICE_MS).toBe(MIN_NOTICE_HOURS * 3_600_000);
+  });
+
+  it("flags a late booking without refusing it", () => {
+    const now = new Date("2026-08-07T12:00:00");
+    // an hour away — inside the window, so the notice shows
+    expect(insideMinNotice("2026-08-07", "13:00", now)).toBe(true);
+    // comfortably ahead — no notice
+    expect(insideMinNotice("2026-08-09", "13:00", now)).toBe(false);
+    // the notice is advisory: nothing here returns a validation failure,
+    // so the booking still goes through (see BookingOverlay for the funnel)
   });
 });
