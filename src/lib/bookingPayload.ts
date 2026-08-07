@@ -1,3 +1,5 @@
+import { arubaInstant } from "./datetime";
+
 export type RideDraft = {
   from: string; to: string;
   date: string; time: string;          // effective (possibly derived) pickup time
@@ -20,7 +22,10 @@ export type RideDraft = {
 // column. Three payload tiers, richest first — the caller inserts with
 // progressive fallback so a booking never fails on a missing column.
 export function buildRidePayload(s: RideDraft, userId: string | null) {
-  const scheduledAt = new Date(`${s.date}T${s.time || "00:00"}`).toISOString();
+  // Anchored to Aruba (UTC−4). `new Date("2026-08-07T14:35")` would be read
+  // in the BROWSER's timezone, so the same booking made from New York and
+  // from Amsterdam would persist two different instants.
+  const scheduledAt = arubaInstant(s.date, s.time);
   const core = {
     passenger_id: userId,
     pickup_location: s.from,

@@ -67,9 +67,13 @@ describe("BookingOverlay — the two-step booking", () => {
 
     // Step 1 — airport pickup asks for the flight, not the dispatch maths
     expect(screen.getByText(/Landing in/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/flight lands at/i), { target: { value: "14:05" } });
+    // the time picker is three explicit controls — no 24h guessing, and a
+    // partial selection can never reach state
+    fireEvent.change(screen.getByLabelText(/flight lands at — hour/i), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText(/flight lands at — minute/i), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText(/flight lands at — AM or PM/i), { target: { value: "PM" } });
     // the derived moment that sells the service
-    expect(await screen.findByText(/Your driver waits from 14:35/)).toBeInTheDocument();
+    expect(await screen.findByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
 
     // Continue is never disabled; with a complete ride it advances
     fireEvent.click(screen.getByRole("button", { name: /your details/i }));

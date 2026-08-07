@@ -8,6 +8,7 @@ import { refFromRideId } from "../lib/bookingRef";
 import { cancellationInfo, scheduledDate } from "../lib/policy";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
 import { usd, AWG_PER_USD } from "../lib/quote";
+import { formatDateTime, ARUBA_OFFSET_MINUTES } from "../lib/datetime";
 import { findPlaceByName, selFromPlace } from "../data/places";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
@@ -76,16 +77,14 @@ function pickupDate(ride: Ride): Date | null {
 }
 
 function formatTripDate(ride: Ride): string {
-  const d = pickupDate(ride);
+  // same unambiguous shape as the booking flow — never a bare 08/01
   if (ride.scheduled_date) {
-    const parts = [ride.scheduled_date];
-    if (ride.scheduled_time) parts.push(ride.scheduled_time);
-    return parts.join(" · ");
+    return formatDateTime(ride.scheduled_date, ride.scheduled_time ?? "");
   }
+  const d = pickupDate(ride);
   if (d) {
-    return d.toLocaleString("en-US", {
-      month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
-    });
+    const iso = new Date(d.getTime() + ARUBA_OFFSET_MINUTES * 60_000).toISOString();
+    return formatDateTime(iso.slice(0, 10), iso.slice(11, 16));
   }
   return "—";
 }

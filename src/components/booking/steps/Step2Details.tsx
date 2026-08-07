@@ -7,6 +7,7 @@ import { VEHICLES } from "../../../data/vehicles";
 import { quote, usd, usdToAwg } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
 import { driverWaitsFrom, collectAt } from "../../../lib/derivedTime";
+import { formatDateTime, formatTime, ARUBA_TZ_LABEL } from "../../../lib/datetime";
 import { AIRPORT_ID } from "../../../data/places";
 import { generateBookingRef } from "../../../lib/bookingRef";
 import { formatFlightNumber } from "../../../lib/flight";
@@ -86,9 +87,9 @@ export default function Step2Details({
       state.from?.custom ? `Pickup address: ${state.from.name}${state.from.note ? ` (${state.from.note})` : ""} · area ${state.from.area}` : "",
       state.to?.custom ? `Drop-off address: ${state.to.name}${state.to.note ? ` (${state.to.note})` : ""} · area ${state.to.area}` : "",
       state.seats > 0 ? `Child seats: ${state.seats}${state.seatAges ? ` (ages ${state.seatAges})` : ""}` : "",
-      state.journey === "return" ? `Return: ${state.returnDate} ${state.returnTime}${fromAirport ? ` (flight departs — collect ${collectAt(state.returnTime, state.returnDestUS)})` : ""}` : "",
-      fromAirport && state.flightLanding ? `Flight lands ${state.flightLanding}` : "",
-      toAirport && state.depTime ? `Flight departs ${state.depTime} (${state.destUS ? "US pre-clearance" : "international"})` : "",
+      state.journey === "return" ? `Return: ${formatDateTime(state.returnDate, state.returnTime)}${fromAirport ? ` (flight departs — collect ${formatTime(collectAt(state.returnTime, state.returnDestUS))})` : ""}` : "",
+      fromAirport && state.flightLanding ? `Flight lands ${formatTime(state.flightLanding)} AST` : "",
+      toAirport && state.depTime ? `Flight departs ${formatTime(state.depTime)} AST (${state.destUS ? "US pre-clearance" : "international"})` : "",
       state.notes.trim(),
     ].filter(Boolean);
 
@@ -214,7 +215,13 @@ export default function Step2Details({
   }, [phase, state, pricing, totalUsd]);
 
   const partyLabel = `${state.pax} guest${state.pax === 1 ? "" : "s"} · ${state.bags} bag${state.bags === 1 ? "" : "s"}${state.seats ? ` · ${state.seats} child seat${state.seats > 1 ? "s" : ""}` : ""}`;
-  const whenLabel = `${state.date}${time ? ` · ${time}` : ""}${state.journey === "return" ? ` · returns ${state.returnDate} ${state.returnTime}` : ""}`;
+  // never a bare 07/08 — the weekday and month name travel with every date
+  const whenLabel = [
+    formatDateTime(state.date, time),
+    state.journey === "return"
+      ? `returns ${formatDateTime(state.returnDate, state.returnTime)}`
+      : "",
+  ].filter(Boolean).join(" · ");
 
   return (
     <div className="panel">
@@ -224,7 +231,10 @@ export default function Step2Details({
       <div className="review">
         <div className="rrow"><span className="rl">Route</span><span className="rv">{state.from?.name} → {state.to?.name}</span></div>
         <div className="rrow"><span className="rl">Journey</span><span className="rv">{state.journey === "return" ? "Return" : "One way"}</span></div>
-        <div className="rrow"><span className="rl">When</span><span className="rv">{whenLabel}</span></div>
+        <div className="rrow">
+          <span className="rl">When</span>
+          <span className="rv">{whenLabel} <span className="rv-zone">{ARUBA_TZ_LABEL}</span></span>
+        </div>
         {state.flightNumber && <div className="rrow"><span className="rl">Flight</span><span className="rv">{formatFlightNumber(state.flightNumber)} — tracked</span></div>}
         <div className="rrow"><span className="rl">Party</span><span className="rv">{partyLabel}</span></div>
         <div className="rrow"><span className="rl">Car</span><span className="rv">{vehicle.name}</span></div>

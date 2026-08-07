@@ -4,7 +4,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useBooking } from "../../../booking/BookingContext";
 import PlaceCombobox from "../PlaceCombobox";
+import DateField from "../DateField";
+import TimeField from "../TimeField";
 import Stepper from "../../Stepper";
+import { formatTime, todayInAruba } from "../../../lib/datetime";
 import { VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
@@ -26,10 +29,8 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
   const { state, setField, swap } = useBooking();
   const fromInput = useRef<HTMLInputElement | null>(null);
   const toInput = useRef<HTMLInputElement | null>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
-  const landingRef = useRef<HTMLInputElement>(null);
-  const depRef = useRef<HTMLInputElement>(null);
-  const timeRef = useRef<HTMLInputElement>(null);
+  // the date/time controls are composed widgets now, so focus them by id
+  const focusById = (id: string) => () => document.getElementById(id)?.focus();
   const carsRef = useRef<HTMLDivElement>(null);
 
   const fromAirport = state.from?.id === AIRPORT_ID;
@@ -68,10 +69,11 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
     if (!state.from) return { message: "Tell us where to pick you up first.", focus: () => fromInput.current?.focus() };
     if (!state.to) return { message: "And where you're headed.", focus: () => toInput.current?.focus() };
     if (state.from.id === state.to.id) return { message: "Pickup and drop-off are the same place — change one.", focus: () => toInput.current?.focus() };
-    if (!state.date) return { message: "Which day is this for?", focus: () => dateRef.current?.focus() };
-    if (fromAirport && !state.flightLanding) return { message: "When does your flight land? We take it from there.", focus: () => landingRef.current?.focus() };
-    if (toAirport && !state.depTime) return { message: "When does your flight leave? We work backwards from it.", focus: () => depRef.current?.focus() };
-    if (!fromAirport && !toAirport && !state.pickupTime) return { message: "What time should the car be there?", focus: () => timeRef.current?.focus() };
+    if (!state.date) return { message: "Which day is this for?", focus: focusById("b-date") };
+    // an incomplete time never reaches state, so these also catch "2:__ PM"
+    if (fromAirport && !state.flightLanding) return { message: "When does your flight land? Set the hour, minutes and AM/PM.", focus: focusById("b-landing") };
+    if (toAirport && !state.depTime) return { message: "When does your flight leave? Set the hour, minutes and AM/PM.", focus: focusById("b-dep") };
+    if (!fromAirport && !toAirport && !state.pickupTime) return { message: "What time should the car be there? Set the hour, minutes and AM/PM.", focus: focusById("b-time") };
     if (state.journey === "return" && !state.returnDate) return { message: "When are we bringing you back?", focus: () => document.getElementById("b-retdate")?.focus() };
     if (state.journey === "return" && !state.returnTime) return { message: "And at what time?", focus: () => document.getElementById("b-rettime")?.focus() };
     return null;
@@ -117,23 +119,40 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
 
       <div className="frow" style={{ marginTop: 18 }}>
         <div className="fld">
-          <label htmlFor="b-date">Date</label>
-          <input id="b-date" ref={dateRef} type="date" value={state.date} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setField("date", e.target.value)} />
+          <DateField
+            id="b-date"
+            label="Date"
+            value={state.date}
+            min={todayInAruba()}
+            onChange={(iso) => setField("date", iso)}
+          />
         </div>
         {fromAirport ? (
           <div className="fld">
-            <label htmlFor="b-landing">Flight lands at</label>
-            <input id="b-landing" ref={landingRef} type="time" value={state.flightLanding} onChange={(e) => setField("flightLanding", e.target.value)} />
+            <TimeField
+              id="b-landing"
+              label="Flight lands at"
+              value={state.flightLanding}
+              onChange={(t) => setField("flightLanding", t)}
+            />
           </div>
         ) : toAirport ? (
           <div className="fld">
-            <label htmlFor="b-dep">Flight departs at</label>
-            <input id="b-dep" ref={depRef} type="time" value={state.depTime} onChange={(e) => setField("depTime", e.target.value)} />
+            <TimeField
+              id="b-dep"
+              label="Flight departs at"
+              value={state.depTime}
+              onChange={(t) => setField("depTime", t)}
+            />
           </div>
         ) : (
           <div className="fld">
-            <label htmlFor="b-time">Pickup time</label>
-            <input id="b-time" ref={timeRef} type="time" value={state.pickupTime} onChange={(e) => setField("pickupTime", e.target.value)} />
+            <TimeField
+              id="b-time"
+              label="Pickup time"
+              value={state.pickupTime}
+              onChange={(t) => setField("pickupTime", t)}
+            />
           </div>
         )}
       </div>
@@ -157,20 +176,20 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
 
       {derived?.kind === "arrive" && (
         <div className="timing" role="status">
-          <b>Your driver waits from {derived.at}</b>
+          <b>Your driver waits from {formatTime(derived.at)}</b>
           <p>
-            {state.flightNumber ? `${state.flightNumber.toUpperCase().replace(/\s+/g, "")} lands` : "Your flight lands"} at {state.flightLanding}.
+            {state.flightNumber ? `${state.flightNumber.toUpperCase().replace(/\s+/g, "")} lands` : "Your flight lands"} at {formatTime(state.flightLanding)} Aruba time.
             He's inside arrivals 30 minutes later — and if the flight moves, we move with it. Waiting is free.
           </p>
         </div>
       )}
       {derived?.kind === "depart" && (
         <div className="timing" role="status">
-          <b>We collect you at {derived.at}</b>
+          <b>We collect you at {formatTime(derived.at)}</b>
           <p>
             {state.destUS
-              ? `Aruba clears US immigration before you fly, so you need 3 hours at the airport. We've worked backwards from ${state.depTime}.`
-              : `International check-in wants 2 hours 15. We've worked backwards from ${state.depTime}.`}
+              ? `Aruba clears US immigration before you fly, so you need 3 hours at the airport. We've worked backwards from ${formatTime(state.depTime)}.`
+              : `International check-in wants 2 hours 15. We've worked backwards from ${formatTime(state.depTime)}.`}
           </p>
         </div>
       )}
@@ -193,18 +212,28 @@ export default function Step1Ride({ pricing, hint, registerValidator }: Step1Pro
       {state.journey === "return" && (
         <div className="frow">
           <div className="fld">
-            <label htmlFor="b-retdate">Return date</label>
-            <input id="b-retdate" type="date" value={state.returnDate} min={state.date} onChange={(e) => setField("returnDate", e.target.value)} />
+            <DateField
+              id="b-retdate"
+              label="Return date"
+              value={state.returnDate}
+              // the way back can't precede the way out
+              min={state.date || todayInAruba()}
+              onChange={(iso) => setField("returnDate", iso)}
+            />
           </div>
           <div className="fld">
-            <label htmlFor="b-rettime">{returnTimeLabel}</label>
-            <input id="b-rettime" type="time" value={state.returnTime} onChange={(e) => setField("returnTime", e.target.value)} />
+            <TimeField
+              id="b-rettime"
+              label={returnTimeLabel}
+              value={state.returnTime}
+              onChange={(t) => setField("returnTime", t)}
+            />
           </div>
         </div>
       )}
       {state.journey === "return" && fromAirport && state.returnTime && (
         <div className="timing" role="status">
-          <b>We collect you at {collectAt(state.returnTime, state.returnDestUS)}</b>
+          <b>We collect you at {formatTime(collectAt(state.returnTime, state.returnDestUS))}</b>
           <p>
             <button type="button" className={`qtoggle-inline${state.returnDestUS ? " on" : ""}`} style={{ textDecoration: "underline" }} onClick={() => setField("returnDestUS", !state.returnDestUS)}>
               {state.returnDestUS ? "Flying to the US (3 h) — tap if not" : "Flying elsewhere (2 h 15) — tap if US"}

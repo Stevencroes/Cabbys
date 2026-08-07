@@ -55,7 +55,8 @@ h2.sec em{font-style:italic;}
 /* ============ NAV — the floating pill, returned ============ */
 .nav{position:fixed;top:18px;left:0;right:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none;padding:0 16px;background:none;border:none;}
 .nav .wrap{max-width:none;width:auto;margin:0;padding:0;pointer-events:auto;}
-.navbar-inner{display:flex;align-items:center;gap:20px;border-radius:var(--r-pill);
+/* above the menu scrim, so the close button stays tappable */
+.navbar-inner{position:relative;z-index:var(--z-sheet);display:flex;align-items:center;gap:20px;border-radius:var(--r-pill);
   background:rgba(242,233,213,.92);backdrop-filter:blur(12px);
   border:2px solid var(--cocoa);box-shadow:var(--shadow-hard);
   padding:7px 8px 7px 24px;}
@@ -72,8 +73,85 @@ h2.sec em{font-style:italic;}
 .nbtn:hover{background:var(--persimmon-deep);transform:translateY(-1px);}
 .nsign{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--cocoa);text-decoration:none;
   min-height:var(--tap);display:inline-flex;align-items:center;padding:0 10px;border-radius:var(--r-pill);}
-@media(max-width:1040px){.nlinks{display:none;}}
-@media(max-width:660px){.nsign{display:none;}.navbar-inner{padding-left:18px;gap:12px;}}
+/* the collapsed menu — everything the desktop pill holds, two taps away */
+.nburger{display:none;align-items:center;justify-content:center;width:var(--tap);height:var(--tap);
+  border:2px solid var(--cocoa);border-radius:50%;background:transparent;color:var(--cocoa);transition:.25s var(--ease);}
+.nburger:hover,.nburger.on{background:var(--cocoa);color:var(--bone);}
+.nav-scrim{position:fixed;inset:0;z-index:var(--z-nav);background:rgba(43,31,25,.45);}
+.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(18px + var(--tap) + 26px);left:16px;right:16px;
+  display:flex;flex-direction:column;padding:10px;
+  background:var(--bone);border:2px solid var(--cocoa);border-radius:var(--r-lg);box-shadow:var(--shadow-hard-lg);}
+.nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 18px;
+  border:none;border-radius:var(--r-pill);background:transparent;color:var(--cocoa);text-align:left;
+  font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
+.nav-sheet a:hover,.nav-sheet button:hover{background:var(--bone-2);}
+.nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--persimmon);color:var(--bone);}
+.nav-sheet .sheet-cta:hover{background:var(--persimmon-deep);}
+@media(max-width:1040px){.nlinks{display:none;}.nburger{display:flex;}}
+@media(max-width:660px){.nsign{display:none;}.navbar-inner{padding-left:18px;gap:10px;}}
+/* the bar must still hold brand + CTA + burger at 375px */
+@media(max-width:560px){
+  .navbar-inner{gap:8px;padding:6px 6px 6px 16px;}
+  .brand{font-size:15px;letter-spacing:.24em;}
+  .nbtn{padding:0 14px;font-size:11px;letter-spacing:.08em;}
+}
+@media(max-width:380px){
+  .navbar-inner{gap:6px;padding-left:12px;}
+  .brand{font-size:14px;letter-spacing:.16em;}
+  .nbtn{padding:0 10px;letter-spacing:.05em;}
+}
+@media(min-width:1041px){.nav-sheet,.nav-scrim{display:none;}}
+
+/* ── date + time pickers (Phase 1) ── */
+.dtf-label{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--cocoa-soft);margin-bottom:7px;}
+.datefield{position:relative;}
+.dtf-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:var(--tap);
+  padding:0 16px;border:1.5px solid var(--cocoa);border-radius:var(--r-sm);background:var(--bone-2);
+  color:var(--cocoa);font-size:16px;font-weight:400;text-align:left;transition:.2s var(--ease);}
+.dtf-trigger:hover{background:var(--bone);}
+.dtf-trigger.empty{color:var(--placeholder);}
+.dtf-trigger.invalid{border-color:var(--persimmon);}
+.dtf-trigger svg{flex:none;color:var(--cocoa-soft);}
+.dtf-pop{position:absolute;z-index:var(--z-modal);top:calc(100% + 8px);left:0;min-width:300px;
+  padding:14px;background:var(--bone);border:2px solid var(--cocoa);border-radius:var(--r-md);box-shadow:var(--shadow-hard);}
+/* On a phone the trigger can sit in a half-width cell, so anchoring the
+   popover to it pushes the calendar off-screen. Centre it instead. */
+@media(max-width:520px){
+  .dtf-pop{position:fixed;z-index:var(--z-sheet);top:50%;left:16px;right:16px;
+    transform:translateY(-50%);min-width:0;width:auto;}
+  .dtf-day{min-height:42px;}
+}
+.dtf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.dtf-month{font-family:var(--serif);font-size:19px;font-weight:600;}
+.dtf-nav{display:flex;align-items:center;justify-content:center;width:38px;height:38px;font-size:20px;
+  border:1.5px solid var(--cocoa);border-radius:50%;background:transparent;color:var(--cocoa);transition:.2s var(--ease);}
+.dtf-nav:hover:not(:disabled){background:var(--cocoa);color:var(--bone);}
+.dtf-nav:disabled{opacity:.3;cursor:not-allowed;}
+.dtf-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
+.dtf-dow span{text-align:center;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--cocoa-soft);}
+.dtf-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.dtf-day{display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-height:38px;
+  border:none;border-radius:50%;background:transparent;color:var(--cocoa);font-size:14px;font-weight:500;transition:.15s var(--ease);}
+.dtf-day:hover:not(:disabled){background:var(--bone-3);}
+.dtf-day.out{color:var(--cocoa-soft);opacity:.45;}
+.dtf-day:disabled{opacity:.25;cursor:not-allowed;}
+.dtf-day.cur{box-shadow:inset 0 0 0 2px var(--cocoa);}
+.dtf-day.sel{background:var(--persimmon);color:var(--bone);}
+.dtf-day.sel.cur{box-shadow:inset 0 0 0 2px var(--persimmon-deep);}
+
+.timefield{display:flex;flex-direction:column;}
+.tmf-row{display:flex;align-items:center;gap:6px;}
+.tmf-row.invalid .tmf-sel{border-color:var(--persimmon);}
+.tmf-sel{flex:1;min-width:0;min-height:var(--tap);padding:0 8px;border:1.5px solid var(--cocoa);
+  border-radius:var(--r-sm);background:var(--bone-2);color:var(--cocoa);font-size:16px;appearance:none;
+  text-align:center;text-align-last:center;transition:.2s var(--ease);}
+.tmf-sel:focus{background:var(--bone);}
+.tmf-ap{flex:0 0 78px;}
+.tmf-colon{font-weight:600;color:var(--cocoa-soft);}
+.tmf-zone{margin-top:6px;font-size:12px;font-weight:500;letter-spacing:.06em;color:var(--cocoa-soft);}
+.rv-zone,.tv-zone{display:block;font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--cocoa-soft);
+  text-transform:none;font-family:var(--sans);}
 
 /* ============ HERO ============ */
 /* the bottom rule is the horizon — the sun sets on it */

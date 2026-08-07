@@ -29,7 +29,11 @@ describe("Confirmation", () => {
     );
     expect(screen.getByText("CB-7KM4Q")).toBeInTheDocument();
     expect(screen.getByText(/Queen Beatrix International Airport →/)).toBeInTheDocument();
-    expect(screen.getByText("14:35")).toBeInTheDocument();
+    // times are always explicit about AM/PM and about the island's clock
+    expect(screen.getByText(/2:35 PM/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Aruba time \(AST\)/).length).toBeGreaterThan(0);
+    // and dates never render numerically
+    expect(screen.getByText("Mon 20 Jul 2026")).toBeInTheDocument();
     expect(screen.getByText("$58")).toBeInTheDocument();
     expect(screen.getByText(/AA1234 — tracked/)).toBeInTheDocument();
     expect(screen.getByText(/Arrivals hall, AUA/)).toBeInTheDocument();
