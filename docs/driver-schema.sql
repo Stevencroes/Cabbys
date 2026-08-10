@@ -9,6 +9,18 @@
 -- the columns below nor changed how identity is checked. This version
 -- adapts to your table instead of assuming its shape.
 --
+-- v3 — `open_rides` already existed too: Postgres refused "create or
+-- replace view" with "cannot change name of view column pickup_location
+-- to status", which only happens when a view with that shape already
+-- exists — and it isn't a shape either version of this file ever
+-- defined. Some driver-side SQL predates this project entirely, almost
+-- certainly from whichever tool built the original driver app. Rather
+-- than reverse-engineer an unknown legacy view, the view and both
+-- functions below are dropped and recreated outright: they hold no data
+-- of their own, so replacing them is safe regardless of what they looked
+-- like before. Only table rows would be worth being careful with, and
+-- none are touched here.
+--
 -- The one fact that matters everywhere below: `drivers.id` is the row's
 -- own primary key, not the signed-in account. `drivers.user_id` is what
 -- points at auth.users. Every check reads user_id, never id.
@@ -56,7 +68,8 @@ create index if not exists rides_status_idx    on public.rides (status);
 -- succeeded; the view passes all of them through raw and the TypeScript
 -- mapper (src/driver/lib/driver.ts) does the coalescing, the same way
 -- src/pages/MyTrips.tsx already reads this table.
-create or replace view public.open_rides
+drop view if exists public.open_rides;
+create view public.open_rides
 with (security_invoker = true) as
   select
     r.id, r.status, r.created_at, r.booking_ref,
@@ -72,7 +85,8 @@ with (security_invoker = true) as
 grant select on public.open_rides to authenticated;
 
 -- ── 4. claim_ride — atomic, and losing is not an error ──────────────
-create or replace function public.claim_ride(p_ride_id uuid)
+drop function if exists public.claim_ride(uuid);
+create function public.claim_ride(p_ride_id uuid)
 returns json
 language plpgsql
 security definer
@@ -111,7 +125,8 @@ $$;
 grant execute on function public.claim_ride(uuid) to authenticated;
 
 -- ── 5. set_ride_status — the driver's only write path ───────────────
-create or replace function public.set_ride_status(p_ride_id uuid, p_status text)
+drop function if exists public.set_ride_status(uuid, text);
+create function public.set_ride_status(p_ride_id uuid, p_status text)
 returns json
 language plpgsql
 security definer
