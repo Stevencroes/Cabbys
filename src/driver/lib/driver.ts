@@ -101,22 +101,31 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
 
 /**
  * The drivers row for a given auth uid, or null when none exists — either
- * because docs/driver-schema.sql hasn't been run, or because the row was
- * created with a different id than the one this account signs in with.
+ * because docs/driver-schema.sql hasn't been run, or the row's status
+ * check found nothing (see below).
+ *
+ * Matches on `user_id`, not `id`: this project's drivers table has its own
+ * primary key separate from the account it belongs to, with `user_id` as
+ * the column that actually points at auth.users. `DriverProfile.id` is
+ * deliberately set to the auth uid passed in, not the row's own id —
+ * rides.driver_id and both RPCs key on auth.uid(), so everything
+ * downstream (loading a driver's assigned rides, claiming, status
+ * changes) needs the auth id, not the drivers row's internal one.
  */
 export async function loadDriverById(uid: string): Promise<DriverProfile | null> {
   const { data, error } = await supabase
     .from("drivers")
     .select("*")
-    .eq("id", uid)
+    .eq("user_id", uid)
     .maybeSingle();
   if (error || !data) return null;
 
   const r = data as Row;
   const status = str(r.status);
+  const splitName = [str(r.first_name), str(r.last_name)].filter(Boolean).join(" ").trim();
   return {
-    id: str(r.id),
-    fullName: str(r.full_name),
+    id: uid,
+    fullName: splitName || str(r.full_name),
     phone: nStr(r.phone),
     vehicle: nStr(r.vehicle),
     plate: nStr(r.plate),
@@ -131,7 +140,7 @@ export async function setOnline(isOnline: boolean): Promise<void> {
   const { data: session } = await supabase.auth.getSession();
   const uid = session.session?.user?.id;
   if (!uid) return;
-  await supabase.from("drivers").update({ is_online: isOnline }).eq("id", uid);
+  await supabase.from("drivers").update({ is_online: isOnline }).eq("user_id", uid);
 }
 
 /** Today's assigned work, soonest first. */
