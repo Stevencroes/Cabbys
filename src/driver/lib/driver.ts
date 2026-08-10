@@ -81,12 +81,30 @@ function toAssigned(r: Row): AssignedJob {
   };
 }
 
-/** The signed-in user's driver row, or null when they aren't a driver. */
-export async function loadDriver(): Promise<DriverProfile | null> {
-  const { data: session } = await supabase.auth.getSession();
-  const uid = session.session?.user?.id;
-  if (!uid) return null;
+export interface AuthedUser {
+  id: string;
+  email: string | null;
+}
 
+/**
+ * The signed-in Supabase user, independent of whether a drivers row exists
+ * for them. Split from loadDriverById so the gate can tell "not signed in"
+ * apart from "signed in, but this account has no driver profile" — those
+ * need different screens and different fixes.
+ */
+export async function getAuthedUser(): Promise<AuthedUser | null> {
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return null;
+  return { id: user.id, email: user.email ?? null };
+}
+
+/**
+ * The drivers row for a given auth uid, or null when none exists — either
+ * because docs/driver-schema.sql hasn't been run, or because the row was
+ * created with a different id than the one this account signs in with.
+ */
+export async function loadDriverById(uid: string): Promise<DriverProfile | null> {
   const { data, error } = await supabase
     .from("drivers")
     .select("*")
