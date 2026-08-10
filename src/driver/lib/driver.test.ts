@@ -4,6 +4,7 @@ const calls: { from: string[]; rpc: [string, unknown][]; eq: [string, unknown][]
 let rpcResult: unknown = { ok: true, ride_id: "r1" };
 let rpcError: unknown = null;
 let singleResult: unknown = null;
+let orderResult: unknown[] = [];
 
 vi.mock("../../lib/supabase", () => {
   const builder = (table: string) => {
@@ -14,7 +15,7 @@ vi.mock("../../lib/supabase", () => {
       select: chain,
       eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return b; },
       in: chain,
-      order: () => Promise.resolve({ data: [], error: null }),
+      order: () => Promise.resolve({ data: orderResult, error: null }),
       maybeSingle: () => Promise.resolve({ data: singleResult, error: null }),
       update: () => ({ eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return Promise.resolve({ data: null, error: null }); } }),
     });
@@ -39,7 +40,7 @@ import { loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOn
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.eq = [];
   rpcResult = { ok: true, ride_id: "r1" }; rpcError = null;
-  singleResult = null;
+  singleResult = null; orderResult = [];
 });
 
 describe("driver data layer", () => {
@@ -112,5 +113,56 @@ describe("driver data layer", () => {
   it("updates online status by user_id too", async () => {
     await setOnline(true);
     expect(calls.eq).toContainEqual(["user_id", "d1"]);
+  });
+
+  // Regression: these are the real rides columns, copied from
+  // bookingPayload.ts — the insert code — not invented. A row a driver
+  // actually sees uses pickup_location/dropoff_location/vehicle_type/
+  // passengers_count, never the shorter names this mapper used to read.
+  describe("real rides column names (bookingPayload.ts, not guessed ones)", () => {
+    it("reads pickup, dropoff, vehicle and passenger count from their real columns", async () => {
+      orderResult = [{
+        id: "r1", status: "confirmed", booking_ref: "CB-1",
+        pickup_location: "Queen Beatrix International Airport",
+        dropoff_location: "The Ritz-Carlton Aruba",
+        vehicle_type: "SUV", vehicle_class: null,
+        passengers_count: 3, luggage_count: 2, child_seats: 0,
+        scheduled_date: "2026-08-07", scheduled_time: "14:35",
+        price: 6700, fare_total: null,
+      }];
+      const [job] = await loadOpen();
+      expect(job.pickup).toBe("Queen Beatrix International Airport");
+      expect(job.dropoff).toBe("The Ritz-Carlton Aruba");
+      expect(job.passengers).toBe(3);
+      // vehicle_class wins when both tiers are present; falls back to
+      // vehicle_type (the core-tier column) otherwise
+      expect(job.vehicle).toBe("SUV");
+      // price is the core-tier fare column; fare_total only exists once
+      // the later tier succeeded
+      expect(job.fare).toBe(6700);
+    });
+
+    it("derives scheduledAt from scheduled_date + scheduled_time, the always-present columns", async () => {
+      orderResult = [{
+        id: "r1", status: "confirmed",
+        pickup_location: "A", dropoff_location: "B",
+        scheduled_date: "2026-08-07", scheduled_time: "14:35",
+        scheduled_at: null, // later-tier column, absent on this row
+      }];
+      const [job] = await loadOpen();
+      // 14:35 Aruba (UTC-4) is 18:35 UTC
+      expect(job.scheduledAt).toBe("2026-08-07T18:35:00.000Z");
+    });
+
+    it("falls back to scheduled_at when scheduled_date is missing (older/partial rows)", async () => {
+      orderResult = [{
+        id: "r1", status: "confirmed",
+        pickup_location: "A", dropoff_location: "B",
+        scheduled_date: null, scheduled_time: null,
+        scheduled_at: "2026-08-07T18:35:00.000Z",
+      }];
+      const [job] = await loadOpen();
+      expect(job.scheduledAt).toBe("2026-08-07T18:35:00.000Z");
+    });
   });
 });

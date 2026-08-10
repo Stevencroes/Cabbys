@@ -44,12 +44,27 @@ create index if not exists rides_status_idx    on public.rides (status);
 -- Deliberately omits contact_name, contact_phone, contact_email,
 -- flight_number, pickup_lat, pickup_lng and pickup_note. Those unlock
 -- only once the ride is theirs.
+--
+-- Column names below are copied from src/lib/bookingPayload.ts, the actual
+-- insert code — not guessed. That file's comment explains why several are
+-- doubled up: "the production rides table has evolved; not every
+-- deployment has every column", so it inserts in three tiers (core →
+-- withCoords → full) and a row may only have the earliest tier's columns.
+-- pickup_location/dropoff_location, scheduled_date/scheduled_time,
+-- vehicle_type and passengers_count are core-tier — always present.
+-- scheduled_at, vehicle_class, price and fare_total vary by which tier
+-- succeeded; the view passes all of them through raw and the TypeScript
+-- mapper (src/driver/lib/driver.ts) does the coalescing, the same way
+-- src/pages/MyTrips.tsx already reads this table.
 create or replace view public.open_rides
 with (security_invoker = true) as
   select
-    r.id, r.status, r.scheduled_at, r.pickup, r.dropoff,
-    r.vehicle, r.passengers, r.luggage_count, r.child_seats,
-    r.fare_total, r.booking_ref, r.created_at
+    r.id, r.status, r.created_at, r.booking_ref,
+    r.pickup_location, r.dropoff_location,
+    r.scheduled_date, r.scheduled_time, r.scheduled_at,
+    r.vehicle_type, r.vehicle_class,
+    r.passengers_count, r.luggage_count, r.child_seats,
+    r.price, r.fare_total
   from public.rides r
   where r.driver_id is null
     and r.status in ('confirmed', 'pending');
