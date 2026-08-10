@@ -6,6 +6,7 @@ import Landing from "./pages/Landing";
 import BookingOverlay from "./components/booking/BookingOverlay";
 import AuthCallback from "./pages/AuthCallback";
 import MyTrips from "./pages/MyTrips";
+import DriverPortal from "./driver/DriverPortal";
 import Confirmation from "./components/Confirmation";
 import type { ConfirmedBooking } from "./booking/types";
 
@@ -29,6 +30,8 @@ function AppRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/trips" element={<MyTrips />} />
+        {/* the driver portal is its own world: dark ground, own shell, own guard */}
+        <Route path="/drive/*" element={<DriverPortal />} />
       </Routes>
       <BookingOverlay onConfirmed={handleConfirmed} />
       <Confirmation booking={confirmedBooking} onDone={handleDone} />
