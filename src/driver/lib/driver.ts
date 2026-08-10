@@ -7,6 +7,7 @@
 //  · accepting calls the claim_ride RPC, never an update, so two drivers
 //    tapping at the same moment cannot both win.
 import { supabase } from "../../lib/supabase";
+import { arubaInstant } from "../../lib/datetime";
 
 export type DriverStatus = "pending" | "approved" | "suspended";
 
@@ -53,18 +54,30 @@ const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const nStr = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 const nNum = (v: unknown): number | null => (typeof v === "number" ? v : null);
 
+// The rides table inserts in three tiers — core, +coords, +contact — so an
+// older row may only have the earliest one (see bookingPayload.ts). Same
+// columns, same fallback order MyTrips.tsx already uses; this is the one
+// place the driver side does it, so both readers of `rides` (this file's
+// select("*") calls and the open_rides view, which passes every tiered
+// column through raw) land on the same value.
+function effectiveScheduledAt(r: Row): string | null {
+  const date = nStr(r.scheduled_date);
+  if (date) return arubaInstant(date, nStr(r.scheduled_time) ?? "");
+  return nStr(r.scheduled_at);
+}
+
 function toOpen(r: Row): OpenJob {
   return {
     id: str(r.id),
     status: str(r.status) || "confirmed",
-    scheduledAt: nStr(r.scheduled_at),
-    pickup: str(r.pickup),
-    dropoff: str(r.dropoff),
-    vehicle: nStr(r.vehicle),
-    passengers: nNum(r.passengers),
+    scheduledAt: effectiveScheduledAt(r),
+    pickup: str(r.pickup_location),
+    dropoff: str(r.dropoff_location),
+    vehicle: nStr(r.vehicle_class) ?? nStr(r.vehicle_type),
+    passengers: nNum(r.passengers_count),
     luggage: nNum(r.luggage_count),
     childSeats: nNum(r.child_seats),
-    fare: nNum(r.fare_total),
+    fare: nNum(r.fare_total) ?? nNum(r.price),
     bookingRef: nStr(r.booking_ref),
   };
 }
