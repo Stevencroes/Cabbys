@@ -193,6 +193,30 @@
 .drv-badge.pending{background:transparent;border-color:var(--d-amber);color:var(--d-amber);}
 .drv-badge.suspended{background:var(--d-persimmon);border-color:var(--d-persimmon);color:var(--d-bone);}
 
+/* ── sign-in, reused from the passenger site ──────────────────────────
+   Same Supabase project, same accounts, same AuthForm — a driver and a
+   passenger can share a login. Redefining the shared bone/cocoa tokens
+   locally repaints every existing .authform/.oauth-btn/.txt rule for the
+   dark ground, with no CSS duplicated. */
+.drv-auth-wrap{width:100%;max-width:320px;margin-top:22px;text-align:left;}
+.drv-auth-wrap .authform{
+  --cocoa:var(--d-bone); --cocoa-soft:var(--d-muted);
+  --bone:var(--d-cocoa-2); --bone-2:var(--d-cocoa-3);
+  --placeholder:var(--d-soft);
+}
+.drv-auth-wrap .auth-or::before,.drv-auth-wrap .auth-or::after{border-top-color:rgba(242,233,213,.2);}
+.drv-auth-wrap .auth-pw-toggle{border-color:rgba(242,233,213,.2);}
+
+/* ── diagnostic block — "no driver row" state ──────────────────────── */
+.drv-diag{width:100%;max-width:320px;background:var(--d-cocoa-2);border:1.5px solid var(--d-line);
+  border-radius:var(--d-r-md);padding:16px 18px;text-align:left;}
+.drv-diag .row + .row{margin-top:12px;padding-top:12px;border-top:1.5px solid var(--d-line);}
+.drv-diag .k{display:block;font-weight:600;font-size:9px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--d-muted);margin-bottom:4px;}
+.drv-diag .v{display:block;font-size:14px;color:var(--d-bone);word-break:break-word;}
+.drv-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;
+  letter-spacing:.01em;color:var(--d-clay);}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;

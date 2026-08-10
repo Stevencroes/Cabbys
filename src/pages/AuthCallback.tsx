@@ -1,15 +1,19 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   useEffect(() => {
+    // `next` is set by signInWithProvider for flows that started outside
+    // the passenger site (the driver portal) so OAuth returns them home.
+    const next = params.get("next") || "/";
     supabase.auth.getSession().then(() => {
-      navigate("/", { replace: true });
+      navigate(next, { replace: true });
     });
-  }, [navigate]);
+  }, [navigate, params]);
 
   return (
     <div

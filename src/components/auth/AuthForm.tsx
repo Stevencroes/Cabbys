@@ -10,6 +10,8 @@ interface AuthFormProps {
   heading?: string;
   /** Compact spacing for use inside the booking flow. */
   compact?: boolean;
+  /** Where Google OAuth should return to. Omit for the default (passenger "/"). */
+  oauthNext?: string;
 }
 
 /**
@@ -17,7 +19,7 @@ interface AuthFormProps {
  * Accounts live in the shared Supabase project, so a passenger who signs
  * up in the Cabby's mobile app can sign in here with the same credentials.
  */
-export default function AuthForm({ onSuccess, heading = "Sign in", compact }: AuthFormProps) {
+export default function AuthForm({ onSuccess, heading = "Sign in", compact, oauthNext }: AuthFormProps) {
   const { signInWithProvider, signInWithPassword, signUpWithPassword } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -63,7 +65,7 @@ export default function AuthForm({ onSuccess, heading = "Sign in", compact }: Au
       <div className="ride-auth-h">{heading}</div>
 
       <div className="oauth">
-        <button className="oauth-btn google" type="button" onClick={() => signInWithProvider("google")}>
+        <button className="oauth-btn google" type="button" onClick={() => signInWithProvider("google", oauthNext)}>
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path fill="#fff" d="M21.35 11.1H12v2.9h5.35c-.25 1.36-1.6 4-5.35 4a5.9 5.9 0 0 1 0-11.8c1.68 0 2.8.71 3.45 1.32l2.35-2.27C16.46 3.9 14.43 3 12 3a9 9 0 1 0 0 18c5.2 0 8.64-3.65 8.64-8.8 0-.59-.06-1.04-.29-2.1Z" />
           </svg>

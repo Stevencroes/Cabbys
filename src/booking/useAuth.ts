@@ -22,8 +22,14 @@ export function useAuth() {
   return {
     user,
     loading,
-    signInWithProvider: (provider: "google" | "apple") =>
-      supabase.auth.signInWithOAuth({ provider, options: { redirectTo } }),
+    // `next` survives the redirect round-trip as a query param — needed
+    // because OAuth leaves the page. Callers outside the passenger flow
+    // (the driver portal) use it to land back where they started.
+    signInWithProvider: (provider: "google" | "apple", next?: string) =>
+      supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: next ? `${redirectTo}?next=${encodeURIComponent(next)}` : redirectTo },
+      }),
     signInWithEmail: (email: string) =>
       supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } }),
     signInWithPassword: (email: string, password: string) =>
