@@ -55,7 +55,7 @@ export default function DriverGuard({ children }: GateProps) {
     return (
       <div className="drv">
         <div className="drv-gate">
-          <span className="lbl">One moment</span>
+          <p>One moment.</p>
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export default function DriverGuard({ children }: GateProps) {
     return (
       <div className="drv">
         <div className="drv-gate">
-          <div className="mark">C</div>
+          <div className="gi mark">C</div>
           <h1>This is the driver portal.</h1>
           <p>Sign in with the account Cabby's set up for you.</p>
           <div className="drv-auth-wrap">
@@ -80,7 +80,7 @@ export default function DriverGuard({ children }: GateProps) {
     return (
       <div className="drv">
         <div className="drv-gate">
-          <div className="mark pending">?</div>
+          <div className="gi">?</div>
           <h1>No driver profile for this account.</h1>
           <p>
             You're signed in, but we can't find a driver record to match. If Cabby's
@@ -91,7 +91,7 @@ export default function DriverGuard({ children }: GateProps) {
             <div className="row"><span className="k">Signed in as</span><span className="v">{state.user.email ?? "—"}</span></div>
             <div className="row"><span className="k">Account ID</span><span className="v mono">{state.user.id}</span></div>
           </div>
-          <button type="button" className="drv-btn ghost" onClick={() => signOut()}>
+          <button type="button" className="drv-cta ghost" onClick={() => signOut()}>
             Sign out
           </button>
         </div>
@@ -104,16 +104,16 @@ export default function DriverGuard({ children }: GateProps) {
     return (
       <div className="drv">
         <div className="drv-gate">
-          <div className={`mark ${suspended ? "suspended" : "pending"}`}>
-            {suspended ? "—" : "·"}
+          <div className={`gi${suspended ? " stop" : ""}`} aria-hidden="true">
+            {suspended ? "—" : "⏳"}
           </div>
           <h1>{suspended ? "Your account is on hold." : "Application received."}</h1>
           <p>
             {suspended
               ? "Please contact Cabby's and we'll pick it up from there."
-              : "We're checking your licence and vehicle details."}
+              : "We're checking your licence and vehicle details. You'll get a message the moment you're approved — usually within a day."}
           </p>
-          <button type="button" className="drv-btn ghost" onClick={() => signOut()}>
+          <button type="button" className="drv-cta ghost" onClick={() => signOut()}>
             Sign out
           </button>
         </div>
