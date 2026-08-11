@@ -21,6 +21,10 @@
 -- like before. Only table rows would be worth being careful with, and
 -- none are touched here.
 --
+-- v4 — booked rides never reached the pool. The view was right and the
+-- query was right; what was missing was an RLS policy letting a driver
+-- read a ride that isn't theirs yet. See section 6.
+--
 -- The one fact that matters everywhere below: `drivers.id` is the row's
 -- own primary key, not the signed-in account. `drivers.user_id` is what
 -- points at auth.users. Every check reads user_id, never id.
@@ -184,6 +188,45 @@ create policy "drivers: update own" on public.drivers
 drop policy if exists "rides: read assigned" on public.rides;
 create policy "rides: read assigned" on public.rides
   for select to authenticated using (driver_id = auth.uid());
+
+-- v4 — the pool was always empty, and this is why.
+--
+-- open_rides is `security_invoker = true`, so it reads `rides` as the
+-- signed-in driver. The view's own `where driver_id is null` is a filter,
+-- not a permission: RLS on the underlying table runs first. Until now the
+-- only select a driver had was "rides: read assigned" (driver_id =
+-- auth.uid()) — which by definition excludes every unclaimed row — so the
+-- open rides were filtered out before the view ever saw them and the Pool
+-- screen rendered "Pool's empty" no matter how many rides were waiting.
+--
+-- This is the policy that admits them: unclaimed, still open, and only
+-- for a driver who is actually approved. It grants nothing extra on the
+-- rides table itself — a driver querying `rides` directly through this
+-- policy sees the same rows the pool does, but the app reads the view,
+-- which is what keeps contact details and the pin out of the response.
+create or replace function public.is_approved_driver()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.drivers
+     where user_id = auth.uid() and status = 'approved'
+  );
+$$;
+
+grant execute on function public.is_approved_driver() to authenticated;
+
+drop policy if exists "rides: read open pool" on public.rides;
+create policy "rides: read open pool" on public.rides
+  for select to authenticated
+  using (
+    driver_id is null
+    and status in ('confirmed', 'pending')
+    and public.is_approved_driver()
+  );
 
 -- ── 7. Approve the drivers you already have ─────────────────────────
 -- New rows default to 'pending' (line above), so your three existing

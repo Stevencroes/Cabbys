@@ -187,14 +187,30 @@ export async function loadCompleted(driverId: string, limit = 60): Promise<Assig
   return (data as Row[]).map((r) => ({ ...toAssigned(r), completedAt: nStr(r.completed_at) }));
 }
 
-/** Claimable work. The view, not the table — see the note at the top. */
-export async function loadOpen(): Promise<OpenJob[]> {
+/**
+ * Claimable work. The view, not the table — see the note at the top.
+ *
+ * Returns the error rather than swallowing it. This one query is the whole
+ * pool, and the two ways it can come back empty need different words on
+ * screen: "nothing to claim right now" is the quiet, ordinary case, while a
+ * missing view or an RLS policy that won't admit unclaimed rides is a setup
+ * problem that will never fix itself. Reporting both as [] hid exactly that
+ * — the pool read "Pool's empty" while rides were piling up behind it.
+ */
+export interface OpenPool {
+  jobs: OpenJob[];
+  /** non-null when the query itself failed, not when nobody has booked */
+  error: string | null;
+}
+
+export async function loadOpen(): Promise<OpenPool> {
   const { data, error } = await supabase
     .from("open_rides")
     .select("*")
     .order("scheduled_at", { ascending: true });
-  if (error || !Array.isArray(data)) return [];
-  return (data as Row[]).map(toOpen);
+  if (error) return { jobs: [], error: error.message };
+  if (!Array.isArray(data)) return { jobs: [], error: null };
+  return { jobs: (data as Row[]).map(toOpen), error: null };
 }
 
 export type ClaimResult =

@@ -5,6 +5,7 @@ let rpcResult: unknown = { ok: true, ride_id: "r1" };
 let rpcError: unknown = null;
 let singleResult: unknown = null;
 let orderResult: unknown[] = [];
+let orderError: { message: string } | null = null;
 
 vi.mock("../../lib/supabase", () => {
   const builder = (table: string) => {
@@ -15,7 +16,7 @@ vi.mock("../../lib/supabase", () => {
       select: chain,
       eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return b; },
       in: chain,
-      order: () => Promise.resolve({ data: orderResult, error: null }),
+      order: () => Promise.resolve({ data: orderError ? null : orderResult, error: orderError }),
       maybeSingle: () => Promise.resolve({ data: singleResult, error: null }),
       update: () => ({ eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return Promise.resolve({ data: null, error: null }); } }),
     });
@@ -40,7 +41,7 @@ import { loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOn
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.eq = [];
   rpcResult = { ok: true, ride_id: "r1" }; rpcError = null;
-  singleResult = null; orderResult = [];
+  singleResult = null; orderResult = []; orderError = null;
 });
 
 describe("driver data layer", () => {
@@ -49,6 +50,15 @@ describe("driver data layer", () => {
     // the view withholds contact details and the pin until a ride is claimed
     expect(calls.from).toContain("open_rides");
     expect(calls.from).not.toContain("rides");
+  });
+
+  it("reports a failed pool read instead of passing it off as an empty pool", async () => {
+    // an RLS policy that won't admit unclaimed rides looks exactly like
+    // nobody having booked, unless the error survives the data layer
+    orderError = { message: "permission denied for view open_rides" };
+    const pool = await loadOpen();
+    expect(pool.jobs).toEqual([]);
+    expect(pool.error).toBe("permission denied for view open_rides");
   });
 
   it("reads assigned work from rides, where the full record lives", async () => {
@@ -130,7 +140,7 @@ describe("driver data layer", () => {
         scheduled_date: "2026-08-07", scheduled_time: "14:35",
         price: 6700, fare_total: null,
       }];
-      const [job] = await loadOpen();
+      const [job] = (await loadOpen()).jobs;
       expect(job.pickup).toBe("Queen Beatrix International Airport");
       expect(job.dropoff).toBe("The Ritz-Carlton Aruba");
       expect(job.passengers).toBe(3);
@@ -149,7 +159,7 @@ describe("driver data layer", () => {
         scheduled_date: "2026-08-07", scheduled_time: "14:35",
         scheduled_at: null, // later-tier column, absent on this row
       }];
-      const [job] = await loadOpen();
+      const [job] = (await loadOpen()).jobs;
       // 14:35 Aruba (UTC-4) is 18:35 UTC
       expect(job.scheduledAt).toBe("2026-08-07T18:35:00.000Z");
     });
@@ -161,7 +171,7 @@ describe("driver data layer", () => {
         scheduled_date: null, scheduled_time: null,
         scheduled_at: "2026-08-07T18:35:00.000Z",
       }];
-      const [job] = await loadOpen();
+      const [job] = (await loadOpen()).jobs;
       expect(job.scheduledAt).toBe("2026-08-07T18:35:00.000Z");
     });
   });
