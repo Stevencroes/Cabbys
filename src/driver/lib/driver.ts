@@ -213,9 +213,13 @@ export async function loadOpen(): Promise<OpenPool> {
   return { jobs: (data as Row[]).map(toOpen), error: null };
 }
 
+export type ClaimReason = "already_taken" | "not_approved" | "unknown";
+
 export type ClaimResult =
   | { ok: true; rideId: string }
-  | { ok: false; error: "already_taken" | "not_approved" | "unknown" };
+  /** `detail` carries the database's own words when there are any — a
+   *  claim that fails silently is indistinguishable from a dead button. */
+  | { ok: false; error: ClaimReason; detail?: string };
 
 /**
  * Accept a job. Losing the race is normal, not a failure — the caller
@@ -223,14 +227,14 @@ export type ClaimResult =
  */
 export async function claimRide(rideId: string): Promise<ClaimResult> {
   const { data, error } = await supabase.rpc("claim_ride", { p_ride_id: rideId });
-  if (error) return { ok: false, error: "unknown" };
+  if (error) {
+    return { ok: false, error: "unknown", detail: error.message || "The claim call failed." };
+  }
   const r = (data ?? {}) as Row;
   if (r.ok === true) return { ok: true, rideId: str(r.ride_id) || rideId };
   const why = str(r.error);
-  return {
-    ok: false,
-    error: why === "already_taken" || why === "not_approved" ? why : "unknown",
-  };
+  if (why === "already_taken" || why === "not_approved") return { ok: false, error: why };
+  return { ok: false, error: "unknown", detail: why || "The claim was refused without a reason." };
 }
 
 export type RideStatus = "en_route" | "arrived" | "in_progress" | "completed";

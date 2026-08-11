@@ -91,7 +91,23 @@ describe("driver data layer", () => {
 
   it("treats a transport error as a failed claim rather than a silent success", async () => {
     rpcError = { message: "network" };
-    expect(await claimRide("r1")).toEqual({ ok: false, error: "unknown" });
+    expect(await claimRide("r1")).toEqual({ ok: false, error: "unknown", detail: "network" });
+  });
+
+  // A claim that fails without saying why is indistinguishable from a dead
+  // button — which is exactly how it presented: tap Accept, nothing moves.
+  it("carries the database's own words back for an unexplained refusal", async () => {
+    rpcResult = { ok: false, error: "violates foreign key constraint" };
+    const res = await claimRide("r1");
+    expect(res).toMatchObject({ ok: false, error: "unknown" });
+    expect((res as { detail?: string }).detail).toBe("violates foreign key constraint");
+  });
+
+  it("still treats losing the race as a plain outcome, with nothing to report", async () => {
+    rpcResult = { ok: false, error: "already_taken" };
+    const res = await claimRide("r1");
+    expect(res).toEqual({ ok: false, error: "already_taken" });
+    expect((res as { detail?: string }).detail).toBeUndefined();
   });
 
   // Regression: drivers has its own primary key separate from the account

@@ -19,6 +19,7 @@ export default function Pool() {
   const [failed, setFailed] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<string[]>([]);
+  const [refused, setRefused] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const { jobs: rows, error } = await loadOpen();
@@ -30,6 +31,7 @@ export default function Pool() {
 
   async function accept(job: OpenJob) {
     setBusy(job.id);
+    setRefused(null);
     const res = await claimRide(job.id);
     setBusy(null);
 
@@ -47,7 +49,14 @@ export default function Pool() {
       }, 500);
       return;
     }
-    // not_approved / unknown: the list is stale or access changed
+    // Everything else is a real refusal and must be visible. Silently
+    // refreshing here made a failing Accept look like a dead button —
+    // the driver taps, nothing moves, and there is nothing to report.
+    setRefused(
+      res.error === "not_approved"
+        ? "Your account isn't approved to take jobs yet."
+        : res.detail ?? "The claim was refused.",
+    );
     void refresh();
   }
 
@@ -65,6 +74,13 @@ export default function Pool() {
         <div className="kick">Open pool · unassigned</div>
         <h1 className="big">Free to <em>claim.</em></h1>
         <p className="sub" style={{ marginTop: 8 }}>First to accept gets the job.</p>
+
+        {refused && (
+          <div className="drv-refused" role="alert">
+            <div className="rk">Couldn't take that job</div>
+            <p>{refused}</p>
+          </div>
+        )}
 
         {jobs === null ? (
           <div className="drv-empty" style={{ paddingTop: 40 }}><p className="et">Checking the pool.</p></div>

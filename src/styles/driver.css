@@ -289,6 +289,44 @@
 .drv-badge.pending{background:transparent;border-color:var(--d-amber);color:var(--d-amber);}
 .drv-badge.suspended{background:var(--d-persimmon);border-color:var(--d-persimmon);color:var(--d-bone);}
 
+/* ── the incoming-ride offer ───────────────────────────────────────── */
+.drv-offer{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
+  padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px));
+  background:rgba(33,24,18,.94);animation:drvoffer .28s var(--ease);}
+@keyframes drvoffer{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:none;}}
+.drv-offer-in{width:100%;max-width:400px;background:var(--d-cocoa);border:2px solid var(--d-olive-2);
+  border-radius:var(--d-r-lg);padding:22px 20px 20px;box-shadow:0 30px 70px -20px rgba(0,0,0,.8);}
+
+.drv-offer .oh{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.drv-offer .ok{font-weight:600;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--d-amber);}
+
+/* the countdown ring — the number is the fallback, the sweep is the feel */
+.drv-offer .ring{position:relative;width:52px;height:52px;flex:none;display:flex;
+  align-items:center;justify-content:center;}
+.drv-offer .ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.drv-offer .ring circle{fill:none;stroke-width:4;}
+.drv-offer .ring .track{stroke:var(--d-line);}
+.drv-offer .ring .run{stroke:var(--d-amber);stroke-linecap:round;transition:stroke-dashoffset .25s linear;}
+.drv-offer .ring b{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--d-bone);}
+
+.drv-offer .ofare{font-family:var(--serif);font-size:52px;font-weight:600;line-height:1;color:var(--d-amber);}
+.drv-offer .owhen{font-weight:600;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--d-muted);margin-top:6px;}
+.drv-offer .olegs{margin:18px 0 0;padding:16px 0;
+  border-top:1.5px dashed var(--d-line);border-bottom:1.5px dashed var(--d-line);}
+.drv-offer .ometa{font-weight:600;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--d-muted);margin-top:14px;}
+.drv-offer .orefused{margin-top:14px;font-size:13px;line-height:1.5;color:var(--d-persimmon-lite);font-weight:400;}
+.drv-offer .oacts{margin-top:18px;}
+
+/* a refusal the driver can act on, rather than a button that did nothing */
+.drv-refused{margin-top:16px;border:1.5px solid var(--d-persimmon);border-radius:var(--d-r-md);
+  background:rgba(198,69,44,.1);padding:13px 15px;}
+.drv-refused .rk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--d-persimmon-lite);}
+.drv-refused p{margin:5px 0 0;font-size:13px;line-height:1.5;color:var(--d-bone);font-weight:400;}
+.drv-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-word;}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;
