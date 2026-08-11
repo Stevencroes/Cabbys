@@ -2,8 +2,11 @@
 // you are taking work is the one thing that must be true at a glance from
 // a car mount. Everything else scrolls beneath.
 import { useCallback, useState, type ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { setOnline, type DriverProfile } from "./lib/driver";
+import RideOffer from "./RideOffer";
+import { useRideOffers } from "./useRideOffers";
+import { primeAudio } from "./lib/chime";
 import "../styles/driver.css";
 
 const TABS = [
@@ -22,13 +25,23 @@ interface ShellProps {
 }
 
 export default function DriverShell({ driver, children, bare }: ShellProps) {
+  const navigate = useNavigate();
   const [online, setOnlineState] = useState(driver.isOnline);
+  const offers = useRideOffers(online);
 
   const toggle = useCallback(() => {
     const next = !online;
     setOnlineState(next);   // optimistic — the switch must feel instant
+    // the one deliberate tap before work can arrive: use it to unlock
+    // audio, so the first offer is allowed to chime
+    if (next) primeAudio();
     void setOnline(next);
   }, [online]);
+
+  async function acceptOffer() {
+    const rideId = await offers.accept();
+    if (rideId) navigate(`/drive/ride/${rideId}`);
+  }
 
   return (
     <div className="drv">
@@ -53,6 +66,17 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
       )}
 
       <div className="drv-screen">{children}</div>
+
+      {/* an offer outranks whatever screen is underneath it */}
+      {offers.offer && (
+        <RideOffer
+          job={offers.offer}
+          busy={offers.busy}
+          refused={offers.refused}
+          onAccept={() => void acceptOffer()}
+          onDismiss={offers.dismiss}
+        />
+      )}
 
       {!bare && (
         <nav className="drv-nav" aria-label="Driver">

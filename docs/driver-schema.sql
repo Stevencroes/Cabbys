@@ -21,6 +21,17 @@
 -- like before. Only table rows would be worth being careful with, and
 -- none are touched here.
 --
+-- v4 — booked rides never reached the pool. The view was right and the
+-- query was right; what was missing was an RLS policy letting a driver
+-- read a ride that isn't theirs yet. See section 6.
+--
+-- v4 — same lesson, third time: rides.driver_id may also predate this
+-- file, in which case "add column if not exists" changed nothing and an
+-- old foreign key is still attached. Section 2 now drops whatever FK is
+-- on that column and rebuilds it against auth.users, because a legacy one
+-- pointing at drivers(id) makes every claim_ride() call abort — which
+-- surfaced as an Accept button that did nothing at all.
+--
 -- The one fact that matters everywhere below: `drivers.id` is the row's
 -- own primary key, not the signed-in account. `drivers.user_id` is what
 -- points at auth.users. Every check reads user_id, never id.
@@ -51,6 +62,40 @@ alter table public.rides add column if not exists completed_at timestamptz;
 
 create index if not exists rides_driver_id_idx on public.rides (driver_id);
 create index if not exists rides_status_idx    on public.rides (status);
+
+-- If rides.driver_id already existed — and it may, the same way drivers
+-- and open_rides did — then "add column if not exists" above was a no-op
+-- and whatever foreign key it was created with is still in force. A
+-- legacy one pointing at public.drivers(id) is fatal but silent:
+-- claim_ride sets driver_id = auth.uid(), which matches drivers.user_id,
+-- NOT drivers.id, so every claim aborts on a constraint violation and the
+-- driver just sees a button that does nothing.
+--
+-- Drop whatever FK is on that column and put back the right one.
+do $$
+declare
+  c record;
+begin
+  for c in
+    select con.conname
+      from pg_constraint con
+      join pg_class rel on rel.oid = con.conrelid
+      join pg_namespace ns on ns.oid = rel.relnamespace
+     where ns.nspname = 'public'
+       and rel.relname = 'rides'
+       and con.contype = 'f'
+       and con.conkey = array[
+             (select attnum from pg_attribute
+               where attrelid = 'public.rides'::regclass and attname = 'driver_id')
+           ]
+  loop
+    execute format('alter table public.rides drop constraint %I', c.conname);
+  end loop;
+
+  alter table public.rides
+    add constraint rides_driver_id_fkey
+    foreign key (driver_id) references auth.users (id);
+end $$;
 
 -- ── 3. open_rides — what a driver may see BEFORE claiming ───────────
 -- Deliberately omits contact_name, contact_phone, contact_email,
@@ -184,6 +229,45 @@ create policy "drivers: update own" on public.drivers
 drop policy if exists "rides: read assigned" on public.rides;
 create policy "rides: read assigned" on public.rides
   for select to authenticated using (driver_id = auth.uid());
+
+-- v4 — the pool was always empty, and this is why.
+--
+-- open_rides is `security_invoker = true`, so it reads `rides` as the
+-- signed-in driver. The view's own `where driver_id is null` is a filter,
+-- not a permission: RLS on the underlying table runs first. Until now the
+-- only select a driver had was "rides: read assigned" (driver_id =
+-- auth.uid()) — which by definition excludes every unclaimed row — so the
+-- open rides were filtered out before the view ever saw them and the Pool
+-- screen rendered "Pool's empty" no matter how many rides were waiting.
+--
+-- This is the policy that admits them: unclaimed, still open, and only
+-- for a driver who is actually approved. It grants nothing extra on the
+-- rides table itself — a driver querying `rides` directly through this
+-- policy sees the same rows the pool does, but the app reads the view,
+-- which is what keeps contact details and the pin out of the response.
+create or replace function public.is_approved_driver()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.drivers
+     where user_id = auth.uid() and status = 'approved'
+  );
+$$;
+
+grant execute on function public.is_approved_driver() to authenticated;
+
+drop policy if exists "rides: read open pool" on public.rides;
+create policy "rides: read open pool" on public.rides
+  for select to authenticated
+  using (
+    driver_id is null
+    and status in ('confirmed', 'pending')
+    and public.is_approved_driver()
+  );
 
 -- ── 7. Approve the drivers you already have ─────────────────────────
 -- New rows default to 'pending' (line above), so your three existing

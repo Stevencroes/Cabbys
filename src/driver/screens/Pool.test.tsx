@@ -2,12 +2,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-const state: { open: unknown[]; claim: unknown } = { open: [], claim: { ok: true, rideId: "r1" } };
+const state: { open: unknown[]; error: string | null; claim: unknown } =
+  { open: [], error: null, claim: { ok: true, rideId: "r1" } };
 const navigate = vi.fn();
 let loadCalls = 0;
 
 vi.mock("../lib/driver", () => ({
-  loadOpen: () => { loadCalls++; return Promise.resolve(state.open); },
+  loadOpen: () => { loadCalls++; return Promise.resolve({ jobs: state.open, error: state.error }); },
   claimRide: () => Promise.resolve(state.claim),
 }));
 vi.mock("react-router-dom", async (orig) => ({
@@ -27,6 +28,7 @@ const renderPool = () => render(<MemoryRouter><Pool /></MemoryRouter>);
 
 beforeEach(() => {
   state.open = [job("r1")];
+  state.error = null;
   state.claim = { ok: true, rideId: "r1" };
   navigate.mockClear();
   loadCalls = 0;
@@ -63,5 +65,16 @@ describe("Open pool", () => {
     state.open = [];
     renderPool();
     expect(await screen.findByText(/pool's empty/i)).toBeInTheDocument();
+  });
+
+  it("does not call a broken pool an empty one", async () => {
+    state.open = [];
+    state.error = "permission denied for view open_rides";
+    renderPool();
+    // the distinction is the whole point: one is normal, the other is a
+    // setup problem the driver would otherwise wait out forever
+    expect(await screen.findByText(/can't reach the pool/i)).toBeInTheDocument();
+    expect(screen.queryByText(/pool's empty/i)).toBeNull();
+    expect(screen.getByText(/permission denied for view open_rides/)).toBeInTheDocument();
   });
 });

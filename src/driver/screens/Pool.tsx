@@ -16,11 +16,14 @@ import { claimRide, loadOpen, type OpenJob } from "../lib/driver";
 export default function Pool() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<OpenJob[] | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<string[]>([]);
+  const [refused, setRefused] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const rows = await loadOpen();
+    const { jobs: rows, error } = await loadOpen();
+    setFailed(error);
     setJobs(rows);
   }, []);
 
@@ -28,6 +31,7 @@ export default function Pool() {
 
   async function accept(job: OpenJob) {
     setBusy(job.id);
+    setRefused(null);
     const res = await claimRide(job.id);
     setBusy(null);
 
@@ -45,7 +49,14 @@ export default function Pool() {
       }, 500);
       return;
     }
-    // not_approved / unknown: the list is stale or access changed
+    // Everything else is a real refusal and must be visible. Silently
+    // refreshing here made a failing Accept look like a dead button —
+    // the driver taps, nothing moves, and there is nothing to report.
+    setRefused(
+      res.error === "not_approved"
+        ? "Your account isn't approved to take jobs yet."
+        : res.detail ?? "The claim was refused.",
+    );
     void refresh();
   }
 
@@ -64,8 +75,30 @@ export default function Pool() {
         <h1 className="big">Free to <em>claim.</em></h1>
         <p className="sub" style={{ marginTop: 8 }}>First to accept gets the job.</p>
 
+        {refused && (
+          <div className="drv-refused" role="alert">
+            <div className="rk">Couldn't take that job</div>
+            <p>{refused}</p>
+          </div>
+        )}
+
         {jobs === null ? (
           <div className="drv-empty" style={{ paddingTop: 40 }}><p className="et">Checking the pool.</p></div>
+        ) : failed ? (
+          // Not "empty" — the pool could not be read at all. Said plainly,
+          // with the database's own words, because the fix is in Supabase
+          // and not on this screen.
+          <div className="drv-empty" role="alert">
+            <div className="es">Can't reach the pool.</div>
+            <p className="et">
+              Bookings aren't being blocked — this portal just can't read them. Run the
+              latest docs/driver-schema.sql, then try again.
+            </p>
+            <p className="et mono" style={{ marginTop: 10, opacity: 0.7 }}>{failed}</p>
+            <button type="button" className="drv-cta ghost" style={{ marginTop: 14 }} onClick={() => void refresh()}>
+              Try again
+            </button>
+          </div>
         ) : jobs.length === 0 ? (
           <div className="drv-empty">
             <div className="es">Pool's empty.</div>

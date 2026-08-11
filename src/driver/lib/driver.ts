@@ -187,19 +187,39 @@ export async function loadCompleted(driverId: string, limit = 60): Promise<Assig
   return (data as Row[]).map((r) => ({ ...toAssigned(r), completedAt: nStr(r.completed_at) }));
 }
 
-/** Claimable work. The view, not the table — see the note at the top. */
-export async function loadOpen(): Promise<OpenJob[]> {
+/**
+ * Claimable work. The view, not the table — see the note at the top.
+ *
+ * Returns the error rather than swallowing it. This one query is the whole
+ * pool, and the two ways it can come back empty need different words on
+ * screen: "nothing to claim right now" is the quiet, ordinary case, while a
+ * missing view or an RLS policy that won't admit unclaimed rides is a setup
+ * problem that will never fix itself. Reporting both as [] hid exactly that
+ * — the pool read "Pool's empty" while rides were piling up behind it.
+ */
+export interface OpenPool {
+  jobs: OpenJob[];
+  /** non-null when the query itself failed, not when nobody has booked */
+  error: string | null;
+}
+
+export async function loadOpen(): Promise<OpenPool> {
   const { data, error } = await supabase
     .from("open_rides")
     .select("*")
     .order("scheduled_at", { ascending: true });
-  if (error || !Array.isArray(data)) return [];
-  return (data as Row[]).map(toOpen);
+  if (error) return { jobs: [], error: error.message };
+  if (!Array.isArray(data)) return { jobs: [], error: null };
+  return { jobs: (data as Row[]).map(toOpen), error: null };
 }
+
+export type ClaimReason = "already_taken" | "not_approved" | "unknown";
 
 export type ClaimResult =
   | { ok: true; rideId: string }
-  | { ok: false; error: "already_taken" | "not_approved" | "unknown" };
+  /** `detail` carries the database's own words when there are any — a
+   *  claim that fails silently is indistinguishable from a dead button. */
+  | { ok: false; error: ClaimReason; detail?: string };
 
 /**
  * Accept a job. Losing the race is normal, not a failure — the caller
@@ -207,14 +227,14 @@ export type ClaimResult =
  */
 export async function claimRide(rideId: string): Promise<ClaimResult> {
   const { data, error } = await supabase.rpc("claim_ride", { p_ride_id: rideId });
-  if (error) return { ok: false, error: "unknown" };
+  if (error) {
+    return { ok: false, error: "unknown", detail: error.message || "The claim call failed." };
+  }
   const r = (data ?? {}) as Row;
   if (r.ok === true) return { ok: true, rideId: str(r.ride_id) || rideId };
   const why = str(r.error);
-  return {
-    ok: false,
-    error: why === "already_taken" || why === "not_approved" ? why : "unknown",
-  };
+  if (why === "already_taken" || why === "not_approved") return { ok: false, error: why };
+  return { ok: false, error: "unknown", detail: why || "The claim was refused without a reason." };
 }
 
 export type RideStatus = "en_route" | "arrived" | "in_progress" | "completed";
