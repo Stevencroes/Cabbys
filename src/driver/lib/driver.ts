@@ -46,6 +46,8 @@ export interface AssignedJob extends OpenJob {
   pickupLat: number | null;
   pickupLng: number | null;
   pickupNote: string | null;
+  /** set only by loadCompleted — when the money was actually earned */
+  completedAt?: string | null;
 }
 
 type Row = Record<string, unknown>;
@@ -166,6 +168,23 @@ export async function loadAssigned(driverId: string): Promise<AssignedJob[]> {
     .order("scheduled_at", { ascending: true });
   if (error || !Array.isArray(data)) return [];
   return (data as Row[]).map(toAssigned);
+}
+
+/**
+ * Finished work, most recent first. Ordered and dated by completed_at,
+ * not scheduled_at: a job booked Friday and driven Saturday belongs to
+ * Saturday's money.
+ */
+export async function loadCompleted(driverId: string, limit = 60): Promise<AssignedJob[]> {
+  const { data, error } = await supabase
+    .from("rides")
+    .select("*")
+    .eq("driver_id", driverId)
+    .eq("status", "completed")
+    .order("completed_at", { ascending: false })
+    .limit(limit);
+  if (error || !Array.isArray(data)) return [];
+  return (data as Row[]).map((r) => ({ ...toAssigned(r), completedAt: nStr(r.completed_at) }));
 }
 
 /** Claimable work. The view, not the table — see the note at the top. */
