@@ -36,7 +36,10 @@ vi.mock("../../lib/supabase", () => {
   };
 });
 
-import { loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline } from "./driver";
+import {
+  loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline,
+  isImminent, IMMINENT_MINUTES,
+} from "./driver";
 
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.eq = [];
@@ -64,6 +67,37 @@ describe("driver data layer", () => {
   it("reads assigned work from rides, where the full record lives", async () => {
     await loadAssigned("d1");
     expect(calls.from).toContain("rides");
+  });
+
+  it("reports a failed schedule read instead of calling it an empty day", async () => {
+    // the same swallow that made the pool look empty; a driver whose jobs
+    // can't be read must not be told they have none
+    orderError = { message: "permission denied for table rides" };
+    const res = await loadAssigned("d1");
+    expect(res.jobs).toEqual([]);
+    expect(res.error).toBe("permission denied for table rides");
+  });
+
+  describe("what counts as happening now", () => {
+    const at = (mins: number) => ({ scheduledAt: new Date(Date.now() + mins * 60_000).toISOString() });
+
+    it("treats a job inside the window as live", () => {
+      expect(isImminent(at(20))).toBe(true);
+      expect(isImminent(at(IMMINENT_MINUTES - 1))).toBe(true);
+    });
+
+    it("treats a job days away as scheduling, not dispatch", () => {
+      expect(isImminent(at(60 * 24 * 3))).toBe(false);
+      expect(isImminent(at(IMMINENT_MINUTES + 30))).toBe(false);
+    });
+
+    it("counts an overdue job as live — it still needs driving", () => {
+      expect(isImminent(at(-45))).toBe(true);
+    });
+
+    it("treats a ride with no time on it as now, rather than hiding it", () => {
+      expect(isImminent({ scheduledAt: null })).toBe(true);
+    });
   });
 
   it("accepts a job through the RPC, not an update", async () => {

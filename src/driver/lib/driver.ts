@@ -159,15 +159,22 @@ export async function setOnline(isOnline: boolean): Promise<void> {
 }
 
 /** Today's assigned work, soonest first. */
-export async function loadAssigned(driverId: string): Promise<AssignedJob[]> {
+export interface JobList {
+  jobs: AssignedJob[];
+  /** non-null when the query failed, not when the driver has no work */
+  error: string | null;
+}
+
+export async function loadAssigned(driverId: string): Promise<JobList> {
   const { data, error } = await supabase
     .from("rides")
     .select("*")
     .eq("driver_id", driverId)
     .in("status", ["driver_assigned", "en_route", "arrived", "in_progress"])
     .order("scheduled_at", { ascending: true });
-  if (error || !Array.isArray(data)) return [];
-  return (data as Row[]).map(toAssigned);
+  if (error) return { jobs: [], error: error.message };
+  if (!Array.isArray(data)) return { jobs: [], error: null };
+  return { jobs: (data as Row[]).map(toAssigned), error: null };
 }
 
 /**
@@ -175,7 +182,7 @@ export async function loadAssigned(driverId: string): Promise<AssignedJob[]> {
  * not scheduled_at: a job booked Friday and driven Saturday belongs to
  * Saturday's money.
  */
-export async function loadCompleted(driverId: string, limit = 60): Promise<AssignedJob[]> {
+export async function loadCompleted(driverId: string, limit = 60): Promise<JobList> {
   const { data, error } = await supabase
     .from("rides")
     .select("*")
@@ -183,8 +190,37 @@ export async function loadCompleted(driverId: string, limit = 60): Promise<Assig
     .eq("status", "completed")
     .order("completed_at", { ascending: false })
     .limit(limit);
-  if (error || !Array.isArray(data)) return [];
-  return (data as Row[]).map((r) => ({ ...toAssigned(r), completedAt: nStr(r.completed_at) }));
+  if (error) return { jobs: [], error: error.message };
+  if (!Array.isArray(data)) return { jobs: [], error: null };
+  return {
+    jobs: (data as Row[]).map((r) => ({ ...toAssigned(r), completedAt: nStr(r.completed_at) })),
+    error: null,
+  };
+}
+
+/**
+ * Minutes until pickup, or null when the ride has no time on it.
+ * Shared so "is this happening now?" means the same thing everywhere.
+ */
+export function minutesUntilPickup(job: Pick<OpenJob, "scheduledAt">, now = Date.now()): number | null {
+  if (!job.scheduledAt) return null;
+  const t = new Date(job.scheduledAt).getTime();
+  return isNaN(t) ? null : Math.round((t - now) / 60_000);
+}
+
+/**
+ * Claiming a job three days out is scheduling, not dispatch. Only a job
+ * about to happen should drop the driver straight onto the live screen;
+ * anything further away belongs in the agenda, where they can plan around
+ * it. Ninety minutes is roughly "leave now or soon" for an island this
+ * size — past that, opening the running-a-job screen would be a lie.
+ */
+export const IMMINENT_MINUTES = 90;
+
+export function isImminent(job: Pick<OpenJob, "scheduledAt">, now = Date.now()): boolean {
+  const mins = minutesUntilPickup(job, now);
+  // no time at all → treat as now; already-late still counts as live
+  return mins === null || mins <= IMMINENT_MINUTES;
 }
 
 /**

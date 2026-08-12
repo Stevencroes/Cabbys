@@ -7,7 +7,8 @@ const state: { open: unknown[]; error: string | null; claim: unknown } =
 const navigate = vi.fn();
 let loadCalls = 0;
 
-vi.mock("../lib/driver", () => ({
+vi.mock("../lib/driver", async (orig) => ({
+  ...(await orig<typeof import("../lib/driver")>()),
   loadOpen: () => { loadCalls++; return Promise.resolve({ jobs: state.open, error: state.error }); },
   claimRide: () => Promise.resolve(state.claim),
 }));
@@ -44,10 +45,22 @@ describe("Open pool", () => {
     expect(screen.getByText(/no guest names or numbers shown until a job is yours/i)).toBeInTheDocument();
   });
 
-  it("opens the job once it's claimed", async () => {
+  it("opens the live screen when the job is about to happen", async () => {
+    state.open = [{ ...job("r1"), scheduledAt: new Date(Date.now() + 20 * 60_000).toISOString() }];
     renderPool();
     fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/drive/ride/r1"));
+  });
+
+  // Claiming Friday's job is scheduling, not dispatch — dropping the
+  // driver onto "I'm on my way" three days early is just wrong.
+  it("books a distant job into the schedule instead of opening it", async () => {
+    state.open = [{ ...job("r1"), scheduledAt: new Date(Date.now() + 3 * 86_400_000).toISOString() }];
+    renderPool();
+    fireEvent.click(await screen.findByRole("button", { name: /accept/i }));
+    expect(await screen.findByText(/booked in/i)).toBeInTheDocument();
+    expect(screen.getByText(/it's in your schedule/i)).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalledWith(expect.stringContaining("/drive/ride/"));
   });
 
   it("losing the race retires the card quietly — no dialog, no alarm", async () => {

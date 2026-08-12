@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import JobCard, { jobDate, jobTime } from "../JobCard";
-import { claimRide, loadOpen, type OpenJob } from "../lib/driver";
+import { claimRide, isImminent, loadOpen, type OpenJob } from "../lib/driver";
 
 export default function Pool() {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export default function Pool() {
   const [busy, setBusy] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<string[]>([]);
   const [refused, setRefused] = useState<string | null>(null);
+  const [booked, setBooked] = useState<OpenJob | null>(null);
 
   const refresh = useCallback(async () => {
     const { jobs: rows, error } = await loadOpen();
@@ -32,11 +33,15 @@ export default function Pool() {
   async function accept(job: OpenJob) {
     setBusy(job.id);
     setRefused(null);
+    setBooked(null);
     const res = await claimRide(job.id);
     setBusy(null);
 
     if (res.ok) {
-      navigate(`/drive/ride/${res.rideId}`);
+      // A job days out is scheduling, not dispatch: it belongs in the
+      // agenda, not on the "I'm on my way" screen.
+      if (isImminent(job)) navigate(`/drive/ride/${res.rideId}`);
+      else { setBooked(job); void refresh(); }
       return;
     }
     if (res.error === "already_taken") {
@@ -74,6 +79,19 @@ export default function Pool() {
         <div className="kick">Open pool · unassigned</div>
         <h1 className="big">Free to <em>claim.</em></h1>
         <p className="sub" style={{ marginTop: 8 }}>First to accept gets the job.</p>
+
+        {booked && (
+          <div className="drv-refused ok" role="status">
+            <div className="rk">Booked in</div>
+            <p>
+              {jobDate(booked.scheduledAt)} · {jobTime(booked.scheduledAt)} — it's in your schedule.
+            </p>
+            <button type="button" className="drv-cta ghost" style={{ marginTop: 12 }}
+              onClick={() => navigate("/drive")}>
+              See the schedule
+            </button>
+          </div>
+        )}
 
         {refused && (
           <div className="drv-refused" role="alert">
