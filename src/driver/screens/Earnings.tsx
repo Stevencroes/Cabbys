@@ -34,7 +34,7 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
 
   useEffect(() => {
     let cancelled = false;
-    loadCompleted(driver.id).then((rows) => { if (!cancelled) setRides(rows); });
+    loadCompleted(driver.id).then(({ jobs }) => { if (!cancelled) setRides(jobs); });
     return () => { cancelled = true; };
   }, [driver.id]);
 
