@@ -1,6 +1,7 @@
 // The portal's routing, behind the approval gate. The ride detail runs
 // "bare" — no top bar, no tabs — because it is a single job in progress
 // and the only action that matters is the one pinned to its foot.
+import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import DriverGuard from "./DriverGuard";
 import DriverShell from "./DriverShell";
@@ -14,6 +15,14 @@ import Profile from "./screens/Profile";
 export default function DriverPortal() {
   const { pathname } = useLocation();
   const bare = /^\/drive\/ride\//.test(pathname);
+
+  // Suppresses the site-wide grain for as long as a driver screen is up.
+  // Set on <body> rather than scoped in CSS because the overlay belongs to
+  // body::after, which no selector inside the portal can reach.
+  useEffect(() => {
+    document.body.classList.add("drive-route");
+    return () => document.body.classList.remove("drive-route");
+  }, []);
 
   return (
     <DriverGuard>
