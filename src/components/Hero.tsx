@@ -1,5 +1,4 @@
 import { SplitHeading } from "./motion";
-import SunGraphic from "./SunGraphic";
 import QuoteCard from "./booking/QuoteCard";
 
 export default function Hero() {
@@ -37,12 +36,6 @@ export default function Hero() {
         </div>
 
         <QuoteCard />
-      </div>
-
-      <div className="hero-sun par" data-speed="-.06" aria-hidden="true">
-        <div className="sun-rise"><div className="sun-float">
-          <SunGraphic />
-        </div></div>
       </div>
     </header>
   );

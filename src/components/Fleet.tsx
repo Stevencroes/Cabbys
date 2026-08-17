@@ -27,7 +27,7 @@ export default function Fleet() {
     <section id="fleet">
       <div className="fleet flow">
         <div className="inner">
-          <div className="eyebrow rise" style={{ color: "var(--persimmon)" }}>02 — The fleet</div>
+          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>02 — The fleet</div>
           <SplitHeading className="sec" parts={[{ text: `${VEHICLES.length === 3 ? "Three" : "Four"} cars. ` }, { text: "All spotless.", em: true }]} />
           <div className="fgrid stagger">
             {VEHICLES.map((v) => {

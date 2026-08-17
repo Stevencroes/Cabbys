@@ -4,7 +4,7 @@ export default function HowItWorks() {
   return (
     <section className="band" id="how">
       <div className="wrap">
-        <div className="eyebrow rise" style={{ color: "var(--persimmon)" }}>01 — How it works</div>
+        <div className="eyebrow rise" style={{ color: "var(--silver)" }}>01 — How it works</div>
         <SplitHeading className="sec" parts={[{ text: "Three steps. " }, { text: "Then nothing.", em: true }]} />
         <div className="hgrid stagger">
           <div className="hcell">

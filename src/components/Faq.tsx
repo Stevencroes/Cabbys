@@ -30,7 +30,7 @@ export default function Faq() {
     <section id="faq">
       <div className="faq flow">
         <div className="inner">
-          <div className="eyebrow rise" style={{ color: "var(--amber)" }}>03 — The honest answers</div>
+          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>03 — The honest answers</div>
           <SplitHeading
             className="sec"
             parts={[{ text: "What you're " }, { text: "actually", em: true }, { text: " worried about." }]}
