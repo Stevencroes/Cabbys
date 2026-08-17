@@ -1,21 +1,54 @@
 /* ==========================================================================
-   CABBY'S — v3 DESIGN TOKENS
-   Bone ground · Cocoa ink · Persimmon spark · Amber sun
-   Square by default: 2px rules, hard offset shadows, full-bleed bands.
+   CABBY'S — NIGHT SEA DESIGN TOKENS
+   Ink navy ground · brushed silver · one teal for live, one clay for wrong.
+   Silver is a material, not a flat fill: --sheen and --hairline are the
+   only two gradients in the system. Text on --sheen is always --deep.
    ========================================================================== */
 :root{
-  /* ---------- colour ---------- */
-  --bone:#F2E9D5;        --bone-2:#E9DEC4;      --bone-3:#DFD2B4;
-  --cocoa:#2B1F19;       --cocoa-2:#3A2B22;
-  --cocoa-soft:#5A4839;  --cocoa-line:#4A3A2D;
-  --persimmon:#C6452C;   --persimmon-deep:#9B3221;
-  --amber:#E2A03F;       --plum:#7A3444;        --clay:#D98E5F;
-  /* Retired: olive green and lagoon teal. The palette is a sunset —
-     bone → clay → persimmon → plum → cocoa — with amber as the sun.
-     Nothing cool-toned; good news wears amber, not green. */
-  --muted:#B9A78D;
-  /* WCAG-safe placeholder on bone-2 (the old #a89880 was 2.11:1) */
-  --placeholder:#6E5C48;
+  /* ---------- grounds ---------- */
+  --deep:#070D16;        /* FAQ band, footer, bottom nav */
+  --ground:#0B1420;      /* page background */
+  --surface:#121D2B;     /* cards, nav pill, fare panel, job cards */
+  --raised:#1A2739;      /* inputs, segmented strips, category strips */
+  --line:#26374C;        /* borders, dividers */
+  --soft:#3A506B;        /* disabled, faint icons */
+
+  /* ---------- type (contrast quoted against --ground) ---------- */
+  --ink:#F2F5F8;         /* 13.8:1 — headings, prices, primary values */
+  --silver:#B9C6D4;      /*  9.1:1 — labels, eyebrows, small caps, accents */
+  --muted:#8FA1B4;       /*  6.0:1 — body copy, secondary text */
+  --placeholder:#7C93AC; /*  5.4:1 — input placeholders only */
+  --silver-deep:#8A9AAB; /* pressed states, borders on silver elements */
+
+  /* ---------- silver as material — the only two gradients ---------- */
+  --sheen:linear-gradient(135deg,#E3E9EF 0%,#B9C6D4 46%,#D6DEE6 78%,#A8B7C6 100%);
+  --hairline:linear-gradient(90deg,transparent,#B9C6D4 22%,#E3E9EF 50%,#B9C6D4 78%,transparent);
+  --on-sheen:var(--deep);
+
+  /* ---------- functional — never decorative ----------
+     signal marks live states only; alert marks problems only. Both render
+     as a tinted fill with a matching border, never as a solid block. */
+  --signal:#4FA5A5;
+  /* the twin of --alert-ink: text sitting on a signal-tinted fill. The
+     solid --signal is a mark (knob, pin, ring), not a label. */
+  --signal-ink:#6FBDBD;
+  --signal-tint:rgba(79,165,165,.16);
+  --signal-line:rgba(79,165,165,.42);
+  --signal-glow:rgba(79,165,165,.12);
+  --signal-knob:rgba(79,165,165,.22);
+  --signal-halo:rgba(79,165,165,.5);
+  --alert:#CF6A5F;
+  --alert-ink:#E9968D;
+  --alert-tint:rgba(207,106,95,.16);
+  --alert-line:rgba(207,106,95,.42);
+
+  /* ---------- translucent grounds (blurred bars, scrims, rules) ---------- */
+  --pill:rgba(18,29,43,.86);      /* marketing nav pill */
+  --nav-deep:rgba(7,13,22,.9);    /* driver bottom nav */
+  --scrim:rgba(7,13,22,.72);      /* modal + menu scrims */
+  --scrim-heavy:rgba(7,13,22,.94);/* full-screen ride offer */
+  --line-soft:rgba(38,55,76,.62); /* dashed and half-weight rules */
+  --on-sheen-wash:rgba(7,13,22,.22); /* count badge riding on --sheen */
 
   /* ---------- type ---------- */
   --serif:'Cormorant Garamond', Georgia, serif;   /* display */
@@ -42,69 +75,64 @@
   --z-modal:200;
   --z-sheet:300;
 
-  /* ---------- shadows — a gentler offset with a warm soft wash ---------- */
-  --shadow-hard:5px 7px 0 rgba(43,31,25,.10), 0 22px 44px -22px rgba(43,31,25,.25);
-  --shadow-hard-lg:6px 8px 0 rgba(43,31,25,.12), 0 30px 60px -26px rgba(43,31,25,.30);
+  /* ---------- shadows — depth comes from the dark, not from an offset ---------- */
+  --shadow-hard:0 18px 40px rgba(0,0,0,.40);
+  --shadow-hard-lg:0 28px 64px rgba(0,0,0,.46);
 
   /* ---------- filmic grain ---------- */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
   /* ---------- legacy aliases ----------
      Older components (auth modal, trips, inline SVGs) still read these
-     names; keep them resolving to v3 values. New code uses v3 tokens. */
+     names; keep them resolving to Night Sea roles. New code uses the
+     role tokens above. */
   --disp:var(--serif);
   --ui:var(--sans);
-  --bg:var(--bone);
-  --surface:var(--bone-2);
-  --surface-hi:var(--bone-3);
-  --ink-soft:var(--cocoa-soft);
-  --line:var(--cocoa);
-  --line-soft:rgba(43,31,25,.20);
-  --accent:var(--persimmon);
-  --accent-press:var(--persimmon-deep);
-  --secondary:var(--amber);
-  --success:var(--amber);   /* good news wears the sun, not green */
-  --on-accent:var(--bone);
-  --midnight:var(--cocoa);
-  --ocean:var(--bone);
-  --steel:var(--cocoa-soft);
-  --silver:var(--cocoa-soft);
-  --silver-dim:#8A7660;
-  --mist:var(--cocoa);
+  --bg:var(--ground);
+  --surface-hi:var(--raised);
+  --ink-soft:var(--muted);
+  --accent:var(--silver);
+  --accent-press:var(--silver-deep);
+  --secondary:var(--silver);
+  --success:var(--signal);
+  --on-accent:var(--deep);
+  --midnight:var(--deep);
+  --ocean:var(--ground);
+  --steel:var(--soft);
+  --silver-dim:var(--silver-deep);
+  --mist:var(--ink);
   --white:#FFFFFF;
-  --accent-soft:var(--cocoa);
-  --accent-line:rgba(198,69,44,.45);
-  --silver-hi:var(--persimmon-deep);
-  --silver-focus:var(--persimmon);
-  --silver-wash:var(--bone-2);
-  --ink:var(--cocoa-soft);
-  --danger:var(--persimmon);
-  --focus-glow:0 0 0 2px rgba(198,69,44,.30);
-  --card:var(--bone-2);
-  --card-hi:var(--bone-3);
-  --border:var(--cocoa);
-  --border-hi:var(--cocoa);
-  --hairline:rgba(43,31,25,.20);
+  --accent-soft:var(--raised);
+  --accent-line:rgba(185,198,212,.45);
+  --silver-hi:var(--ink);
+  --silver-focus:var(--silver);
+  --silver-wash:var(--surface);
+  --danger:var(--alert-ink);
+  --focus-glow:0 0 0 2px rgba(185,198,212,.30);
+  --card:var(--surface);
+  --card-hi:var(--raised);
+  --border:var(--line);
+  --border-hi:var(--soft);
   --shadow-sticker:var(--shadow-hard);
   --shadow-sticker-sm:var(--shadow-hard);
   --shadow-soft:var(--shadow-hard);
   --shadow-card:var(--shadow-hard);
-  --c-vanilla:var(--bone);
-  --c-vanilla-2:var(--bone-2);
-  --c-vanilla-3:var(--bone-3);
-  --c-cocoa:var(--cocoa);
-  --c-cocoa-2:var(--cocoa-2);
-  --c-cocoa-3:#241A14;
-  --c-cocoa-soft:var(--cocoa-soft);
-  --c-cocoa-line:var(--cocoa-line);
-  --c-lacquer:var(--persimmon);
-  --c-lacquer-dark:var(--persimmon);
-  --c-lacquer-deep:var(--persimmon-deep);
-  --c-camel:var(--amber);
-  --c-palm:var(--amber);
-  --c-palm-2:var(--amber);
+  --c-vanilla:var(--ink);
+  --c-vanilla-2:var(--silver);
+  --c-vanilla-3:var(--muted);
+  --c-cocoa:var(--ground);
+  --c-cocoa-2:var(--surface);
+  --c-cocoa-3:var(--deep);
+  --c-cocoa-soft:var(--soft);
+  --c-cocoa-line:var(--line);
+  --c-lacquer:var(--silver);
+  --c-lacquer-dark:var(--silver-deep);
+  --c-lacquer-deep:var(--silver-deep);
+  --c-camel:var(--silver);
+  --c-palm:var(--signal);
+  --c-palm-2:var(--signal);
   --c-muted:var(--muted);
   --c-on-dark:var(--muted);
-  --c-on-dark-2:#D8C9B4;
-  --c-sea:var(--bone-2);
+  --c-on-dark-2:var(--silver);
+  --c-sea:var(--surface);
 }

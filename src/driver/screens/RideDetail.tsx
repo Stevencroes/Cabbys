@@ -107,19 +107,19 @@ export default function RideDetail() {
 
       <div className="drv-pinmap">
         <svg viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect width="400" height="150" fill="#211812" />
-          <path d="M0,0 L70,0 C55,50 80,100 45,150 L0,150 Z" fill="#1a120d" />
-          <path d="M70,0 C55,50 80,100 45,150" fill="none" stroke="#E2A03F" strokeWidth="3" opacity=".45" />
-          <g stroke="#4A3A2D" strokeWidth="1.5" fill="none">
+          <rect width="400" height="150" fill="var(--surface)" />
+          <path d="M0,0 L70,0 C55,50 80,100 45,150 L0,150 Z" fill="var(--deep)" />
+          <path d="M70,0 C55,50 80,100 45,150" fill="none" stroke="var(--silver)" strokeWidth="3" opacity=".3" />
+          <g stroke="var(--line)" strokeWidth="1.5" fill="none">
             <line x1="140" y1="0" x2="140" y2="150" /><line x1="250" y1="0" x2="250" y2="150" />
             <line x1="0" y1="60" x2="400" y2="60" /><line x1="0" y1="110" x2="400" y2="110" />
           </g>
-          <ellipse cx="320" cy="40" rx="60" ry="34" fill="#4C5A33" opacity=".2" />
+          <ellipse cx="320" cy="40" rx="60" ry="34" fill="var(--raised)" opacity=".55" />
           {hasPin && (
             <g transform={(() => { const { x, y } = pinXY(ride.pickupLat!, ride.pickupLng!); return `translate(${x.toFixed(1)},${y.toFixed(1)})`; })()}>
-              <circle r="18" fill="#C6452C" opacity=".22" />
-              <path d="M0,-19 C10,-19 15,-11 15,-4 C15,5 0,15 0,15 C0,15 -15,5 -15,-4 C-15,-11 -10,-19 0,-19 Z" fill="#C6452C" />
-              <circle cx="0" cy="-4" r="5" fill="#F2E9D5" />
+              <circle r="18" fill="var(--signal)" opacity=".22" />
+              <path d="M0,-19 C10,-19 15,-11 15,-4 C15,5 0,15 0,15 C0,15 -15,5 -15,-4 C-15,-11 -10,-19 0,-19 Z" fill="var(--signal)" />
+              <circle cx="0" cy="-4" r="5" fill="var(--deep)" />
             </g>
           )}
         </svg>

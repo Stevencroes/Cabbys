@@ -1,29 +1,24 @@
 /* ==========================================================================
    CABBY'S DRIVER PORTAL
    Built for a phone in a car mount. Dark, high-contrast, one decision per
-   screen. Scoped to .drv so the passenger site's bone ground and this
-   cocoa one cannot bleed into each other.
+   screen. Scoped to .drv so the portal and the passenger site cannot bleed
+   into each other — both now share the Night Sea roles from tokens.css.
 
-   Rules: no gradients except the action-bar scrim, which exists to keep
-   text legible under a floating button. Cormorant for every number that
-   matters. Jost for labels, 600/uppercase/.2em. Colour carries state:
-   olive = go, plum = aboard, persimmon = act, amber = the accent.
+   Rules: gradients are only --sheen (primary actions, the active segment)
+   and --hairline (the stat block's top rule). Cormorant for every number
+   that matters. Jost for labels, 600/uppercase/.2em. Colour carries state,
+   and only two colours are allowed to: signal = live, alert = wrong.
+   Everything else is ground, silver and ink.
    ========================================================================== */
 .drv{
-  --d-bone:#F2E9D5; --d-bone-2:#E9DEC4; --d-bone-3:#DFD2B4;
-  --d-cocoa:#2B1F19; --d-cocoa-2:#3A2B22; --d-cocoa-3:#211812;
-  --d-line:#4A3A2D; --d-soft:#5A4839; --d-muted:#B9A78D;
-  --d-persimmon:#C6452C; --d-persimmon-lite:#D9563C; --d-persimmon-deep:#9B3221;
-  --d-amber:#E2A03F; --d-olive:#4C5A33; --d-olive-2:#5E7049;
-  --d-lagoon:#2E6360; --d-plum:#7A3444; --d-clay:#D98E5F;
   --d-r-sm:12px; --d-r-md:18px; --d-r-lg:26px; --d-r-pill:100px;
 
   position:relative;
   min-height:100dvh;
   display:flex;
   flex-direction:column;
-  background:var(--d-cocoa);
-  color:var(--d-bone);
+  background:var(--ground);
+  color:var(--ink);
   font-family:var(--sans);
   font-weight:300;
   line-height:1.5;
@@ -35,29 +30,30 @@
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .drv *{box-sizing:border-box;}
-.drv :focus-visible{outline:2px solid var(--d-amber);outline-offset:2px;}
+.drv :focus-visible{outline:2px solid var(--silver);outline-offset:3px;}
 
 /* ── the mark + online toggle, always at the top ───────────────────── */
 .drv-top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;
   max-width:560px;width:100%;margin:0 auto;
   padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;}
 .drv-mark{font-family:var(--serif);font-weight:500;letter-spacing:.3em;text-transform:uppercase;
-  font-size:15px;padding-left:.3em;color:var(--d-bone);text-decoration:none;}
-.drv-mark .ap{color:var(--d-persimmon-lite);}
+  font-size:15px;padding-left:.3em;color:var(--ink);text-decoration:none;}
+.drv-mark .ap{color:var(--silver);}
 .drv-mark small{display:block;font-family:var(--sans);font-size:7.5px;letter-spacing:.34em;
-  color:var(--d-muted);margin-top:2px;font-weight:500;}
+  color:var(--muted);margin-top:2px;font-weight:500;}
 
 .drv-onoff{display:flex;align-items:center;gap:9px;}
-.drv-onoff .st{font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--d-muted);}
-.drv-onoff .st.on{color:var(--d-amber);}
+.drv-onoff .st{font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--muted);}
+/* online is a live state — the one thing on this bar allowed to wear signal */
+.drv-onoff .st.on{color:var(--signal-ink);}
 /* the switch itself is 28px tall but its hit area is a full 44 */
 .drv-tgl{position:relative;width:50px;height:28px;border-radius:var(--d-r-pill);
-  border:1.5px solid var(--d-line);background:var(--d-cocoa-2);padding:0;cursor:pointer;
+  border:1px solid var(--line);background:var(--raised);padding:0;cursor:pointer;
   transition:background .3s var(--ease),border-color .3s var(--ease);}
 .drv-tgl::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;
-  background:var(--d-muted);transition:transform .3s var(--ease),background .3s var(--ease);}
-.drv-tgl.on{background:var(--d-olive);border-color:var(--d-olive-2);}
-.drv-tgl.on::after{transform:translateX(22px);background:var(--d-bone);}
+  background:var(--soft);transition:transform .3s var(--ease),background .3s var(--ease);}
+.drv-tgl.on{background:var(--signal-knob);border-color:var(--signal);}
+.drv-tgl.on::after{transform:translateX(22px);background:var(--signal);box-shadow:0 0 12px var(--signal-halo);}
 .drv-tgl::before{content:"";position:absolute;inset:-8px;}
 
 /* ── the scrolling screen ──────────────────────────────────────────── */
@@ -68,296 +64,298 @@
   padding:0 20px calc(84px + env(safe-area-inset-bottom,0px));}
 
 /* ── type ──────────────────────────────────────────────────────────── */
-.drv .kick{font-weight:600;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--d-amber);}
+.drv .kick{font-weight:600;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
 .drv .big{font-family:var(--serif);font-weight:300;font-size:34px;line-height:1.02;
   margin:8px 0 4px;letter-spacing:-.01em;}
-.drv .big em{font-style:italic;color:var(--d-persimmon-lite);}
-.drv .sub{color:var(--d-muted);font-size:13px;font-weight:400;line-height:1.6;}
+.drv .big em{font-style:italic;color:var(--silver);}
+.drv .sub{color:var(--muted);font-size:13px;font-weight:400;line-height:1.6;}
 .drv .num{font-family:var(--serif);font-weight:500;}
 
 /* ── bottom nav — thumb reach ──────────────────────────────────────── */
 .drv-nav{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;
-  background:var(--d-cocoa-3);border-top:1.5px solid var(--d-line);
+  background:var(--nav-deep);backdrop-filter:blur(16px);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom,0px);}
 .drv-nav a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:4px;color:var(--d-soft);text-decoration:none;
+  justify-content:center;gap:4px;color:var(--soft);text-decoration:none;
   font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
   transition:color .25s var(--ease);}
-.drv-nav a.on{color:var(--d-amber);}
-.drv-nav .dot{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:0;
+.drv-nav a.on{color:var(--ink);}
+/* the dot is the marker, and it stays silver whatever the label does */
+.drv-nav .dot{width:4px;height:4px;border-radius:50%;background:var(--silver);opacity:0;
   transition:opacity .25s var(--ease);}
 .drv-nav a.on .dot{opacity:1;}
 
 /* ── stat grid ─────────────────────────────────────────────────────── */
-.drv-stats{margin-top:22px;border:1.5px solid var(--d-line);border-radius:var(--d-r-md);overflow:hidden;}
+.drv-stats{position:relative;margin-top:22px;border:1px solid var(--line);border-radius:var(--d-r-md);overflow:hidden;}
+/* one of the system's two gradients: a brushed rule across the top */
+.drv-stats::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--hairline);}
 .drv-srow{display:flex;}
-.drv-scell{flex:1;padding:16px 15px;border-right:1.5px solid var(--d-line);border-bottom:1.5px solid var(--d-line);}
+.drv-scell{flex:1;padding:16px 15px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);}
 .drv-scell:last-child{border-right:none;}
 .drv-srow:last-child .drv-scell{border-bottom:none;}
-.drv-sk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--d-muted);font-weight:600;}
-.drv-sv{font-family:var(--serif);font-size:27px;font-weight:500;margin-top:5px;line-height:1;}
-.drv-sv small{font-size:14px;color:var(--d-muted);}
+.drv-sk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-sv{font-family:var(--serif);font-size:27px;font-weight:500;margin-top:5px;line-height:1;color:var(--ink);}
+.drv-sv small{font-size:14px;color:var(--muted);}
 
 /* ── job card ──────────────────────────────────────────────────────── */
-.drv-job{display:block;width:100%;text-align:left;background:var(--d-cocoa-2);
-  border:1.5px solid var(--d-line);border-radius:var(--d-r-md);padding:16px;margin-bottom:12px;
+.drv-job{display:block;width:100%;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--d-r-md);padding:16px;margin-bottom:12px;
   color:inherit;transition:border-color .3s var(--ease),transform .3s var(--ease);}
-.drv-job:hover{border-color:var(--d-amber);transform:translateY(-2px);}
+.drv-job:hover{border-color:var(--silver-deep);transform:translateY(-2px);}
+/* a job in progress reads as live without needing a second class in the
+   markup — the chip it already renders is the state */
+.drv-job:has(.drv-chip.live),.drv-job:has(.drv-chip.aboard){
+  border-color:var(--signal-line);box-shadow:0 0 0 1px var(--signal-glow);}
 .drv-jtop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;}
-.drv-jtime{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--d-amber);line-height:1;}
+.drv-jtime{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--silver);line-height:1;}
 
-/* status chip — colour is the state, readable at a glance */
+/* status chip — a tinted fill, never a solid block */
 .drv-chip{font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
   padding:5px 10px;border-radius:var(--d-r-pill);white-space:nowrap;
-  background:var(--d-cocoa-3);color:var(--d-muted);border:1.5px solid var(--d-line);}
-.drv-chip.next{background:var(--d-amber);color:var(--d-cocoa);border-color:var(--d-amber);}
-.drv-chip.live{background:var(--d-olive);color:var(--d-bone);border-color:var(--d-olive-2);}
-.drv-chip.aboard{background:var(--d-plum);color:var(--d-bone);border-color:var(--d-plum);}
-.drv-chip.alert{background:var(--d-persimmon);color:var(--d-bone);border-color:var(--d-persimmon);}
-.drv-chip.done{background:none;color:var(--d-muted);}
+  background:var(--raised);color:var(--muted);border:1px solid var(--line);}
+.drv-chip.next{background:var(--raised);color:var(--ink);border-color:var(--line);}
+.drv-chip.live,.drv-chip.aboard{background:var(--signal-tint);color:var(--signal-ink);border-color:var(--signal-line);}
+.drv-chip.alert{background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert-line);}
+.drv-chip.done{background:none;color:var(--muted);border-color:var(--line);}
 
 /* the two legs — filled pin out, hollow ring in */
 .drv-leg{display:flex;gap:11px;align-items:flex-start;}
 .drv-leg + .drv-leg{margin-top:9px;}
 .drv-leg .ic{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;}
-.drv-leg .ic.a{background:var(--d-amber);}
-.drv-leg .ic.b{background:none;border:2px solid var(--d-persimmon-lite);}
-.drv-leg .lp{font-size:14px;font-weight:400;line-height:1.25;}
-.drv-leg .ls{font-size:10px;color:var(--d-muted);letter-spacing:.06em;margin-top:2px;}
+.drv-leg .ic.a{background:var(--signal);}
+.drv-leg .ic.b{background:none;border:1.5px solid var(--silver);}
+.drv-leg .lp{font-size:14px;font-weight:400;line-height:1.25;color:var(--ink);}
+.drv-leg .ls{font-size:10px;color:var(--muted);letter-spacing:.06em;margin-top:2px;}
 
 .drv-jfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;
-  margin-top:13px;padding-top:12px;border-top:1.5px dashed var(--d-line);}
-.drv-jfoot .meta{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--d-muted);font-weight:600;}
-.drv-jfoot .fare{font-family:var(--serif);font-size:20px;font-weight:600;}
+  margin-top:13px;padding-top:12px;border-top:1px dashed var(--line);}
+.drv-jfoot .meta{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-jfoot .fare{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);}
 
 /* a claim button sits inline in the foot, not full width */
-.drv-claim{border:none;border-radius:var(--d-r-pill);background:var(--d-persimmon);color:var(--d-bone);
+.drv-claim{border:none;border-radius:var(--d-r-pill);background:var(--sheen);color:var(--on-sheen);
   padding:9px 20px;font-family:var(--sans);font-weight:600;font-size:10px;letter-spacing:.14em;
-  text-transform:uppercase;cursor:pointer;transition:background .3s var(--ease);min-height:38px;}
-.drv-claim:hover:not(:disabled){background:var(--d-persimmon-deep);}
-.drv-claim:disabled{background:var(--d-olive);cursor:default;}
+  text-transform:uppercase;cursor:pointer;transition:box-shadow .3s var(--ease);min-height:38px;}
+.drv-claim:hover:not(:disabled){box-shadow:var(--shadow-hard);}
+.drv-claim:disabled{background:var(--raised);color:var(--soft);cursor:default;}
 /* losing the race is normal: the card leaves without an alarm */
 .drv-job.going{transition:opacity .5s var(--ease),transform .5s var(--ease);opacity:0;transform:translateX(-16px);}
 
 /* ── empty state ───────────────────────────────────────────────────── */
-.drv-empty{padding:50px 24px;text-align:center;color:var(--d-muted);}
-.drv-empty .es{font-family:var(--serif);font-size:22px;color:var(--d-bone);margin-bottom:6px;}
+.drv-empty{padding:50px 24px;text-align:center;color:var(--muted);}
+.drv-empty .es{font-family:var(--serif);font-size:22px;color:var(--ink);margin-bottom:6px;}
 .drv-empty .et{font-size:12.5px;line-height:1.6;}
 
 /* ── ride detail ───────────────────────────────────────────────────── */
-.drv-dhead{background:var(--d-olive);padding:20px;flex:none;}
-.drv-dhead .dk{font-weight:600;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--d-amber);}
-.drv-dhead h1{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.05;margin:7px 0 0;}
-.drv-dhead .ref{font-size:10px;letter-spacing:.14em;color:rgba(242,233,213,.72);margin-top:6px;font-weight:500;}
+.drv-dhead{background:var(--surface);border-bottom:1px solid var(--line);padding:20px;flex:none;}
+.drv-dhead .dk{font-weight:600;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--silver);}
+.drv-dhead h1{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.05;margin:7px 0 0;color:var(--ink);}
+.drv-dhead .ref{font-size:10px;letter-spacing:.14em;color:var(--muted);margin-top:6px;font-weight:500;}
 
-.drv-pinmap{height:150px;position:relative;overflow:hidden;background:var(--d-cocoa-2);flex:none;
-  border-bottom:1.5px solid var(--d-line);}
+.drv-pinmap{height:150px;position:relative;overflow:hidden;background:var(--surface);flex:none;
+  border-bottom:1px solid var(--line);}
 .drv-pinmap svg{width:100%;height:100%;display:block;}
-.drv-pinbadge{position:absolute;left:14px;bottom:12px;background:var(--d-bone);color:var(--d-cocoa);
+.drv-pinbadge{position:absolute;left:14px;bottom:12px;background:var(--silver);color:var(--deep);
   border-radius:var(--d-r-pill);padding:7px 13px;font-size:9.5px;font-weight:600;
   letter-spacing:.12em;text-transform:uppercase;}
-.drv-pinbadge.wait{background:var(--d-cocoa-3);color:var(--d-muted);border:1.5px solid var(--d-line);}
+.drv-pinbadge.wait{background:var(--raised);color:var(--muted);border:1px solid var(--line);}
 
 /* the note beats the pin — coordinates get you within 20 metres, the
    landmark closes the last 20. Highest-value string on the screen. */
-.drv-note{background:var(--d-amber);color:var(--d-cocoa);border-radius:var(--d-r-sm);
-  padding:13px 15px;margin:16px 0;}
-.drv-note .nk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;opacity:.75;}
+.drv-note{position:relative;overflow:hidden;background:var(--raised);color:var(--ink);
+  border:1px solid var(--line);border-radius:var(--d-r-sm);padding:13px 15px;margin:16px 0;}
+.drv-note .nk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
 .drv-note .nv{font-family:var(--serif);font-size:17px;font-weight:500;margin-top:3px;line-height:1.25;}
 
-.drv-rowset{border:1.5px solid var(--d-line);border-radius:var(--d-r-md);overflow:hidden;margin-bottom:16px;}
-.drv-r{display:flex;justify-content:space-between;gap:12px;padding:12px 15px;border-bottom:1.5px solid var(--d-line);}
+.drv-rowset{border:1px solid var(--line);border-radius:var(--d-r-md);overflow:hidden;margin-bottom:16px;}
+.drv-r{display:flex;justify-content:space-between;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line);}
 .drv-r:last-child{border-bottom:none;}
-.drv-r .rl{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--d-muted);
+.drv-r .rl{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
   font-weight:600;align-self:center;}
-.drv-r .rv{font-size:13.5px;text-align:right;font-weight:400;}
-.drv-r .rv.hl{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--d-amber);}
+.drv-r .rv{font-size:13.5px;text-align:right;font-weight:400;color:var(--ink);}
+.drv-r .rv.hl{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink);}
 
 .drv-pax{display:flex;align-items:center;gap:12px;padding:14px 0;margin-bottom:16px;
-  border-top:1.5px dashed var(--d-line);border-bottom:1.5px dashed var(--d-line);}
-.drv-pax .av{width:42px;height:42px;border-radius:50%;background:var(--d-persimmon);color:var(--d-bone);
+  border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);}
+.drv-pax .av{width:42px;height:42px;border-radius:50%;background:var(--raised);color:var(--silver);
   flex:none;display:flex;align-items:center;justify-content:center;
   font-family:var(--serif);font-size:19px;font-weight:600;}
 .drv-pax .pi{flex:1;min-width:0;}
 .drv-pax .pn{display:block;font-family:var(--serif);font-size:18px;font-weight:500;line-height:1;}
-.drv-pax .pm{display:block;font-size:10.5px;color:var(--d-muted);margin-top:3px;letter-spacing:.05em;}
+.drv-pax .pm{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.05em;}
 .drv-pax .pc{display:flex;gap:7px;flex:none;}
-.drv-pax .pc a{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--d-line);
-  background:none;color:var(--d-bone);font-size:14px;display:flex;align-items:center;
-  justify-content:center;text-decoration:none;transition:background .25s var(--ease);}
-.drv-pax .pc a:hover{background:var(--d-cocoa-2);}
+.drv-pax .pc a{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+  background:none;color:var(--silver);font-size:14px;display:flex;align-items:center;
+  justify-content:center;text-decoration:none;transition:background .25s var(--ease),color .25s var(--ease);}
+.drv-pax .pc a:hover{background:var(--raised);color:var(--ink);}
 
 /* ── buttons ───────────────────────────────────────────────────────── */
 .drv-cta{display:flex;align-items:center;justify-content:center;width:100%;border:none;
   border-radius:var(--d-r-pill);padding:16px;min-height:52px;
   font-family:var(--sans);font-weight:600;font-size:12.5px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--d-bone);cursor:pointer;text-decoration:none;
-  transition:background .3s var(--ease),transform .3s var(--ease);}
-.drv-cta.red{background:var(--d-persimmon);}
-.drv-cta.red:hover:not(:disabled){background:var(--d-persimmon-deep);transform:translateY(-2px);}
-.drv-cta.green{background:var(--d-olive);}
-.drv-cta.green:hover:not(:disabled){background:var(--d-olive-2);transform:translateY(-2px);}
-.drv-cta.ghost{background:none;border:1.5px solid var(--d-line);color:var(--d-bone);}
-.drv-cta.ghost:hover:not(:disabled){background:var(--d-cocoa-2);}
+  text-transform:uppercase;cursor:pointer;text-decoration:none;
+  transition:box-shadow .3s var(--ease),transform .3s var(--ease);}
+/* both primaries wear the brushed strip; the label carries the difference */
+.drv-cta.red,.drv-cta.green{background:var(--sheen);color:var(--on-sheen);}
+.drv-cta.red:hover:not(:disabled),.drv-cta.green:hover:not(:disabled){box-shadow:var(--shadow-hard);transform:translateY(-2px);}
+.drv-cta.ghost{background:transparent;border:1px solid var(--silver-deep);color:var(--silver);}
+.drv-cta.ghost:hover:not(:disabled){background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
 .drv-cta:disabled{opacity:.6;cursor:wait;}
 .drv-cta + .drv-cta{margin-top:10px;}
 
-/* the one action, always in reach — the scrim keeps text legible as
-   content scrolls beneath it */
+/* the one action, always in reach — a solid bar rather than a scrim, so
+   the only gradients in the system stay --sheen and --hairline */
 .drv-actionbar{position:sticky;bottom:0;margin-top:auto;z-index:70;
   padding:16px 20px calc(20px + env(safe-area-inset-bottom,0px));
-  background:linear-gradient(0deg,var(--d-cocoa) 62%,transparent);}
+  background:var(--ground);border-top:1px solid var(--line);}
 .drv-actionbar .inner{max-width:560px;margin:0 auto;}
 
 /* ── earnings ──────────────────────────────────────────────────────── */
-.drv-seg{display:inline-flex;border:1.5px solid var(--d-line);border-radius:var(--d-r-pill);
-  overflow:hidden;margin:12px 0 20px;}
+.drv-seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--d-r-pill);
+  background:var(--surface);overflow:hidden;margin:12px 0 20px;}
 .drv-seg button{background:none;border:none;padding:11px 17px;min-height:40px;
   font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--d-muted);cursor:pointer;transition:.25s var(--ease);}
-.drv-seg button.on{background:var(--d-amber);color:var(--d-cocoa);}
+  text-transform:uppercase;color:var(--muted);cursor:pointer;transition:.25s var(--ease);}
+.drv-seg button.on{background:var(--sheen);color:var(--on-sheen);}
 
 .drv-etot{text-align:center;margin-bottom:20px;}
-.drv-etot .ek{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--d-muted);font-weight:600;}
+.drv-etot .ek{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600;}
 .drv-etot .ev{font-family:var(--serif);font-size:56px;font-weight:600;line-height:1;
-  color:var(--d-amber);margin:6px 0 3px;}
-.drv-etot .ed{font-size:11px;color:var(--d-muted);letter-spacing:.05em;}
+  color:var(--ink);margin:6px 0 3px;}
+.drv-etot .ed{font-size:11px;color:var(--muted);letter-spacing:.05em;}
 
 .drv-chart{display:flex;align-items:flex-end;gap:7px;height:104px;margin-bottom:22px;}
 .drv-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
   gap:7px;height:100%;}
-.drv-bar .bfill{width:100%;background:var(--d-line);border-radius:5px 5px 0 0;
+.drv-bar .bfill{width:100%;background:var(--line);border-radius:5px 5px 0 0;
   transition:height .6s var(--ease);}
-.drv-bar.mid .bfill{background:var(--d-clay);}
-.drv-bar.peak .bfill{background:var(--d-persimmon);}
-.drv-bar .bl{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--d-muted);font-weight:600;}
+.drv-bar.mid .bfill{background:var(--soft);}
+.drv-bar.peak .bfill{background:var(--silver);}
+.drv-bar .bl{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
 
-.drv-payout{border:1.5px solid var(--d-line);border-radius:var(--d-r-md);padding:16px;margin-top:6px;}
-.drv-payout .pk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--d-muted);font-weight:600;}
-.drv-payout .pv{font-family:var(--serif);font-size:20px;font-weight:600;margin-top:4px;}
-.drv-payout .pd{font-size:11px;color:var(--d-muted);margin-top:5px;line-height:1.5;}
+.drv-payout{border:1px solid var(--line);border-radius:var(--d-r-md);padding:16px;margin-top:6px;}
+.drv-payout .pk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-payout .pv{font-family:var(--serif);font-size:20px;font-weight:600;margin-top:4px;color:var(--ink);}
+.drv-payout .pd{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
 
 /* ── history — the receipt drawer ──────────────────────────────────── */
 .drv-hrow{display:flex;align-items:center;gap:12px;padding:14px 0;
-  border-bottom:1.5px dashed var(--d-line);}
+  border-bottom:1px dashed var(--line);}
 .drv-hrow:last-child{border-bottom:none;}
-.drv-hav{width:36px;height:36px;border-radius:50%;background:var(--d-cocoa-2);color:var(--d-amber);
+.drv-hav{width:36px;height:36px;border-radius:50%;background:var(--raised);color:var(--silver);
   flex:none;display:flex;align-items:center;justify-content:center;
   font-family:var(--serif);font-size:16px;font-weight:600;}
 .drv-hmain{flex:1;min-width:0;}
 .drv-hmain .hr{font-family:var(--serif);font-size:16px;font-weight:500;line-height:1.15;}
-.drv-hmain .hm{font-size:10px;color:var(--d-muted);margin-top:3px;letter-spacing:.04em;}
-.drv-hf{font-family:var(--serif);font-size:17px;font-weight:600;flex:none;}
+.drv-hmain .hm{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.drv-hf{font-family:var(--serif);font-size:17px;font-weight:600;flex:none;color:var(--ink);}
 
 /* ── gates: pending, suspended, signed-out ─────────────────────────── */
 .drv-gate{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   text-align:center;padding:30px 26px;gap:0;}
-.drv-gate .gi{width:70px;height:70px;border-radius:50%;border:2px solid var(--d-amber);
-  display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--d-amber);
+.drv-gate .gi{width:70px;height:70px;border-radius:50%;border:1.5px solid var(--silver);
+  display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--silver);
   margin-bottom:22px;}
-.drv-gate .gi.stop{border-color:var(--d-persimmon);color:var(--d-persimmon);}
-.drv-gate .gi.mark{border-color:var(--d-line);color:var(--d-bone);font-family:var(--serif);}
+.drv-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
+.drv-gate .gi.mark{border-color:var(--line);color:var(--ink);font-family:var(--serif);}
 .drv-gate h1{font-family:var(--serif);font-weight:300;font-size:28px;margin:0 0 10px;line-height:1.1;}
-.drv-gate p{color:var(--d-muted);font-size:13px;line-height:1.7;max-width:32ch;font-weight:400;margin:0;}
+.drv-gate p{color:var(--muted);font-size:13px;line-height:1.7;max-width:32ch;font-weight:400;margin:0;}
 
-/* sign-in reuses the passenger AuthForm; redefining the shared tokens
-   locally repaints every existing rule for the dark ground, no CSS
-   duplicated */
+/* sign-in reuses the passenger AuthForm. That form is now built on the
+   same dark ground, so the local token overrides it used to need are gone. */
 .drv-auth-wrap{width:100%;max-width:320px;margin-top:24px;text-align:left;}
-.drv-auth-wrap .authform{
-  --cocoa:var(--d-bone); --cocoa-soft:var(--d-muted);
-  --bone:var(--d-cocoa-2); --bone-2:var(--d-cocoa-3);
-  --placeholder:var(--d-soft);
-}
-.drv-auth-wrap .auth-or::before,.drv-auth-wrap .auth-or::after{border-top-color:rgba(242,233,213,.2);}
-.drv-auth-wrap .auth-pw-toggle{border-color:rgba(242,233,213,.2);}
 
-.drv-diag{width:100%;max-width:320px;background:var(--d-cocoa-2);border:1.5px solid var(--d-line);
+.drv-diag{width:100%;max-width:320px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--d-r-md);padding:16px 18px;text-align:left;margin-top:22px;}
-.drv-diag .row + .row{margin-top:12px;padding-top:12px;border-top:1.5px solid var(--d-line);}
+.drv-diag .row + .row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
 .drv-diag .k{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--d-muted);margin-bottom:4px;}
-.drv-diag .v{display:block;font-size:14px;color:var(--d-bone);word-break:break-word;}
-.drv-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--d-clay);}
+  text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.drv-diag .v{display:block;font-size:14px;color:var(--ink);word-break:break-word;}
+.drv-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);}
 .drv-gate .drv-cta{max-width:320px;margin-top:20px;}
 
 /* ── profile ───────────────────────────────────────────────────────── */
 .drv-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 15px;
   border-radius:var(--d-r-pill);font-weight:600;font-size:9px;letter-spacing:.2em;
-  text-transform:uppercase;border:1.5px solid;}
-.drv-badge.approved{background:var(--d-olive);border-color:var(--d-olive-2);color:var(--d-bone);}
-.drv-badge.pending{background:transparent;border-color:var(--d-amber);color:var(--d-amber);}
-.drv-badge.suspended{background:var(--d-persimmon);border-color:var(--d-persimmon);color:var(--d-bone);}
+  text-transform:uppercase;border:1px solid;}
+.drv-badge.approved{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
+.drv-badge.pending{background:transparent;border-color:var(--soft);color:var(--silver);}
+.drv-badge.suspended{background:var(--alert-tint);border-color:var(--alert-line);color:var(--alert-ink);}
 
 /* ── the incoming-ride offer ───────────────────────────────────────── */
 .drv-offer{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;
   padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px));
-  background:rgba(33,24,18,.94);animation:drvoffer .28s var(--ease);}
+  background:var(--scrim-heavy);animation:drvoffer .28s var(--ease);}
 @keyframes drvoffer{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:none;}}
-.drv-offer-in{width:100%;max-width:400px;background:var(--d-cocoa);border:2px solid var(--d-olive-2);
-  border-radius:var(--d-r-lg);padding:22px 20px 20px;box-shadow:0 30px 70px -20px rgba(0,0,0,.8);}
+/* an offer is the live state made large — signal on the border, nowhere else */
+.drv-offer-in{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--signal-line);
+  border-radius:var(--d-r-lg);padding:22px 20px 20px;
+  box-shadow:0 0 0 1px var(--signal-glow),var(--shadow-hard-lg);}
 
 .drv-offer .oh{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-.drv-offer .ok{font-weight:600;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--d-amber);}
+.drv-offer .ok{font-weight:600;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
 
 /* the countdown ring — the number is the fallback, the sweep is the feel */
 .drv-offer .ring{position:relative;width:52px;height:52px;flex:none;display:flex;
   align-items:center;justify-content:center;}
 .drv-offer .ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
 .drv-offer .ring circle{fill:none;stroke-width:4;}
-.drv-offer .ring .track{stroke:var(--d-line);}
-.drv-offer .ring .run{stroke:var(--d-amber);stroke-linecap:round;transition:stroke-dashoffset .25s linear;}
-.drv-offer .ring b{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--d-bone);}
+.drv-offer .ring .track{stroke:var(--line);}
+.drv-offer .ring .run{stroke:var(--signal);stroke-linecap:round;transition:stroke-dashoffset .25s linear;}
+.drv-offer .ring b{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);}
 
-.drv-offer .ofare{font-family:var(--serif);font-size:52px;font-weight:600;line-height:1;color:var(--d-amber);}
+.drv-offer .ofare{font-family:var(--serif);font-size:52px;font-weight:600;line-height:1;color:var(--ink);}
 .drv-offer .owhen{font-weight:600;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--d-muted);margin-top:6px;}
+  color:var(--muted);margin-top:6px;}
 .drv-offer .olegs{margin:18px 0 0;padding:16px 0;
-  border-top:1.5px dashed var(--d-line);border-bottom:1.5px dashed var(--d-line);}
+  border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);}
 .drv-offer .ometa{font-weight:600;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--d-muted);margin-top:14px;}
-.drv-offer .orefused{margin-top:14px;font-size:13px;line-height:1.5;color:var(--d-persimmon-lite);font-weight:400;}
+  color:var(--muted);margin-top:14px;}
+.drv-offer .orefused{margin-top:14px;font-size:13px;line-height:1.5;color:var(--alert-ink);font-weight:400;}
 .drv-offer .oacts{margin-top:18px;}
 
 /* a refusal the driver can act on, rather than a button that did nothing */
-.drv-refused{margin-top:16px;border:1.5px solid var(--d-persimmon);border-radius:var(--d-r-md);
-  background:rgba(198,69,44,.1);padding:13px 15px;}
+.drv-refused{margin-top:16px;border:1px solid var(--alert-line);border-radius:var(--d-r-md);
+  background:var(--alert-tint);padding:13px 15px;}
 .drv-refused .rk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--d-persimmon-lite);}
-.drv-refused p{margin:5px 0 0;font-size:13px;line-height:1.5;color:var(--d-bone);font-weight:400;}
+  color:var(--alert-ink);}
+.drv-refused p{margin:5px 0 0;font-size:13px;line-height:1.5;color:var(--ink);font-weight:400;}
 .drv-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-word;}
 
 /* the day segments on the agenda */
 .drv-span{display:flex;width:100%;margin:20px 0 16px;}
 .drv-span button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
 .drv-span button b{font-family:var(--serif);font-size:13px;font-weight:600;opacity:.75;}
+/* the count rides on the active pill, so it darkens rather than lightens */
+.drv-seg button.on b{opacity:1;background:var(--on-sheen-wash);color:var(--on-sheen);
+  border-radius:var(--d-r-pill);padding:0 7px;min-width:20px;text-align:center;}
 
 /* claimed, but not now — a word, then out of the way */
 .drv-booked{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
   z-index:85;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  background:var(--d-olive);border:1.5px solid var(--d-olive-2);border-radius:var(--d-r-md);
+  background:var(--surface);border:1px solid var(--signal-line);border-radius:var(--d-r-md);
   padding:12px 14px;max-width:528px;margin:0 auto;animation:drvfade .3s var(--ease);}
 .drv-booked .bk{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--d-amber);}
+  text-transform:uppercase;color:var(--silver);}
 .drv-booked .bv{display:block;font-family:var(--serif);font-size:17px;font-weight:500;margin-top:2px;}
-.drv-booked button{background:none;border:none;color:var(--d-bone);font-size:15px;
+.drv-booked button{background:none;border:none;color:var(--silver);font-size:15px;
   min-width:44px;min-height:44px;cursor:pointer;}
 
 /* the grace bar — a lapsed offer, still reachable */
 .drv-grace{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
   z-index:85;display:flex;align-items:center;gap:12px;max-width:528px;margin:0 auto;
-  background:var(--d-cocoa-2);border:1.5px solid var(--d-amber);border-radius:var(--d-r-md);
+  background:var(--surface);border:1px solid var(--alert-line);border-radius:var(--d-r-md);
   padding:10px 10px 10px 15px;animation:drvfade .3s var(--ease);}
 .drv-grace .gi{flex:1;min-width:0;}
 .drv-grace .gk{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--d-amber);}
+  text-transform:uppercase;color:var(--alert-ink);}
 .drv-grace .gv{display:block;font-family:var(--serif);font-size:16px;font-weight:500;margin-top:2px;}
-.drv-grace .gx{background:none;border:none;color:var(--d-muted);font-size:14px;
+.drv-grace .gx{background:none;border:none;color:var(--muted);font-size:14px;
   min-width:40px;min-height:40px;cursor:pointer;}
 
 /* the affirmative twin of .drv-refused */
-.drv-refused.ok{border-color:var(--d-olive-2);background:rgba(76,90,51,.18);}
-.drv-refused.ok .rk{color:var(--d-amber);}
+.drv-refused.ok{border-color:var(--signal-line);background:var(--signal-tint);}
+.drv-refused.ok .rk{color:var(--signal-ink);}
 
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{

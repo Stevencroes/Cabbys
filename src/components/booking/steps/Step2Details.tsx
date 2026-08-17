@@ -160,14 +160,15 @@ export default function Step2Details({
     elementsRef.current = stripe.elements({
       clientSecret,
       appearance: {
-        theme: "stripe",
+        theme: "night",
         variables: {
-          colorPrimary: "#C6452C",
-          colorBackground: "#E9DEC4",
-          colorText: "#2B1F19",
-          colorDanger: "#9B3221",
+          colorPrimary: "#B9C6D4",
+          colorBackground: "#121D2B",
+          colorText: "#F2F5F8",
+          colorTextPlaceholder: "#7C93AC",
+          colorDanger: "#CF6A5F",
           fontFamily: "Jost, sans-serif",
-          borderRadius: "0px",
+          borderRadius: "12px",
         },
       },
     });

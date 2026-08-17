@@ -22,7 +22,7 @@ export default function AuthCallback() {
         alignItems: "center",
         justifyContent: "center",
         minHeight: "100vh",
-        color: "var(--mist, #EEF2F8)",
+        color: "var(--mist, #F2F5F8)",
         fontSize: "15px",
         fontWeight: 300,
         letterSpacing: "0.04em",

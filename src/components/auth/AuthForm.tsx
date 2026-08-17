@@ -114,7 +114,7 @@ export default function AuthForm({ onSuccess, heading = "Sign in", compact, oaut
       </form>
 
       {error && (
-        <p className="acct-note" role="alert" style={{ color: "var(--danger, #f2a3a3)", textAlign: "left" }}>
+        <p className="acct-note" role="alert" style={{ color: "var(--danger, #E9968D)", textAlign: "left" }}>
           {error}
         </p>
       )}

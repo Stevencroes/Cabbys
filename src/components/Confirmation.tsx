@@ -66,7 +66,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
       aria-label="Booking confirmed"
       style={{
         position: "fixed", inset: 0, zIndex: "var(--z-modal)" as unknown as number,
-        background: "var(--bone)", overflowY: "auto",
+        background: "var(--ground)", overflowY: "auto",
         opacity: visible ? 1 : 0, transition: "opacity .5s var(--ease)",
       }}
     >
@@ -88,7 +88,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
               <div><div className="tl">Car</div><div className="tv">{vehicleName}</div></div>
               <div>
                 <div className="tl">{booking.paid ? "Paid" : "Fare, all in"}</div>
-                <div className="tv" style={{ color: "var(--persimmon)" }}>{usd(booking.total)}</div>
+                <div className="tv" style={{ color: "var(--ink)" }}>{usd(booking.total)}</div>
               </div>
               {booking.flightNumber && (
                 <div><div className="tl">Flight</div><div className="tv">{booking.flightNumber} — tracked</div></div>
