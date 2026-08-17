@@ -21,8 +21,11 @@ body{
   line-height:1.6;
   font-weight:300;
 }
-/* filmic grain */
+/* filmic grain — the marketing site only. The driver portal is a route in
+   this same document, so body::after would still lie over it; .drive-route
+   is set by DriverPortal while any /drive screen is mounted. */
 body::after{content:"";position:fixed;inset:0;z-index:var(--z-sheet);pointer-events:none;opacity:.04;background-image:var(--grain);}
+body.drive-route::after{display:none;}
 /* iOS-safe scroll lock (reference-counted in src/lib/bodyLock.ts) */
 body.locked{position:fixed;width:100%;overflow:hidden;}
 ::selection{background:var(--silver);color:var(--deep);}
