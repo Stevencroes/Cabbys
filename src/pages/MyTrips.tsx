@@ -4,6 +4,7 @@ import { useAuth } from "../booking/useAuth";
 import { useBookingOptional } from "../booking/BookingContext";
 import { supabase } from "../lib/supabase";
 import { cancelRide } from "../lib/rides";
+import { claimGuestRides } from "../lib/claimRides";
 import { refFromRideId } from "../lib/bookingRef";
 import { cancellationInfo, scheduledDate } from "../lib/policy";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
@@ -288,20 +289,33 @@ export default function MyTrips() {
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // How many guest bookings this visit pulled onto the account, so the page
+  // can account for trips that were not here the last time they looked.
+  const [claimed, setClaimed] = useState(0);
 
   useEffect(() => {
     if (!account) return;
+    let live = true;
     setLoading(true);
-    supabase
-      .from("rides")
-      .select("*")
-      .eq("passenger_id", account.id)
-      .order("created_at", { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message);
-        else setRides((data as Ride[]) ?? []);
-        setLoading(false);
-      });
+    // Claim first, read second. Anything booked as a guest under this
+    // address becomes theirs before the list is fetched, so it arrives in
+    // one pass rather than appearing on the next refresh.
+    void claimGuestRides()
+      .then(({ claimed: n }) => { if (live) setClaimed(n); })
+      .then(() =>
+        supabase
+          .from("rides")
+          .select("*")
+          .eq("passenger_id", account.id)
+          .order("created_at", { ascending: false })
+          .then(({ data, error: err }) => {
+            if (!live) return;
+            if (err) setError(err.message);
+            else setRides((data as Ride[]) ?? []);
+            setLoading(false);
+          }),
+      );
+    return () => { live = false; };
   }, [account]);
 
   // Live status: driver assignment / en-route flips arrive without a refresh.
@@ -381,6 +395,13 @@ export default function MyTrips() {
         <div className="wrap tp-wrap">
           <h1 className="tp-title">Your trips</h1>
           <p className="tp-sub">Every arrival, kept on file.</p>
+
+          {claimed > 0 && (
+            <p className="tp-claimed" role="status">
+              {claimed === 1 ? "One booking you made as a guest" : `${claimed} bookings you made as a guest`}
+              {" "}now sits on this account.
+            </p>
+          )}
 
           {authLoading && <p className="tp-quiet">Loading…</p>}
 
