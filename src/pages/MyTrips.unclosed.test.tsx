@@ -23,6 +23,8 @@ vi.mock("../lib/supabase", () => {
     supabase: {
       from: () => ({ select: () => ({ eq: () => ({ order }) }) }),
       channel: undefined,
+      // claim_guest_rides(): this browser has nothing to claim
+      rpc: vi.fn().mockResolvedValue({ data: 0, error: null }),
       auth: {
         getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
         onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
