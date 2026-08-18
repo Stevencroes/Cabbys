@@ -150,6 +150,11 @@ function TripCard({
   const bookingRef = ride.booking_ref ?? refFromRideId(ride.id);
   const policy = cancellationInfo(pickupDate(ride));
   const canCancel = upcoming && !cancelled && !completed && c !== "en_route";
+  // Filing is by date once a trip stops being terminal, which is right — the
+  // ride is behind you either way. What was missing is the reason: a trip
+  // still tagged "Driver assigned" sitting under Past looks like a filter bug
+  // until the card admits nobody ever closed it off.
+  const unclosed = !upcoming && !cancelled && !completed;
   const waHref = whatsappLink(`Hi Cabby's — about booking ${bookingRef}.`);
 
   async function handleCancel() {
@@ -185,6 +190,13 @@ function TripCard({
       </div>
 
       {upcoming && !cancelled && <TripTimeline status={ride.status} />}
+
+      {unclosed && (
+        <p className="tp-unclosed">
+          The pickup time has gone by and this was never marked complete.
+          Message us if that isn't right.
+        </p>
+      )}
 
       {ride.driver_name && !cancelled && (
         <div className="tp-driver">
@@ -258,7 +270,12 @@ const EMPTY_COPY: Record<Bucket, string> = {
 };
 
 export default function MyTrips() {
-  const { user, loading: authLoading } = useAuth();
+  // `account`, never `user`. Booking as a guest mints an ANONYMOUS Supabase
+  // user and Supabase persists it in localStorage, so every guest booking
+  // made from one browser shares one id — which is why this page looked
+  // like it was full of seed data: it was showing every test booking that
+  // browser had ever made, to nobody in particular.
+  const { account, loading: authLoading } = useAuth();
   const { openAuth } = useAuthModal();
   const booking = useBookingOptional();
   const [params, setParams] = useSearchParams();
@@ -273,30 +290,30 @@ export default function MyTrips() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!account) return;
     setLoading(true);
     supabase
       .from("rides")
       .select("*")
-      .eq("passenger_id", user.id)
+      .eq("passenger_id", account.id)
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
         if (err) setError(err.message);
         else setRides((data as Ride[]) ?? []);
         setLoading(false);
       });
-  }, [user]);
+  }, [account]);
 
   // Live status: driver assignment / en-route flips arrive without a refresh.
   useEffect(() => {
-    if (!user) return;
+    if (!account) return;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     try {
-      channel = (supabase as { channel?: typeof supabase.channel }).channel?.(`rides-${user.id}`) ?? null;
+      channel = (supabase as { channel?: typeof supabase.channel }).channel?.(`rides-${account.id}`) ?? null;
       channel
         ?.on(
           "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "rides", filter: `passenger_id=eq.${user.id}` },
+          { event: "UPDATE", schema: "public", table: "rides", filter: `passenger_id=eq.${account.id}` },
           (payload: { new: Ride }) => {
             setRides((rs) => rs.map((r) => (r.id === payload.new.id ? { ...r, ...payload.new } : r)));
           },
@@ -306,7 +323,7 @@ export default function MyTrips() {
     return () => {
       try { if (channel) supabase.removeChannel(channel); } catch { /* noop */ }
     };
-  }, [user]);
+  }, [account]);
 
   function handleCancelled(id: string) {
     setRides((rs) => rs.map((r) => (r.id === id ? { ...r, status: "cancelled" } : r)));
@@ -343,7 +360,7 @@ export default function MyTrips() {
       rides: rides.filter((r) => bucketOf(r) === "past").sort((a, b) => whenMs(b) - whenMs(a)),
     },
   ];
-  const ready = !authLoading && user && !loading && !error;
+  const ready = !authLoading && account && !loading && !error;
   // One shelf at a time — the page never stacks all three at once.
   // With no explicit choice, open on the first shelf that has something,
   // preferring what's ahead of you.
@@ -367,27 +384,32 @@ export default function MyTrips() {
 
           {authLoading && <p className="tp-quiet">Loading…</p>}
 
-          {!authLoading && !user && (
+          {!authLoading && !account && (
             <div className="tp-empty">
-              <p>Sign in to view your transfers.</p>
+              <p>Sign in to see your transfers.</p>
+              <p className="tp-quiet" style={{ marginTop: 8 }}>
+                Booked as a guest? Your confirmation is in your inbox, and your driver
+                has your number. Create an account with the same email and we'll put
+                the trip here.
+              </p>
               <button type="button" className="tp-link" onClick={openAuth}>Sign in</button>
             </div>
           )}
 
-          {!authLoading && user && loading && (
+          {!authLoading && account && loading && (
             <div className="tp-skeletons" aria-hidden="true">
               <div className="tp-skeleton" /><div className="tp-skeleton" />
             </div>
           )}
 
-          {!authLoading && user && !loading && error && (
+          {!authLoading && account && !loading && error && (
             <div className="tp-empty">
               <p>Unable to load trips.</p>
               <button type="button" className="tp-link" onClick={() => window.location.reload()}>Try again</button>
             </div>
           )}
 
-          {!authLoading && user && !loading && !error && rides.length === 0 && (
+          {!authLoading && account && !loading && !error && rides.length === 0 && (
             <div className="tp-empty">
               <p>No trips yet. The island is waiting.</p>
               {booking && (

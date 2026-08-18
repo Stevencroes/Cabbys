@@ -5,14 +5,8 @@ export default function Hero() {
   return (
     <header className="hero" id="top">
       <div className="hero-grid">
-        {/* Phones get the card first, so the proposition has to travel with
-            it — otherwise the page opens on a bare form. Same words the
-            eyebrow and tag carry, which is why both are hidden below 980px. */}
-        <div className="hero-strip">
-          <span className="hs-k">Private transfers · Aruba</span>
-          <span className="hs-v">Sent for you.</span>
-        </div>
-
+        {/* Copy first on every width. The card follows it here in the DOM,
+            and nothing reorders them — see the 980px block in globals.css. */}
         <div className="hero-copy">
           <div className="hero-eyebrow rise">
             <span className="eyebrow">Private transfers · Aruba</span>

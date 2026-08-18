@@ -60,6 +60,11 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
 
   // Party comes before cars; cars that don't fit render dashed and dead.
   const selVehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
+  const routed = !!(state.from && state.to && state.from.id !== state.to.id);
+  // The selected car's fare, only so the page can say WHY it is what it is.
+  const selQuote = routed
+    ? quote({ from: state.from!, to: state.to!, vehicle: selVehicle, isReturn: state.journey === "return", pricing, pickupTime: effectiveTime })
+    : null;
   const selectedFits = fitsParty(selVehicle, state.pax, state.bags);
   // if the current car stops fitting, hop to the smallest that does
   useEffect(() => {
@@ -230,6 +235,12 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
         </div>
       )}
 
+      {selQuote?.lateNight && (
+        <div className="notice" role="status">
+          A night rate applies at this hour. It is already inside every price on this page.
+        </div>
+      )}
+
       {shortNotice && (
         <div className="notice" role="status">
           Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we'll confirm on
@@ -315,7 +326,7 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
           const fits = fitsParty(v, state.pax, state.bags);
           const selected = state.vehicle === v.id;
           const q = state.from && state.to && state.from.id !== state.to.id
-            ? quote({ from: state.from, to: state.to, vehicle: v, isReturn: state.journey === "return", pricing })
+            ? quote({ from: state.from, to: state.to, vehicle: v, isReturn: state.journey === "return", pricing, pickupTime: effectiveTime })
             : null;
           return (
             <button

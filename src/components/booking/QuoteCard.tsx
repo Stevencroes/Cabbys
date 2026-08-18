@@ -41,6 +41,9 @@ export default function QuoteCard() {
   // min(guests, 2), so hero and modal always agree on the vehicle.
   const bags = Math.min(state.pax, 2);
   const vehicle = autoVehicle(state.pax, bags);
+  // No pickup time is asked for here, so this deliberately passes none:
+  // quote() then prices at the neutral hour rather than at whatever the
+  // viewer's own clock happens to say.
   const q = state.from && state.to && state.from.id !== state.to.id
     ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing })
     : null;

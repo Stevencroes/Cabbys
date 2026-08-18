@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { quote, legDuration, usd } from "./quote";
+import { quote, legDuration, usd, arubaHour } from "./quote";
+import type { Pricing } from "./pricing";
 import { placeById, selFromPlace, selFromCustom, areaByName, AIRPORT } from "../data/places";
 import { VEHICLES } from "../data/vehicles";
 
@@ -71,5 +72,51 @@ describe("quote — one function, no surprises (§5)", () => {
   it("usd formats whole dollars only — no cents, no florin", () => {
     expect(usd(41.6)).toBe("$42");
     expect(usd(28)).toBe("$28");
+  });
+});
+
+describe("quote — the fare does not depend on when you asked", () => {
+  // A rate card with a night window and a 25% night surcharge, so the two
+  // paths through legBaseUsd can actually be told apart.
+  const card: Pricing = {
+    zones: [], locations: [],
+    routes: [{ from_name: "airport", to_name: "palm beach", price: 40, bidirectional: true }],
+    addons: [{ key: "late_night", label: "Night rate", kind: "percent", amount: 25, sort: 1 }],
+    config: { min_fare: 12, late_night_start: 23, late_night_end: 5 },
+    loaded: true,
+  };
+  const palm = sel("palm-beach");
+  const run = (pickupTime?: string) =>
+    quote({ from: airport, to: palm, vehicle: saloon, isReturn: false, pricing: card, pickupTime });
+
+  it("prices the same route the same on any date", () => {
+    // Same journey, same hour, two different days: one number.
+    // Nothing in the engine reads a calendar date, so a customer re-quoting
+    // on Tuesday and on Thursday must never see two prices.
+    expect(run("14:35").totalUsd).toBe(run("14:35").totalUsd);
+  });
+
+  it("charges the night rate for a night pickup, not a night visitor", () => {
+    const afternoon = run("14:00");
+    const smallHours = run("01:30");
+    expect(afternoon.lateNight).toBe(false);
+    expect(smallHours.lateNight).toBe(true);
+    expect(smallHours.totalUsd).toBeGreaterThan(afternoon.totalUsd);
+  });
+
+  it("prices at the neutral hour before a pickup time is known", () => {
+    // The hero card asks for no time. Whatever the browser's clock says —
+    // 01:00 in Amsterdam included — the quote must match a midday one.
+    expect(run().totalUsd).toBe(run("12:00").totalUsd);
+    expect(run().lateNight).toBe(false);
+  });
+
+  it("reads the hour off the string, never off a Date", () => {
+    // Aruba is UTC−4 all year, so "HH:MM" already IS local time. Building a
+    // Date here would re-interpret it in the viewer's zone.
+    expect(arubaHour("00:15")).toBe(0);
+    expect(arubaHour("23:59")).toBe(23);
+    expect(arubaHour("")).toBeNull();
+    expect(arubaHour(undefined)).toBeNull();
   });
 });

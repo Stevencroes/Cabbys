@@ -69,7 +69,7 @@ export default function Step2Details({
   const time = effectivePickupTime(state);
 
   const q = state.from && state.to
-    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing })
+    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing, pickupTime: time })
     : null;
   const totalUsd = q?.totalUsd ?? 0;
 

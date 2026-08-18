@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import Step1Ride, { type StepProblem } from "./steps/Step1Ride";
-import Step2Details, { type PayPhase } from "./steps/Step2Details";
+import Step2Details, { effectivePickupTime, type PayPhase } from "./steps/Step2Details";
 import StepFoot from "./StepFoot";
 import { VEHICLES } from "../../data/vehicles";
 import { loadPricing, type Pricing } from "../../lib/pricing";
@@ -104,11 +104,24 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     setProblem(null);
   }, [state.step]);
 
+  // A message stops being true the moment its own field is filled in.
+  // Validation only ever ran on submit, so "set the hour, minutes and AM/PM"
+  // stayed under a time that already read back "your driver waits from 2 PM".
+  // Re-run the validator as the form changes and drop the message once that
+  // field clears — but never promote the NEXT field's error to the screen,
+  // because nobody has tried to walk past it yet.
+  useEffect(() => {
+    if (!problem) return;
+    const still = validatorRef.current?.();
+    if (!still || still.field !== problem.field) setProblem(null);
+  }, [state, problem]);
+
   if (!state.open) return null;
 
   const vehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
   const q = state.from && state.to && state.from.id !== state.to.id
-    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing })
+    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing,
+              pickupTime: effectivePickupTime(state) })
     : null;
 
   function handlePrimary() {
