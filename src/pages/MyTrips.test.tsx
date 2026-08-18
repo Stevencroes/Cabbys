@@ -5,6 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 vi.mock("../booking/useAuth", () => ({
   useAuth: vi.fn().mockReturnValue({
     user: { id: "user-123", email: "test@example.com" },
+    // a real account, not the anonymous session a guest booking mints
+    account: { id: "user-123", email: "test@example.com" },
     loading: false,
     signOut: vi.fn(),
   }),
@@ -52,6 +54,7 @@ vi.mock("../lib/supabase", () => {
 });
 
 import MyTrips from "./MyTrips";
+import { useAuth } from "../booking/useAuth";
 import { BookingProvider } from "../booking/BookingContext";
 
 // MyTrips lives inside the BookingProvider in the real app — rebooking
@@ -160,5 +163,28 @@ describe("MyTrips", () => {
 
     fireEvent.click(tab(/^cancelled/i));
     expect(screen.getByRole("button", { name: /book again/i })).toBeInTheDocument();
+  });
+});
+
+describe("MyTrips — who is allowed to see it", () => {
+  const signedOut = { user: null, account: null, loading: false, signOut: vi.fn() };
+
+  it("asks a stranger to sign in rather than showing a list", async () => {
+    vi.mocked(useAuth).mockReturnValue(signedOut as unknown as ReturnType<typeof useAuth>);
+    renderTrips();
+    expect(await screen.findByText(/sign in to see your transfers/i)).toBeInTheDocument();
+    expect(document.querySelectorAll(".tp-ref")).toHaveLength(0);
+  });
+
+  it("treats a guest's anonymous session the same way", async () => {
+    // This is the whole of the bug: Supabase keeps the anonymous user in
+    // localStorage, so every guest booking ever made from one browser shared
+    // one id — and this page showed the lot, to nobody in particular.
+    vi.mocked(useAuth).mockReturnValue({
+      ...signedOut, user: { id: "anon-1", is_anonymous: true },
+    } as unknown as ReturnType<typeof useAuth>);
+    renderTrips();
+    expect(await screen.findByText(/sign in to see your transfers/i)).toBeInTheDocument();
+    expect(document.querySelectorAll(".tp-ref")).toHaveLength(0);
   });
 });

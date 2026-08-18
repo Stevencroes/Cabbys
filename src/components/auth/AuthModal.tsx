@@ -16,7 +16,9 @@ export function useAuthModal() {
 
 export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  // `account` and not `user`: a guest who booked without signing in holds
+  // an anonymous session, and that must not read as being signed in.
+  const { account, signOut } = useAuth();
   const panelRef = useRef<HTMLDivElement>(null);
   // Remember what had focus so we can restore it when the dialog closes.
   const lastFocused = useRef<HTMLElement | null>(null);
@@ -92,10 +94,10 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
 
             <div className="auth-brand" id="auth-modal-title">Cabby's</div>
 
-            {user ? (
+            {account ? (
               <div style={{ textAlign: "center" }}>
                 <p className="acct-note" style={{ marginTop: 0 }}>
-                  Signed in as <strong>{user.email}</strong>
+                  Signed in as <strong>{account.email}</strong>
                 </p>
                 <button
                   className="btn-ghost"
@@ -112,7 +114,7 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
             ) : (
               <>
                 <p className="auth-sub">Sign in to view your trips and book faster — same account as the Cabby's app.</p>
-                <AuthForm heading="Welcome back" onSuccess={closeAuth} />
+                <AuthForm onSuccess={closeAuth} />
               </>
             )}
           </div>

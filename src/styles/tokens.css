@@ -43,7 +43,8 @@
   --alert-line:rgba(207,106,95,.42);
 
   /* ---------- translucent grounds (blurred bars, scrims, rules) ---------- */
-  --pill:rgba(18,29,43,.86);      /* marketing nav pill */
+  --pill:rgba(18,29,43,.94);      /* marketing nav pill — opaque enough that a
+                                     serif heading scrolling under it cannot ghost through */
   --nav-deep:rgba(7,13,22,.9);    /* driver bottom nav */
   --scrim:rgba(7,13,22,.72);      /* modal + menu scrims */
   --scrim-heavy:rgba(7,13,22,.94);/* full-screen ride offer */

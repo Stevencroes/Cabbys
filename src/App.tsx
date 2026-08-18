@@ -3,9 +3,11 @@ import { Routes, Route } from "react-router-dom";
 import { BookingProvider, useBooking } from "./booking/BookingContext";
 import { AuthModalProvider } from "./components/auth/AuthModal";
 import Landing from "./pages/Landing";
+import HashScroll from "./components/HashScroll";
 import BookingOverlay from "./components/booking/BookingOverlay";
 import AuthCallback from "./pages/AuthCallback";
 import MyTrips from "./pages/MyTrips";
+import ResetPassword from "./pages/ResetPassword";
 import DriverPortal from "./driver/DriverPortal";
 import Confirmation from "./components/Confirmation";
 import type { ConfirmedBooking } from "./booking/types";
@@ -26,10 +28,13 @@ function AppRoutes() {
 
   return (
     <>
+      <HashScroll />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/trips" element={<MyTrips />} />
+        {/* where the password-recovery mail lands */}
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* the driver portal is its own world: dark ground, own shell, own guard */}
         <Route path="/drive/*" element={<DriverPortal />} />
       </Routes>
