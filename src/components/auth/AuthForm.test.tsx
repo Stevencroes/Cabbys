@@ -47,6 +47,7 @@ describe("AuthForm", () => {
   it("holds a short password back before it reaches Supabase", () => {
     render(<AuthForm />);
     fireEvent.click(screen.getByRole("button", { name: /create an account/i }));
+    type(/^your name$/i, "Ada Lovelace");
     type(/^email$/i, "ada@example.com");
     type(/^password$/i, "short");
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
@@ -61,6 +62,7 @@ describe("AuthForm", () => {
     });
     render(<AuthForm />);
     fireEvent.click(screen.getByRole("button", { name: /create an account/i }));
+    type(/^your name$/i, "Ada Lovelace");
     type(/^email$/i, "ada@example.com");
     type(/^password$/i, "longenough1");
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
@@ -68,6 +70,28 @@ describe("AuthForm", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(/already has an account/i);
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/^email$/i)).toHaveValue("ada@example.com");
+  });
+
+  it("asks for a name on the way in, and hands it to Supabase", async () => {
+    render(<AuthForm />);
+    fireEvent.click(screen.getByRole("button", { name: /create an account/i }));
+    type(/^email$/i, "ada@example.com");
+    type(/^password$/i, "longenough1");
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/what to call you/i);
+    expect(signUpWithPassword).not.toHaveBeenCalled();
+
+    type(/^your name$/i, "Ada Lovelace");
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+    await waitFor(() =>
+      expect(signUpWithPassword).toHaveBeenCalledWith("ada@example.com", "longenough1", "Ada Lovelace"),
+    );
+  });
+
+  it("only asks for a name when creating an account", () => {
+    render(<AuthForm />);
+    expect(screen.queryByLabelText(/^your name$/i)).toBeNull();
   });
 
   it("cannot be double-fired while a request is in flight", async () => {

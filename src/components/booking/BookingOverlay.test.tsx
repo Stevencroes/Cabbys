@@ -3,6 +3,13 @@ import { describe, it, expect, vi } from "vitest";
 
 // Self-contained supabase stub: pricing queries resolve empty (the km model
 // prices), rides insert succeeds, guest session resolves.
+// Step 2 fills its contact fields from the profile. Signed out by default,
+// which is what every other test in this file assumes.
+const auth: { account: Record<string, unknown> | null } = { account: null };
+vi.mock("../../booking/useAuth", () => ({
+  useAuth: () => ({ account: auth.account, user: auth.account, loading: false }),
+}));
+
 vi.mock("../../lib/supabase", () => {
   const make = () => {
     const b: {
@@ -95,6 +102,36 @@ describe("BookingOverlay — the two-step booking", () => {
         }),
       ),
     );
+  });
+
+  it("carries the profile into step 2 rather than asking for it again", async () => {
+    auth.account = {
+      id: "u1", email: "greta@example.com",
+      user_metadata: { full_name: "Greta Croes", phone: "+2971234567" },
+    };
+    try {
+      render(
+        <BookingProvider>
+          <Opener />
+          <BookingOverlay />
+        </BookingProvider>,
+      );
+      fireEvent.click(screen.getByText("launch"));
+      fireEvent.change(screen.getByLabelText(/flight lands at — hour/i), { target: { value: "2" } });
+      fireEvent.change(screen.getByLabelText(/flight lands at — minute/i), { target: { value: "5" } });
+      fireEvent.change(screen.getByLabelText(/flight lands at — AM or PM/i), { target: { value: "PM" } });
+      fireEvent.click(screen.getByRole("button", { name: /your details/i }));
+
+      expect(await screen.findByLabelText(/name for the driver's sign/i)).toHaveValue("Greta Croes");
+      expect(screen.getByLabelText(/whatsapp \/ phone/i)).toHaveValue("+2971234567");
+
+      // and it is a prefill, not a lock: whoever is travelling may not be you
+      const name = screen.getByLabelText(/name for the driver's sign/i);
+      fireEvent.change(name, { target: { value: "Someone Else" } });
+      expect(name).toHaveValue("Someone Else");
+    } finally {
+      auth.account = null;
+    }
   });
 
   it("puts the reason under the field it belongs to, wired for a screen reader (Phase 4)", () => {

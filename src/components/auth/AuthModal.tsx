@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../booking/useAuth";
+import AccountPanel from "./AccountPanel";
 import AuthForm from "./AuthForm";
 
 interface AuthModalCtx {
@@ -18,7 +19,7 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   // `account` and not `user`: a guest who booked without signing in holds
   // an anonymous session, and that must not read as being signed in.
-  const { account, signOut } = useAuth();
+  const { account } = useAuth();
   const panelRef = useRef<HTMLDivElement>(null);
   // Remember what had focus so we can restore it when the dialog closes.
   const lastFocused = useRef<HTMLElement | null>(null);
@@ -95,25 +96,12 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
             <div className="auth-brand" id="auth-modal-title">Cabby's</div>
 
             {account ? (
-              <div style={{ textAlign: "center" }}>
-                <p className="acct-note" style={{ marginTop: 0 }}>
-                  Signed in as <strong>{account.email}</strong>
-                </p>
-                <button
-                  className="btn-ghost"
-                  type="button"
-                  style={{ marginTop: "8px" }}
-                  onClick={async () => {
-                    await signOut();
-                    closeAuth();
-                  }}
-                >
-                  Sign out
-                </button>
-              </div>
+              <AccountPanel onClose={closeAuth} />
             ) : (
               <>
-                <p className="auth-sub">Sign in to view your trips and book faster — same account as the Cabby's app.</p>
+                {/* the form below switches between signing in and signing up, so this
+                    line has to read true for both */}
+                <p className="auth-sub">Your trips and your details in one place — the same account as the Cabby's app.</p>
                 <AuthForm onSuccess={closeAuth} />
               </>
             )}

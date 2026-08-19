@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useBookingOptional } from "../booking/BookingContext";
 import { useAuth } from "../booking/useAuth";
+import { displayNameOf, initialsOf } from "../lib/displayName";
 import { lockBody, unlockBody } from "../lib/bodyLock";
 
 const LINKS = [
@@ -11,25 +12,27 @@ const LINKS = [
   { label: "My trips", href: "/trips" },
 ];
 
-/** The letter on the account chip. Falls back to a dot rather than a blank. */
-function initialOf(email: string | undefined): string {
-  const c = (email ?? "").trim().charAt(0);
-  return c ? c.toUpperCase() : "·";
-}
-
 export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   const booking = useBookingOptional();
   // `account`, not `user`: booking as a guest mints an anonymous session, and
   // a receipt is not an identity — that must still read as signed out.
-  const { account } = useAuth();
+  const { account, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLButtonElement>(null);
   const locked = useRef(false);
 
   function close() {
     setOpen(false);
     triggerRef.current?.focus();
+  }
+
+  function closeMenu() {
+    setMenu(false);
+    avatarRef.current?.focus();
   }
 
   // body lock + focus management while the sheet is open
@@ -62,10 +65,38 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // The account menu is a dropdown, not a dialog: Escape and a click anywhere
+  // else put it away, and it never traps focus or locks the page behind it.
+  useEffect(() => {
+    if (!menu) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { e.preventDefault(); closeMenu(); }
+    }
+    function onDown(e: PointerEvent) {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || avatarRef.current?.contains(t)) return;
+      setMenu(false);
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [menu]);
+
+  // The session can end from another tab; a menu about an account that is
+  // gone should not stay on screen.
+  useEffect(() => { if (!account) setMenu(false); }, [account]);
+
   const email = account?.email;
-  // The modal is the account panel — it already holds the address and the
-  // way out, so the chip's whole job is to say "you, signed in" and open it.
-  const accountLabel = email ? `Account — signed in as ${email}` : "Sign in";
+  const name = displayNameOf(account);
+
+  async function handleSignOut() {
+    setMenu(false);
+    setOpen(false);
+    await signOut();
+  }
 
   return (
     <nav className="nav">
@@ -81,10 +112,35 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
 
           <div className="nright">
             {account ? (
-              <button type="button" className="nacct" onClick={onSignIn} title={email} aria-label={accountLabel}>
-                <span className="na-i" aria-hidden="true">{initialOf(email)}</span>
-                <span className="na-e">{email}</span>
-              </button>
+              /* The address is an account detail, not a name — it belongs in
+                 the menu, not across the middle of the bar. */
+              <div className="nacct-wrap">
+                <button
+                  ref={avatarRef}
+                  type="button"
+                  className={`navatar${menu ? " on" : ""}`}
+                  onClick={() => setMenu((m) => !m)}
+                  aria-expanded={menu}
+                  aria-controls="nav-account"
+                  aria-label={`Account — ${name}`}
+                >
+                  <span aria-hidden="true">{initialsOf(account)}</span>
+                </button>
+
+                {menu && (
+                  <div className="nmenu" id="nav-account" ref={menuRef}>
+                    <div className="nm-who">
+                      <span className="nm-name">{name}</span>
+                      {email && <span className="nm-mail">{email}</span>}
+                    </div>
+                    <Link to="/trips" onClick={() => setMenu(false)}>My trips</Link>
+                    <Link to="/profile" onClick={() => setMenu(false)}>Profile</Link>
+                    <button type="button" className="nm-out" onClick={handleSignOut}>
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button type="button" className="nsign" onClick={onSignIn}>Sign in</button>
             )}
@@ -122,14 +178,28 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
             aria-modal="true"
             aria-label="Menu"
           >
+            {account && (
+              <div className="sheet-who">
+                <span className="sheet-av" aria-hidden="true">{initialsOf(account)}</span>
+                <span className="sheet-id">
+                  <span className="nm-name">{name}</span>
+                  {email && <span className="nm-mail">{email}</span>}
+                </span>
+              </div>
+            )}
             {LINKS.map((l) => (
               <Link key={l.href} to={l.href} onClick={() => setOpen(false)}>
                 {l.label}
               </Link>
             ))}
-            <button type="button" onClick={() => { setOpen(false); onSignIn(); }} aria-label={accountLabel}>
-              {email ? <span className="sheet-acct">{email}</span> : "Sign in"}
-            </button>
+            {account && (
+              <Link to="/profile" onClick={() => setOpen(false)}>Profile</Link>
+            )}
+            {account ? (
+              <button type="button" className="sheet-out" onClick={handleSignOut}>Sign out</button>
+            ) : (
+              <button type="button" onClick={() => { setOpen(false); onSignIn(); }}>Sign in</button>
+            )}
             <button
               type="button"
               className="sheet-cta"

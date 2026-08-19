@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 import { useBooking } from "../../../booking/BookingContext";
+import { useAuth } from "../../../booking/useAuth";
+import { fullNameOf, phoneOf } from "../../../lib/displayName";
 import { VEHICLES } from "../../../data/vehicles";
 import { quote, usd, usdToAwg } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
@@ -52,6 +54,7 @@ export default function Step2Details({
   error, setError, needsAuth, setNeedsAuth, registerConfirm, foot,
 }: Step2Props) {
   const { state, setField, goTo } = useBooking();
+  const { account } = useAuth();
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
@@ -61,6 +64,19 @@ export default function Step2Details({
   const rideRef = useRef<{ id: string; bookingRef: string | null } | null>(null);
   const [, force] = useState(0);
   void force;
+
+  // What the profile already knows, so nobody retypes their own name at an
+  // arrivals gate. Blanks only — a value on screen is something they chose,
+  // and this must never overwrite it.
+  useEffect(() => {
+    if (!account) return;
+    const name = fullNameOf(account);
+    const phone = phoneOf(account);
+    if (name && !state.contactName) setField("contactName", name);
+    if (account.email && !state.contactEmail) setField("contactEmail", account.email);
+    if (phone && !state.contactPhone) setField("contactPhone", phone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account]);
 
   const vehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
   const fromAirport = state.from?.id === AIRPORT_ID;

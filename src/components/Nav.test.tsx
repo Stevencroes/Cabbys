@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import Nav from "./Nav";
 
 // Signed out unless a test says otherwise — the nav reads the session now.
+const signOut = vi.fn().mockResolvedValue({ error: null });
 vi.mock("../booking/useAuth", () => ({
   useAuth: vi.fn(() => ({ user: null, account: null, loading: false })),
 }));
@@ -21,9 +22,17 @@ function renderNav(onSignIn = vi.fn()) {
 describe("Nav", () => {
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue({
-      user: null, account: null, loading: false,
+      user: null, account: null, loading: false, signOut,
     } as unknown as ReturnType<typeof useAuth>);
   });
+
+  /** Signs the tests in as someone, optionally carrying a name. */
+  function asAccount(extra: Record<string, unknown> = {}) {
+    const account = { id: "u1", email: "greta@example.com", ...extra };
+    vi.mocked(useAuth).mockReturnValue({
+      user: account, account, loading: false, signOut,
+    } as unknown as ReturnType<typeof useAuth>);
+  }
 
   it("renders wordmark and triggers sign-in", () => {
     const onSignIn = vi.fn();
@@ -61,18 +70,58 @@ describe("Nav", () => {
   });
 
   it("stops saying SIGN IN once there is a session", () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: { id: "u1", email: "greta@example.com" },
-      account: { id: "u1", email: "greta@example.com" },
-      loading: false,
-    } as unknown as ReturnType<typeof useAuth>);
-    const onSignIn = vi.fn();
-    renderNav(onSignIn);
+    asAccount({ user_metadata: { full_name: "Greta Croes" } });
+    renderNav();
 
     expect(screen.queryByRole("button", { name: /^sign in$/i })).toBeNull();
-    const chip = screen.getByRole("button", { name: /signed in as greta@example.com/i });
-    fireEvent.click(chip);
-    expect(onSignIn).toHaveBeenCalledOnce();
+    // the bar carries initials, never the address
+    expect(screen.getByRole("button", { name: /account — greta croes/i })).toHaveTextContent("GC");
+    expect(screen.queryByText(/greta@example\.com/)).toBeNull();
+  });
+
+  it("keeps the address in the account menu, where it belongs", () => {
+    asAccount({ user_metadata: { full_name: "Greta Croes" } });
+    renderNav();
+    const avatar = screen.getByRole("button", { name: /account — greta croes/i });
+    expect(avatar).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(avatar);
+    expect(avatar).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Greta Croes")).toBeInTheDocument();
+    expect(screen.getByText("greta@example.com")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+  });
+
+  it("falls back to the address for a name when the account has none", () => {
+    asAccount();
+    renderNav();
+    // greta@example.com reads back as Greta rather than as the whole address
+    expect(screen.getByRole("button", { name: /account — greta/i })).toHaveTextContent("G");
+  });
+
+  it("puts the profile a click from the account menu", () => {
+    asAccount();
+    renderNav();
+    fireEvent.click(screen.getByRole("button", { name: /account — greta/i }));
+    expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/profile");
+  });
+
+  it("closes the account menu on Escape", () => {
+    asAccount();
+    renderNav();
+    fireEvent.click(screen.getByRole("button", { name: /account — greta/i }));
+    expect(screen.getByText("greta@example.com")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByText("greta@example.com")).toBeNull();
+  });
+
+  it("signs out from the account menu", () => {
+    asAccount();
+    renderNav();
+    fireEvent.click(screen.getByRole("button", { name: /account — greta/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
+    expect(signOut).toHaveBeenCalledOnce();
   });
 
   it("treats a guest's anonymous session as signed out", () => {
@@ -80,6 +129,7 @@ describe("Nav", () => {
       user: { id: "anon-1", is_anonymous: true },
       account: null,
       loading: false,
+      signOut,
     } as unknown as ReturnType<typeof useAuth>);
     renderNav();
     expect(screen.getAllByRole("button", { name: /sign in/i }).length).toBeGreaterThan(0);

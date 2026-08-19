@@ -88,16 +88,43 @@ h2.sec em{font-style:italic;}
 .nbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);}
 .nsign{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--silver);text-decoration:none;
   min-height:var(--tap);display:inline-flex;align-items:center;padding:0 10px;border-radius:var(--r-pill);}
-/* signed in: the same slot, but it names you instead of asking you to arrive */
-.nacct{display:inline-flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 14px 0 5px;
-  border:1px solid var(--line);border-radius:var(--r-pill);background:transparent;color:var(--silver);
-  font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:none;transition:.3s var(--ease);max-width:230px;}
-.nacct:hover{background:var(--raised);color:var(--ink);border-color:var(--silver-deep);}
-.na-i{flex:none;width:32px;height:32px;border-radius:50%;background:var(--sheen);color:var(--on-sheen);
-  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;}
-.na-e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.nav-sheet .sheet-acct{text-transform:none;letter-spacing:.02em;font-weight:500;
+/* signed in: a mark, not an address. The bar says "you"; the menu below
+   says which account, because the email is a detail and not a name.
+   Deliberately unfilled — the CTA is the one silver thing in the bar. */
+/* a circle beside a pill needs its own air, or it reads as part of it */
+.nacct-wrap{position:relative;display:flex;margin-right:4px;}
+.navatar{flex:none;width:38px;height:38px;border-radius:50%;background:transparent;color:var(--silver);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  font-size:12.5px;font-weight:600;transition:.25s var(--ease);}
+.navatar:hover,.navatar.on{background:var(--raised);color:var(--ink);border-color:var(--silver-deep);}
+.nmenu{position:absolute;top:calc(100% + 12px);right:0;min-width:236px;z-index:var(--z-sheet);
+  display:flex;flex-direction:column;padding:8px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  box-shadow:var(--shadow-hard-lg);animation:nmenu-in .18s var(--ease);}
+@keyframes nmenu-in{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+@media(prefers-reduced-motion:reduce){.nmenu{animation:none;}}
+.nm-who{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px 12px 13px;
+  border-bottom:1px solid var(--line);margin-bottom:6px;}
+.nm-name{font-size:14px;font-weight:500;color:var(--ink);letter-spacing:.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nm-mail{font-size:11.5px;color:var(--muted);letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nmenu a,.nmenu button{display:flex;align-items:center;width:100%;min-height:40px;padding:0 12px;
+  border:none;border-radius:var(--r-xs);background:transparent;color:var(--silver);text-align:left;
+  text-decoration:none;font-size:11.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+  transition:.2s var(--ease);}
+.nmenu a:hover,.nmenu button:hover{background:var(--raised);color:var(--ink);}
+.nmenu .nm-out{color:var(--muted);}
+.nmenu .nm-out:hover{color:var(--ink);}
+/* the sheet carries the same identity where the bar has no room for it */
+.nav-sheet .sheet-who{display:flex;align-items:center;gap:12px;padding:10px 14px 14px;
+  border-bottom:1px solid var(--line);margin-bottom:6px;}
+.sheet-av{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:13px;font-weight:600;}
+.sheet-id{display:flex;flex-direction:column;gap:3px;min-width:0;}
+/* leaving is not a destination — it sits below the links, not among them */
+.nav-sheet .sheet-out{color:var(--muted);}
+.nav-sheet .sheet-out:hover{color:var(--ink);}
 /* the collapsed menu — everything the desktop pill holds, two taps away */
 .nburger{display:none;align-items:center;justify-content:center;width:var(--tap);height:var(--tap);
   border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--silver);transition:.25s var(--ease);}
@@ -113,10 +140,9 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
 @media(max-width:1040px){.nlinks{display:none;}.nburger{display:flex;}}
-@media(max-width:1040px){.na-e{display:none;}.nacct{padding:0 5px;max-width:none;}}
 @media(max-width:660px){.nsign{display:none;}.navbar-inner{padding-left:18px;gap:10px;}}
 /* at phone widths the sheet carries the account; the bar keeps brand + CTA */
-@media(max-width:560px){.nacct{display:none;}}
+@media(max-width:560px){.nacct-wrap{display:none;}}
 /* the bar must still hold brand + CTA + burger at 375px */
 @media(max-width:560px){
   .navbar-inner{gap:8px;padding:6px 6px 6px 16px;}
@@ -516,7 +542,9 @@ h2.sec em{font-style:italic;}
 @media(max-width:420px){.conf-acts{flex-direction:column;}.conf-acts button,.conf-acts a{width:100%;}}
 
 /* ============ MY TRIPS ============ */
-.tp-main{min-height:100vh;background:var(--ground);padding:5rem 0 4rem;}
+/* 5rem left 8px between the fixed pill and the page title; --nav-clear is
+   the token that already knows how tall that pill is */
+.tp-main{min-height:100vh;background:var(--ground);padding:var(--nav-clear) 0 4rem;}
 .tp-wrap{max-width:800px;}
 .tp-title{font-family:var(--serif);font-weight:300;font-size:clamp(2rem,5vw,3rem);color:var(--ink);letter-spacing:-.01em;}
 .tp-sub{color:var(--muted);font-size:13.5px;font-weight:400;letter-spacing:.04em;margin:6px 0 40px;}
@@ -598,6 +626,10 @@ h2.sec em{font-style:italic;}
 .tp-actions:empty{display:none;}
 .btn-ghost{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);padding:0 18px;min-height:var(--tap);display:inline-flex;align-items:center;border:1px solid var(--silver-deep);transition:.3s var(--ease);background:transparent;}
 .btn-ghost:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
+/* nothing to submit, or a request already in flight — the button has to
+   look inert, not merely refuse the click */
+.btn-ghost:disabled{color:var(--soft);border-color:var(--line);cursor:default;}
+.btn-ghost:disabled:hover{background:transparent;color:var(--soft);border-color:var(--line);}
 .tp-cancel-link{font-size:13px;color:var(--muted);font-weight:500;min-height:var(--tap);display:inline-flex;align-items:center;transition:color .25s;}
 .tp-cancel-link:hover{color:var(--ink);}
 .tp-cancel-link.danger{color:var(--alert-ink);}
@@ -621,6 +653,56 @@ h2.sec em{font-style:italic;}
 .auth-toggle{display:block;margin:16px auto 0;font-size:13px;color:var(--muted);font-weight:500;min-height:var(--tap);transition:.3s var(--ease);}
 .auth-toggle:hover{color:var(--ink);}
 .acct-note{margin-top:20px;font-size:13px;color:var(--muted);font-weight:400;line-height:1.7;text-align:center;}
+/* the signed-in half of the modal — who you are, and the one thing about
+   that you can change here */
+.acct-panel{display:flex;flex-direction:column;gap:20px;margin-top:22px;}
+.acct-head{display:flex;align-items:center;gap:14px;min-width:0;}
+.acct-av{flex:none;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:15px;font-weight:600;}
+.acct-id{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.acct-name{font-size:16px;font-weight:500;color:var(--ink);letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acct-mail{font-size:12px;color:var(--muted);letter-spacing:.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acct-form{display:flex;flex-direction:column;gap:9px;}
+.acct-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);font-weight:600;}
+.acct-panel .acct-note{margin-top:0;text-align:left;font-size:12.5px;}
+.acct-out{align-self:flex-start;background:none;border:none;padding:6px 0;color:var(--muted);
+  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:.2s var(--ease);}
+.acct-out:hover{color:var(--ink);}
+.acct-go{justify-content:center;text-decoration:none;}
+
+/* ============ PROFILE ============ */
+.pf-wrap{max-width:620px;}
+.pf-id{display:flex;align-items:center;gap:15px;min-width:0;margin:26px 0 30px;}
+.pf-av{flex:none;width:54px;height:54px;border-radius:50%;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:17px;font-weight:600;}
+.pf-idt{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.pf-name{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-mail{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);
+  padding:26px 26px 28px;margin-bottom:18px;}
+.pf-h{font-family:var(--serif);font-style:italic;font-weight:500;font-size:21px;color:var(--ink);margin:0 0 8px;}
+.pf-note{font-size:13px;line-height:1.65;color:var(--muted);margin:0 0 20px;max-width:52ch;}
+.pf-form{display:flex;flex-direction:column;gap:16px;align-items:stretch;}
+.pf-form .btn-ghost{align-self:flex-start;justify-content:center;}
+.pf-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+.pf-rl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);font-weight:600;}
+.pf-rv{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.pf-saved{font-size:12.5px;color:var(--signal-ink);margin:0;}
+.pf-out{align-self:flex-start;background:none;border:none;padding:8px 0;margin-top:6px;color:var(--muted);
+  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:.2s var(--ease);}
+.pf-out:hover{color:var(--ink);}
+@media(max-width:560px){
+  .pf-card{padding:22px 18px 24px;}
+  .pf-name{font-size:21px;}
+  .pf-form .btn-ghost{align-self:stretch;}
+  /* an address is an identity — let it wrap rather than lose its end */
+  .pf-row{flex-direction:column;align-items:flex-start;gap:6px;}
+  .pf-rv{white-space:normal;overflow-wrap:anywhere;}
+}
 /* auth failures: field problems under their control, everything else in one
    line above the button, where the eye already is when the tap does nothing */
 input.txt.invalid{border-color:var(--alert);}
@@ -632,6 +714,9 @@ input.txt{width:100%;padding:14px 16px;border:1px solid var(--line);background:v
 input.txt::placeholder{color:var(--placeholder);}
 input.txt:focus{outline:none;background:var(--surface);}
 .ride-auth-h{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);font-weight:600;margin-bottom:12px;}
+/* the modal sets its own line above the form; without this the two
+   headings sit on top of each other */
+.auth-sub + .authform .ride-auth-h{margin-top:20px;}
 .auth-pw{position:relative;display:flex;align-items:center;}
 .auth-pw .txt{padding-right:70px;}
 .auth-pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:0 10px;min-height:38px;

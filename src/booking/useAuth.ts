@@ -60,8 +60,15 @@ export function useAuth() {
 
   const redirectTo = `${window.location.origin}/auth/callback`;
 
-  const signUpWithPassword = useCallback(async (email: string, password: string) => {
-    const res = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+  const signUpWithPassword = useCallback(async (email: string, password: string, fullName?: string) => {
+    const name = fullName?.trim().replace(/\s+/g, " ");
+    const res = await supabase.auth.signUp({
+      email,
+      password,
+      // `data` lands in user_metadata, which is where Google puts full_name
+      // too — so the nav reads one field no matter which door they came in.
+      options: { emailRedirectTo: redirectTo, data: name ? { full_name: name } : undefined },
+    });
     // With confirmations ON, Supabase hides "already registered" behind a
     // decoy user carrying no identities rather than returning an error.
     // Surface it as the error it is, so the form can offer sign-in instead.
@@ -99,6 +106,13 @@ export function useAuth() {
         redirectTo: `${window.location.origin}/reset-password`,
       }),
     updatePassword: (password: string) => supabase.auth.updateUser({ password }),
+    /**
+     * The profile page's save. `data` merges into user_metadata, which the
+     * account holder owns and can write — fine for a name and a number,
+     * and never the place for anything the server has to trust.
+     */
+    updateProfile: (fields: { full_name?: string; phone?: string }) =>
+      supabase.auth.updateUser({ data: fields }),
     signOut: () => supabase.auth.signOut(),
   };
 }

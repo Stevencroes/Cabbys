@@ -36,15 +36,18 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext }: Aut
   const { signInWithProvider, signInWithPassword, signUpWithPassword, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [pwError, setPwError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const uid = useId();
   const emailId = `${uid}-email`;
+  const nameId = `${uid}-name`;
   const pwId = `${uid}-password`;
 
   const needsPassword = mode !== "forgot";
@@ -52,6 +55,7 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext }: Aut
   function clearMessages() {
     setError(null);
     setEmailError(null);
+    setNameError(null);
     setPwError(null);
     setNotice(null);
   }
@@ -66,6 +70,10 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext }: Aut
     let ok = true;
     if (!EMAIL_RE.test(mail)) {
       setEmailError("Enter the email address you'd like us to use.");
+      ok = false;
+    }
+    if (mode === "signup" && name.trim().length < 2) {
+      setNameError("Tell us what to call you.");
       ok = false;
     }
     if (needsPassword && !password) {
@@ -97,7 +105,7 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext }: Aut
       if (err) setError(authMessage(err));
       else onSuccess?.();
     } else {
-      const { data, error: err } = await signUpWithPassword(mail, password);
+      const { data, error: err } = await signUpWithPassword(mail, password, name);
       if (err && isAlreadyRegistered(err)) {
         // Not an error so much as a wrong turn: same email, other door.
         setMode("signin");
@@ -149,6 +157,24 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext }: Aut
       )}
 
       <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+        {mode === "signup" && (
+          <>
+            <label className="sr-only" htmlFor={nameId}>Your name</label>
+            <input
+              id={nameId}
+              className={`txt${nameError ? " invalid" : ""}`}
+              type="text"
+              autoComplete="name"
+              placeholder="Your name"
+              aria-invalid={!!nameError || undefined}
+              aria-describedby={nameError ? `${nameId}-err` : undefined}
+              value={name}
+              onChange={(e) => { setName(e.target.value); if (nameError) setNameError(null); }}
+            />
+            {nameError && <p className="ferr" id={`${nameId}-err`} role="alert">{nameError}</p>}
+          </>
+        )}
+
         <label className="sr-only" htmlFor={emailId}>Email</label>
         <input
           id={emailId}
