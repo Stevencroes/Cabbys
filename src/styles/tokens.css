@@ -60,7 +60,7 @@
   --gutter:clamp(20px,5vw,60px);
   --ease:cubic-bezier(.22,.68,.24,1);
   --tap:46px;                                     /* minimum touch target */
-  --nav-clear:110px;                              /* floating pill bottom (~82px) + breathing room */
+  --nav-clear:104px;                              /* floating pill bottom (~74px) + breathing room */
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;
