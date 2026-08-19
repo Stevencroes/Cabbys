@@ -56,11 +56,11 @@
   --sans:'Jost', system-ui, sans-serif;           /* everything else */
 
   /* ---------- layout ---------- */
-  --maxw:1200px;
-  --gutter:clamp(20px,5vw,60px);
+  --maxw:1120px;
+  --gutter:clamp(18px,4vw,48px);
   --ease:cubic-bezier(.22,.68,.24,1);
   --tap:46px;                                     /* minimum touch target */
-  --nav-clear:104px;                              /* floating pill bottom (~74px) + breathing room */
+  --nav-clear:96px;                               /* floating pill bottom (~72px) + breathing room */
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;
