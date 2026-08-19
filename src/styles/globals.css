@@ -214,7 +214,10 @@ h2.sec em{font-style:italic;}
    svh, not vh: on iOS vh measures the screen with the URL bar hidden,
    so 100vh spills past the fold on first paint. A floor, not a cap —
    a phone holds headline plus card and grows past it. */
-.hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;padding:122px 0 40px;
+/* Asymmetric on purpose: the grid centres itself in whatever is left
+   between these, so a heavier bottom pad lifts the whole block above
+   the optical middle. The phone override below keeps its own values. */
+.hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;padding:104px 0 150px;
   border-bottom:1px solid var(--line);}
 /* the right column is sized to the card, not to a share of the row —
    a fr split left ~100px of dead air between the two halves */
