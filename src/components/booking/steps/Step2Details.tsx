@@ -17,6 +17,7 @@ import { normalizePhone, isValidPhone, isValidEmail } from "../../../lib/contact
 import { createRide } from "../../../lib/rides";
 import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
+import RouteMap from "../RouteMap";
 import FieldError from "../FieldError";
 import type { StepProblem } from "./Step1Ride";
 
@@ -270,6 +271,10 @@ export default function Step2Details({
           <button type="button" onClick={() => goTo(1)}>← Change something</button>
         </div>
       </div>
+
+      {/* The last thing anyone reads before paying is where they are being
+          taken. Blacklane keeps the map on this screen for the same reason. */}
+      <RouteMap from={state.from} to={state.to} minutes={q?.minutes ?? null} height={168} />
       </div>
 
       <div className="pcol">

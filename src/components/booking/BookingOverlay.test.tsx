@@ -140,6 +140,23 @@ describe("BookingOverlay — the two-step booking", () => {
     }
   });
 
+  it("lets Escape close a picker without closing the whole booking", () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
+    expect(screen.getByRole("dialog", { name: /flight lands at/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole("dialog", { name: /flight lands at/i }), { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: /flight lands at/i })).toBeNull();
+    // the ride survives the dismissal
+    expect(screen.getByRole("button", { name: /flight lands at/i })).toBeInTheDocument();
+  });
+
   it("puts the reason under the field it belongs to, wired for a screen reader (Phase 4)", () => {
     function BareOpener() {
       const { open, setField } = useBooking();

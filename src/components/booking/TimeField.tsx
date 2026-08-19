@@ -110,10 +110,7 @@ export default function TimeField({
       e.key === "ArrowLeft" ? i - 1 :
       e.key === "ArrowDown" ? i + cols :
       e.key === "ArrowUp" ? i - cols : -1;
-    if (to < 0 || to >= slots.length) {
-      if (e.key === "Escape") { e.preventDefault(); close(); }
-      return;
-    }
+    if (to < 0 || to >= slots.length) return;
     e.preventDefault();
     const el = gridRef.current?.querySelector<HTMLElement>(`[data-t="${slots[to]}"]`);
     el?.focus();
@@ -147,7 +144,18 @@ export default function TimeField({
       </button>
 
       {open && (
-        <div className="dtf-pop tmf-pop" role="dialog" aria-label={label}>
+        <div
+          className="dtf-pop tmf-pop"
+          role="dialog"
+          aria-label={label}
+          onKeyDown={(e) => {
+            // preventDefault marks it handled, which is how the booking
+            // overlay knows not to treat this Escape as "close the flow"
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            close();
+          }}
+        >
           <div className="tmf-bands" role="tablist" aria-label="Part of day">
             {BANDS.map((b, i) => (
               <button
