@@ -189,20 +189,75 @@ h2.sec em{font-style:italic;}
   border:none;border-radius:50%;background:transparent;color:var(--ink);font-size:14px;font-weight:500;transition:.15s var(--ease);}
 .dtf-day:hover:not(:disabled){background:var(--raised);}
 .dtf-day.out{color:var(--muted);opacity:.55;}
+
+/* ── time picker ── one tap for a quarter hour, exact when a flight needs it */
+.timefield{position:relative;}
+.tmf-pop{min-width:324px;padding:12px;}
+.tmf-bands{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:10px;
+  background:var(--raised);border-radius:var(--r-pill);padding:3px;}
+.tmf-bands button{min-height:34px;border:none;background:transparent;color:var(--muted);
+  border-radius:var(--r-pill);font-size:10px;font-weight:600;letter-spacing:.03em;
+  text-transform:uppercase;transition:.2s var(--ease);white-space:nowrap;}
+.tmf-bands button:hover{color:var(--ink);}
+.tmf-bands button.on{background:var(--sheen);color:var(--on-sheen);}
+.tmf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+  max-height:212px;overflow-y:auto;padding-right:2px;}
+.tmf-grid button{min-height:38px;border:1px solid transparent;background:var(--raised);
+  color:var(--silver);border-radius:var(--r-xs);font-size:12px;font-weight:500;
+  white-space:nowrap;transition:.15s var(--ease);}
+.tmf-grid button:hover{background:var(--surface);color:var(--ink);border-color:var(--line);}
+.tmf-grid button.on{background:var(--sheen);color:var(--on-sheen);border-color:transparent;font-weight:600;}
+.tmf-exact{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-top:12px;padding-top:11px;border-top:1px solid var(--line);}
+.tmf-exact label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  font-weight:600;color:var(--silver);}
+.tmf-exact .soft{text-transform:none;letter-spacing:.02em;color:var(--muted);font-weight:400;}
+/* color-scheme, or the browser paints its own clock icon black on our navy */
+.tmf-exact input{color-scheme:dark;background:var(--raised);border:1px solid var(--line);
+  border-radius:var(--r-xs);color:var(--ink);font-size:15px;padding:7px 9px;min-height:38px;}
+.tmf-exact input:focus{background:var(--surface);}
+.tmf-exactly{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
+.tmf-zone{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
+
+/* ── route map ── real tiles with a token, a sketch of the island without */
+.rmap{position:relative;width:100%;overflow:hidden;border-radius:var(--r-md);
+  background:var(--deep);border:1px solid var(--line);}
+.rmap-img{display:block;width:100%;height:100%;object-fit:cover;}
+.rmap-svg{display:block;width:100%;height:100%;}
+.rmap-land{fill:var(--raised);stroke:var(--soft);stroke-width:1.25;}
+.rmap-line{fill:none;stroke:var(--silver);stroke-width:2;stroke-linecap:round;
+  stroke-dasharray:4 5;opacity:.9;}
+.rmap-pin-a{fill:var(--ink);stroke:var(--deep);stroke-width:2;}
+.rmap-pin-b{fill:var(--signal);stroke:var(--deep);stroke-width:2;}
+.rmap-wrap{display:flex;flex-direction:column;gap:9px;min-width:0;}
+/* above the canvas, not on it — a chip laid over the map sat exactly where
+   the north-west pin lands */
+.rmap-ends{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:0;}
+.rme{display:flex;align-items:center;gap:8px;max-width:100%;
+  font-size:12px;font-weight:500;color:var(--ink);letter-spacing:.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rme i{flex:none;width:8px;height:8px;border-radius:50%;}
+.rme-a{background:var(--ink);}
+.rme-b{background:var(--signal);}
+.rmap-dur{position:absolute;right:10px;bottom:10px;padding:5px 10px;border-radius:var(--r-pill);
+  background:var(--scrim-heavy);font-size:11px;font-weight:600;color:var(--silver);
+  letter-spacing:.06em;text-transform:uppercase;}
+.rmap-attr{position:absolute;left:10px;bottom:10px;font-size:9.5px;color:var(--muted);
+  letter-spacing:.03em;opacity:.8;}
+.rmap-empty .rmap-land{opacity:.55;}
+.rmap-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  margin:0;padding:0 24px;text-align:center;font-size:12.5px;color:var(--muted);}
+@media(max-width:600px){
+  .tmf-pop{min-width:0;}
+  .tmf-grid{max-height:190px;}
+  .tmf-grid button{min-height:42px;}
+}
 .dtf-day:disabled{opacity:.3;cursor:not-allowed;}
 .dtf-day.cur{box-shadow:inset 0 0 0 2px var(--silver);}
 .dtf-day.sel{background:var(--silver);color:var(--deep);}
 .dtf-day.sel.cur{box-shadow:inset 0 0 0 2px var(--silver-deep);}
 
 .timefield{display:flex;flex-direction:column;}
-.tmf-row{display:flex;align-items:center;gap:6px;}
-.tmf-row.invalid .tmf-sel{border-color:var(--alert);}
-.tmf-sel{flex:1;min-width:0;min-height:var(--tap);padding:0 8px;border:1px solid var(--line);
-  border-radius:var(--r-sm);background:var(--raised);color:var(--ink);font-size:16px;appearance:none;
-  text-align:center;text-align-last:center;transition:.2s var(--ease);}
-.tmf-sel:focus{background:var(--surface);}
-.tmf-ap{flex:0 0 78px;}
-.tmf-colon{font-weight:600;color:var(--muted);}
 .tmf-zone{margin-top:6px;font-size:12px;font-weight:500;letter-spacing:.06em;color:var(--muted);}
 .rv-zone,.tv-zone{display:block;font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--muted);
   text-transform:none;font-family:var(--sans);}
@@ -253,10 +308,12 @@ h2.sec em{font-style:italic;}
 }
 
 /* ============ QUOTE CARD (§3.2) ============ */
+/* overflow:visible so date and time popovers can leave the card; the
+   hairline is inset instead of clipped, which is what hidden was for */
 .quote{background:var(--surface);border:1px solid var(--line);width:100%;max-width:366px;
-  justify-self:end;box-shadow:var(--shadow-hard-lg);position:relative;padding:24px 22px 20px;overflow:hidden;}
+  justify-self:end;box-shadow:var(--shadow-hard-lg);position:relative;padding:24px 22px 20px;}
 /* the one hairline in the marketing site: a brushed rule across the top */
-.quote::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--hairline);}
+.quote::before{content:"";position:absolute;top:0;left:var(--r-md);right:var(--r-md);height:1px;background:var(--hairline);}
 @media(max-width:980px){.quote{justify-self:stretch;max-width:none;}}
 .qtitle{font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);margin-bottom:16px;}
 .qswap-row{display:flex;justify-content:center;margin:2px 0;}
@@ -265,7 +322,12 @@ h2.sec em{font-style:italic;}
 .locbtn{width:100%;min-height:var(--tap);border:1px solid var(--silver-deep);background:transparent;color:var(--silver);
   font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:12px;transition:.25s;}
 .locbtn:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
-.qmini{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;}
+.qmini{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+/* date and time read as one answer; guests is its own question */
+.qmini .qfld:nth-child(3){grid-column:1 / -1;}
+/* second column: anchor the popover to its right edge or it runs off */
+.qmini .qfld:nth-child(2) .dtf-pop{left:auto;right:0;}
+.qmini .qfld:nth-child(3) select{max-width:50%;}
 .qfld label{display:block;font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
 .qfld input,.qfld select{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
   border:1px solid var(--line);padding:12px 12px;appearance:none;min-height:var(--tap);}
@@ -456,6 +518,22 @@ h2.sec em{font-style:italic;}
 @media(min-width:1000px){
   .panel{max-width:1120px;}
   .pcols{grid-template-columns:1fr 1fr;gap:0 44px;align-items:start;}
+  /* step 1 asks three separate questions — what, which car, and how much.
+     Uber and Blacklane both give the last one its own rail, and it is the
+     only way the whole step fits a laptop without scrolling. */
+  .pcols-3{grid-template-columns:1fr 1fr;}
+}
+@media(min-width:1180px){
+  .panel{max-width:1300px;}
+  .pcols-3{grid-template-columns:1fr 1fr 356px;gap:0 34px;}
+  /* the rail is sticky, so the panel needs no runway under it */
+  .panel:has(.pcols-3){padding-bottom:24px;}
+  /* the fare follows you down the car list rather than sitting off-screen */
+  .pcol-rail{position:sticky;top:12px;display:flex;flex-direction:column;gap:16px;}
+}
+@media(max-width:1179px){
+  /* two columns or one: the rail is just the last block in the flow */
+  .pcol-rail{display:flex;flex-direction:column;gap:16px;margin-top:20px;}
   .pcol>.subh:first-child{margin-top:0;}
 }
 .fld{margin-bottom:14px;}
@@ -471,9 +549,11 @@ h2.sec em{font-style:italic;}
 .qtoggle button{flex:1;background:none;border:none;padding:12px;min-height:var(--tap);font-weight:600;font-size:12px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);transition:.28s;}
 .qtoggle button.on{background:var(--silver);color:var(--deep);}
-.subh{font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);margin:20px 0 10px;}
-.steppers{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;}
-.stw label{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
+.subh{font-weight:600;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);margin:0 0 9px;}
+.pcol > .subh + * + .subh,.pcol .steppers + .subh,.pcol .fld + .subh{margin-top:18px;}
+.steppers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+@media(max-width:420px){.steppers{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.stw label{display:block;font-weight:600;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
 .stepper{display:flex;align-items:center;border:1px solid var(--line);width:fit-content;background:var(--raised);}
 .stepper button{background:none;border:none;width:var(--tap);height:var(--tap);font-size:19px;color:var(--ink);transition:.2s;display:flex;align-items:center;justify-content:center;}
 .stepper button:hover:not(:disabled){background:var(--surface);}
@@ -488,8 +568,8 @@ h2.sec em{font-style:italic;}
 .notice{border:1px solid var(--line);background:var(--raised);padding:12px 15px;margin:0 0 14px;font-size:13.5px;line-height:1.6;font-weight:400;color:var(--ink);}
 
 /* vehicles — real radio group */
-.vopt{display:flex;align-items:center;gap:16px;width:100%;background:var(--raised);border:1px solid var(--line);
-  padding:14px 18px;text-align:left;margin-bottom:10px;transition:all .3s var(--ease);color:var(--ink);}
+.vopt{display:flex;align-items:center;gap:14px;width:100%;background:var(--raised);border:1px solid var(--line);
+  padding:11px 15px;text-align:left;margin-bottom:8px;transition:all .3s var(--ease);color:var(--ink);}
 .vopt:hover:not(.unfit){background:var(--surface);transform:translateY(-2px);}
 .vopt.sel{background:var(--surface);border-color:var(--silver);}
 .vopt.sel .vm,.vopt.sel .vs{color:var(--muted);}
@@ -497,10 +577,10 @@ h2.sec em{font-style:italic;}
 .vopt .vd{width:15px;height:15px;border-radius:50%;border:1.5px solid currentColor;flex:none;position:relative;}
 .vopt.sel .vd::after{content:"";position:absolute;inset:2.5px;border-radius:50%;background:var(--silver);}
 .vopt .vmain{flex:1;min-width:0;}
-.vopt .vn{display:block;font-family:var(--serif);font-size:20px;font-weight:500;line-height:1;}
-.vopt .vm{display:block;font-size:12px;color:var(--muted);margin-top:4px;}
-.vopt .vs{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--silver);margin-top:5px;font-weight:600;}
-.vopt .vp{font-family:var(--serif);font-size:23px;font-weight:600;white-space:nowrap;}
+.vopt .vn{display:block;font-family:var(--serif);font-size:17px;font-weight:500;line-height:1.05;}
+.vopt .vm{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;}
+.vopt .vs{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--silver);margin-top:4px;font-weight:600;}
+.vopt .vp{font-family:var(--serif);font-size:20px;font-weight:600;white-space:nowrap;}
 @media(max-width:380px){.vopt{padding:14px 14px;gap:11px;}.vopt .vn{font-size:19px;}.vopt .vp{font-size:21px;}}
 
 /* review */
