@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useBookingOptional } from "../booking/BookingContext";
 import { useAuth } from "../booking/useAuth";
-import { displayNameOf, fullNameOf, initialsOf } from "../lib/displayName";
+import { displayNameOf, initialsOf } from "../lib/displayName";
 import { lockBody, unlockBody } from "../lib/bodyLock";
 
 const LINKS = [
@@ -91,9 +91,6 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
 
   const email = account?.email;
   const name = displayNameOf(account);
-  // Accounts made before sign-up asked for a name carry none. The menu owns
-  // the way to fix that, so it only offers it when there is something to fix.
-  const unnamed = !!account && !fullNameOf(account);
 
   async function handleSignOut() {
     setMenu(false);
@@ -137,11 +134,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
                       {email && <span className="nm-mail">{email}</span>}
                     </div>
                     <Link to="/trips" onClick={() => setMenu(false)}>My trips</Link>
-                    {unnamed && (
-                      <button type="button" onClick={() => { setMenu(false); onSignIn(); }}>
-                        Add your name
-                      </button>
-                    )}
+                    <Link to="/profile" onClick={() => setMenu(false)}>Profile</Link>
                     <button type="button" className="nm-out" onClick={handleSignOut}>
                       Sign out
                     </button>
@@ -199,6 +192,9 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
                 {l.label}
               </Link>
             ))}
+            {account && (
+              <Link to="/profile" onClick={() => setOpen(false)}>Profile</Link>
+            )}
             {account ? (
               <button type="button" className="sheet-out" onClick={handleSignOut}>Sign out</button>
             ) : (

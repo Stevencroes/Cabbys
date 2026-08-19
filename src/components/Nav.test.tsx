@@ -99,19 +99,11 @@ describe("Nav", () => {
     expect(screen.getByRole("button", { name: /account — greta/i })).toHaveTextContent("G");
   });
 
-  it("offers to name an account that has no name, and does not nag one that has", () => {
+  it("puts the profile a click from the account menu", () => {
     asAccount();
-    const onSignIn = vi.fn();
-    const { unmount } = renderNav(onSignIn);
-    fireEvent.click(screen.getByRole("button", { name: /account — greta/i }));
-    fireEvent.click(screen.getByRole("button", { name: /add your name/i }));
-    expect(onSignIn).toHaveBeenCalledOnce();
-    unmount();
-
-    asAccount({ user_metadata: { full_name: "Greta Croes" } });
     renderNav();
-    fireEvent.click(screen.getByRole("button", { name: /account — greta croes/i }));
-    expect(screen.queryByRole("button", { name: /add your name/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /account — greta/i }));
+    expect(screen.getByRole("link", { name: /^profile$/i })).toHaveAttribute("href", "/profile");
   });
 
   it("closes the account menu on Escape", () => {

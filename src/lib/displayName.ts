@@ -34,6 +34,12 @@ export function nameFromEmail(email: string | null | undefined): string {
     .trim();
 }
 
+/** The number the driver would reach you on. "" when the profile has none. */
+export function phoneOf(user: NamedUser | null | undefined): string {
+  const raw = user?.user_metadata?.phone;
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
 /** What the nav calls you. Never blank, never the whole email address. */
 export function displayNameOf(user: NamedUser | null | undefined): string {
   return fullNameOf(user) || nameFromEmail(user?.email) || "Account";

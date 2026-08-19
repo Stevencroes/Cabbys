@@ -7,6 +7,7 @@ import HashScroll from "./components/HashScroll";
 import BookingOverlay from "./components/booking/BookingOverlay";
 import AuthCallback from "./pages/AuthCallback";
 import MyTrips from "./pages/MyTrips";
+import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
 import DriverPortal from "./driver/DriverPortal";
 import Confirmation from "./components/Confirmation";
@@ -33,6 +34,7 @@ function AppRoutes() {
         <Route path="/" element={<Landing />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/trips" element={<MyTrips />} />
+        <Route path="/profile" element={<Profile />} />
         {/* where the password-recovery mail lands */}
         <Route path="/reset-password" element={<ResetPassword />} />
         {/* the driver portal is its own world: dark ground, own shell, own guard */}

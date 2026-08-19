@@ -106,9 +106,13 @@ export function useAuth() {
         redirectTo: `${window.location.origin}/reset-password`,
       }),
     updatePassword: (password: string) => supabase.auth.updateUser({ password }),
-    /** Names an account that has none — every account made before sign-up asked. */
-    updateName: (fullName: string) =>
-      supabase.auth.updateUser({ data: { full_name: fullName.trim().replace(/\s+/g, " ") } }),
+    /**
+     * The profile page's save. `data` merges into user_metadata, which the
+     * account holder owns and can write — fine for a name and a number,
+     * and never the place for anything the server has to trust.
+     */
+    updateProfile: (fields: { full_name?: string; phone?: string }) =>
+      supabase.auth.updateUser({ data: fields }),
     signOut: () => supabase.auth.signOut(),
   };
 }
