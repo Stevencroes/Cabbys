@@ -209,11 +209,16 @@ h2.sec em{font-style:italic;}
 
 /* ============ HERO ============ */
 /* the decorative sun is gone; the bottom rule is the whole horizon now */
-.hero{position:relative;display:flex;flex-direction:column;padding:122px 0 40px;
+/* The first view is the hero and nothing else — the next section
+   announcing itself under the fold reads as clutter, not as a hint.
+   svh, not vh: on iOS vh measures the screen with the URL bar hidden,
+   so 100vh spills past the fold on first paint. A floor, not a cap —
+   a phone holds headline plus card and grows past it. */
+.hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;padding:122px 0 40px;
   border-bottom:1px solid var(--line);}
 /* the right column is sized to the card, not to a share of the row —
    a fr split left ~100px of dead air between the two halves */
-.hero-grid{position:relative;z-index:var(--z-content);flex:1;display:grid;grid-template-columns:minmax(0,1fr) 410px;gap:clamp(28px,3.6vw,52px);
+.hero-grid{position:relative;z-index:var(--z-content);flex:1;display:grid;grid-template-columns:minmax(0,1fr) 366px;gap:clamp(28px,3.6vw,52px);
   align-items:center;max-width:var(--maxw);margin:0 auto;width:100%;
   padding:0 var(--gutter);}
 @media(max-width:900px){
@@ -245,7 +250,7 @@ h2.sec em{font-style:italic;}
 }
 
 /* ============ QUOTE CARD (§3.2) ============ */
-.quote{background:var(--surface);border:1px solid var(--line);width:100%;max-width:410px;
+.quote{background:var(--surface);border:1px solid var(--line);width:100%;max-width:366px;
   justify-self:end;box-shadow:var(--shadow-hard-lg);position:relative;padding:24px 22px 20px;overflow:hidden;}
 /* the one hairline in the marketing site: a brushed rule across the top */
 .quote::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--hairline);}
@@ -271,6 +276,25 @@ h2.sec em{font-style:italic;}
 .qbtn:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
 .qfoot{margin-top:12px;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.04em;font-weight:500;}
 .qhint{font-size:13px;color:var(--silver);margin:6px 0 4px;min-height:16px;font-weight:500;}
+/* Beside the headline the card has to match its weight, and a mouse needs
+   none of what a thumb does. Touch keeps the 46px targets and the 16px
+   fields — under 16px, iOS zooms the page the moment one takes focus. */
+@media(min-width:981px){
+  .quote{padding:19px 18px 17px;}
+  .qtitle{font-size:11px;letter-spacing:.2em;margin-bottom:12px;}
+  .combo{margin-bottom:10px;}
+  .combo .cfield label,.qfld label{font-size:11px;letter-spacing:.12em;}
+  .combo .cfield input{font-size:15px;padding:6px 0 8px;}
+  .combo .cfield .clear{width:34px;height:34px;}
+  .qswap{width:38px;height:38px;}
+  .locbtn{min-height:40px;font-size:11px;margin-bottom:10px;}
+  .qmini{gap:12px;margin-top:10px;}
+  .qfld input,.qfld select{font-size:15px;padding:9px 10px;min-height:40px;}
+  .qprice{margin:15px 0 12px;}
+  .qprice .pv{font-size:34px;}
+  .qbtn{padding:13px;min-height:42px;font-size:12px;letter-spacing:.14em;}
+  .qfoot{margin-top:10px;font-size:11.5px;}
+}
 
 /* ============ COMBOBOX (§3.3) ============ */
 .combo{position:relative;margin-bottom:12px;}
