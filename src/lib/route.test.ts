@@ -1,4 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// The URL builder must not depend on whether a developer happens to have
+// VITE_MAPBOX_TOKEN in .env.local — both branches get tested on purpose.
+const mapbox = vi.hoisted(() => ({ MAPBOX_TOKEN: "pk.test", mapboxEnabled: true }));
+vi.mock("./mapbox", () => mapbox);
+
 import { AIRPORT_COORD, coordOf, islandPath, project, staticMapUrl } from "./route";
 import { AIRPORT, placeById, selFromPlace } from "../data/places";
 
@@ -22,9 +28,34 @@ describe("route", () => {
     expect(coordOf(null)).toBeNull();
   });
 
-  it("draws no map without a token", () => {
-    // VITE_MAPBOX_TOKEN is unset under test, which is the shipping state
-    expect(staticMapUrl(AIRPORT_COORD, { lat: 12.578, lon: -70.043 }, null, { width: 400, height: 200 })).toBeNull();
+  const PALM = { lat: 12.578, lon: -70.043 };
+
+  it("draws no map without a token, so the sketch takes over", () => {
+    mapbox.mapboxEnabled = false;
+    expect(staticMapUrl(AIRPORT_COORD, PALM, null, { width: 400, height: 200 })).toBeNull();
+    mapbox.mapboxEnabled = true;
+  });
+
+  it("asks for a dark map with both ends pinned", () => {
+    const url = staticMapUrl(AIRPORT_COORD, PALM, null, { width: 400, height: 200, retina: true })!;
+    expect(url).toContain("/styles/v1/mapbox/dark-v11/static/");
+    expect(url).toContain(`pin-s+f2f5f8(${AIRPORT_COORD.lon},${AIRPORT_COORD.lat})`);
+    expect(url).toContain(`pin-s+b9c6d4(${PALM.lon},${PALM.lat})`);
+    expect(url).toContain("400x200@2x");
+  });
+
+  it("draws the driving line when it has one", () => {
+    const line = { polyline: "a~b_cD|e~f", km: 12.3, minutes: 19 };
+    const url = staticMapUrl(AIRPORT_COORD, PALM, line, { width: 400, height: 200 })!;
+    expect(url).toContain(`path-4+b9c6d4-0.95(${encodeURIComponent(line.polyline)})`);
+  });
+
+  it("suppresses Mapbox's own attribution only because the component renders it", () => {
+    // If this ever stops being true, RouteMap's caption must come back too —
+    // the attribution is a term of the licence.
+    const url = staticMapUrl(AIRPORT_COORD, PALM, null, { width: 400, height: 200 })!;
+    expect(url).toContain("attribution=false");
+    expect(url).toContain("logo=false");
   });
 
   it("projects the island inside its own viewBox", () => {

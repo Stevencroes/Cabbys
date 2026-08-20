@@ -8,25 +8,33 @@ second one live:
 2. **Without one** — a sketch of Aruba drawn from its coastline, both ends
    pinned, the line between them, captioned "Sketch — not to scale".
 
-Branch 2 is what everyone sees today. It is not a placeholder: it is drawn
-from real coordinates and reads honestly, so the booking flow is complete
-without a maps bill.
+Branch 2 is not a placeholder. It is drawn from real coordinates and reads
+honestly, so the flow is complete even when a request fails — which is
+exactly what it does when Mapbox is unreachable.
 
 ## Turning on branch 1
 
-1. Create a Mapbox account. The free tier covers 50,000 static map loads
-   and 100,000 Directions requests a month — a transfer business will not
-   approach either.
-2. Copy the **default public token** (`pk.…`).
-3. Add it to `.env.local` and to the Vercel project's environment
-   variables, both as `VITE_MAPBOX_TOKEN`.
-4. Redeploy. Nothing else changes — the component switches branch on its
-   own, and falls back to the sketch again if a request fails.
+`VITE_MAPBOX_TOKEN` is set in `.env.local`, which is gitignored and never
+committed. **Production still shows the sketch until the same variable is
+added to the Vercel project's environment variables**, because the token is
+baked in at build time and Vercel builds with its own environment.
 
-**Restrict the token before it goes near production.** It ships in the
-client bundle, which is normal for Mapbox public tokens, but an
-unrestricted one can be lifted and spent. In the Mapbox dashboard, set the
-token's URL restrictions to your own domains.
+1. Vercel → the project → Settings → Environment Variables.
+2. Add `VITE_MAPBOX_TOKEN` with the `pk.…` value, for every environment
+   that should show maps.
+3. Redeploy. Nothing else changes — the component switches branch on its
+   own and falls back to the sketch again if a request fails.
+
+**Restrict the token.** It ships in the client bundle, which is normal and
+intended for Mapbox public tokens, but an unrestricted one can be lifted
+and spent against your quota. In the Mapbox dashboard, set the token's URL
+restrictions to your own domains. Rotate it if it has been pasted anywhere
+it might be logged.
+
+The free tier covers 50,000 static map loads and 100,000 Directions
+requests a month. One booking draws at most one of each per route, because
+`RouteMap` rounds its width to a 32px step — without that, a scrollbar
+appearing bought a second map every time.
 
 ## What the pins actually mean
 

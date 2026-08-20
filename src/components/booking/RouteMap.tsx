@@ -5,7 +5,7 @@
 // with the two ends marked. The sketch is not a placeholder waiting to be
 // replaced — it is what every visitor sees until the token exists, so it
 // has to be worth looking at.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PlaceSel } from "../../data/places";
 import { mapboxEnabled } from "../../lib/mapbox";
 import {
@@ -26,13 +26,23 @@ interface RouteMapProps {
 const VB_W = 340;
 const VB_H = 200;
 
+/**
+ * Widths are rounded up to a step so a scrollbar appearing does not buy a
+ * second map. It also means every visitor at a given breakpoint asks for
+ * the same URL, which Mapbox's CDN can then serve from cache.
+ */
+const WIDTH_STEP = 32;
+const bucket = (w: number) => (w > 0 ? Math.ceil(w / WIDTH_STEP) * WIDTH_STEP : 0);
+
 export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapProps) {
   const a = coordOf(from);
   const b = coordOf(to);
   const [line, setLine] = useState<RouteLine | null>(null);
   const [failed, setFailed] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(560);
+  // 0 until measured: rendering at a guessed width and then again at the
+  // real one bought two static maps for every route drawn
+  const [width, setWidth] = useState(0);
 
   // Ask for the driving line only when there is a real journey to draw.
   useEffect(() => {
@@ -48,12 +58,16 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
   }, [from?.id, to?.id]);
 
   // The static map is sized in pixels, so it has to know how wide it drew.
-  useEffect(() => {
+  // Layout effect, not effect: this runs before paint, so the first image
+  // the browser fetches is already the right one.
+  useLayoutEffect(() => {
     const el = boxRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!el) return;
+    setWidth(bucket(el.getBoundingClientRect().width));
+    if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(([entry]) => {
-      const w = Math.round(entry.contentRect.width);
-      if (w > 0) setWidth(w);
+      const w = bucket(entry.contentRect.width);
+      if (w > 0) setWidth((prev) => (w === prev ? prev : w));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -70,7 +84,7 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
     );
   }
 
-  const url = failed ? null : staticMapUrl(a, b, line, { width, height, retina: true });
+  const url = failed || width <= 0 ? null : staticMapUrl(a, b, line, { width, height, retina: true });
   const label = `${from?.name} to ${to?.name}`;
 
   return (
