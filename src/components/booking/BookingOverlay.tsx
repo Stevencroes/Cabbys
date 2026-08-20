@@ -82,7 +82,9 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   useEffect(() => {
     if (!state.open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") { history.back(); return; }
+      // A date or time popover claims Escape first — closing the whole
+      // booking flow because someone dismissed a calendar loses the ride.
+      if (e.key === "Escape") { if (!e.defaultPrevented) history.back(); return; }
       if (e.key !== "Tab" || !bookRef.current) return;
       const focusables = bookRef.current.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',

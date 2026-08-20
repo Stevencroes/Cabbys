@@ -17,6 +17,7 @@ import { normalizePhone, isValidPhone, isValidEmail } from "../../../lib/contact
 import { createRide } from "../../../lib/rides";
 import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
+import RouteMap from "../RouteMap";
 import FieldError from "../FieldError";
 import type { StepProblem } from "./Step1Ride";
 
@@ -270,10 +271,15 @@ export default function Step2Details({
           <button type="button" onClick={() => goTo(1)}>← Change something</button>
         </div>
       </div>
+
       </div>
 
       <div className="pcol">
-      <div className="fld">
+      {/* Where you are being taken sits over the fields that commit you to
+          it — the last thing anyone re-reads before paying. */}
+      <RouteMap from={state.from} to={state.to} minutes={q?.minutes ?? null} height={180} />
+
+      <div className="fld" style={{ marginTop: 20 }}>
         <label htmlFor="b-name">{airportTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
         <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName}
           aria-invalid={!!err("name") || undefined} aria-describedby={errId("name")}

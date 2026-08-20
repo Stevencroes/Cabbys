@@ -1,12 +1,19 @@
-// A time picker with the meridiem said out loud.
+// A time picker that asks once.
 //
-// The native <input type="time"> renders 24-hour in most locales and its
-// hour segment can silently refuse input, which is how a booking reached
-// "--:30" and still advanced. Three plain selects can't hold a partial
-// value: unless hour, minute and AM/PM are all chosen this emits "", and
-// the step validators already refuse to advance on an empty time.
-import { useEffect, useId, useState } from "react";
-import { ARUBA_TZ_LABEL, to12Hour, to24Hour } from "../../lib/datetime";
+// It used to be three selects — hour, minute, AM/PM — which is three
+// decisions for one answer, and the minute list ran to sixty options.
+// Now it is one trigger that opens a grid of quarter-hours: one tap for
+// the times people actually book.
+//
+// The exact-time row underneath is not a nicety. A flight lands at 2:35,
+// never at 2:30, so any picker that only offers the quarter-hours would
+// make the arrival time wrong — and the whole pickup is derived from it.
+//
+// A partial answer still cannot escape: the grid emits whole times, and
+// the exact input emits "" until the browser has a complete one, which is
+// what the step validators already refuse to advance on.
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { ARUBA_TZ_LABEL, formatTime, isHhmm } from "../../lib/datetime";
 
 interface TimeFieldProps {
   id: string;
@@ -17,94 +24,186 @@ interface TimeFieldProps {
   invalid?: boolean;
   /** hides the AST caption where a nearby field already carries it */
   hideZone?: boolean;
+  placeholder?: string;
 }
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+const STEP_MINUTES = 15;
+const SLOTS_PER_HOUR = 60 / STEP_MINUTES;
+
+/** Every quarter hour of the day, as "HH:MM". */
+const SLOTS: string[] = Array.from({ length: 24 * SLOTS_PER_HOUR }, (_, i) => {
+  const h = Math.floor(i / SLOTS_PER_HOUR);
+  const m = (i % SLOTS_PER_HOUR) * STEP_MINUTES;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+
+const BANDS = [
+  { label: "Morning", from: 5, to: 12 },
+  { label: "Afternoon", from: 12, to: 17 },
+  { label: "Evening", from: 17, to: 22 },
+  { label: "Overnight", from: 22, to: 29 },   // wraps past midnight
+] as const;
+
+/** Which band a time belongs to, counting 00:00–04:45 as the small hours. */
+function bandOf(hhmm: string): number {
+  const h = Number(hhmm.slice(0, 2));
+  const wrapped = h < 5 ? h + 24 : h;
+  const i = BANDS.findIndex((b) => wrapped >= b.from && wrapped < b.to);
+  return i === -1 ? 0 : i;
+}
+
+function slotsOfBand(i: number): string[] {
+  return SLOTS.filter((s) => bandOf(s) === i).sort((a, b) => {
+    // overnight runs 22:00 → 04:45, so sort it by the wrapped hour
+    const w = (t: string) => (Number(t.slice(0, 2)) < 5 ? Number(t.slice(0, 2)) + 24 : Number(t.slice(0, 2))) * 60 + Number(t.slice(3));
+    return w(a) - w(b);
+  });
+}
 
 export default function TimeField({
-  id, label, value, onChange, describedBy, invalid, hideZone,
+  id, label, value, onChange, describedBy, invalid, hideZone, placeholder = "Choose a time",
 }: TimeFieldProps) {
   const uid = useId();
-  const parsed = to12Hour(value);
-  const [hour, setHour] = useState<string>(parsed ? String(parsed.hour) : "");
-  const [minute, setMinute] = useState<string>(parsed ? String(parsed.minute) : "");
-  const [meridiem, setMeridiem] = useState<string>(parsed ? parsed.meridiem : "");
+  const [open, setOpen] = useState(false);
+  const [band, setBand] = useState(() => (value ? bandOf(value) : 0));
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-  // adopt values set elsewhere (derived times, prefills, reset)
+  // reopening lands on the band holding the current answer
   useEffect(() => {
-    const p = to12Hour(value);
-    if (!p) {
-      if (!value) { setHour(""); setMinute(""); setMeridiem(""); }
-      return;
-    }
-    setHour(String(p.hour));
-    setMinute(String(p.minute));
-    setMeridiem(p.meridiem);
-  }, [value]);
+    if (open && value) setBand(bandOf(value));
+  }, [open, value]);
 
-  function emit(h: string, m: string, ap: string) {
-    if (h && m !== "" && ap) {
-      onChange(to24Hour({ hour: +h, minute: +m, meridiem: ap as "AM" | "PM" }));
-    } else {
-      onChange(""); // partial is never a value
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: PointerEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) gridRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
+  }, [open, band]);
+
+  function close(restoreFocus = true) {
+    setOpen(false);
+    if (restoreFocus) triggerRef.current?.focus();
+  }
+
+  function commit(hhmm: string) {
+    onChange(hhmm);
+    close();
+  }
+
+  const slots = useMemo(() => slotsOfBand(band), [band]);
+  // one stop in the tab order, arrows move within — 96 tab stops is not a grid
+  const roving = value && slots.includes(value) ? value : slots[0];
+
+  function onGridKey(e: React.KeyboardEvent) {
+    const cols = 4;
+    const i = slots.indexOf(roving);
+    const to =
+      e.key === "ArrowRight" ? i + 1 :
+      e.key === "ArrowLeft" ? i - 1 :
+      e.key === "ArrowDown" ? i + cols :
+      e.key === "ArrowUp" ? i - cols : -1;
+    if (to < 0 || to >= slots.length) return;
+    e.preventDefault();
+    const el = gridRef.current?.querySelector<HTMLElement>(`[data-t="${slots[to]}"]`);
+    el?.focus();
+    el?.setAttribute("tabindex", "0");
   }
 
   const zoneId = `${uid}-zone`;
   const description = [describedBy, hideZone ? null : zoneId].filter(Boolean).join(" ") || undefined;
+  const offGrid = !!value && !SLOTS.includes(value);
 
   return (
-    <div className="timefield">
+    <div className="timefield" ref={wrapRef}>
       <span className="dtf-label" id={`${uid}-label`}>{label}</span>
-      <div
-        className={`tmf-row${invalid ? " invalid" : ""}`}
-        role="group"
-        aria-labelledby={`${uid}-label`}
+      <button
+        id={id}
+        ref={triggerRef}
+        type="button"
+        className={`dtf-trigger${value ? "" : " empty"}${invalid ? " invalid" : ""}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-labelledby={`${uid}-label ${uid}-val`}
+        aria-invalid={invalid || undefined}
         aria-describedby={description}
+        onClick={() => setOpen((o) => !o)}
       >
-        <select
-          id={id}
-          className="tmf-sel"
-          aria-label={`${label} — hour`}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          value={hour}
-          onChange={(e) => { setHour(e.target.value); emit(e.target.value, minute, meridiem); }}
+        <span id={`${uid}-val`}>{value ? formatTime(value) : placeholder}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className="dtf-pop tmf-pop"
+          role="dialog"
+          aria-label={label}
+          onKeyDown={(e) => {
+            // preventDefault marks it handled, which is how the booking
+            // overlay knows not to treat this Escape as "close the flow"
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            close();
+          }}
         >
-          <option value="">Hr</option>
-          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
-        </select>
-        <span className="tmf-colon" aria-hidden="true">:</span>
-        <select
-          className="tmf-sel"
-          aria-label={`${label} — minute`}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          value={minute}
-          onChange={(e) => { setMinute(e.target.value); emit(hour, e.target.value, meridiem); }}
-        >
-          <option value="">Min</option>
-          {MINUTES.map((m) => (
-            <option key={m} value={m}>{String(m).padStart(2, "0")}</option>
-          ))}
-        </select>
-        <select
-          className="tmf-sel tmf-ap"
-          aria-label={`${label} — AM or PM`}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          value={meridiem}
-          onChange={(e) => { setMeridiem(e.target.value); emit(hour, minute, e.target.value); }}
-        >
-          <option value="">--</option>
-          <option value="AM">AM</option>
-          <option value="PM">PM</option>
-        </select>
-      </div>
-      {!hideZone && (
-        <span className="tmf-zone" id={zoneId}>{ARUBA_TZ_LABEL}</span>
+          <div className="tmf-bands" role="tablist" aria-label="Part of day">
+            {BANDS.map((b, i) => (
+              <button
+                key={b.label}
+                type="button"
+                role="tab"
+                aria-selected={band === i}
+                className={band === i ? "on" : ""}
+                onClick={() => setBand(i)}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="tmf-grid" ref={gridRef} role="group" aria-label={`${BANDS[band].label} times`} onKeyDown={onGridKey}>
+            {slots.map((s) => (
+              <button
+                key={s}
+                type="button"
+                data-t={s}
+                tabIndex={s === roving ? 0 : -1}
+                aria-pressed={s === value}
+                className={s === value ? "on" : ""}
+                onClick={() => commit(s)}
+              >
+                {formatTime(s)}
+              </button>
+            ))}
+          </div>
+
+          <div className="tmf-exact">
+            <label htmlFor={`${uid}-exact`}>
+              Exact time <span className="soft">— to the minute</span>
+            </label>
+            <input
+              id={`${uid}-exact`}
+              type="time"
+              step={60}
+              value={isHhmm(value) ? value : ""}
+              onChange={(e) => { if (e.target.value) onChange(e.target.value); }}
+            />
+          </div>
+        </div>
       )}
+
+      {offGrid && !open && <span className="tmf-exactly">to the minute</span>}
+      {!hideZone && <span className="tmf-zone" id={zoneId}>{ARUBA_TZ_LABEL}</span>}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import PlaceCombobox from "./PlaceCombobox";
 import DateField from "./DateField";
+import TimeField from "./TimeField";
 import { todayInAruba } from "../../lib/datetime";
 import { VEHICLES, fitsParty, type Vehicle } from "../../data/vehicles";
 import { loadPricing, type Pricing } from "../../lib/pricing";
@@ -120,6 +121,18 @@ export default function QuoteCard() {
             value={state.date}
             min={todayInAruba()}
             onChange={(iso) => setField("date", iso)}
+          />
+        </div>
+        {/* Asked here so step 1 opens answered. An airport run derives its
+            pickup from the flight instead, so the overlay overrides this. */}
+        <div className="qfld">
+          <TimeField
+            id="q-time"
+            label="Time"
+            value={state.pickupTime}
+            onChange={(t) => setField("pickupTime", t)}
+            placeholder="Pick up"
+            hideZone
           />
         </div>
         <div className="qfld">

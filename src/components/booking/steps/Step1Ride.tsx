@@ -8,6 +8,7 @@ import DateField from "../DateField";
 import TimeField from "../TimeField";
 import FieldError from "../FieldError";
 import Stepper from "../../Stepper";
+import RouteMap from "../RouteMap";
 import { formatDate, formatTime, todayInAruba } from "../../../lib/datetime";
 import { VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
@@ -134,7 +135,7 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
         <p className="psub">{heading.sub}</p>
       </div>
 
-      <div className="pcols">
+      <div className="pcols pcols-3">
       <div className="pcol">
       <PlaceCombobox label="Pick up" value={state.from} onSelect={(s) => setField("from", s)} inputRef={fromInput}
         invalid={!!err("from")} describedBy={errId("from")} />
@@ -353,8 +354,13 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
         })}
       </div>
 
-      {/* the fare, flat under the cars it belongs to */}
-      {foot}
+      </div>
+
+      {/* Where it goes and what it costs, in one rail — the two things a
+          traveller re-reads before committing. */}
+      <div className="pcol pcol-rail">
+        <RouteMap from={state.from} to={state.to} minutes={selQuote?.minutes ?? null} />
+        {foot}
       </div>
       </div>
     </div>

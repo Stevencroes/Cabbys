@@ -61,6 +61,16 @@ function Opener() {
   );
 }
 
+/**
+ * The time picker is one trigger over a popover now. A flight lands at
+ * 14:05, which is not a quarter hour, so these go through the exact row —
+ * the reason that row exists.
+ */
+function setExactTime(triggerName: RegExp, hhmm: string) {
+  fireEvent.click(screen.getByRole("button", { name: triggerName }));
+  fireEvent.change(screen.getByLabelText(/exact time/i), { target: { value: hhmm } });
+}
+
 describe("BookingOverlay — the two-step booking", () => {
   it("books a guest ride end to end in reserve mode", async () => {
     const onConfirmed = vi.fn();
@@ -76,9 +86,7 @@ describe("BookingOverlay — the two-step booking", () => {
     expect(screen.getByText(/Landing in/)).toBeInTheDocument();
     // the time picker is three explicit controls — no 24h guessing, and a
     // partial selection can never reach state
-    fireEvent.change(screen.getByLabelText(/flight lands at — hour/i), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText(/flight lands at — minute/i), { target: { value: "5" } });
-    fireEvent.change(screen.getByLabelText(/flight lands at — AM or PM/i), { target: { value: "PM" } });
+    setExactTime(/flight lands at/i, "14:05");
     // the derived moment that sells the service
     expect(await screen.findByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
 
@@ -117,9 +125,7 @@ describe("BookingOverlay — the two-step booking", () => {
         </BookingProvider>,
       );
       fireEvent.click(screen.getByText("launch"));
-      fireEvent.change(screen.getByLabelText(/flight lands at — hour/i), { target: { value: "2" } });
-      fireEvent.change(screen.getByLabelText(/flight lands at — minute/i), { target: { value: "5" } });
-      fireEvent.change(screen.getByLabelText(/flight lands at — AM or PM/i), { target: { value: "PM" } });
+      setExactTime(/flight lands at/i, "14:05");
       fireEvent.click(screen.getByRole("button", { name: /your details/i }));
 
       expect(await screen.findByLabelText(/name for the driver's sign/i)).toHaveValue("Greta Croes");
@@ -132,6 +138,23 @@ describe("BookingOverlay — the two-step booking", () => {
     } finally {
       auth.account = null;
     }
+  });
+
+  it("lets Escape close a picker without closing the whole booking", () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
+    expect(screen.getByRole("dialog", { name: /flight lands at/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole("dialog", { name: /flight lands at/i }), { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: /flight lands at/i })).toBeNull();
+    // the ride survives the dismissal
+    expect(screen.getByRole("button", { name: /flight lands at/i })).toBeInTheDocument();
   });
 
   it("puts the reason under the field it belongs to, wired for a screen reader (Phase 4)", () => {
@@ -171,17 +194,18 @@ describe("BookingOverlay — the two-step booking", () => {
     // Blocked on an empty landing time — three controls, none of them set.
     fireEvent.click(screen.getByRole("button", { name: /your details/i }));
     expect(screen.getByRole("alert")).toHaveTextContent(/when does your flight land/i);
-    expect(screen.getByLabelText(/flight lands at — hour/i)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: /flight lands at/i })).toHaveAttribute("aria-invalid", "true");
 
     // Fill all three. The confirmation copy proves the value is valid, so the
     // red outline and the sentence under it have stopped being true.
-    fireEvent.change(screen.getByLabelText(/flight lands at — hour/i), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText(/flight lands at — minute/i), { target: { value: "0" } });
-    fireEvent.change(screen.getByLabelText(/flight lands at — AM or PM/i), { target: { value: "PM" } });
+    // 2 PM is on the quarter-hour grid: pick the band, tap the time
+    fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /afternoon/i }));
+    fireEvent.click(screen.getByRole("button", { name: "2:00 PM" }));
 
     expect(await screen.findByText(/Your driver waits from 2:30 PM/)).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(screen.getByLabelText(/flight lands at — hour/i)).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByRole("button", { name: /flight lands at/i })).not.toHaveAttribute("aria-invalid");
   });
 
   it("refuses a return date that precedes the outbound date (Phase 4)", () => {
