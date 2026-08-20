@@ -198,10 +198,9 @@ describe("BookingOverlay — the two-step booking", () => {
 
     // Fill all three. The confirmation copy proves the value is valid, so the
     // red outline and the sentence under it have stopped being true.
-    // 2 PM is on the quarter-hour grid: pick the band, tap the time
+    // 2 PM is on the quarter-hour list: open it and tap the time
     fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /afternoon/i }));
-    fireEvent.click(screen.getByRole("button", { name: "2:00 PM" }));
+    fireEvent.click(screen.getByRole("option", { name: "2:00 PM" }));
 
     expect(await screen.findByText(/Your driver waits from 2:30 PM/)).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());

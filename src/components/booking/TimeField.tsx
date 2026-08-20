@@ -2,17 +2,22 @@
 //
 // It used to be three selects — hour, minute, AM/PM — which is three
 // decisions for one answer, and the minute list ran to sixty options.
-// Now it is one trigger that opens a grid of quarter-hours: one tap for
-// the times people actually book.
+// Then it was a grid split into bands. Now it is what people already know
+// from every other booking site: one column of quarter-hours you scroll.
+//
+// The list runs in plain chronological order, midnight to a quarter to
+// midnight, because a scroller only reads as a clock if it moves like one.
+// Opening scrolls straight to the current answer, so the scroll is a nudge
+// rather than a journey.
 //
 // The exact-time row underneath is not a nicety. A flight lands at 2:35,
 // never at 2:30, so any picker that only offers the quarter-hours would
 // make the arrival time wrong — and the whole pickup is derived from it.
 //
-// A partial answer still cannot escape: the grid emits whole times, and
+// A partial answer still cannot escape: the list emits whole times, and
 // the exact input emits "" until the browser has a complete one, which is
 // what the step validators already refuse to advance on.
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ARUBA_TZ_LABEL, formatTime, isHhmm } from "../../lib/datetime";
 
 interface TimeFieldProps {
@@ -30,34 +35,27 @@ interface TimeFieldProps {
 const STEP_MINUTES = 15;
 const SLOTS_PER_HOUR = 60 / STEP_MINUTES;
 
-/** Every quarter hour of the day, as "HH:MM". */
+/** Every quarter hour of the day, as "HH:MM", in the order a clock runs. */
 const SLOTS: string[] = Array.from({ length: 24 * SLOTS_PER_HOUR }, (_, i) => {
   const h = Math.floor(i / SLOTS_PER_HOUR);
   const m = (i % SLOTS_PER_HOUR) * STEP_MINUTES;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 });
 
-const BANDS = [
-  { label: "Morning", from: 5, to: 12 },
-  { label: "Afternoon", from: 12, to: 17 },
-  { label: "Evening", from: 17, to: 22 },
-  { label: "Overnight", from: 22, to: 29 },   // wraps past midnight
-] as const;
+/**
+ * Where an empty picker opens. Not midnight: nobody scrolls up from 12 AM
+ * by choice, and a list that opens on the small hours makes the common
+ * answer the furthest away.
+ */
+const DEFAULT_ANCHOR = "08:00";
 
-/** Which band a time belongs to, counting 00:00–04:45 as the small hours. */
-function bandOf(hhmm: string): number {
-  const h = Number(hhmm.slice(0, 2));
-  const wrapped = h < 5 ? h + 24 : h;
-  const i = BANDS.findIndex((b) => wrapped >= b.from && wrapped < b.to);
-  return i === -1 ? 0 : i;
-}
-
-function slotsOfBand(i: number): string[] {
-  return SLOTS.filter((s) => bandOf(s) === i).sort((a, b) => {
-    // overnight runs 22:00 → 04:45, so sort it by the wrapped hour
-    const w = (t: string) => (Number(t.slice(0, 2)) < 5 ? Number(t.slice(0, 2)) + 24 : Number(t.slice(0, 2))) * 60 + Number(t.slice(3));
-    return w(a) - w(b);
-  });
+/** The slot the list should sit on — the answer, or the nearest one below it. */
+function anchorOf(value: string): string {
+  if (!value) return DEFAULT_ANCHOR;
+  if (SLOTS.includes(value)) return value;
+  // an exact time like 14:35 belongs beside 14:30
+  const floor = value.slice(0, 3) + String(Math.floor(Number(value.slice(3)) / STEP_MINUTES) * STEP_MINUTES).padStart(2, "0");
+  return SLOTS.includes(floor) ? floor : DEFAULT_ANCHOR;
 }
 
 export default function TimeField({
@@ -65,15 +63,9 @@ export default function TimeField({
 }: TimeFieldProps) {
   const uid = useId();
   const [open, setOpen] = useState(false);
-  const [band, setBand] = useState(() => (value ? bandOf(value) : 0));
   const wrapRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  // reopening lands on the band holding the current answer
-  useEffect(() => {
-    if (open && value) setBand(bandOf(value));
-  }, [open, value]);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -84,9 +76,22 @@ export default function TimeField({
     return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
-  useEffect(() => {
-    if (open) gridRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
-  }, [open, band]);
+  // Centre the answer before paint, then take focus without letting the
+  // browser scroll it to an edge — focus() alone lands the row flush against
+  // the top or bottom of the scroller, which hides the times either side of
+  // it and loses the whole point of a list you read around your choice.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const list = listRef.current;
+    const row = list?.querySelector<HTMLElement>(`[data-t="${anchorOf(value)}"]`);
+    if (list && row) {
+      list.scrollTop = row.offsetTop - list.clientHeight / 2 + row.clientHeight / 2;
+    }
+    row?.focus({ preventScroll: true });
+    // deliberately on open only: re-centring on every pick would yank the
+    // list under the pointer between two adjacent times
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function close(restoreFocus = true) {
     setOpen(false);
@@ -98,21 +103,21 @@ export default function TimeField({
     close();
   }
 
-  const slots = useMemo(() => slotsOfBand(band), [band]);
-  // one stop in the tab order, arrows move within — 96 tab stops is not a grid
-  const roving = value && slots.includes(value) ? value : slots[0];
+  // one stop in the tab order, arrows move within — 96 tab stops is not a list
+  const roving = anchorOf(value);
 
-  function onGridKey(e: React.KeyboardEvent) {
-    const cols = 4;
-    const i = slots.indexOf(roving);
+  function onListKey(e: React.KeyboardEvent) {
+    const i = SLOTS.indexOf(roving);
     const to =
-      e.key === "ArrowRight" ? i + 1 :
-      e.key === "ArrowLeft" ? i - 1 :
-      e.key === "ArrowDown" ? i + cols :
-      e.key === "ArrowUp" ? i - cols : -1;
-    if (to < 0 || to >= slots.length) return;
+      e.key === "ArrowDown" ? i + 1 :
+      e.key === "ArrowUp" ? i - 1 :
+      e.key === "PageDown" ? Math.min(i + SLOTS_PER_HOUR * 3, SLOTS.length - 1) :
+      e.key === "PageUp" ? Math.max(i - SLOTS_PER_HOUR * 3, 0) :
+      e.key === "Home" ? 0 :
+      e.key === "End" ? SLOTS.length - 1 : -1;
+    if (to < 0 || to >= SLOTS.length || to === i) return;
     e.preventDefault();
-    const el = gridRef.current?.querySelector<HTMLElement>(`[data-t="${slots[to]}"]`);
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-t="${SLOTS[to]}"]`);
     el?.focus();
     el?.setAttribute("tabindex", "0");
   }
@@ -156,29 +161,21 @@ export default function TimeField({
             close();
           }}
         >
-          <div className="tmf-bands" role="tablist" aria-label="Part of day">
-            {BANDS.map((b, i) => (
-              <button
-                key={b.label}
-                type="button"
-                role="tab"
-                aria-selected={band === i}
-                className={band === i ? "on" : ""}
-                onClick={() => setBand(i)}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="tmf-grid" ref={gridRef} role="group" aria-label={`${BANDS[band].label} times`} onKeyDown={onGridKey}>
-            {slots.map((s) => (
+          <div
+            className="tmf-list"
+            ref={listRef}
+            role="listbox"
+            aria-label={`${label} — every 15 minutes`}
+            onKeyDown={onListKey}
+          >
+            {SLOTS.map((s) => (
               <button
                 key={s}
                 type="button"
+                role="option"
                 data-t={s}
                 tabIndex={s === roving ? 0 : -1}
-                aria-pressed={s === value}
+                aria-selected={s === value}
                 className={s === value ? "on" : ""}
                 onClick={() => commit(s)}
               >

@@ -193,20 +193,28 @@ h2.sec em{font-style:italic;}
 /* ── time picker ── one tap for a quarter hour, exact when a flight needs it */
 .timefield{position:relative;}
 .tmf-pop{min-width:324px;padding:12px;}
-.tmf-bands{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-bottom:10px;
-  background:var(--raised);border-radius:var(--r-pill);padding:3px;}
-.tmf-bands button{min-height:34px;border:none;background:transparent;color:var(--muted);
-  border-radius:var(--r-pill);font-size:10px;font-weight:600;letter-spacing:.03em;
-  text-transform:uppercase;transition:.2s var(--ease);white-space:nowrap;}
-.tmf-bands button:hover{color:var(--ink);}
-.tmf-bands button.on{background:var(--sheen);color:var(--on-sheen);}
-.tmf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
-  max-height:212px;overflow-y:auto;padding-right:2px;}
-.tmf-grid button{min-height:38px;border:1px solid transparent;background:var(--raised);
-  color:var(--silver);border-radius:var(--r-xs);font-size:12px;font-weight:500;
-  white-space:nowrap;transition:.15s var(--ease);}
-.tmf-grid button:hover{background:var(--surface);color:var(--ink);border-color:var(--line);}
-.tmf-grid button.on{background:var(--sheen);color:var(--on-sheen);border-color:transparent;font-weight:600;}
+/* One column you scroll, the way every other booking site does it. The
+   fades top and bottom say "there is more above and below" without a
+   scrollbar having to say it. */
+.tmf-list{position:relative;display:flex;flex-direction:column;gap:2px;
+  max-height:266px;overflow-y:auto;overscroll-behavior:contain;padding-right:2px;
+  scrollbar-width:thin;scrollbar-color:var(--soft) transparent;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);}
+.tmf-list::-webkit-scrollbar{width:6px;}
+.tmf-list::-webkit-scrollbar-thumb{background:var(--soft);border-radius:3px;}
+.tmf-list::-webkit-scrollbar-track{background:transparent;}
+.tmf-list button{flex:none;min-height:40px;border:1px solid transparent;background:transparent;
+  color:var(--silver);border-radius:var(--r-xs);font-size:14px;font-weight:500;
+  letter-spacing:.02em;white-space:nowrap;transition:.14s var(--ease);
+  /* ranged left: a column of times is a list to read down, and centring
+     them makes every row a different width to scan across */
+  text-align:left;padding:0 12px;
+  /* tabular figures so 11:45 and 1:00 sit on the same rails */
+  font-variant-numeric:tabular-nums;}
+.tmf-list button:hover{background:var(--raised);color:var(--ink);}
+.tmf-list button:focus-visible{outline:none;background:var(--raised);color:var(--ink);border-color:var(--silver);}
+.tmf-list button.on{background:var(--sheen);color:var(--on-sheen);border-color:transparent;font-weight:600;}
 .tmf-exact{display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin-top:12px;padding-top:11px;border-top:1px solid var(--line);}
 .tmf-exact label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
