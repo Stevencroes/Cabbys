@@ -59,6 +59,23 @@ the bundle still asks for a token Mapbox no longer recognises.
 Rotate in this order: create the new token, set it in Vercel, redeploy,
 confirm real tiles, *then* delete the old one.
 
+### A map that appears and then vanishes
+
+Mapbox GL reports everything through one `error` event — a refused token, a
+tile that 404s, a glyph range, a telemetry beacon an ad blocker declined.
+`LiveMap` used to treat all of them as fatal, so a map that had drawn
+correctly was torn down a second or two later by something harmless.
+
+Two rules now, in `LiveMap`'s error handler:
+
+- **After `load`, nothing is fatal.** A drawn map stays drawn; the error is
+  logged and ignored.
+- **Before `load`, only `isFatal()` counts** — a 401/403, or a message about
+  the token or the style. Anything else is worth waiting through, and
+  waiting already looks like the sketch.
+
+If a map ever disappears again, that handler is the first place to look.
+
 ### Telling the three failures apart
 
 All of them end at the same sketch, on purpose. The reason goes to the

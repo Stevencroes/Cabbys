@@ -35,6 +35,10 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
   const mapRef = useRef<MapboxMap | null>(null);
   const [ready, setReady] = useState(false);
   const [dead, setDead] = useState(false);
+  // A ref, not the `ready` state: the error handler is registered once and
+  // closes over whatever it can see at that moment, which would be false
+  // forever.
+  const loadedRef = useRef(false);
   const [line, setLine] = useState<RouteLine | null>(null);
 
   const a = coordOf(from);
@@ -78,9 +82,33 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
           cooperativeGestures: true,
         });
         created.addControl(new gl.NavigationControl({ showCompass: false }), "bottom-right");
-        created.on("load", () => { if (!cancelled) setReady(true); });
+        created.on("load", () => {
+          loadedRef.current = true;
+          if (!cancelled) setReady(true);
+        });
         created.on("error", (e) => {
           const err = (e as { error?: { status?: number; message?: string } }).error;
+
+          // A map that has already drawn stays drawn. GL reports plenty of
+          // things through this one event that are not fatal — a tile that
+          // 404s, a glyph range, a telemetry beacon an ad blocker refused —
+          // and treating any of them as fatal tears down a working map a
+          // second or two after it appears. Log it and carry on.
+          if (loadedRef.current) {
+            console.warn("[map] non-fatal Mapbox error, map kept:", err?.message ?? err);
+            return;
+          }
+
+          // Before the first load there is nothing to keep, but that is not
+          // a reason to give up on anything that goes wrong: only a refused
+          // token or a style that will not load makes a map impossible.
+          // Anything else — a slow tile, one glyph range — is worth waiting
+          // through, and waiting looks like the sketch, which is what would
+          // be on screen anyway.
+          if (!isFatal(err)) {
+            console.warn("[map] Mapbox error before load, still waiting:", err?.message ?? err);
+            return;
+          }
           reportMapboxFailure("gl", err?.status, err?.message);
           if (!cancelled) setDead(true);
         });
@@ -93,6 +121,7 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
 
     return () => {
       cancelled = true;
+      loadedRef.current = false;
       created?.remove();
       if (mapRef.current === created) mapRef.current = null;
     };
@@ -164,6 +193,18 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
       {ready && minutes ? <span className="lmap-dur">{minutes} min drive</span> : null}
     </div>
   );
+}
+
+/**
+ * Whether a Mapbox error means no map can be drawn at all.
+ *
+ * GL reports everything through one `error` event, so the question is not
+ * "did something fail" but "did the thing that fails everything fail". A
+ * refused token and a style that will not load are that; a tile is not.
+ */
+export function isFatal(err?: { status?: number; message?: string }): boolean {
+  if (err?.status === 401 || err?.status === 403) return true;
+  return /token|unauthorized|forbidden|style/i.test(err?.message ?? "");
 }
 
 /** Markers live outside React — one list per map instance. */
