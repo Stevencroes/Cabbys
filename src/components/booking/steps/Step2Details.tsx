@@ -255,7 +255,6 @@ export default function Step2Details({
   return (
     <div className="panel">
       <div className="phead">
-        <div className="pkick">Step 02 · Your details</div>
         <h2>Confirm and <em>you're set.</em></h2>
       </div>
 

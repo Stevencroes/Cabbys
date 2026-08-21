@@ -14,6 +14,15 @@ import type { ConfirmedBooking } from "../../booking/types";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
+/** The steps, in order. The header row and the progress fill are both
+    derived from this, so adding a third step needs no edits here. */
+const STEPS = ["The ride", "Your details"] as const;
+
+/** "Step two of two" reads; "Step 2/2" is a receipt. Falls back to the
+    numeral past the point where spelling it out helps anyone. */
+const WORDS = ["", "one", "two", "three", "four", "five", "six"] as const;
+const word = (n: number) => WORDS[n] ?? String(n);
+
 interface BookingOverlayProps {
   onConfirmed?: (booking: ConfirmedBooking) => void;
 }
@@ -163,17 +172,25 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
 
   return (
     <div className="book open" role="dialog" aria-modal="true" aria-label="Book your transfer" ref={bookRef}>
-      <div className="bhead">
-        <div className="wrap">
-          <span className="brand">Cabby<span className="ap">'</span>s</span>
-          <button type="button" className="bclose" aria-label="Close" onClick={() => history.back()}>✕</button>
-        </div>
+      {/* The whole step indicator: a line that grows. Not a control, so it
+          is not focusable and carries no role — the header text beside it
+          says the same thing to a screen reader. */}
+      <div className="bprog" aria-hidden="true">
+        <span className="bprog-fill" style={{ width: `${(state.step / STEPS.length) * 100}%` }} />
       </div>
 
-      <div className="bsteps">
-        <div className="wrap">
-          <div className={`pip${state.step === 1 ? " active" : " done"}`}><span className="pn">01</span><span className="pt">The ride</span></div>
-          <div className={`pip${state.step === 2 ? " active" : ""}`}><span className="pn">02</span><span className="pt">Your details</span></div>
+      <div className="bhead">
+        {/* full bleed for the hairline, the site rail's container for the
+            contents — the wordmark must not move when the modal opens */}
+        <div className="bhead-inner">
+        <span className="brand">Cabby<span className="ap">'</span>s</span>
+        <p className="bstep" role="status">
+          Step <span className="bstep-n">{word(state.step)}</span> of {word(STEPS.length)}
+          {" · "}{STEPS[state.step - 1]}
+        </p>
+        <button type="button" className="bclose" aria-label="Close" onClick={() => history.back()}>
+          Close <span aria-hidden="true">✕</span>
+        </button>
         </div>
       </div>
 

@@ -140,6 +140,46 @@ describe("BookingOverlay — the two-step booking", () => {
     }
   });
 
+  it("names the step in words and fills the line to match", async () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+
+    // the numeral is its own span, so read the row rather than a text node
+    const label = () => document.querySelector(".bstep")!;
+    expect(label()).toHaveTextContent("Step one of two · The ride");
+    // the fill is derived from the step, not hardcoded
+    expect(document.querySelector<HTMLElement>(".bprog-fill")!.style.width).toBe("50%");
+
+    setExactTime(/flight lands at/i, "14:05");
+    fireEvent.click(screen.getByRole("button", { name: /your details/i }));
+
+    await waitFor(() =>
+      expect(label()).toHaveTextContent("Step two of two · Your details"),
+    );
+    expect(document.querySelector<HTMLElement>(".bprog-fill")!.style.width).toBe("100%");
+  });
+
+  it("keeps the step indicator a status rather than a control", () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    // the old two-tab header offered something that looked pressable
+    expect(screen.queryByRole("tab")).toBeNull();
+    expect(document.querySelector(".bprog")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("status")).toHaveClass("bstep");
+    // and the way out is still the same handler, still named Close
+    expect(screen.getByRole("button", { name: /^close$/i })).toBeInTheDocument();
+  });
+
   it("lets Escape close a picker without closing the whole booking", () => {
     render(
       <BookingProvider>
