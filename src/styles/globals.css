@@ -740,7 +740,7 @@ h2.sec em{font-style:italic;}
 .notice{border:1px solid var(--line);background:var(--raised);padding:12px 15px;margin:0 0 14px;font-size:13.5px;line-height:1.6;font-weight:400;color:var(--ink);}
 
 /* vehicles — real radio group */
-.vopt{display:flex;align-items:center;gap:14px;width:100%;background:var(--raised);border:1px solid var(--line);
+.vopt{display:flex;align-items:center;gap:12px;width:100%;background:var(--raised);border:1px solid var(--line);
   padding:11px 15px;text-align:left;margin-bottom:8px;transition:all .3s var(--ease);color:var(--ink);}
 .vopt:hover:not(.unfit){background:var(--surface);transform:translateY(-2px);}
 .vopt.sel{background:var(--surface);border-color:var(--silver);}
@@ -748,12 +748,21 @@ h2.sec em{font-style:italic;}
 .vopt.unfit{border-style:dashed;opacity:.5;cursor:not-allowed;background:transparent;}
 .vopt .vd{width:15px;height:15px;border-radius:50%;border:1.5px solid currentColor;flex:none;position:relative;}
 .vopt.sel .vd::after{content:"";position:absolute;inset:2.5px;border-radius:50%;background:var(--silver);}
+/* the car's portrait — cut-out PNG, no plate behind it. Fixed box so all
+   four rows line their names up whatever the shot's aspect ratio is. */
+.vopt .vthumb{flex:none;width:78px;height:46px;display:flex;align-items:center;justify-content:center;}
+.vopt .vthumb img{max-width:100%;max-height:100%;object-fit:contain;display:block;
+  filter:drop-shadow(0 5px 10px rgba(0,0,0,.5));transition:transform .3s var(--ease);}
+.vopt:hover:not(.unfit) .vthumb img{transform:scale(1.05);}
+.vopt.unfit .vthumb img{filter:grayscale(1);}
 .vopt .vmain{flex:1;min-width:0;}
 .vopt .vn{display:block;font-family:var(--serif);font-size:17px;font-weight:500;line-height:1.05;}
 .vopt .vm{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;}
 .vopt .vs{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--silver);margin-top:4px;font-weight:600;}
 .vopt .vp{font-family:var(--serif);font-size:20px;font-weight:600;white-space:nowrap;}
-@media(max-width:380px){.vopt{padding:14px 14px;gap:11px;}.vopt .vn{font-size:19px;}.vopt .vp{font-size:21px;}}
+@media(max-width:560px){.vopt .vthumb{width:64px;height:40px;}}
+@media(max-width:380px){.vopt{padding:14px 14px;gap:10px;}.vopt .vn{font-size:19px;}.vopt .vp{font-size:21px;}
+  .vopt .vthumb{width:56px;height:36px;}}
 
 /* review */
 .review{border:1px solid var(--line);margin-bottom:18px;background:var(--surface);}

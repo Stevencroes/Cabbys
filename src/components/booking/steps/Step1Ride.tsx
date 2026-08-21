@@ -9,6 +9,7 @@ import TimeField from "../TimeField";
 import FieldError from "../FieldError";
 import Stepper from "../../Stepper";
 import LiveMap from "../LiveMap";
+import VehiclePhoto from "../VehiclePhoto";
 import { formatDate, formatTime, todayInAruba } from "../../../lib/datetime";
 import { VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
@@ -349,9 +350,13 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
               onClick={() => fits && setField("vehicle", v.id)}
             >
               <span className="vd" aria-hidden="true" />
+              <VehiclePhoto vehicle={v} />
               <span className="vmain">
                 <span className="vn">{v.name}</span>
-                <span className="vm">{v.desc} · {v.classLabel.toLowerCase()}</span>
+                {/* the class label lived here until the car had a photo; the
+                    picture says "van" faster than the words did, and the line
+                    now fits on a phone without wrapping */}
+                <span className="vm">{v.desc}</span>
                 <span className="vs">{fits ? `Up to ${v.pax} guests · ${v.bags} bags` : `Seats ${v.pax} · your party doesn't fit`}</span>
               </span>
               {/* return already doubled here — the price cannot move at review */}
