@@ -65,6 +65,43 @@ export function mapDebugOn(): boolean {
   return new URLSearchParams(location.search).has("mapdebug");
 }
 
+/**
+ * A running account of what the map did.
+ *
+ * "It renders and then disappears" is a sequence, and a single reason
+ * string cannot describe a sequence. This keeps the ordered list — created,
+ * loaded, errored, torn down — so the page can show what happened rather
+ * than only what went wrong last.
+ */
+const trace: string[] = [];
+const traceListeners = new Set<() => void>();
+
+export function traceMap(event: string): void {
+  const at = typeof performance !== "undefined" ? Math.round(performance.now()) : 0;
+  trace.push(`${String(at).padStart(5)}ms ${event}`);
+  // long enough for a whole life cycle, short enough to read on a phone
+  if (trace.length > 14) trace.shift();
+  traceListeners.forEach((fn) => fn());
+}
+
+export function mapTrace(): string[] {
+  return trace;
+}
+
+export function onMapTrace(fn: () => void): () => void {
+  traceListeners.add(fn);
+  return () => { traceListeners.delete(fn); };
+}
+
+/** What the bundle knows about itself, for the debug panel. */
+export function buildLine(): string {
+  const id = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "unknown";
+  const tok = mapboxEnabled
+    ? `${MAPBOX_TOKEN.slice(0, 11)}… (${MAPBOX_TOKEN.length} chars)`
+    : "NONE";
+  return `build ${id} · token ${tok}`;
+}
+
 type Listener = (reason: string) => void;
 const listeners = new Set<Listener>();
 let latest = "";

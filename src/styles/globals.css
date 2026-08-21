@@ -265,6 +265,16 @@ h2.sec em{font-style:italic;}
 .lmap .mapboxgl-ctrl-attrib a{color:var(--muted);}
 .lmap .mapboxgl-ctrl-logo{opacity:.7;}
 
+/* ?mapdebug=1 only — the ordered account of what the map did. Sits under
+   whichever branch rendered, so it is visible whether the map is live or
+   the sketch took over. */
+.mtrace{display:flex;flex-direction:column;gap:2px;margin-top:8px;
+  padding:9px 11px;border:1px solid var(--signal-line);border-radius:var(--r-xs);
+  background:rgba(7,13,22,.9);color:var(--silver);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.mtrace b{color:var(--signal-ink);font-weight:600;margin-bottom:3px;}
+
 /* ── step 2 ── the form on one side, the journey on the other ─────── */
 /* Height comes from what is inside, not from here. The sketch fallback
    carries a labelled strip above its canvas and a caption below it, and a
