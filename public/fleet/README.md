@@ -2,12 +2,15 @@
 
 One cut-out PNG per car, keyed by the vehicle id in `src/data/vehicles.ts`:
 
-| file          | car         | class          |
-| ------------- | ----------- | -------------- |
-| `sedan.png`   | The Saloon  | Executive sedan |
-| `premium.png` | The Grand   | First class     |
-| `suv.png`     | The Scout   | Luxury SUV      |
-| `van.png`     | The Voyager | Luxury van      |
+| file          | car         | class           | the car in the shot |
+| ------------- | ----------- | --------------- | ------------------- |
+| `sedan.png`   | The Saloon  | Executive sedan | Ford Fusion         |
+| `premium.png` | The Grand   | First class     | Mercedes S-Class    |
+| `suv.png`     | The Scout   | Luxury SUV      | Lincoln Nautilus    |
+| `van.png`     | The Voyager | Luxury van      | Ford Transit        |
+
+The two sedans are the easy pair to cross: the Mercedes is **The Grand**
+(`premium.png`), the Ford is **The Saloon** (`sedan.png`).
 
 Shoot/source them the same way:
 
