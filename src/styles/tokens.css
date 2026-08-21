@@ -43,8 +43,6 @@
   --alert-line:rgba(207,106,95,.42);
 
   /* ---------- translucent grounds (blurred bars, scrims, rules) ---------- */
-  --pill:rgba(18,29,43,.94);      /* marketing nav pill — opaque enough that a
-                                     serif heading scrolling under it cannot ghost through */
   --nav-deep:rgba(7,13,22,.9);    /* driver bottom nav */
   --scrim:rgba(7,13,22,.72);      /* modal + menu scrims */
   --scrim-heavy:rgba(7,13,22,.94);/* full-screen ride offer */
@@ -60,7 +58,21 @@
   --gutter:clamp(18px,4vw,48px);
   --ease:cubic-bezier(.22,.68,.24,1);
   --tap:46px;                                     /* minimum touch target */
-  --nav-clear:96px;                               /* floating pill bottom (~72px) + breathing room */
+  /* ---------- the nav rail ----------
+     --nav-h is the rail itself; --nav-clear is the rail plus air, and is
+     what anchors scroll to, so a section heading never lands flush against
+     the bar. Two numbers because they answer two different questions.
+     The four colours below sit a half-step off --ink/--muted/--silver on
+     purpose: the rail is translucent over live content, and the global
+     values read a shade hot through it. */
+  --nav-h:70px;
+  --nav-h-sm:60px;
+  --nav-clear:calc(var(--nav-h) + 26px);
+  --nav-ink:#EDF2F7;                              /* wordmark, active link, step number */
+  --nav-dim:#8A98A8;                              /* resting links, step remainder */
+  --nav-underline:#C9D3DF;                        /* link underline, progress fill */
+  --nav-rule:rgba(201,211,223,.13);               /* the hairline, and the progress track */
+  --nav-bg:rgba(7,13,22,.55);                     /* --deep at 55%, behind the blur */
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;

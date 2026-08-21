@@ -19,6 +19,9 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   const { account, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  // The rail is transparent over the top of the hero and earns its ground
+  // once the page has moved. One listener, passive, read-only.
+  const [scrolled, setScrolled] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -34,6 +37,13 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
     setMenu(false);
     avatarRef.current?.focus();
   }
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // body lock + focus management while the sheet is open
   useEffect(() => {
@@ -99,72 +109,75 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   }
 
   return (
-    <nav className="nav">
-      <div className="wrap">
-        <div className="navbar-inner">
-          <Link to="/" className="brand" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</Link>
+    <nav className={`nav${scrolled ? " on" : ""}`}>
+      {/* The bar is full bleed so the hairline reaches both edges; its
+          contents take the hero's own container, or the wordmark lands
+          160px left of the headline on a wide screen. */}
+      <div className="nav-inner">
+      <div className="nav-left">
+        <Link to="/" className="brand" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</Link>
 
-          <div className="nlinks">
-            {LINKS.map((l) => (
-              <Link key={l.href} to={l.href}>{l.label}</Link>
-            ))}
-          </div>
-
-          <div className="nright">
-            {account ? (
-              /* The address is an account detail, not a name — it belongs in
-                 the menu, not across the middle of the bar. */
-              <div className="nacct-wrap">
-                <button
-                  ref={avatarRef}
-                  type="button"
-                  className={`navatar${menu ? " on" : ""}`}
-                  onClick={() => setMenu((m) => !m)}
-                  aria-expanded={menu}
-                  aria-controls="nav-account"
-                  aria-label={`Account — ${name}`}
-                >
-                  <span aria-hidden="true">{initialsOf(account)}</span>
-                </button>
-
-                {menu && (
-                  <div className="nmenu" id="nav-account" ref={menuRef}>
-                    <div className="nm-who">
-                      <span className="nm-name">{name}</span>
-                      {email && <span className="nm-mail">{email}</span>}
-                    </div>
-                    <Link to="/trips" onClick={() => setMenu(false)}>My trips</Link>
-                    <Link to="/profile" onClick={() => setMenu(false)}>Profile</Link>
-                    <button type="button" className="nm-out" onClick={handleSignOut}>
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button type="button" className="nsign" onClick={onSignIn}>Sign in</button>
-            )}
-            <button type="button" className="nbtn" onClick={() => booking?.open()}>
-              Book a transfer
-            </button>
-            {/* below 1040px the links collapse in here — without this,
-                My trips and Sign in are unreachable on a phone */}
-            <button
-              ref={triggerRef}
-              type="button"
-              className={`nburger${open ? " on" : ""}`}
-              aria-label={open ? "Close menu" : "Open menu"}
-              aria-expanded={open}
-              aria-controls="nav-sheet"
-              onClick={() => setOpen((o) => !o)}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                {open ? <path d="M5 5l14 14M19 5L5 19" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
-              </svg>
-            </button>
-          </div>
+        <div className="nlinks">
+          {LINKS.map((l) => (
+            <Link key={l.href} to={l.href}>{l.label}</Link>
+          ))}
         </div>
+      </div>
+
+      <div className="nright">
+        {account ? (
+          /* The address is an account detail, not a name — it belongs in
+             the menu, not across the middle of the bar. */
+          <div className="nacct-wrap">
+            <button
+              ref={avatarRef}
+              type="button"
+              className={`navatar${menu ? " on" : ""}`}
+              onClick={() => setMenu((m) => !m)}
+              aria-expanded={menu}
+              aria-controls="nav-account"
+              aria-label={`Account — ${name}`}
+            >
+              <span aria-hidden="true">{initialsOf(account)}</span>
+            </button>
+
+            {menu && (
+              <div className="nmenu" id="nav-account" ref={menuRef}>
+                <div className="nm-who">
+                  <span className="nm-name">{name}</span>
+                  {email && <span className="nm-mail">{email}</span>}
+                </div>
+                <Link to="/trips" onClick={() => setMenu(false)}>My trips</Link>
+                <Link to="/profile" onClick={() => setMenu(false)}>Profile</Link>
+                <button type="button" className="nm-out" onClick={handleSignOut}>
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button type="button" className="nsign" onClick={onSignIn}>Sign in</button>
+        )}
+        <button type="button" className="nbtn" onClick={() => booking?.open()}>
+          Book a transfer
+        </button>
+        {/* below 1040px the links collapse in here — without this,
+            My trips and Sign in are unreachable on a phone */}
+        <button
+          ref={triggerRef}
+          type="button"
+          className={`nburger${open ? " on" : ""}`}
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          aria-controls="nav-sheet"
+          onClick={() => setOpen((o) => !o)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            {open ? <path d="M5 5l14 14M19 5L5 19" /> : <path d="M3 6h18M3 12h18M3 18h18" />}
+          </svg>
+        </button>
+      </div>
       </div>
 
       {open && (

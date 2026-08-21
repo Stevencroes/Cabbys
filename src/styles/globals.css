@@ -67,36 +67,54 @@ h2.sec em{font-style:italic;}
   .tp-skeleton{animation:none !important;}
 }
 
-/* ============ NAV — the floating pill, returned ============ */
-.nav{position:fixed;top:18px;left:0;right:0;z-index:var(--z-nav);display:flex;justify-content:center;pointer-events:none;padding:0 16px;background:none;border:none;}
-.nav .wrap{max-width:none;width:auto;margin:0;padding:0;pointer-events:auto;}
-/* above the menu scrim, so the close button stays tappable */
-.navbar-inner{position:relative;z-index:var(--z-sheet);display:flex;align-items:center;gap:13px;border-radius:var(--r-pill);
-  background:var(--pill);backdrop-filter:blur(20px) saturate(140%);
-  border:1px solid var(--line);box-shadow:var(--shadow-hard);
-  padding:4px 5px 4px 18px;}
-.brand{font-family:var(--serif);font-weight:500;letter-spacing:.24em;text-transform:uppercase;font-size:14.5px;
-  padding-left:.24em;text-decoration:none;color:var(--ink);white-space:nowrap;}
+/* ============ NAV — an edge rail ============
+   Full bleed, flush to the top, aligned to the hero's own gutter. There is
+   no pill element any more: the hairline does the containing, so the bar
+   reads as the top edge of the page rather than an object floating on it. */
+.nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
+  height:var(--nav-h);
+  background:transparent;border-bottom:1px solid transparent;
+  transition:background .2s linear,border-color .2s linear;}
+/* --maxw and --gutter are exactly what .hero-grid uses, so the wordmark
+   sits over the headline and the CTA over the fare card. Alignment is the
+   point of the rail, so these must never become numbers. */
+/* above the menu scrim, so the burger stays a toggle rather than something
+   the scrim swallows — the pill carried this and it went with it */
+.nav-inner{position:relative;z-index:var(--z-sheet);
+  max-width:var(--maxw);height:100%;margin:0 auto;padding:0 var(--gutter);
+  display:flex;align-items:center;justify-content:space-between;}
+/* over the top of the hero it is only type; past 24px it takes a ground */
+.nav.on{background:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom-color:var(--nav-rule);}
+@media(prefers-reduced-motion:reduce){.nav{transition:none;}}
+.nav-left{display:flex;align-items:center;gap:52px;min-width:0;}
+.brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:16px;
+  padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;}
 .brand .ap{color:var(--silver);}
-.nlinks{display:flex;gap:2px;align-items:center;}
-.nlinks a{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:500;text-decoration:none;color:var(--silver);
-  opacity:.86;transition:.3s;padding:8px 11px;border-radius:var(--r-pill);}
-.nlinks a:hover{opacity:1;color:var(--ink);background:var(--raised);}
-.nright{display:flex;align-items:center;gap:8px;}
-.nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:0 18px;min-height:44px;font-weight:600;
-  font-size:11px;letter-spacing:.13em;text-transform:uppercase;transition:.3s;white-space:nowrap;border-radius:var(--r-pill);}
+.nlinks{display:flex;gap:30px;align-items:center;}
+.nlinks a{font-family:var(--sans);font-weight:300;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color .15s linear;}
+.nlinks a:hover,.nlinks a:focus-visible{color:var(--nav-ink);
+  text-decoration:underline;text-decoration-color:var(--nav-underline);
+  text-decoration-thickness:1px;text-underline-offset:3px;}
+.nright{display:flex;align-items:center;gap:24px;}
+.nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:12px 24px;
+  font-weight:500;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  white-space:nowrap;border-radius:3px;transition:.2s var(--ease);}
 .nbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);}
-.nsign{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--silver);text-decoration:none;
-  min-height:44px;display:inline-flex;align-items:center;padding:0 9px;border-radius:var(--r-pill);}
+.nsign{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--nav-dim);
+  text-decoration:none;display:inline-flex;align-items:center;background:none;border:none;
+  transition:color .15s linear;}
+.nsign:hover{color:var(--nav-ink);}
 /* signed in: a mark, not an address. The bar says "you"; the menu below
    says which account, because the email is a detail and not a name.
    Deliberately unfilled — the CTA is the one silver thing in the bar. */
 /* a circle beside a pill needs its own air, or it reads as part of it */
-.nacct-wrap{position:relative;display:flex;margin-right:4px;}
-.navatar{flex:none;width:34px;height:34px;border-radius:50%;background:transparent;color:var(--silver);
-  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:600;transition:.25s var(--ease);}
-.navatar:hover,.navatar.on{background:var(--raised);color:var(--ink);border-color:var(--silver-deep);}
+.nacct-wrap{position:relative;display:flex;}
+.navatar{flex:none;width:30px;height:30px;border-radius:50%;background:transparent;color:var(--nav-dim);
+  border:1px solid rgba(201,211,223,.24);display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:600;transition:.2s var(--ease);}
+.navatar:hover,.navatar.on{color:var(--nav-ink);border-color:var(--nav-underline);}
 .nmenu{position:absolute;top:calc(100% + 12px);right:0;min-width:236px;z-index:var(--z-sheet);
   display:flex;flex-direction:column;padding:8px;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
@@ -126,11 +144,11 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-out{color:var(--muted);}
 .nav-sheet .sheet-out:hover{color:var(--ink);}
 /* the collapsed menu — everything the desktop pill holds, two taps away */
-.nburger{display:none;align-items:center;justify-content:center;width:44px;height:44px;
-  border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--silver);transition:.25s var(--ease);}
-.nburger:hover,.nburger.on{background:var(--raised);color:var(--ink);}
+.nburger{display:none;align-items:center;justify-content:center;width:30px;height:30px;
+  border:none;background:transparent;color:var(--nav-dim);transition:color .15s linear;}
+.nburger:hover,.nburger.on{color:var(--nav-ink);}
 .nav-scrim{position:fixed;inset:0;z-index:var(--z-nav);background:var(--scrim);}
-.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(18px + 54px + 10px);left:16px;right:16px;
+.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-h-sm) + 10px);left:var(--gutter);right:var(--gutter);
   display:flex;flex-direction:column;padding:10px;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-hard-lg);}
 .nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 18px;
@@ -140,19 +158,20 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
 @media(max-width:1040px){.nlinks{display:none;}.nburger{display:flex;}}
-@media(max-width:660px){.nsign{display:none;}.navbar-inner{padding-left:18px;gap:10px;}}
+@media(max-width:900px){.nav{height:var(--nav-h-sm);}}
+@media(max-width:660px){.nsign{display:none;}.nright{gap:16px;}}
 /* at phone widths the sheet carries the account; the bar keeps brand + CTA */
 @media(max-width:560px){.nacct-wrap{display:none;}}
 /* the bar must still hold brand + CTA + burger at 375px */
 @media(max-width:560px){
-  .navbar-inner{gap:8px;padding:6px 6px 6px 16px;}
-  .brand{font-size:15px;letter-spacing:.24em;}
-  .nbtn{padding:0 14px;font-size:11px;letter-spacing:.08em;}
+  .nright{gap:14px;}
+  .brand{font-size:15px;letter-spacing:.22em;}
+  .nbtn{padding:11px 16px;letter-spacing:.12em;}
 }
 @media(max-width:380px){
-  .navbar-inner{gap:6px;padding-left:12px;}
+  .nright{gap:10px;}
   .brand{font-size:14px;letter-spacing:.16em;}
-  .nbtn{padding:0 10px;letter-spacing:.05em;}
+  .nbtn{padding:10px 12px;letter-spacing:.06em;}
 }
 @media(min-width:1041px){.nav-sheet,.nav-scrim{display:none;}}
 
@@ -353,7 +372,8 @@ h2.sec em{font-style:italic;}
 /* Asymmetric on purpose: the grid centres itself in whatever is left
    between these, so a heavier bottom pad lifts the whole block above
    the optical middle. The phone override below keeps its own values. */
-.hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;padding:104px 0 150px;
+.hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
+  padding:var(--nav-h) 0 150px;
   border-bottom:1px solid var(--line);}
 /* the right column is sized to the card, not to a share of the row —
    a fr split left ~100px of dead air between the two halves */
@@ -361,7 +381,7 @@ h2.sec em{font-style:italic;}
   align-items:center;max-width:var(--maxw);margin:0 auto;width:100%;
   padding:0 var(--gutter);}
 @media(max-width:900px){
-  .hero{padding:102px 0 22px;}
+  .hero{padding:var(--nav-h-sm) 0 22px;}
 }
 .hero-eyebrow{display:flex;align-items:center;gap:12px;color:var(--silver);margin-bottom:18px;}
 .hero-eyebrow .l{height:1px;width:44px;background:var(--silver);}
@@ -597,28 +617,41 @@ h2.sec em{font-style:italic;}
 /* ============ BOOKING MODAL (§3.5) ============ */
 .book{position:fixed;inset:0;z-index:var(--z-modal);background:var(--ground);display:none;flex-direction:column;height:100dvh;}
 .book.open{display:flex;}
-.bhead{flex:none;padding:calc(env(safe-area-inset-top,0px) + 10px) 0 8px;}
-.bhead .wrap{display:flex;align-items:center;justify-content:space-between;}
-.bclose{background:none;border:1px solid var(--line);color:var(--silver);width:var(--tap);height:var(--tap);font-size:15px;transition:.3s;}
-.bclose:hover{background:var(--raised);color:var(--ink);}
-.bsteps{flex:none;padding-bottom:10px;}
-.bsteps .wrap{display:flex;gap:8px;}
-.pip{flex:1;padding:10px 8px;text-align:center;font-weight:600;font-size:12px;letter-spacing:.16em;
-  text-transform:uppercase;color:var(--muted);border:1px solid var(--line);transition:all .35s var(--ease);}
-.pip.active{background:var(--silver);color:var(--deep);border-color:var(--silver);}
-.pip.done{background:var(--raised);color:var(--silver);border-color:var(--line);}
-.pip .pn{opacity:.65;margin-right:6px;}
-@media(max-width:600px){.pip .pt{display:none;}.pip .pn{margin:0;}}
+/* the step indicator, entire: a 2px line across the top edge that grows */
+.bprog{flex:none;height:2px;width:100%;background:var(--nav-rule);}
+.bprog-fill{display:block;height:100%;background:var(--nav-underline);transition:width 400ms ease;}
+@media(prefers-reduced-motion:reduce){.bprog-fill{transition:none;}}
+/* one 72px row: who, where you are, and the way out */
+.bhead{flex:none;height:72px;border-bottom:1px solid var(--nav-rule);}
+/* the modal body's own container, mirrored — .panel widens at 1000 and
+   again at 1180, and the wordmark has to widen with it or the step content
+   runs out past the left of the header. Both values live below, beside the
+   .panel rules that set them, so the two cannot drift apart. */
+.bhead-inner{max-width:620px;height:100%;margin:0 auto;padding:0 var(--gutter);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.bstep{margin:0;font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--nav-dim);font-weight:300;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0;}
+/* the numeral is the part that changes, so it is the part that is lit */
+.bstep-n{color:var(--nav-ink);font-weight:400;}
+.bclose{background:none;border:none;padding:0;color:var(--nav-dim);
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;
+  white-space:nowrap;transition:color .15s linear;}
+.bclose:hover{color:var(--nav-ink);}
+/* on a phone the row keeps the wordmark and the way out; the line carries
+   the progress on its own and the label would have nowhere to sit */
+@media(max-width:600px){.bstep{display:none;}}
 .bbody{flex:1;overflow-y:auto;overscroll-behavior:contain;}
-.panel{max-width:620px;margin:0 auto;padding:clamp(16px,2.4vh,30px) var(--gutter) clamp(32px,5vh,56px);}
-.pkick{font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
+/* 26px plus the heading's own 8px top margin puts it ~34px under the header
+   row — the tabs above used to hold it 90px further down */
+.panel{max-width:620px;margin:0 auto;padding:26px var(--gutter) clamp(32px,5vh,56px);}
 .panel h2{font-family:var(--serif);font-weight:300;font-size:clamp(22px,2.15vw,27px);line-height:1.1;margin:8px 0 6px;letter-spacing:-.01em;}
 .panel h2 em{font-style:italic;color:var(--silver);}
 .psub{font-size:14px;color:var(--muted);font-weight:400;margin-bottom:18px;line-height:1.6;}
 /* wide screens read as two columns, so the step stops being one long ribbon */
 .pcols{display:grid;gap:0;}
 @media(min-width:1000px){
-  .panel{max-width:1120px;}
+  .panel,.bhead-inner{max-width:1120px;}
   .pcols{grid-template-columns:1fr 1fr;gap:0 44px;align-items:start;}
   /* step 1 asks three separate questions — what, which car, and how much.
      Uber and Blacklane both give the last one its own rail, and it is the
@@ -626,7 +659,7 @@ h2.sec em{font-style:italic;}
   .pcols-3{grid-template-columns:1fr 1fr;}
 }
 @media(min-width:1180px){
-  .panel{max-width:1300px;}
+  .panel,.bhead-inner{max-width:1300px;}
   .pcols-3{grid-template-columns:1fr 1fr 356px;gap:0 34px;}
   /* the rail is sticky, so the panel needs no runway under it */
   .panel:has(.pcols-3){padding-bottom:24px;}
@@ -770,8 +803,8 @@ h2.sec em{font-style:italic;}
 @media(max-width:420px){.conf-acts{flex-direction:column;}.conf-acts button,.conf-acts a{width:100%;}}
 
 /* ============ MY TRIPS ============ */
-/* 5rem left 8px between the fixed pill and the page title; --nav-clear is
-   the token that already knows how tall that pill is */
+/* --nav-clear is the rail plus air — the same token anchors scroll to, so a
+   page title clears the bar by the same margin a section heading does */
 .tp-main{min-height:100vh;background:var(--ground);padding:var(--nav-clear) 0 4rem;}
 .tp-wrap{max-width:800px;}
 .tp-title{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,2.7vw,2.1rem);color:var(--ink);letter-spacing:-.01em;}
@@ -977,8 +1010,6 @@ input.txt:focus{outline:none;background:var(--surface);}
 }
 
 /* booking modal */
-.bclose{border-radius:50%;}
-.pip{border-radius:var(--r-pill);}
 .fld input,.fld select{border-radius:var(--r-sm);}
 .qtoggle{border-radius:var(--r-pill);overflow:hidden;}
 .stepper{border-radius:var(--r-pill);overflow:hidden;}

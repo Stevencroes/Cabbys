@@ -135,7 +135,6 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
   return (
     <div className="panel">
       <div className="phead">
-        <div className="pkick">{heading.kick}</div>
         <h2>{heading.h}</h2>
         <p className="psub">{heading.sub}</p>
       </div>
