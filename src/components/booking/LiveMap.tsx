@@ -3,10 +3,9 @@
 // Mapbox GL JS is 523 KB gzipped — more than three times the rest of this
 // app put together — so it is never in the main bundle: the import is
 // dynamic and only fires when a step that shows a map mounts. Until it
-// resolves —
-// and forever, if there is no token — RouteMap renders instead, which is a
-// real map when a token exists and a drawn sketch of Aruba when it does
-// not. Nobody waits on a blank rectangle.
+// resolves — and forever, if there is no token — RouteMap renders instead,
+// which is a real map when a token exists and a drawn sketch of Aruba when
+// it does not. Nobody waits on a blank rectangle.
 import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap } from "mapbox-gl";
 import type { PlaceSel } from "../../data/places";
