@@ -70,11 +70,15 @@ h2.sec em{font-style:italic;}
 /* ============ NAV — an edge rail ============
    Full bleed, flush to the top, aligned to the hero's own gutter. There is
    no pill element any more: the hairline does the containing, so the bar
-   reads as the top edge of the page rather than an object floating on it. */
+   reads as the top edge of the page rather than an object floating on it.
+
+   The ground and the hairline are permanent. They used to fade in past 24px
+   of scroll, which made the rail an effect; an edge is not something a page
+   earns on the way down. No transition on these three properties. */
 .nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
   height:var(--nav-h);
-  background:transparent;border-bottom:1px solid transparent;
-  transition:background .2s linear,border-color .2s linear;}
+  background:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--nav-rule);}
 /* --maxw and --gutter are exactly what .hero-grid uses, so the wordmark
    sits over the headline and the CTA over the fare card. Alignment is the
    point of the rail, so these must never become numbers. */
@@ -83,10 +87,6 @@ h2.sec em{font-style:italic;}
 .nav-inner{position:relative;z-index:var(--z-sheet);
   max-width:var(--maxw);height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;}
-/* over the top of the hero it is only type; past 24px it takes a ground */
-.nav.on{background:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border-bottom-color:var(--nav-rule);}
-@media(prefers-reduced-motion:reduce){.nav{transition:none;}}
 .nav-left{display:flex;align-items:center;gap:52px;min-width:0;}
 .brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:16px;
   padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;}

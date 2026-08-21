@@ -19,9 +19,6 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   const { account, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
-  // The rail is transparent over the top of the hero and earns its ground
-  // once the page has moved. One listener, passive, read-only.
-  const [scrolled, setScrolled] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -37,13 +34,6 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
     setMenu(false);
     avatarRef.current?.focus();
   }
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // body lock + focus management while the sheet is open
   useEffect(() => {
@@ -109,7 +99,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   }
 
   return (
-    <nav className={`nav${scrolled ? " on" : ""}`}>
+    <nav className="nav">
       {/* The bar is full bleed so the hairline reaches both edges; its
           contents take the hero's own container, or the wordmark lands
           160px left of the headline on a wide screen. */}
