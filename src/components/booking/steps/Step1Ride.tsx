@@ -8,7 +8,7 @@ import DateField from "../DateField";
 import TimeField from "../TimeField";
 import FieldError from "../FieldError";
 import Stepper from "../../Stepper";
-import RouteMap from "../RouteMap";
+import LiveMap from "../LiveMap";
 import { formatDate, formatTime, todayInAruba } from "../../../lib/datetime";
 import { VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
@@ -16,6 +16,11 @@ import type { Pricing } from "../../../lib/pricing";
 import { driverWaitsFrom, collectAt, insideMinNotice, MIN_NOTICE_HOURS } from "../../../lib/derivedTime";
 import { CONFIRM_WINDOW_MINUTES } from "../../../lib/policy";
 import { AIRPORT_ID } from "../../../data/places";
+
+/** The rail map's height, mirrored by .pcol-rail .tripmap .lmap in
+    globals.css — change both. Smaller than step 2's because step 1 has to
+    fit a 1280x800 laptop without scrolling, and this rail sets that floor. */
+const MAP_H = 292;
 
 export interface StepProblem {
   /** which control the message belongs under */
@@ -140,12 +145,22 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
       <PlaceCombobox label="Pick up" value={state.from} onSelect={(s) => setField("from", s)} inputRef={fromInput}
         invalid={!!err("from")} describedBy={errId("from")} />
       <FieldError id="err-from" message={err("from")} />
-      <div className="qswap-row">
-        <button type="button" className="qswap" aria-label="Swap pickup and drop-off" onClick={swap}>⇅</button>
-      </div>
       <PlaceCombobox label="Drop off" value={state.to} onSelect={(s) => setField("to", s)} inputRef={toInput}
         invalid={!!err("to")} describedBy={errId("to")} />
       <FieldError id="err-to" message={err("to")} />
+
+      {/* One quiet row for the two answers that are not really questions:
+          a rescue nobody plans to use, and a choice that is one way for
+          almost everyone. Both used to own a labelled block of their own. */}
+      <div className="qquiet ride-quiet">
+        <button type="button" className="qswap" aria-label="Reverse pickup and drop-off" onClick={swap}>
+          <span aria-hidden="true">⇅</span> Reverse
+        </button>
+        <div className="qtoggle qtoggle-sm" role="radiogroup" aria-label="Journey">
+          <button type="button" role="radio" aria-checked={state.journey === "one"} className={state.journey === "one" ? "on" : ""} onClick={() => setField("journey", "one")}>One way</button>
+          <button type="button" role="radio" aria-checked={state.journey === "return"} className={state.journey === "return" ? "on" : ""} onClick={() => setField("journey", "return")}>Return</button>
+        </div>
+      </div>
 
       <div className="frow" style={{ marginTop: 18 }}>
         <div className="fld">
@@ -157,6 +172,7 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
             onChange={(iso) => setField("date", iso)}
             invalid={!!err("date")}
             describedBy={errId("date")}
+            compact
           />
           <FieldError id="err-date" message={err("date")} />
         </div>
@@ -249,14 +265,6 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
         </div>
       )}
 
-      <div className="fld">
-        <label>Journey</label>
-        <div className="qtoggle" role="radiogroup" aria-label="Journey">
-          <button type="button" role="radio" aria-checked={state.journey === "one"} className={state.journey === "one" ? "on" : ""} onClick={() => setField("journey", "one")}>One way</button>
-          <button type="button" role="radio" aria-checked={state.journey === "return"} className={state.journey === "return" ? "on" : ""} onClick={() => setField("journey", "return")}>Bring us back</button>
-        </div>
-      </div>
-
       {state.journey === "return" && (
         <div className="frow">
           <div className="fld">
@@ -269,6 +277,7 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
               onChange={(iso) => setField("returnDate", iso)}
               invalid={!!err("retdate")}
               describedBy={errId("retdate")}
+              compact
             />
             <FieldError id="err-retdate" message={err("retdate")} />
           </div>
@@ -298,7 +307,6 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
       </div>
 
       <div className="pcol">
-      <div className="subh">Guests &amp; bags</div>
       <div className="steppers">
         <div className="stw">
           <label>Guests</label>
@@ -359,7 +367,9 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
       {/* Where it goes and what it costs, in one rail — the two things a
           traveller re-reads before committing. */}
       <div className="pcol pcol-rail">
-        <RouteMap from={state.from} to={state.to} minutes={selQuote?.minutes ?? null} />
+        <div className="tripmap">
+          <LiveMap from={state.from} to={state.to} minutes={selQuote?.minutes ?? null} fallbackHeight={MAP_H} ends />
+        </div>
         {foot}
       </div>
       </div>

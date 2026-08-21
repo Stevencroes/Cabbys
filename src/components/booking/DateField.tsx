@@ -3,8 +3,8 @@
 // American reads as 7 August and a Dutch guest as 7 August only by luck.
 import { useEffect, useId, useRef, useState } from "react";
 import {
-  WEEKDAY_INITIALS, addDays, addMonths, dayOfMonth, formatDate, monthGrid,
-  monthLabel, sameMonth, todayInAruba,
+  WEEKDAY_INITIALS, addDays, addMonths, dayOfMonth, formatDate, formatDateShort,
+  monthGrid, monthLabel, sameMonth, todayInAruba,
 } from "../../lib/datetime";
 
 interface DateFieldProps {
@@ -17,10 +17,13 @@ interface DateFieldProps {
   placeholder?: string;
   describedBy?: string;
   invalid?: boolean;
+  /** drops the year from the trigger — for narrow cards where the full
+      date wraps to two lines. The year is still in the popover. */
+  compact?: boolean;
 }
 
 export default function DateField({
-  id, label, value, onChange, min, placeholder = "Choose a date", describedBy, invalid,
+  id, label, value, onChange, min, placeholder = "Choose a date", describedBy, invalid, compact,
 }: DateFieldProps) {
   const uid = useId();
   const gridId = `${uid}-grid`;
@@ -114,7 +117,7 @@ export default function DateField({
         aria-describedby={describedBy}
         onClick={() => setOpen((o) => !o)}
       >
-        <span>{value ? formatDate(value) : placeholder}</span>
+        <span>{value ? (compact ? formatDateShort(value) : formatDate(value)) : placeholder}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
           <rect x="3" y="5" width="18" height="16" rx="2" />
