@@ -9,7 +9,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap } from "mapbox-gl";
 import type { PlaceSel } from "../../data/places";
-import { MAPBOX_TOKEN, mapboxEnabled, reportMapboxFailure } from "../../lib/mapbox";
+import {
+  MAPBOX_TOKEN, buildLine, mapDebugOn, mapTrace, mapboxEnabled, onMapTrace,
+  reportMapboxFailure, traceMap,
+} from "../../lib/mapbox";
 import RouteMap from "./RouteMap";
 import { coordOf, drivingRoute, type RouteLine } from "../../lib/route";
 
@@ -65,9 +68,14 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
 
     void (async () => {
       try {
+        traceMap("importing mapbox-gl");
         const gl = (await import("mapbox-gl")).default;
         await import("mapbox-gl/dist/mapbox-gl.css");
-        if (cancelled || !holdRef.current) return;
+        if (cancelled || !holdRef.current) {
+          traceMap(cancelled ? "cancelled before construct" : "container gone");
+          return;
+        }
+        traceMap(`constructing map (v${gl.version ?? "?"})`);
         gl.accessToken = MAPBOX_TOKEN as string;
         created = new gl.Map({
           container: holdRef.current,
@@ -84,6 +92,7 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
         created.addControl(new gl.NavigationControl({ showCompass: false }), "bottom-right");
         created.on("load", () => {
           loadedRef.current = true;
+          traceMap("LOADED — tiles are on screen");
           if (!cancelled) setReady(true);
         });
         created.on("error", (e) => {
@@ -95,6 +104,7 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
           // and treating any of them as fatal tears down a working map a
           // second or two after it appears. Log it and carry on.
           if (loadedRef.current) {
+            traceMap(`error after load, KEPT: ${(err?.message ?? "?").slice(0, 60)}`);
             console.warn("[map] non-fatal Mapbox error, map kept:", err?.message ?? err);
             return;
           }
@@ -106,9 +116,11 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
           // through, and waiting looks like the sketch, which is what would
           // be on screen anyway.
           if (!isFatal(err)) {
+            traceMap(`error before load, waiting: ${(err?.message ?? "?").slice(0, 60)}`);
             console.warn("[map] Mapbox error before load, still waiting:", err?.message ?? err);
             return;
           }
+          traceMap(`FATAL ${err?.status ?? ""} ${(err?.message ?? "?").slice(0, 50)}`);
           reportMapboxFailure("gl", err?.status, err?.message);
           if (!cancelled) setDead(true);
         });
@@ -121,6 +133,8 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
 
     return () => {
       cancelled = true;
+      // the one line that would explain a map vanishing without any error
+      if (created) traceMap("TORN DOWN — effect cleanup ran");
       loadedRef.current = false;
       created?.remove();
       if (mapRef.current === created) mapRef.current = null;
@@ -173,7 +187,12 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
 
   // No token, or GL refused to start: the drawn map is the whole answer.
   if (!mapboxEnabled || dead) {
-    return <RouteMap from={from} to={to} minutes={minutes} height={fallbackHeight} />;
+    return (
+      <>
+        <RouteMap from={from} to={to} minutes={minutes} height={fallbackHeight} />
+        <MapTrace note={dead ? "gave up (dead)" : "no token in this build"} />
+      </>
+    );
   }
 
   return (
@@ -191,6 +210,28 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
         </div>
       )}
       {ready && minutes ? <span className="lmap-dur">{minutes} min drive</span> : null}
+      <MapTrace note={ready ? "live" : "waiting for tiles"} />
+    </div>
+  );
+}
+
+/**
+ * Under ?mapdebug=1 only: which build this is, what token it carries, and
+ * the ordered list of everything the map has done. A symptom like "it
+ * renders and then disappears" is a sequence, and this is the sequence.
+ */
+function MapTrace({ note }: { note: string }) {
+  const on = mapDebugOn();
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!on) return;
+    return onMapTrace(() => bump((n) => n + 1));
+  }, [on]);
+  if (!on) return null;
+  return (
+    <div className="mtrace">
+      <b>{buildLine()} · {note}</b>
+      {mapTrace().map((line, i) => <span key={i}>{line}</span>)}
     </div>
   );
 }

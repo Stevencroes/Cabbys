@@ -109,6 +109,21 @@ changes nothing, the deployed build predates this code.**
 Nothing changes for a visitor. Without the flag the caption reads
 "Sketch — not to scale" as before.
 
+The same flag also prints a trace panel under the map:
+
+```
+build 2b176fc · token pk.eyJ1Ijoi… (90 chars) · live
+  312ms importing mapbox-gl
+  451ms constructing map (v3.29.0)
+ 1240ms LOADED — tiles are on screen
+```
+
+The first line answers "is this even the build I think it is" — the commit
+comes from `VERCEL_GIT_COMMIT_SHA` at build time, and a local build says
+`local`. The lines under it are ordered, because symptoms like "it renders
+and then disappears" are sequences and a single reason cannot describe one.
+`TORN DOWN` is the line that explains a map vanishing with no error at all.
+
 **Restrict the token.** It ships in the client bundle, which is normal and
 intended for Mapbox public tokens, but an unrestricted one can be lifted
 and spent against your quota. In the Mapbox dashboard, set the token's URL
