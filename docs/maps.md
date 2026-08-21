@@ -37,8 +37,42 @@ baked in at build time and Vercel builds with its own environment.
 1. Vercel → the project → Settings → Environment Variables.
 2. Add `VITE_MAPBOX_TOKEN` with the `pk.…` value, for every environment
    that should show maps.
-3. Redeploy. Nothing else changes — the component switches branch on its
-   own and falls back to the sketch again if a request fails.
+3. **Redeploy.** This step is not optional and is the one people skip.
+   Nothing else changes — the component switches branch on its own and
+   falls back to the sketch again if a request fails.
+
+### Why a redeploy is always needed
+
+Vite inlines `VITE_*` values into the JavaScript when it builds. Grep a
+built bundle and the token is there in plain text:
+
+```
+$ grep -o 'pk\.[A-Za-z0-9._-]*' dist/assets/index-*.js
+```
+
+So the deployed site is running whatever token existed at build time.
+Editing the environment variable changes what the *next* build gets and has
+no effect on the one already serving. Worse: rotating a token — creating a
+new one and deleting the old — breaks the live site immediately, because
+the bundle still asks for a token Mapbox no longer recognises.
+
+Rotate in this order: create the new token, set it in Vercel, redeploy,
+confirm real tiles, *then* delete the old one.
+
+### Telling the three failures apart
+
+All of them end at the same sketch, on purpose. The reason goes to the
+browser console — open dev tools on the deployed page and look for `[map]`:
+
+| What the console says | What to do |
+|---|---|
+| `…is not in this build` | The variable never reached the build. Set it and redeploy. |
+| `…rejected the token (401)` | Wrong token, or the old one was deleted after this build. Redeploy. |
+| `…refused the request (403)` | The token's URL restrictions do not list this domain. Add it. |
+| `…could not be reached` | Network, ad blocker, or an offline device. |
+
+`reportMapboxFailure()` in `src/lib/mapbox.ts` says each reason once per
+page — a map that cannot load its style reports it many times over.
 
 **Restrict the token.** It ships in the client bundle, which is normal and
 intended for Mapbox public tokens, but an unrestricted one can be lifted

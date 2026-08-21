@@ -6,6 +6,37 @@
 export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
 export const mapboxEnabled = Boolean(MAPBOX_TOKEN);
 
+/**
+ * Every map in this app fails soft: no token, a rejected token or a dead
+ * network all end at the same drawn sketch, on purpose, because a broken
+ * rectangle is worse than an honest drawing. The cost is that the three
+ * causes look identical from the outside — including to whoever has to fix
+ * it. This says which one happened, in the console only.
+ *
+ * Once per reason: a map that cannot load its style says so repeatedly, and
+ * a console with forty identical lines is not a diagnosis.
+ */
+const said = new Set<string>();
+
+export function reportMapboxFailure(where: string, status?: number, detail?: unknown): void {
+  const key = `${where}:${status ?? "?"}`;
+  if (said.has(key)) return;
+  said.add(key);
+
+  const why =
+    !mapboxEnabled
+      ? "VITE_MAPBOX_TOKEN is not in this build. Vite inlines it at build time, so setting it in the host's environment does nothing until the site is rebuilt."
+      : status === 401
+      ? "Mapbox rejected the token (401). It is either wrong, or it was deleted after this build was made — the token is baked into the bundle, so a rotated token needs a redeploy."
+      : status === 403
+      ? "Mapbox refused the request (403). Usually the token's URL restrictions do not list the domain this page is served from."
+      : status === 429
+      ? "Mapbox rate-limited the request (429)."
+      : "Mapbox could not be reached.";
+
+  console.warn(`[map] ${where} fell back to the sketch. ${why}`, detail ?? "");
+}
+
 export interface GeoSuggestion {
   id: string;
   name: string;

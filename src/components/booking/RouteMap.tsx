@@ -7,7 +7,7 @@
 // has to be worth looking at.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PlaceSel } from "../../data/places";
-import { mapboxEnabled } from "../../lib/mapbox";
+import { mapboxEnabled, reportMapboxFailure } from "../../lib/mapbox";
 import {
   coordOf, drivingRoute, islandPath, project, staticMapUrl,
   type Coord, type RouteLine,
@@ -93,7 +93,11 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
       <div className="rmap" ref={boxRef} style={{ height }}>
       {url ? (
         <img className="rmap-img" src={url} alt={`Map of the route from ${label}`} width={width} height={height}
-          onError={() => setFailed(true)} />
+          onError={() => {
+            // an <img> gives no status, so this only says which call died
+            reportMapboxFailure("static image");
+            setFailed(true);
+          }} />
       ) : (
         <Sketch a={a} b={b} />
       )}
