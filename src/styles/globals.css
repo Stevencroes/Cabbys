@@ -344,6 +344,15 @@ h2.sec em{font-style:italic;}
   letter-spacing:.06em;text-transform:uppercase;}
 .rmap-attr{position:absolute;left:10px;bottom:10px;font-size:9.5px;color:var(--muted);
   letter-spacing:.03em;opacity:.8;}
+/* ?mapdebug=1 only — the reason a map gave up, in place of the caption.
+   Must stay below .rmap-attr: same specificity, so the last one wins, and
+   above it this whole block did nothing. Wraps onto its own scrim because
+   these sentences are long and the point is that they are readable. */
+.rmap-why{left:8px;right:8px;bottom:8px;z-index:5;opacity:1;
+  white-space:normal;line-height:1.45;text-align:left;
+  background:rgba(7,13,22,.9);border:1px solid var(--alert-line);
+  border-radius:var(--r-xs);padding:8px 10px;color:var(--alert-ink);
+  font-size:11px;letter-spacing:.01em;text-transform:none;font-weight:400;}
 .rmap-empty .rmap-land{opacity:.55;}
 .rmap-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   margin:0;padding:0 24px;text-align:center;font-size:12.5px;color:var(--muted);}

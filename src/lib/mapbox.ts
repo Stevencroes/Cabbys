@@ -3,8 +3,37 @@
 // When VITE_MAPBOX_TOKEN is unset it degrades gracefully to the curated
 // place list (callers merge `geocode()` results with PLACES).
 
-export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-export const mapboxEnabled = Boolean(MAPBOX_TOKEN);
+/**
+ * The token, cleaned up on the way in.
+ *
+ * A token is pasted through a dashboard field and then baked into the
+ * bundle, so whatever came along with it — a trailing newline from the
+ * clipboard, the quotes someone added thinking they were needed — is
+ * baked in too and goes to Mapbox verbatim. Mapbox answers 401 and the
+ * map falls back to the sketch, which looks exactly like having no token
+ * at all. Trimming here costs one line and removes the whole class.
+ */
+export function cleanToken(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  return raw.trim().replace(/^["']|["']$/g, "").trim();
+}
+
+export const MAPBOX_TOKEN = cleanToken(import.meta.env.VITE_MAPBOX_TOKEN);
+export const mapboxEnabled = MAPBOX_TOKEN.length > 0;
+
+/**
+ * Public tokens start `pk.`. A secret token (`sk.`) must never reach a
+ * browser, and anything else is a value pasted into the wrong field — a
+ * style URL, a username, the token's *name*. All three fail identically at
+ * the map, so say so at load rather than leaving it to a 401.
+ */
+if (mapboxEnabled && !MAPBOX_TOKEN.startsWith("pk.")) {
+  console.warn(
+    MAPBOX_TOKEN.startsWith("sk.")
+      ? "[map] VITE_MAPBOX_TOKEN is a secret token. Secret tokens are rejected in a browser and must never be shipped in one — use the public pk. token."
+      : "[map] VITE_MAPBOX_TOKEN does not look like a Mapbox token. Public tokens start with 'pk.' — check the value is the token itself and not its name or a style URL.",
+  );
+}
 
 /**
  * Every map in this app fails soft: no token, a rejected token or a dead
@@ -18,6 +47,42 @@ export const mapboxEnabled = Boolean(MAPBOX_TOKEN);
  */
 const said = new Set<string>();
 
+/**
+ * The same reason, but on the page.
+ *
+ * The console is the right place for this until the console is not
+ * available: a phone has no dev tools, and on a desktop the site's own
+ * warning can sit under a hundred lines from a wallet extension. Adding
+ * ?mapdebug=1 to the URL puts the reason in the map's own caption, where
+ * whoever is fixing it is already looking.
+ *
+ * A query flag rather than a build flag, so a live site can be asked the
+ * question without a redeploy — and so its absence also answers a
+ * question: if the flag does nothing, the build predates this code.
+ */
+export function mapDebugOn(): boolean {
+  if (typeof location === "undefined") return false;
+  return new URLSearchParams(location.search).has("mapdebug");
+}
+
+type Listener = (reason: string) => void;
+const listeners = new Set<Listener>();
+let latest = "";
+
+/** The last reason a map gave up, for anything rendering a fallback. */
+export function lastMapFailure(): string {
+  if (latest) return latest;
+  return mapboxEnabled ? "" : NO_TOKEN;
+}
+
+export function onMapFailure(fn: Listener): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+
+const NO_TOKEN =
+  "VITE_MAPBOX_TOKEN is not in this build. Vite inlines it at build time, so setting it in the host's environment does nothing until the site is rebuilt.";
+
 export function reportMapboxFailure(where: string, status?: number, detail?: unknown): void {
   const key = `${where}:${status ?? "?"}`;
   if (said.has(key)) return;
@@ -25,7 +90,7 @@ export function reportMapboxFailure(where: string, status?: number, detail?: unk
 
   const why =
     !mapboxEnabled
-      ? "VITE_MAPBOX_TOKEN is not in this build. Vite inlines it at build time, so setting it in the host's environment does nothing until the site is rebuilt."
+      ? NO_TOKEN
       : status === 401
       ? "Mapbox rejected the token (401). It is either wrong, or it was deleted after this build was made — the token is baked into the bundle, so a rotated token needs a redeploy."
       : status === 403
@@ -35,6 +100,12 @@ export function reportMapboxFailure(where: string, status?: number, detail?: unk
       : "Mapbox could not be reached.";
 
   console.warn(`[map] ${where} fell back to the sketch. ${why}`, detail ?? "");
+
+  // the first reason is the useful one — later ones are usually knock-ons
+  if (!latest) {
+    latest = `${where}: ${why}`;
+    listeners.forEach((fn) => fn(latest));
+  }
 }
 
 export interface GeoSuggestion {
