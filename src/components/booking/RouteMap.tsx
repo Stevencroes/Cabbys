@@ -7,7 +7,9 @@
 // has to be worth looking at.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PlaceSel } from "../../data/places";
-import { mapboxEnabled, reportMapboxFailure } from "../../lib/mapbox";
+import {
+  lastMapFailure, mapDebugOn, mapboxEnabled, onMapFailure, reportMapboxFailure,
+} from "../../lib/mapbox";
 import {
   coordOf, drivingRoute, islandPath, project, staticMapUrl,
   type Coord, type RouteLine,
@@ -43,6 +45,15 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
   // 0 until measured: rendering at a guessed width and then again at the
   // real one bought two static maps for every route drawn
   const [width, setWidth] = useState(0);
+  // ?mapdebug=1 turns the caption into the reason. Off by default and off
+  // for every visitor — a customer does not need to read our plumbing.
+  const debug = mapDebugOn();
+  const [why, setWhy] = useState(() => (debug ? lastMapFailure() : ""));
+  useEffect(() => {
+    if (!debug) return;
+    setWhy(lastMapFailure());
+    return onMapFailure(setWhy);
+  }, [debug]);
 
   // Ask for the driving line only when there is a real journey to draw.
   useEffect(() => {
@@ -79,6 +90,7 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
         <div className="rmap rmap-empty" ref={boxRef} style={{ height }}>
           <Sketch a={null} b={null} />
           <p className="rmap-hint">Choose a route to see it drawn.</p>
+          {debug && <span className="rmap-attr rmap-why">{why || "No failure recorded yet — pick a route."}</span>}
         </div>
       </div>
     );
@@ -107,6 +119,8 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
       {/* Licence, not decoration — see staticMapUrl(). */}
       {url ? (
         <span className="rmap-attr">© Mapbox · © OpenStreetMap</span>
+      ) : debug ? (
+        <span className="rmap-attr rmap-why">{why || "Sketch — no failure recorded yet."}</span>
       ) : (
         <span className="rmap-attr">Sketch — not to scale</span>
       )}

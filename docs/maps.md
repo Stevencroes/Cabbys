@@ -74,6 +74,24 @@ browser console — open dev tools on the deployed page and look for `[map]`:
 `reportMapboxFailure()` in `src/lib/mapbox.ts` says each reason once per
 page — a map that cannot load its style reports it many times over.
 
+### When the console is not available
+
+Add `?mapdebug=1` to the URL. The reason replaces the map's caption, on the
+page, where whoever is fixing it is already looking:
+
+```
+https://your-site/?mapdebug=1
+```
+
+A phone has no dev tools, and on a desktop the site's own warning can sit
+under a hundred lines from a browser extension. The flag is read from the
+query string rather than baked in, so a live site can be asked without a
+redeploy — and its absence answers a question too: **if `?mapdebug=1`
+changes nothing, the deployed build predates this code.**
+
+Nothing changes for a visitor. Without the flag the caption reads
+"Sketch — not to scale" as before.
+
 **Restrict the token.** It ships in the client bundle, which is normal and
 intended for Mapbox public tokens, but an unrestricted one can be lifted
 and spent against your quota. In the Mapbox dashboard, set the token's URL
