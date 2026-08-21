@@ -254,6 +254,25 @@ h2.sec em{font-style:italic;}
 /* the live canvas has nothing of its own to measure, so it gets the number
    — 360, matching MAP_H in Step2Details */
 .tripmap .lmap{height:360px;}
+/* step 1's rail is shorter: the whole step has to fit a 1280x800 laptop.
+   292, matching MAP_H in Step1Ride. */
+.pcol-rail .tripmap .lmap{height:292px;}
+
+/* ── step 1's quiet row ── the reverse and the journey, neither of which
+   earned the labelled block it used to have */
+.ride-quiet{margin:10px 0 2px;}
+/* Step 1 is the one screen everything has to fit on, and an airport pickup
+   is its worst case: a flight field and a timing note the other routes do
+   not have. Two pixels a field is what closes it at 1280x800. */
+.pcols-3 .pcol .fld{margin-bottom:12px;}
+/* the timing note is the tallest single block in the tallest column, and
+   an airport pickup is the only route that shows it */
+.pcols-3 .timing{padding:12px 16px;margin-bottom:10px;}
+.pcols-3 .timing p{margin-top:6px;line-height:1.55;}
+.panel:has(.pcols-3) .psub{margin-bottom:14px;}
+.qtoggle-sm{border:1px solid var(--line);background:var(--raised);flex:none;}
+.qtoggle-sm button{min-height:34px;padding:0 14px;font-size:11px;letter-spacing:.1em;
+  white-space:nowrap;flex:none;}
 .tripmap .lmap,.tripmap .rmap{border-radius:var(--r-md);}
 /* the two ends ride the map the way every ride-hailing app shows them.
    fitBounds reserves the top for exactly this — see LiveMap. */

@@ -3,10 +3,17 @@
 Two components, three branches.
 
 `src/components/booking/LiveMap.tsx` is the interactive one — Mapbox GL JS,
-pan and zoom, used on booking step 2. **GL JS is 523 KB gzipped**, roughly
+pan and zoom, used on both booking steps. **GL JS is 523 KB gzipped**, roughly
 three times the rest of the app, so it is imported dynamically and never
 enters the main bundle: nothing downloads until a step showing a map mounts.
 While it loads, and if it fails, `RouteMap` renders in its place.
+
+The two steps size it differently and each mirrors its number in CSS —
+`MAP_H` in `Step1Ride.tsx` against `.pcol-rail .tripmap .lmap`, and `MAP_H`
+in `Step2Details.tsx` against `.tripmap .lmap`. Step 1's is the smaller of
+the two because that step has to fit a 1280x800 laptop without scrolling,
+and an airport pickup — which adds a flight field and a timing note — is
+the worst case that floor is measured against.
 
 `src/components/booking/RouteMap.tsx` has two branches and ships with the
 second one live:
