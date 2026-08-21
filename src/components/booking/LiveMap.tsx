@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as MapboxMap } from "mapbox-gl";
 import type { PlaceSel } from "../../data/places";
-import { MAPBOX_TOKEN, mapboxEnabled } from "../../lib/mapbox";
+import { MAPBOX_TOKEN, mapboxEnabled, reportMapboxFailure } from "../../lib/mapbox";
 import RouteMap from "./RouteMap";
 import { coordOf, drivingRoute, type RouteLine } from "../../lib/route";
 
@@ -79,9 +79,14 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
         });
         created.addControl(new gl.NavigationControl({ showCompass: false }), "bottom-right");
         created.on("load", () => { if (!cancelled) setReady(true); });
-        created.on("error", () => { if (!cancelled) setDead(true); });
+        created.on("error", (e) => {
+          const err = (e as { error?: { status?: number; message?: string } }).error;
+          reportMapboxFailure("gl", err?.status, err?.message);
+          if (!cancelled) setDead(true);
+        });
         mapRef.current = created;
-      } catch {
+      } catch (err) {
+        reportMapboxFailure("gl", undefined, err);
         if (!cancelled) setDead(true);
       }
     })();

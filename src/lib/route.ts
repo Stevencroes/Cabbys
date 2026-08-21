@@ -9,7 +9,7 @@
 // Distance and duration on screen do NOT come from here — they come from
 // the pricing engine, which is the rate card and is exact.
 import { AREAS, type PlaceSel } from "../data/places";
-import { MAPBOX_TOKEN, mapboxEnabled } from "./mapbox";
+import { MAPBOX_TOKEN, mapboxEnabled, reportMapboxFailure } from "./mapbox";
 
 export interface Coord {
   lat: number;
@@ -49,7 +49,10 @@ export async function drivingRoute(
     `?access_token=${MAPBOX_TOKEN}&overview=simplified&geometries=polyline`;
   try {
     const res = await fetch(url, { signal });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      reportMapboxFailure("directions", res.status);
+      return null;
+    }
     const data = (await res.json()) as {
       routes?: { geometry?: string; distance?: number; duration?: number }[];
     };
@@ -60,7 +63,9 @@ export async function drivingRoute(
       km: Math.round((r.distance ?? 0) / 100) / 10,
       minutes: Math.round((r.duration ?? 0) / 60),
     };
-  } catch {
+  } catch (err) {
+    // an aborted request is the component doing its job, not a failure
+    if (!signal?.aborted) reportMapboxFailure("directions", undefined, err);
     return null;
   }
 }
