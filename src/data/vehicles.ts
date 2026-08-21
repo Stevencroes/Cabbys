@@ -18,10 +18,15 @@ export type Vehicle = {
 // `desc` names the car in public/fleet/<id>.png. The row shows the words and
 // the picture together now, so a mismatch between them is not a detail — keep
 // the two in step when either changes.
+//
+// `pax` is seats minus the driver, counted off the actual car — not the tier
+// it is sold as. The Scout said 6 while the fleet ran an Escalade; the Scout
+// is a Nautilus, which is a five-seater, so it takes four. Parties of five
+// and six fall to the Voyager, which is the only car that can carry them.
 export const VEHICLES: Vehicle[] = [
   { id: "sedan",   name: "The Saloon",  pax: 3, bags: 2, mult: 1.0,  note: "",            desc: "Ford Fusion or similar",     classLabel: "Executive sedan", photo: "/fleet/sedan.png" },
   { id: "premium", name: "The Grand",   pax: 3, bags: 3, mult: 1.38, note: "Most chosen", desc: "Mercedes S-Class or similar", classLabel: "First class",      photo: "/fleet/premium.png" },
-  { id: "suv",     name: "The Scout",   pax: 6, bags: 5, mult: 1.6,  note: "",            desc: "Lincoln Nautilus or similar", classLabel: "Luxury SUV",      photo: "/fleet/suv.png" },
+  { id: "suv",     name: "The Scout",   pax: 4, bags: 5, mult: 1.6,  note: "",            desc: "Lincoln Nautilus or similar", classLabel: "Luxury SUV",      photo: "/fleet/suv.png" },
   { id: "van",     name: "The Voyager", pax: 7, bags: 8, mult: 2.05, note: "",            desc: "Ford Transit or similar",    classLabel: "Luxury van",      photo: "/fleet/van.png" },
 ];
 
