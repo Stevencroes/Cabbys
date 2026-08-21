@@ -92,8 +92,23 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
         created.addControl(new gl.NavigationControl({ showCompass: false }), "bottom-right");
         created.on("load", () => {
           loadedRef.current = true;
-          traceMap("LOADED — tiles are on screen");
+          // GL measures its container once, when it is constructed. If the
+          // panel had not settled by then the canvas is the wrong size —
+          // and a canvas of the wrong size paints nothing at all, while
+          // still reporting a perfectly successful load.
+          created?.resize();
+          const c = created?.getCanvas();
+          traceMap(`LOADED — canvas ${c?.clientWidth ?? "?"}x${c?.clientHeight ?? "?"}`);
           if (!cancelled) setReady(true);
+        });
+
+        // A WebGL context can be taken away — too many live maps, a GPU
+        // reset, a background tab reclaimed. It looks exactly like a blank
+        // map, so name it rather than leaving it to be guessed at.
+        created.on("webglcontextlost", () => traceMap("WEBGL CONTEXT LOST"));
+        created.on("webglcontextrestored", () => {
+          traceMap("webgl context restored");
+          mapRef.current?.resize();
         });
         created.on("error", (e) => {
           const err = (e as { error?: { status?: number; message?: string } }).error;
@@ -131,8 +146,24 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
       }
     })();
 
+    // Whatever the panel does after the map is built, the map follows it.
+    // The rail is sticky and its neighbours change height as fields appear,
+    // so "the size at construction time" is not a size worth trusting.
+    const box = holdRef.current;
+    const ro = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(() => {
+          const m = mapRef.current;
+          if (!m) return;
+          m.resize();
+          const c = m.getCanvas();
+          traceMap(`resized to ${c.clientWidth}x${c.clientHeight}`);
+        })
+      : null;
+    if (box && ro) ro.observe(box);
+
     return () => {
       cancelled = true;
+      ro?.disconnect();
       // the one line that would explain a map vanishing without any error
       if (created) traceMap("TORN DOWN — effect cleanup ran");
       loadedRef.current = false;
