@@ -1,5 +1,13 @@
 # The route map
 
+Two components, three branches.
+
+`src/components/booking/LiveMap.tsx` is the interactive one — Mapbox GL JS,
+pan and zoom, used on booking step 2. **GL JS is 523 KB gzipped**, roughly
+three times the rest of the app, so it is imported dynamically and never
+enters the main bundle: nothing downloads until a step showing a map mounts.
+While it loads, and if it fails, `RouteMap` renders in its place.
+
 `src/components/booking/RouteMap.tsx` has two branches and ships with the
 second one live:
 
@@ -31,8 +39,19 @@ and spent against your quota. In the Mapbox dashboard, set the token's URL
 restrictions to your own domains. Rotate it if it has been pasted anywhere
 it might be logged.
 
+**The "Default public token" cannot be restricted.** Mapbox creates it with
+every account and it has no editable URL list — the dashboard shows N/A and
+offers no edit control. Create a second token instead, restrict that one,
+and point `VITE_MAPBOX_TOKEN` at it in both `.env.local` and Vercel. The
+URL list needs every origin that renders a map: the production domain, the
+`*.vercel.app` preview wildcard, and `http://localhost:5173` for `npm run
+dev`. A missing origin does not error — the map silently falls back to the
+sketch, which looks exactly like a missing token.
+
 The free tier covers 50,000 static map loads and 100,000 Directions
-requests a month. One booking draws at most one of each per route, because
+requests a month, and separately 50,000 GL JS map loads. `LiveMap` builds
+its map once and mutates the route source afterwards rather than tearing the
+map down, so editing a field does not bill a second load. One booking draws at most one of each per route, because
 `RouteMap` rounds its width to a 32px step — without that, a scrollbar
 appearing bought a second map every time.
 

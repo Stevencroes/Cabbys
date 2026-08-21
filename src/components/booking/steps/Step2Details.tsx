@@ -17,11 +17,16 @@ import { normalizePhone, isValidPhone, isValidEmail } from "../../../lib/contact
 import { createRide } from "../../../lib/rides";
 import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
-import RouteMap from "../RouteMap";
+import LiveMap from "../LiveMap";
 import FieldError from "../FieldError";
 import type { StepProblem } from "./Step1Ride";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+
+/** One height for the map, shared by the live tiles and the sketch, so the
+    panel does not resize under you when the tiles arrive. Mirrored by
+    .tripmap in globals.css — change both. */
+const MAP_H = 360;
 
 export type PayPhase = "review" | "creating" | "payment" | "paying";
 
@@ -254,32 +259,13 @@ export default function Step2Details({
         <h2>Confirm and <em>you're set.</em></h2>
       </div>
 
-      <div className="pcols">
-      <div className="pcol">
-      <div className="review">
-        <div className="rrow"><span className="rl">Route</span><span className="rv">{state.from?.name} → {state.to?.name}</span></div>
-        <div className="rrow"><span className="rl">Journey</span><span className="rv">{state.journey === "return" ? "Return" : "One way"}</span></div>
-        <div className="rrow">
-          <span className="rl">When</span>
-          <span className="rv">{whenLabel} <span className="rv-zone">{ARUBA_TZ_LABEL}</span></span>
-        </div>
-        {state.flightNumber && <div className="rrow"><span className="rl">Flight</span><span className="rv">{formatFlightNumber(state.flightNumber)} — tracked</span></div>}
-        <div className="rrow"><span className="rl">Party</span><span className="rv">{partyLabel}</span></div>
-        <div className="rrow"><span className="rl">Car</span><span className="rv">{vehicle.name}</span></div>
-        <div className="rrow total"><span className="rl">Total, all in</span><span className="rv">{usd(totalUsd)}</span></div>
-        <div className="rrow change">
-          <button type="button" onClick={() => goTo(1)}>← Change something</button>
-        </div>
-      </div>
-
-      </div>
-
-      <div className="pcol">
-      {/* Where you are being taken sits over the fields that commit you to
-          it — the last thing anyone re-reads before paying. */}
-      <RouteMap from={state.from} to={state.to} minutes={q?.minutes ?? null} height={180} />
-
-      <div className="fld" style={{ marginTop: 20 }}>
+      {/* Form on one side, the journey on the other. The seven-row review
+          table that used to sit here said the route in words directly above
+          a map already saying it in pictures — so the route moved onto the
+          map, and what is left is only what a map cannot tell you. */}
+      <div className="pcols pcols-map">
+      <div className="pcol pcol-form">
+      <div className="fld">
         <label htmlFor="b-name">{airportTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
         <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName}
           aria-invalid={!!err("name") || undefined} aria-describedby={errId("name")}
@@ -324,6 +310,24 @@ export default function Step2Details({
           : "No charge today — the fixed fare is settled with your driver, in US dollars. Free cancellation up to 24h before pickup."}
       </div>
       </div>
+
+      <aside className="pcol pcol-map">
+        <div className="tripmap">
+          <LiveMap from={state.from} to={state.to} minutes={q?.minutes ?? null} fallbackHeight={MAP_H} ends />
+        </div>
+
+        {/* Only what the map cannot say. */}
+        <dl className="tm-facts">
+          <div><dt>When</dt><dd>{whenLabel} <span className="rv-zone">{ARUBA_TZ_LABEL}</span></dd></div>
+          {state.journey === "return" && <div><dt>Journey</dt><dd>Return</dd></div>}
+          {state.flightNumber && <div><dt>Flight</dt><dd>{formatFlightNumber(state.flightNumber)} — tracked</dd></div>}
+          <div><dt>Party</dt><dd>{partyLabel}</dd></div>
+          <div><dt>Car</dt><dd>{vehicle.name}</dd></div>
+          <div className="tm-total"><dt>Total, all in</dt><dd>{usd(totalUsd)}</dd></div>
+        </dl>
+
+        <button type="button" className="tm-change" onClick={() => goTo(1)}>← Change something</button>
+      </aside>
       </div>
     </div>
   );

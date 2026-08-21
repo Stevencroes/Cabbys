@@ -227,6 +227,60 @@ h2.sec em{font-style:italic;}
 .tmf-exactly{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
 .tmf-zone{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
 
+/* ── live map ── Mapbox GL, loaded only when a step that shows one mounts.
+   The canvas fills its column; RouteMap holds the space until GL is up, so
+   the panel never reflows around an arriving map. */
+.lmap{position:relative;height:100%;min-height:260px;border-radius:var(--r-md);overflow:hidden;
+  border:1px solid var(--line);background:var(--surface);}
+.lmap-canvas{position:absolute;inset:0;}
+.lmap-wait{position:absolute;inset:0;z-index:2;background:var(--surface);}
+.lmap-wait .rmap-wrap{height:100%;}
+.lmap-dur{position:absolute;left:12px;bottom:12px;z-index:3;
+  font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);
+  background:rgba(7,13,22,.82);border:1px solid var(--line);border-radius:var(--r-pill);padding:6px 12px;}
+/* Mapbox paints its own controls; these bring them onto the palette */
+.lmap .mapboxgl-ctrl-group{background:var(--surface);border:1px solid var(--line);box-shadow:none;}
+.lmap .mapboxgl-ctrl-group button+button{border-top-color:var(--line);}
+.lmap .mapboxgl-ctrl-icon{filter:invert(1) hue-rotate(180deg) brightness(1.1);}
+.lmap .mapboxgl-ctrl-attrib{background:rgba(7,13,22,.74);font-size:10px;}
+.lmap .mapboxgl-ctrl-attrib a{color:var(--muted);}
+.lmap .mapboxgl-ctrl-logo{opacity:.7;}
+
+/* ── step 2 ── the form on one side, the journey on the other ─────── */
+/* Height comes from what is inside, not from here. The sketch fallback
+   carries a labelled strip above its canvas and a caption below it, and a
+   fixed height on this box cropped both away. */
+.tripmap{position:relative;}
+/* the live canvas has nothing of its own to measure, so it gets the number
+   — 360, matching MAP_H in Step2Details */
+.tripmap .lmap{height:360px;}
+.tripmap .lmap,.tripmap .rmap{border-radius:var(--r-md);}
+/* the two ends ride the map the way every ride-hailing app shows them.
+   fitBounds reserves the top for exactly this — see LiveMap. */
+.tm-ends{position:absolute;left:12px;top:12px;z-index:4;display:flex;flex-direction:column;
+  gap:6px;align-items:flex-start;max-width:calc(100% - 60px);}
+.tme{display:inline-flex;align-items:center;gap:9px;max-width:100%;
+  background:rgba(7,13,22,.86);border:1px solid var(--line);border-radius:var(--r-xs);
+  padding:7px 12px;font-size:13px;font-weight:500;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tme i{flex:none;width:8px;height:8px;border-radius:50%;}
+.tme .tme-a{background:var(--ink);}
+.tme .tme-b{background:var(--silver);}
+
+.tm-facts{margin:16px 0 0;display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--surface);overflow:hidden;}
+.tm-facts > div{display:flex;justify-content:space-between;gap:14px;align-items:baseline;
+  padding:11px 16px;border-bottom:1px solid var(--line);}
+.tm-facts > div:last-child{border-bottom:none;}
+.tm-facts dt{font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);flex:none;}
+.tm-facts dd{margin:0;font-size:14px;text-align:right;color:var(--ink);}
+.tm-facts .rv-zone{display:block;font-size:11px;color:var(--muted);letter-spacing:.04em;}
+.tm-facts .tm-total{background:var(--raised);}
+.tm-facts .tm-total dd{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1;}
+.tm-change{margin-top:10px;padding:10px 2px;border:none;background:none;color:var(--silver);
+  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
+.tm-change:hover{color:var(--ink);}
+
 /* ── route map ── real tiles with a token, a sketch of the island without */
 .rmap{position:relative;width:100%;overflow:hidden;border-radius:var(--r-md);
   background:var(--deep);border:1px solid var(--line);}
@@ -324,26 +378,47 @@ h2.sec em{font-style:italic;}
 .quote::before{content:"";position:absolute;top:0;left:var(--r-md);right:var(--r-md);height:1px;background:var(--hairline);}
 @media(max-width:980px){.quote{justify-self:stretch;max-width:none;}}
 .qtitle{font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);margin-bottom:16px;}
-.qswap-row{display:flex;justify-content:center;margin:2px 0;}
-.qswap{width:var(--tap);height:var(--tap);border:1px solid var(--line);background:var(--raised);color:var(--silver);display:flex;align-items:center;justify-content:center;transition:.25s;}
-.qswap:hover{background:var(--surface);color:var(--ink);}
-.locbtn{width:100%;min-height:var(--tap);border:1px solid var(--silver-deep);background:transparent;color:var(--silver);
-  font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:12px;transition:.25s;}
-.locbtn:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
+/* The quiet row. Reverse is a rescue, not a step — it used to sit as a
+   bordered circle between the two fields, which is exactly where the eye
+   travels most. Guests joins it: one answer most people never change. */
+.qquiet{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;}
+.qswap{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 2px;
+  border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;transition:.2s var(--ease);}
+.qswap:hover{color:var(--ink);}
+.qswap span{font-size:14px;line-height:1;}
+.qpax{display:inline-flex;align-items:center;gap:9px;color:var(--silver);
+  font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
+.qpax select{min-height:34px;padding:0 8px;background:none;border:none;border-bottom:1px solid var(--line);
+  color:var(--ink);font-family:var(--sans);font-size:15px;font-weight:400;appearance:none;
+  text-align:center;transition:.2s var(--ease);}
+.qpax select:hover{border-bottom-color:var(--silver);}
+/* Use my location is an offer, not an instruction — a full-width outlined
+   button gave it the same weight as Continue. */
+.qloc{display:inline-flex;align-items:center;min-height:32px;padding:0;margin:2px 0 6px;
+  border:none;background:none;color:var(--silver);font-size:12px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;text-decoration:underline;
+  text-underline-offset:4px;text-decoration-color:var(--soft);transition:.2s var(--ease);}
+.qloc:hover{color:var(--ink);text-decoration-color:var(--silver);}
 .qmini{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
 /* date and time read as one answer; guests is its own question */
-.qmini .qfld:nth-child(3){grid-column:1 / -1;}
+
 /* second column: anchor the popover to its right edge or it runs off */
 .qmini .qfld:nth-child(2) .dtf-pop{left:auto;right:0;}
-.qmini .qfld:nth-child(3) select{max-width:50%;}
+
 .qfld label{display:block;font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
 .qfld input,.qfld select{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
   border:1px solid var(--line);padding:12px 12px;appearance:none;min-height:var(--tap);}
 .qfld input:focus,.qfld select:focus{background:var(--surface);}
-.qprice{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 14px;gap:12px;}
-.qprice .pl{font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);display:block;}
-.qprice .pm{font-size:12px;color:var(--muted);letter-spacing:.05em;margin-top:4px;display:block;font-weight:500;}
+.qprice{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  margin:14px 0 0;padding-top:15px;border-top:1px solid var(--line);}
+.qprice .pl{font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
 .qprice .pv{font-family:var(--serif);font-size:40px;font-weight:600;line-height:1;color:var(--ink);white-space:nowrap;}
+/* an em dash set at 40px is a rule, not a number — the placeholder should
+   read as "nothing yet", not as a divider */
+.qprice .pv.waiting{font-size:22px;color:var(--soft);}
+/* the terms of the number, under the number rather than beside its label */
+.quote > .pm{margin:6px 0 16px;font-size:12px;color:var(--muted);letter-spacing:.05em;font-weight:500;}
 .qbtn{width:100%;background:var(--sheen);color:var(--on-sheen);border:none;padding:16px;min-height:var(--tap);font-weight:600;
   font-size:13px;letter-spacing:.16em;text-transform:uppercase;transition:.3s;}
 .qbtn:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
@@ -543,6 +618,18 @@ h2.sec em{font-style:italic;}
   /* two columns or one: the rail is just the last block in the flow */
   .pcol-rail{display:flex;flex-direction:column;gap:16px;margin-top:20px;}
   .pcol>.subh:first-child{margin-top:0;}
+}
+/* Step 2 gives the map the wider half. The form is a name and two contact
+   fields — it does not need half a screen, and the journey does. */
+@media(min-width:1000px){
+  .pcols-map{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:0 40px;}
+  .pcol-map{display:flex;flex-direction:column;}
+}
+@media(max-width:999px){
+  /* stacked: the map leads, because seeing the route is what makes the
+     fields underneath worth filling in */
+  .pcols-map{display:flex;flex-direction:column;}
+  .pcol-map{order:-1;margin-bottom:22px;}
 }
 .fld{margin-bottom:14px;}
 .fld label{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
@@ -855,8 +942,6 @@ input.txt:focus{outline:none;background:var(--surface);}
 .quote{border-radius:var(--r-lg);}
 .qfld input,.qfld select{border-radius:var(--r-sm);}
 .qbtn{border-radius:var(--r-pill);}
-.qswap{border-radius:50%;}
-.locbtn{border-radius:var(--r-pill);}
 .hgrid{border-radius:var(--r-md);overflow:hidden;}
 .fcard{border-radius:var(--r-md);overflow:hidden;}
 .ffoot button{border-radius:var(--r-pill);}

@@ -85,6 +85,10 @@ export default function QuoteCard() {
     <div className="quote rise">
       <div className="qtitle">Your fare, instantly</div>
 
+      {/* Two fields, one rule under each. The swap used to sit between them
+          as a bordered circle, which put a control in the one place the eye
+          travels most — it is a rescue, not a step, so it waits at the end
+          with the other quiet things. */}
       <PlaceCombobox
         label="Pick up"
         value={state.from}
@@ -93,17 +97,11 @@ export default function QuoteCard() {
         inputRef={fromInput}
       />
       {onIsland && (
-        <button type="button" className="locbtn" onClick={handleLocate}>
-          ◎ Use my location
+        <button type="button" className="qloc" onClick={handleLocate}>
+          Use my location
         </button>
       )}
       {locMsg && <div className="qhint" role="status">{locMsg}</div>}
-
-      <div className="qswap-row">
-        <button type="button" className="qswap" aria-label="Swap pickup and drop-off" onClick={swap}>
-          ⇅
-        </button>
-      </div>
 
       <PlaceCombobox
         label="Drop off"
@@ -121,6 +119,7 @@ export default function QuoteCard() {
             value={state.date}
             min={todayInAruba()}
             onChange={(iso) => setField("date", iso)}
+            compact
           />
         </div>
         {/* Asked here so step 1 opens answered. An airport run derives its
@@ -135,22 +134,28 @@ export default function QuoteCard() {
             hideZone
           />
         </div>
-        <div className="qfld">
-          <label htmlFor="q-pax">Guests</label>
+      </div>
+
+      {/* The quiet row: the thing most people never touch, and the thing
+          they touch once. Neither earns a box. */}
+      <div className="qquiet">
+        <button type="button" className="qswap" aria-label="Reverse pickup and drop-off" onClick={swap}>
+          <span aria-hidden="true">⇅</span> Reverse
+        </button>
+        <label className="qpax" htmlFor="q-pax">
+          Guests
           <select id="q-pax" value={state.pax} onChange={(e) => setField("pax", +e.target.value)}>
             {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
-        </div>
+        </label>
       </div>
 
       <div className="qprice">
-        <span>
-          <span className="pl">Fixed fare</span>
-          <span className="pm">
-            {q ? `${q.minutes} min · all in · ${vehicle.name}` : "Choose your route to see it"}
-          </span>
-        </span>
-        <span className="pv">{q ? usd(q.totalUsd) : "—"}</span>
+        <span className="pl">Your fare</span>
+        <span className={q ? "pv" : "pv waiting"}>{q ? usd(q.totalUsd) : "—"}</span>
+      </div>
+      <div className="pm">
+        {q ? `${q.minutes} min · all in · ${vehicle.name}` : "Choose your route to see it"}
       </div>
 
       {hint && <div className="qhint" role="alert">{hint}</div>}

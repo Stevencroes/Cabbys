@@ -47,7 +47,7 @@ describe("Landing", () => {
     const pickup = screen.getByRole("combobox", { name: "Pick up" });
     expect(pickup).toHaveValue("Queen Beatrix International Airport");
     expect(screen.getByRole("combobox", { name: "Drop off" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /swap pickup and drop-off/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reverse pickup and drop-off/i })).toBeInTheDocument();
     // certainty needs no exclamation mark
     expect(container.textContent).not.toContain("!");
   });
