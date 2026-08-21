@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { reportMapboxFailure } from "./mapbox";
+import { cleanToken, reportMapboxFailure } from "./mapbox";
 
 /**
  * The maps fail soft by design, which means the console is the only place
@@ -35,5 +35,21 @@ describe("reportMapboxFailure", () => {
     reportMapboxFailure("static image", 403);
     reportMapboxFailure("static image", 429);
     expect(warn.mock.calls).toHaveLength(2);
+  });
+});
+
+describe("cleanToken", () => {
+  it("survives the ways a token arrives from a dashboard field", () => {
+    expect(cleanToken("  pk.abc  ")).toBe("pk.abc");
+    expect(cleanToken("pk.abc\n")).toBe("pk.abc");
+    expect(cleanToken('"pk.abc"')).toBe("pk.abc");
+    expect(cleanToken("'pk.abc'")).toBe("pk.abc");
+    expect(cleanToken(' "pk.abc" ')).toBe("pk.abc");
+  });
+
+  it("treats a missing or blank value as no token", () => {
+    expect(cleanToken(undefined)).toBe("");
+    expect(cleanToken("")).toBe("");
+    expect(cleanToken("   ")).toBe("");
   });
 });

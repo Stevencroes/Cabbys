@@ -3,8 +3,37 @@
 // When VITE_MAPBOX_TOKEN is unset it degrades gracefully to the curated
 // place list (callers merge `geocode()` results with PLACES).
 
-export const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-export const mapboxEnabled = Boolean(MAPBOX_TOKEN);
+/**
+ * The token, cleaned up on the way in.
+ *
+ * A token is pasted through a dashboard field and then baked into the
+ * bundle, so whatever came along with it — a trailing newline from the
+ * clipboard, the quotes someone added thinking they were needed — is
+ * baked in too and goes to Mapbox verbatim. Mapbox answers 401 and the
+ * map falls back to the sketch, which looks exactly like having no token
+ * at all. Trimming here costs one line and removes the whole class.
+ */
+export function cleanToken(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  return raw.trim().replace(/^["']|["']$/g, "").trim();
+}
+
+export const MAPBOX_TOKEN = cleanToken(import.meta.env.VITE_MAPBOX_TOKEN);
+export const mapboxEnabled = MAPBOX_TOKEN.length > 0;
+
+/**
+ * Public tokens start `pk.`. A secret token (`sk.`) must never reach a
+ * browser, and anything else is a value pasted into the wrong field — a
+ * style URL, a username, the token's *name*. All three fail identically at
+ * the map, so say so at load rather than leaving it to a 401.
+ */
+if (mapboxEnabled && !MAPBOX_TOKEN.startsWith("pk.")) {
+  console.warn(
+    MAPBOX_TOKEN.startsWith("sk.")
+      ? "[map] VITE_MAPBOX_TOKEN is a secret token. Secret tokens are rejected in a browser and must never be shipped in one — use the public pk. token."
+      : "[map] VITE_MAPBOX_TOKEN does not look like a Mapbox token. Public tokens start with 'pk.' — check the value is the token itself and not its name or a style URL.",
+  );
+}
 
 /**
  * Every map in this app fails soft: no token, a rejected token or a dead
