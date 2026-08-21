@@ -251,7 +251,13 @@ h2.sec em{font-style:italic;}
    the panel never reflows around an arriving map. */
 .lmap{position:relative;height:100%;min-height:260px;border-radius:var(--r-md);overflow:hidden;
   border:1px solid var(--line);background:var(--surface);}
-.lmap-canvas{position:absolute;inset:0;}
+/* Two selectors deep, and belt-and-braces on the size, because Mapbox
+   ships `.mapboxgl-map{position:relative}` and puts that class on this very
+   element. Same specificity as a bare .lmap-canvas — and its stylesheet is
+   injected at runtime, so it lands after ours in <head> and wins. The
+   container then stops being stretched, collapses to whatever the canvas
+   happens to be, and the map paints into a box it no longer fills. */
+.lmap > .lmap-canvas{position:absolute;inset:0;width:100%;height:100%;}
 .lmap-wait{position:absolute;inset:0;z-index:2;background:var(--surface);}
 .lmap-wait .rmap-wrap{height:100%;}
 .lmap-dur{position:absolute;left:12px;bottom:12px;z-index:3;

@@ -59,6 +59,27 @@ the bundle still asks for a token Mapbox no longer recognises.
 Rotate in this order: create the new token, set it in Vercel, redeploy,
 confirm real tiles, *then* delete the old one.
 
+### A map that loads but paints nothing
+
+`mapbox-gl.css` carries `.mapboxgl-map{position:relative}`, and GL puts that
+class on whatever element you hand it as a container. `.lmap-canvas` is that
+element and sets `position:absolute;inset:0` — the same specificity. The GL
+stylesheet is imported dynamically, so it lands in `<head>` after ours and
+wins: the container stops being stretched, collapses to whatever the canvas
+happens to be, and the map paints into a box it no longer fills.
+
+`.lmap > .lmap-canvas` is two selectors deep and also states its width and
+height outright, so neither the specificity nor the injection order decides
+it. If a map ever looks blank again, measure the canvas against its box
+before assuming the network:
+
+```js
+const c = map.getCanvas();
+[c.clientWidth, c.clientHeight]   // must match the container
+```
+
+The `?mapdebug=1` trace prints exactly that on every load.
+
 ### A map that appears and then vanishes
 
 Mapbox GL reports everything through one `error` event — a refused token, a
