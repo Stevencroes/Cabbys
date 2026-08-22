@@ -1,40 +1,35 @@
-// Step 1 — THE RIDE. Route · when · journey · party · car.
+// Step 1 — THE RIDE. Route · when · journey.
 // The form reshapes itself around the route (§3.6): flights are asked
 // for, pickup times are derived, and nobody is asked for dispatch maths.
+// The party and the car used to sit in two more columns beside this one;
+// they are step 2 now, so this screen asks one question at a time.
 import { useEffect, useMemo, useRef } from "react";
 import { useBooking } from "../../../booking/BookingContext";
 import PlaceCombobox from "../PlaceCombobox";
 import DateField from "../DateField";
 import TimeField from "../TimeField";
 import FieldError from "../FieldError";
-import Stepper from "../../Stepper";
 import LiveMap from "../LiveMap";
-import VehiclePhoto from "../VehiclePhoto";
 import { formatDate, formatTime, todayInAruba } from "../../../lib/datetime";
-import { VEHICLES, fitsParty } from "../../../data/vehicles";
-import { quote, usd } from "../../../lib/quote";
+import { VEHICLES } from "../../../data/vehicles";
+import { quote } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
 import { driverWaitsFrom, collectAt, insideMinNotice, MIN_NOTICE_HOURS } from "../../../lib/derivedTime";
 import { CONFIRM_WINDOW_MINUTES } from "../../../lib/policy";
 import { AIRPORT_ID } from "../../../data/places";
+import type { StepProblem } from "./shared";
 
 /** The rail map's height, mirrored by .pcol-rail .tripmap .lmap in
-    globals.css — change both. Smaller than step 2's because step 1 has to
-    fit a 1280x800 laptop without scrolling, and this rail sets that floor. */
-const MAP_H = 292;
+    globals.css — change both. */
+const MAP_H = 340;
 
-export interface StepProblem {
-  /** which control the message belongs under */
-  field: string;
-  message: string;
-  focus?: () => void;
-}
+export type { StepProblem };
 
 interface Step1Props {
   pricing: Pricing | null;
   problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
-  /** the total + primary action, rendered flat under the car list */
+  /** the total + primary action, rendered flat under the map rail */
   foot: React.ReactNode;
 }
 
@@ -44,7 +39,6 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
   const toInput = useRef<HTMLInputElement | null>(null);
   // the date/time controls are composed widgets now, so focus them by id
   const focusById = (id: string) => () => document.getElementById(id)?.focus();
-  const carsRef = useRef<HTMLDivElement>(null);
 
   const fromAirport = state.from?.id === AIRPORT_ID;
   const toAirport = state.to?.id === AIRPORT_ID;
@@ -60,26 +54,17 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
   const shortNotice = insideMinNotice(state.date, effectiveTime || state.flightLanding || state.depTime);
 
   const heading = fromAirport
-    ? { kick: "Step 01 · The ride", h: <>Landing in <em>Aruba?</em></>, sub: "Tell us the flight — we do the timing." }
+    ? { h: <>Landing in <em>Aruba?</em></>, sub: "Tell us the flight — we do the timing." }
     : toAirport
-    ? { kick: "Step 01 · The ride", h: <>Catching a <em>flight?</em></>, sub: "Tell us when it leaves — we work backwards." }
-    : { kick: "Step 01 · The ride", h: <>Where to, and <em>when?</em></>, sub: "Door to door, anywhere on the island." };
+    ? { h: <>Catching a <em>flight?</em></>, sub: "Tell us when it leaves — we work backwards." }
+    : { h: <>Where to, and <em>when?</em></>, sub: "Door to door, anywhere on the island." };
 
-  // Party comes before cars; cars that don't fit render dashed and dead.
   const selVehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
   const routed = !!(state.from && state.to && state.from.id !== state.to.id);
   // The selected car's fare, only so the page can say WHY it is what it is.
   const selQuote = routed
     ? quote({ from: state.from!, to: state.to!, vehicle: selVehicle, isReturn: state.journey === "return", pricing, pickupTime: effectiveTime })
     : null;
-  const selectedFits = fitsParty(selVehicle, state.pax, state.bags);
-  // if the current car stops fitting, hop to the smallest that does
-  useEffect(() => {
-    if (!selectedFits) {
-      const fit = VEHICLES.find((v) => fitsParty(v, state.pax, state.bags));
-      if (fit) setField("vehicle", fit.id);
-    }
-  }, [selectedFits, state.pax, state.bags, setField]);
 
   // §3.10-adjacent — the validator lives here, the Continue button in the
   // step's own foot. Never disabled: focus the gap and say why.
@@ -115,24 +100,6 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
     ? "Return flight lands"
     : "Collect us at";
 
-  // cars — real radio group with roving tabindex
-  function onCarsKeyDown(e: React.KeyboardEvent) {
-    const fitting = VEHICLES.filter((v) => fitsParty(v, state.pax, state.bags));
-    const idx = fitting.findIndex((v) => v.id === state.vehicle);
-    if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-      e.preventDefault();
-      const next = fitting[(idx + 1) % fitting.length];
-      if (next) { setField("vehicle", next.id); focusCar(next.id); }
-    } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-      e.preventDefault();
-      const prev = fitting[(idx - 1 + fitting.length) % fitting.length];
-      if (prev) { setField("vehicle", prev.id); focusCar(prev.id); }
-    }
-  }
-  function focusCar(id: string) {
-    carsRef.current?.querySelector<HTMLElement>(`[data-vid="${id}"]`)?.focus();
-  }
-
   return (
     <div className="panel">
       <div className="phead">
@@ -140,7 +107,7 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
         <p className="psub">{heading.sub}</p>
       </div>
 
-      <div className="pcols pcols-3">
+      <div className="pcols pcols-rail">
       <div className="pcol">
       <PlaceCombobox label="Pick up" value={state.from} onSelect={(s) => setField("from", s)} inputRef={fromInput}
         invalid={!!err("from")} describedBy={errId("from")} />
@@ -232,39 +199,6 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
         </div>
       )}
 
-      {derived?.kind === "arrive" && (
-        <div className="timing" role="status">
-          <b>Your driver waits from {formatTime(derived.at)}</b>
-          <p>
-            {state.flightNumber ? `${state.flightNumber.toUpperCase().replace(/\s+/g, "")} lands` : "Your flight lands"} at {formatTime(state.flightLanding)} Aruba time.
-            He's inside arrivals 30 minutes later — and if the flight moves, we move with it. Waiting is free.
-          </p>
-        </div>
-      )}
-      {derived?.kind === "depart" && (
-        <div className="timing" role="status">
-          <b>We collect you at {formatTime(derived.at)}</b>
-          <p>
-            {state.destUS
-              ? `Aruba clears US immigration before you fly, so you need 3 hours at the airport. We've worked backwards from ${formatTime(state.depTime)}.`
-              : `International check-in wants 2 hours 15. We've worked backwards from ${formatTime(state.depTime)}.`}
-          </p>
-        </div>
-      )}
-
-      {selQuote?.lateNight && (
-        <div className="notice" role="status">
-          A night rate applies at this hour. It is already inside every price on this page.
-        </div>
-      )}
-
-      {shortNotice && (
-        <div className="notice" role="status">
-          Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we'll confirm on
-          WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes — or message us first if you'd rather.
-        </div>
-      )}
-
       {state.journey === "return" && (
         <div className="frow">
           <div className="fld">
@@ -294,6 +228,26 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
           </div>
         </div>
       )}
+
+      {derived?.kind === "arrive" && (
+        <div className="timing" role="status">
+          <b>Your driver waits from {formatTime(derived.at)}</b>
+          <p>
+            {state.flightNumber ? `${state.flightNumber.toUpperCase().replace(/\s+/g, "")} lands` : "Your flight lands"} at {formatTime(state.flightLanding)} Aruba time.
+            He's inside arrivals 30 minutes later — and if the flight moves, we move with it. Waiting is free.
+          </p>
+        </div>
+      )}
+      {derived?.kind === "depart" && (
+        <div className="timing" role="status">
+          <b>We collect you at {formatTime(derived.at)}</b>
+          <p>
+            {state.destUS
+              ? `Aruba clears US immigration before you fly, so you need 3 hours at the airport. We've worked backwards from ${formatTime(state.depTime)}.`
+              : `International check-in wants 2 hours 15. We've worked backwards from ${formatTime(state.depTime)}.`}
+          </p>
+        </div>
+      )}
       {state.journey === "return" && fromAirport && state.returnTime && (
         <div className="timing" role="status">
           <b>We collect you at {formatTime(collectAt(state.returnTime, state.returnDestUS))}</b>
@@ -304,72 +258,23 @@ export default function Step1Ride({ pricing, problem, registerValidator, foot }:
           </p>
         </div>
       )}
-      </div>
 
-      <div className="pcol">
-      <div className="steppers">
-        <div className="stw">
-          <label>Guests</label>
-          <Stepper value={state.pax} min={1} max={7} onChange={(v) => setField("pax", v)} testId="b-pax" />
-        </div>
-        <div className="stw">
-          <label>Bags</label>
-          <Stepper value={state.bags} min={0} max={8} onChange={(v) => setField("bags", v)} />
-        </div>
-        <div className="stw">
-          <label>Child seats</label>
-          <Stepper value={state.seats} min={0} max={4} onChange={(v) => setField("seats", v)} />
-        </div>
-      </div>
-
-      {state.seats > 0 && (
-        <div className="fld" style={{ marginTop: 16 }}>
-          <label htmlFor="b-ages">Children's ages <span className="soft">— so we bring the right seats</span></label>
-          <input id="b-ages" type="text" inputMode="text" placeholder="e.g. 2 and 5" value={state.seatAges} onChange={(e) => setField("seatAges", e.target.value)} />
+      {selQuote?.lateNight && (
+        <div className="notice" role="status">
+          A night rate applies at this hour. It is already inside every price on this page.
         </div>
       )}
 
-      <div className="subh">Your car</div>
-      <div role="radiogroup" aria-label="Choose your car" ref={carsRef} onKeyDown={onCarsKeyDown}>
-        {VEHICLES.map((v) => {
-          const fits = fitsParty(v, state.pax, state.bags);
-          const selected = state.vehicle === v.id;
-          const q = state.from && state.to && state.from.id !== state.to.id
-            ? quote({ from: state.from, to: state.to, vehicle: v, isReturn: state.journey === "return", pricing, pickupTime: effectiveTime })
-            : null;
-          return (
-            <button
-              key={v.id}
-              type="button"
-              data-vid={v.id}
-              role="radio"
-              aria-checked={selected}
-              aria-disabled={!fits}
-              tabIndex={selected ? 0 : -1}
-              className={`vopt${selected ? " sel" : ""}${!fits ? " unfit" : ""}`}
-              onClick={() => fits && setField("vehicle", v.id)}
-            >
-              <span className="vd" aria-hidden="true" />
-              <VehiclePhoto vehicle={v} />
-              <span className="vmain">
-                <span className="vn">{v.name}</span>
-                {/* the class label lived here until the car had a photo; the
-                    picture says "van" faster than the words did, and the line
-                    now fits on a phone without wrapping */}
-                <span className="vm">{v.desc}</span>
-                <span className="vs">{fits ? `Up to ${v.pax} guests · ${v.bags} bags` : `Seats ${v.pax} · your party doesn't fit`}</span>
-              </span>
-              {/* return already doubled here — the price cannot move at review */}
-              <span className="vp">{q ? usd(q.totalUsd) : "—"}</span>
-            </button>
-          );
-        })}
+      {shortNotice && (
+        <div className="notice" role="status">
+          Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we'll confirm on
+          WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes — or message us first if you'd rather.
+        </div>
+      )}
       </div>
 
-      </div>
-
-      {/* Where it goes and what it costs, in one rail — the two things a
-          traveller re-reads before committing. */}
+      {/* Where it goes, beside the questions about it — the fare underneath
+          moves as the route does. */}
       <div className="pcol pcol-rail">
         <div className="tripmap">
           <LiveMap from={state.from} to={state.to} minutes={selQuote?.minutes ?? null} fallbackHeight={MAP_H} ends />

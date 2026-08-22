@@ -7,13 +7,18 @@ const wrapper = ({ children }: { children: React.ReactNode }) => <BookingProvide
 const ritz = () => selFromPlace(placeById("ritz")!);
 
 describe("BookingContext v3", () => {
-  it("has two steps: the ride, then you", () => {
+  it("has three steps: the ride, the car, then you", () => {
     const { result } = renderHook(() => useBooking(), { wrapper });
-    expect(result.current.STEP_NAMES).toEqual(["The ride", "Your details"]);
+    expect(result.current.STEP_NAMES).toEqual(["The ride", "Your car", "Your details"]);
     act(() => result.current.open());
     expect(result.current.state.step).toBe(1);
     act(() => result.current.goTo(2));
     expect(result.current.state.step).toBe(2);
+    act(() => result.current.goTo(3));
+    expect(result.current.state.step).toBe(3);
+    // and opening again always starts at the first question
+    act(() => result.current.open());
+    expect(result.current.state.step).toBe(1);
   });
 
   it("open() carries a prefill — nothing is asked twice", () => {

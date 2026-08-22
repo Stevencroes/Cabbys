@@ -2,12 +2,18 @@ import React, { createContext, useCallback, useContext, useMemo, useReducer } fr
 import { AIRPORT, selFromPlace, type PlaceSel } from "../data/places";
 import { isOnIsland } from "../lib/geo";
 
-// v3 booking — two steps, not four: the ride, then you.
-export const STEP_NAMES = ["The ride", "Your details"] as const;
+// v3 booking — three steps: the ride, the car, then you. The ride and the
+// car used to share one screen; three columns of questions at once read as
+// a form to survive rather than a trip to look forward to.
+export const STEP_NAMES = ["The ride", "Your car", "Your details"] as const;
+
+/** 1-indexed, and there are exactly as many as STEP_NAMES. */
+export type Step = 1 | 2 | 3;
+export const LAST_STEP = STEP_NAMES.length as Step;
 
 export interface BookingState {
   open: boolean;
-  step: 1 | 2;
+  step: Step;
   // the ride — symmetric: airport arrival is just the case where pickup
   // happens to be the airport. No mode toggle.
   from: PlaceSel | null;
@@ -70,7 +76,7 @@ export type Prefill = Partial<Pick<BookingState, "from" | "to" | "date" | "pax" 
 type Action =
   | { type: "OPEN"; prefill?: Prefill }
   | { type: "CLOSE" }
-  | { type: "GO_TO"; step: 1 | 2 }
+  | { type: "GO_TO"; step: Step }
   | { type: "SWAP" }
   | { type: "RESET" }
   | { type: "SET_FIELD"; key: StateKey; value: BookingState[StateKey] };
@@ -111,7 +117,7 @@ interface BookingContextValue {
   STEP_NAMES: typeof STEP_NAMES;
   open: (prefill?: Prefill) => void;
   close: () => void;
-  goTo: (step: 1 | 2) => void;
+  goTo: (step: Step) => void;
   swap: () => void;
   reset: () => void;
   setField: <K extends StateKey>(key: K, value: BookingState[K]) => void;
@@ -124,7 +130,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const open = useCallback((prefill?: Prefill) => dispatch({ type: "OPEN", prefill }), []);
   const close = useCallback(() => dispatch({ type: "CLOSE" }), []);
-  const goTo = useCallback((step: 1 | 2) => dispatch({ type: "GO_TO", step }), []);
+  const goTo = useCallback((step: Step) => dispatch({ type: "GO_TO", step }), []);
   const swap = useCallback(() => dispatch({ type: "SWAP" }), []);
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
   const setField = useCallback(<K extends StateKey>(key: K, value: BookingState[K]) =>

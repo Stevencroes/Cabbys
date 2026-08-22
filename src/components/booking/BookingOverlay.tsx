@@ -1,10 +1,12 @@
-// The v3 booking modal — two steps, real URLs per step (§3.10), a running
+// The v3 booking modal — three steps, real URLs per step (§3.10), a running
 // total that sits flat at the end of the step, iOS-safe scroll lock, and a
 // focus trap.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useBooking } from "../../booking/BookingContext";
-import Step1Ride, { type StepProblem } from "./steps/Step1Ride";
-import Step2Details, { effectivePickupTime, type PayPhase } from "./steps/Step2Details";
+import { useBooking, STEP_NAMES, LAST_STEP, type Step } from "../../booking/BookingContext";
+import Step1Ride from "./steps/Step1Ride";
+import Step2Car from "./steps/Step2Car";
+import Step3Details, { type PayPhase } from "./steps/Step3Details";
+import { effectivePickupTime, type StepProblem } from "./steps/shared";
 import StepFoot from "./StepFoot";
 import { VEHICLES } from "../../data/vehicles";
 import { loadPricing, type Pricing } from "../../lib/pricing";
@@ -15,13 +17,20 @@ import type { ConfirmedBooking } from "../../booking/types";
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
 /** The steps, in order. The header row and the progress fill are both
-    derived from this, so adding a third step needs no edits here. */
-const STEPS = ["The ride", "Your details"] as const;
+    derived from this, so adding a fourth step needs no edits here. */
+const STEPS = STEP_NAMES;
 
-/** "Step two of two" reads; "Step 2/2" is a receipt. Falls back to the
+/** "Step two of three" reads; "Step 2/3" is a receipt. Falls back to the
     numeral past the point where spelling it out helps anyone. */
 const WORDS = ["", "one", "two", "three", "four", "five", "six"] as const;
 const word = (n: number) => WORDS[n] ?? String(n);
+
+/** #step-2 is state, not a place — but it is a real history entry, so the
+    back gesture walks the steps instead of leaving the site. */
+const stepFromHash = (hash: string): Step | null => {
+  const n = Number(/^#step-(\d+)$/.exec(hash)?.[1]);
+  return n >= 1 && n <= LAST_STEP ? (n as Step) : null;
+};
 
 interface BookingOverlayProps {
   onConfirmed?: (booking: ConfirmedBooking) => void;
@@ -74,17 +83,18 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   useEffect(() => {
     function onPop() {
       if (!wasOpen.current) return;
-      if (location.hash === "#step-2") goTo(2);
-      else if (location.hash === "#step-1") { goTo(1); setProblem(null); }
+      const step = stepFromHash(location.hash);
+      if (step) { goTo(step); setProblem(null); }
       else close(); // the back gesture leaves the modal, not the site
     }
     addEventListener("popstate", onPop);
     return () => removeEventListener("popstate", onPop);
   }, [goTo, close]);
 
-  // deep-link restore: opening /#step-1 re-enters the booking
+  // deep-link restore: opening /#step-2 re-enters the booking there
   useEffect(() => {
-    if (!state.open && location.hash === "#step-2" && wasOpen.current) goTo(2);
+    const step = stepFromHash(location.hash);
+    if (!state.open && step && step > 1 && wasOpen.current) goTo(step);
   }, [state.open, goTo]);
 
   // Escape + focus trap
@@ -143,9 +153,10 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
       return;
     }
     setProblem(null);
-    if (state.step === 1) {
-      history.pushState({ cb: 2 }, "", "#step-2");
-      goTo(2);
+    if (state.step < LAST_STEP) {
+      const next = (state.step + 1) as Step;
+      history.pushState({ cb: next }, "", `#step-${next}`);
+      goTo(next);
     } else {
       void confirmRef.current?.();
     }
@@ -153,6 +164,8 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
 
   const busy = phase === "creating" || phase === "paying";
   const primaryLabel = state.step === 1
+    ? "Your car"
+    : state.step === 2
     ? "Your details"
     : phase === "paying" ? "Processing…"
     : phase === "creating" ? "Reserving…"
@@ -161,11 +174,12 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
 
   const foot = (
     <StepFoot
-      total={state.step === 1 ? (q ? usd(q.totalUsd) : "—") : undefined}
+      // the last step carries its total in the facts table beside the form
+      total={state.step < LAST_STEP ? (q ? usd(q.totalUsd) : "—") : undefined}
       meta={q ? `${q.minutes} min · ${vehicle.name}${state.journey === "return" ? " · return" : ""}` : "Route sets the fare"}
       primaryLabel={primaryLabel}
       onPrimary={handlePrimary}
-      onBack={state.step === 2 ? () => history.back() : undefined}
+      onBack={state.step > 1 ? () => history.back() : undefined}
       busy={busy}
     />
   );
@@ -176,7 +190,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
           is not focusable and carries no role — the header text beside it
           says the same thing to a screen reader. */}
       <div className="bprog" aria-hidden="true">
-        <span className="bprog-fill" style={{ width: `${(state.step / STEPS.length) * 100}%` }} />
+        <span className="bprog-fill" style={{ width: `${Math.round((state.step / STEPS.length) * 100)}%` }} />
       </div>
 
       <div className="bhead">
@@ -199,8 +213,10 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
       <div className="bbody" ref={bodyRef}>
         {state.step === 1 ? (
           <Step1Ride pricing={pricing} problem={problem} registerValidator={registerValidator} foot={foot} />
+        ) : state.step === 2 ? (
+          <Step2Car pricing={pricing} registerValidator={registerValidator} foot={foot} />
         ) : (
-          <Step2Details
+          <Step3Details
             pricing={pricing}
             problem={problem}
             registerValidator={registerValidator}

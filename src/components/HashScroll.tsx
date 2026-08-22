@@ -9,7 +9,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-/** The booking modal owns #step-1 / #step-2; they are state, not places. */
+/** The booking modal owns #step-1 … #step-3; they are state, not places. */
 const NOT_A_PLACE = /^#step/;
 
 /** Frames to keep looking before giving up — ~half a second at 60fps. */

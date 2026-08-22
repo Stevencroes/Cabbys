@@ -1,5 +1,5 @@
-// Step 2 — YOUR DETAILS. Review · name · email · WhatsApp · Stripe.
-// The review has a "Change something" row; step 2 is never a dead end.
+// Step 3 — YOUR DETAILS. Review · name · email · WhatsApp · Stripe.
+// The review has a "Change something" row; the last step is never a dead end.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Stripe, StripeElements } from "@stripe/stripe-js";
 import { useBooking } from "../../../booking/BookingContext";
@@ -8,7 +8,7 @@ import { fullNameOf, phoneOf } from "../../../lib/displayName";
 import { VEHICLES } from "../../../data/vehicles";
 import { quote, usd, usdToAwg } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
-import { driverWaitsFrom, collectAt } from "../../../lib/derivedTime";
+import { collectAt } from "../../../lib/derivedTime";
 import { formatDateTime, formatTime, ARUBA_TZ_LABEL } from "../../../lib/datetime";
 import { AIRPORT_ID } from "../../../data/places";
 import { generateBookingRef } from "../../../lib/bookingRef";
@@ -19,7 +19,7 @@ import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
 import LiveMap from "../LiveMap";
 import FieldError from "../FieldError";
-import type { StepProblem } from "./Step1Ride";
+import { effectivePickupTime, type StepProblem } from "./shared";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
@@ -30,7 +30,7 @@ const MAP_H = 360;
 
 export type PayPhase = "review" | "creating" | "payment" | "paying";
 
-interface Step2Props {
+interface Step3Props {
   pricing: Pricing | null;
   problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
@@ -47,19 +47,11 @@ interface Step2Props {
   foot: React.ReactNode;
 }
 
-export function effectivePickupTime(state: ReturnType<typeof useBooking>["state"]): string {
-  const fromAirport = state.from?.id === AIRPORT_ID;
-  const toAirport = state.to?.id === AIRPORT_ID;
-  if (fromAirport && state.flightLanding) return driverWaitsFrom(state.flightLanding);
-  if (toAirport && state.depTime) return collectAt(state.depTime, state.destUS);
-  return state.pickupTime;
-}
-
-export default function Step2Details({
+export default function Step3Details({
   pricing, problem, registerValidator, phase, setPhase, onConfirmed,
   error, setError, needsAuth, setNeedsAuth, registerConfirm, foot,
-}: Step2Props) {
-  const { state, setField, goTo } = useBooking();
+}: Step3Props) {
+  const { state, setField } = useBooking();
   const { account } = useAuth();
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -325,7 +317,8 @@ export default function Step2Details({
           <div className="tm-total"><dt>Total, all in</dt><dd>{usd(totalUsd)}</dd></div>
         </dl>
 
-        <button type="button" className="tm-change" onClick={() => goTo(1)}>← Change something</button>
+        {/* back through history, so the URL and the step never disagree */}
+        <button type="button" className="tm-change" onClick={() => history.back()}>← Change something</button>
       </aside>
       </div>
     </div>
