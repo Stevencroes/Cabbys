@@ -402,6 +402,14 @@ h2.sec em{font-style:italic;}
   border-bottom:1px solid var(--line);}
 /* the right column is sized to the card, not to a share of the row —
    a fr split left ~100px of dead air between the two halves */
+/* z-index here is only to clear the hero's own backdrop, but it opens a
+   stacking context, and a fixed full-screen sheet raised inside one cannot
+   climb out of it — the place picker's sheet asked for z-index 300 and got
+   painted under the nav's 100, because 300 was only ever 300 *within this
+   grid*. While a full-screen layer owns the viewport the hero's internal
+   order is not visible anyway, so the context is dropped and the sheet
+   competes at the root, where it was always meant to. */
+body.locked .hero-grid{z-index:auto;}
 .hero-grid{position:relative;z-index:var(--z-content);flex:1;display:grid;grid-template-columns:minmax(0,1fr) 366px;gap:clamp(28px,3.6vw,52px);
   align-items:center;max-width:var(--maxw);margin:0 auto;width:100%;
   padding:0 var(--gutter);}
@@ -532,7 +540,16 @@ h2.sec em{font-style:italic;}
 .clist li[role="option"] .oarea{font-size:12px;color:var(--muted);letter-spacing:.04em;white-space:nowrap;}
 .clist li[role="option"]:hover,.clist li[role="option"].hl{background:var(--raised);}
 .clist li.custom{border-top:1px dashed var(--line-soft);color:var(--silver);font-weight:500;}
-.clist .cempty{padding:14px;font-size:14px;color:var(--muted);}
+.clist .cempty{padding:14px;font-size:14px;color:var(--muted);line-height:1.55;}
+/* the run of the row that the query matched — a highlight, not a
+   marker pen, so <mark>'s yellow default has to go */
+.clist mark{background:none;color:var(--nav-ink);font-weight:600;}
+.clist li[role="option"].hl mark,.clist li[role="option"]:hover mark{color:var(--sheen);}
+/* Shown only in the sheet: a full screen cannot open on nothing. The
+   desktop dropdown stays away until a letter is typed, which is the
+   honest answer there — an empty floating panel is worse than none. */
+.chint{display:none;}
+.chint p{padding:16px 14px;margin:0;font-size:14.5px;line-height:1.6;color:var(--muted);}
 /* custom-address area anchor */
 .areasel{margin:10px 0 4px;padding:12px;border:1px solid var(--line);background:var(--raised);}
 .areasel label{display:block;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
@@ -544,9 +561,14 @@ h2.sec em{font-style:italic;}
 @media(max-width:760px){
   .combo.open{
     position:fixed;inset:0;z-index:var(--z-sheet);margin:0;
+    /* dvh, not inset:0 alone: the iOS keyboard shrinks the visual viewport
+       but not the layout viewport, so a sheet pinned to both edges puts its
+       last rows behind the keys you are typing on */
+    height:100dvh;
     background:var(--ground);display:flex;flex-direction:column;
     padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 0;
   }
+  .combo.open .chint{display:block;}
   .combo.open .cfield input{padding:16px 0;font-size:17px;}
   .combo.open .cfield .cancel{display:flex;}
   .combo.open .cfield .clear{display:none;}

@@ -3,12 +3,27 @@
 // support, pointerdown commits (fires before blur on touch), custom
 // addresses anchored to a pricing area, and a full-screen sheet under
 // 760px (which also solves stacking, keyboard overlap and scroll-trap).
+//
+// The box holds ONE string. It used to hold two — a `query` and the
+// committed place's name, displayed as `query || value.name` — and the
+// input showed whichever was truthy. Typing into a box that was showing
+// the second one appended to it at the caret, so a picker sitting on
+// "Queen Beatrix International Airport" turned into "Queen Beatrix
+// palInternational Airport" the moment someone typed "pal", matched
+// nothing, and offered the wreckage back as a custom address. One string,
+// `text`, now backs the input, and `committed` flows into it.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  AREAS, GROUPS, PLACES, areaByName, searchPlaces, selFromCustom, selFromPlace,
+  AREAS, GROUPS, areaByName, searchPlaces, selFromCustom, selFromPlace,
   type Place, type PlaceSel,
 } from "../../data/places";
 import { lockBody, unlockBody } from "../../lib/bodyLock";
+
+/** Letters before the list appears. The picker suggests what you are
+    typing; it does not open with all 62 places and ask you to scroll. */
+const MIN_QUERY = 1;
+/** Letters before "use this as an address" is worth offering. */
+const MIN_CUSTOM = 4;
 
 interface PlaceComboboxProps {
   label: string;
@@ -29,9 +44,12 @@ interface Row {
   query?: string;
 }
 
+/** Rows for a query. Empty query means no rows — the "everything at once"
+    state is not reachable from here rather than merely unused. */
 function buildRows(query: string): Row[] {
   const q = query.trim();
-  const matches = q ? searchPlaces(q) : PLACES;
+  if (q.length < MIN_QUERY) return [];
+  const matches = searchPlaces(q);
   const rows: Row[] = [];
   for (const g of GROUPS) {
     const inGroup = matches.filter((p) => p.group === g);
@@ -39,18 +57,39 @@ function buildRows(query: string): Row[] {
     rows.push({ kind: "group", id: `g-${g}`, group: g });
     for (const p of inGroup) rows.push({ kind: "place", id: p.id, place: p });
   }
-  // ≥4 chars → offer the typed text as an address (villas, condos, Airbnbs)
-  if (q.length >= 4) rows.push({ kind: "custom", id: "custom", query: q });
+  // villas, condos and Airbnbs are not in the list and never will be
+  if (q.length >= MIN_CUSTOM) rows.push({ kind: "custom", id: "custom", query: q });
   return rows;
 }
 
+/** The run of text the query matched, so the eye can see why a row is
+    here — "pal" should visibly be the "Pal" in Palm Beach. */
+function Marked({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  const at = q ? text.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  if (at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <mark>{text.slice(at, at + q.length)}</mark>
+      {text.slice(at + q.length)}
+    </>
+  );
+}
+
+// Must match the sheet's own breakpoint in globals.css — the lock and the
+// layout have to agree on what counts as a sheet.
 const isSheet = () => window.matchMedia("(max-width:760px)").matches;
 
 export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid }: PlaceComboboxProps) {
   const uid = useId();
   const listId = `${uid}-listbox`;
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  /** what the input shows — the only source of its value */
+  const [text, setText] = useState("");
+  /** true once this box has been edited, false while it just displays a
+      committed place. Focus alone must not open a list. */
+  const [typing, setTyping] = useState(false);
   const [active, setActive] = useState(0);
   const [customQuery, setCustomQuery] = useState<string | null>(null);
   const [customArea, setCustomArea] = useState(AREAS[3].name); // Palm Beach default
@@ -61,8 +100,21 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   const lockedRef = useRef(false);
 
   const input = inputRef ?? ownInputRef;
+  const committed = value ? value.name : "";
+  // closeList can run from a document listener, outside React's render, and
+  // must restore the CURRENT place rather than whichever one its closure was
+  // built with
+  const committedRef = useRef(committed);
+  committedRef.current = committed;
+  // the committed place owns the box whenever it changes underneath us —
+  // a swap of pickup and drop-off, a preset, a clear
+  useEffect(() => { setText(committed); setTyping(false); }, [committed]);
+
+  const query = typing ? text : "";
   const rows = useMemo(() => buildRows(query), [query]);
   const options = useMemo(() => rows.filter((r) => r.kind !== "group"), [rows]);
+  /** the list is a consequence of typing, never of focus */
+  const showList = open && customQuery === null && typing && query.trim().length >= MIN_QUERY;
 
   function openList() {
     if (!open) {
@@ -74,9 +126,29 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       }
     }
   }
+  /** Entering the box. A tap on a box that already holds a place means
+      "change this", not "edit this" — nobody wants to insert letters into
+      the middle of "Queen Beatrix International Airport". So the box
+      empties and the place it held becomes the placeholder: the first
+      keystroke starts a clean search, the name stays readable, and Cancel,
+      Escape or a tap outside all put it back.
+
+      Selecting the text instead would be the other convention, but a touch
+      tap sets the caret after focus and drops the selection, which is how
+      the appending bug survived being a "known pattern". */
+  function beginSearch() {
+    if (open) return;
+    openList();
+    if (committed) { setText(""); setTyping(true); }
+  }
+  /** Leaving without choosing restores the committed place. Abandoning a
+      search must not strand half a word in a box whose selection still
+      says something else. */
   function closeList() {
     setOpen(false);
     setCustomQuery(null);
+    setTyping(false);
+    setText(committedRef.current);
     if (lockedRef.current) {
       lockedRef.current = false;
       unlockBody();
@@ -88,7 +160,13 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   // close on outside pointerdown (desktop dropdown)
   useEffect(() => {
     function onDoc(e: PointerEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) closeList();
+      const t = e.target as Node;
+      // Committing runs on the row's own pointerdown, and React has flushed
+      // the row out of the DOM by the time this document-level listener sees
+      // the same event. A detached target is the row we just chose, not a
+      // click somewhere else — closing on it would throw the choice away.
+      if (!t.isConnected) return;
+      if (wrapRef.current && !wrapRef.current.contains(t)) closeList();
     }
     document.addEventListener("pointerdown", onDoc);
     return () => document.removeEventListener("pointerdown", onDoc);
@@ -97,21 +175,27 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
 
   function commitPlace(p: Place) {
     onSelect(selFromPlace(p));
-    setQuery("");
-    closeList();
+    setText(p.name);
+    setTyping(false);
+    setOpen(false);
+    setCustomQuery(null);
+    if (lockedRef.current) { lockedRef.current = false; unlockBody(); }
   }
   function commitCustom() {
     const area = areaByName(customArea) ?? AREAS[0];
-    onSelect(selFromCustom(customQuery ?? query.trim(), area, customNote.trim()));
-    setQuery("");
+    const name = customQuery ?? text.trim();
+    onSelect(selFromCustom(name, area, customNote.trim()));
+    setText(name);
+    setTyping(false);
     setCustomNote("");
-    closeList();
+    setOpen(false);
+    setCustomQuery(null);
+    if (lockedRef.current) { lockedRef.current = false; unlockBody(); }
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Escape") { closeList(); return; }
-    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) { openList(); return; }
-    if (!open) return;
+    if (!showList) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, options.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
     else if (e.key === "Enter") {
@@ -119,7 +203,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       const row = options[active];
       if (!row) return;
       if (row.kind === "place" && row.place) commitPlace(row.place);
-      else if (row.kind === "custom") setCustomQuery(row.query ?? query.trim());
+      else if (row.kind === "custom") setCustomQuery(row.query ?? text.trim());
     }
   }
 
@@ -129,8 +213,8 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     el?.scrollIntoView({ block: "nearest" });
   }, [active, options]);
 
-  const shown = query || (value ? value.name : "");
   const activeId = options[active] ? `${uid}-opt-${options[active].id}` : undefined;
+  const typedNothingFound = typing && query.trim().length >= MIN_QUERY && options.length === 0;
 
   return (
     <div className={`combo${open ? " open" : ""}`} ref={wrapRef}>
@@ -141,22 +225,30 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             id={`${uid}-in`}
             ref={input as React.RefObject<HTMLInputElement>}
             role="combobox"
-            aria-expanded={open}
-            aria-controls={listId}
-            aria-activedescendant={open ? activeId : undefined}
+            aria-expanded={showList}
+            aria-controls={showList ? listId : undefined}
+            aria-activedescendant={showList ? activeId : undefined}
             aria-autocomplete="list"
             aria-invalid={invalid || undefined}
             aria-describedby={describedBy}
             autoComplete="off"
-            placeholder={placeholder ?? "Type a hotel, beach or address"}
-            value={shown}
-            onFocus={openList}
-            onChange={(e) => { setQuery(e.target.value); openList(); setActive(0); setCustomQuery(null); }}
+            autoCorrect="off"
+            autoCapitalize="words"
+            spellCheck={false}
+            enterKeyHint="search"
+            placeholder={open && committed ? committed : (placeholder ?? "Type a hotel, beach or address")}
+            value={text}
+            onFocus={beginSearch}
+            // committing keeps focus on the input, so a second tap raises no
+            // focus event — without this the box would sit there inert
+            onPointerDown={beginSearch}
+            onChange={(e) => { setText(e.target.value); setTyping(true); openList(); setActive(0); setCustomQuery(null); }}
             onKeyDown={onKeyDown}
           />
         </div>
         {value && !open && (
-          <button type="button" className="clear" aria-label={`Clear ${label.toLowerCase()}`} onClick={() => { onSelect(null); setQuery(""); }}>
+          <button type="button" className="clear" aria-label={`Clear ${label.toLowerCase()}`}
+            onClick={() => { onSelect(null); setText(""); setTyping(false); input.current?.focus(); }}>
             ✕
           </button>
         )}
@@ -165,8 +257,8 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
         </button>
       </div>
 
-      {open && customQuery === null && (
-        <ul className="clist" id={listId} role="listbox" ref={listRef}>
+      {showList && (
+        <ul className="clist" id={listId} role="listbox" aria-label={label} ref={listRef}>
           {rows.map((row) => {
             if (row.kind === "group") {
               return <li key={row.id} className="cgroup" role="presentation">{row.group}</li>;
@@ -181,7 +273,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                   role="option"
                   aria-selected={false}
                   className={`custom${oIdx === active ? " hl" : ""}`}
-                  onPointerDown={(e) => { e.preventDefault(); setCustomQuery(row.query ?? query.trim()); }}
+                  onPointerDown={(e) => { e.preventDefault(); setCustomQuery(row.query ?? text.trim()); }}
                 >
                   <span>Use “{row.query}” as an address — Airbnb, condo, villa</span>
                 </li>
@@ -198,13 +290,31 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                 className={oIdx === active ? "hl" : ""}
                 onPointerDown={(e) => { e.preventDefault(); commitPlace(p); }}
               >
-                <span>{p.name}</span>
-                <span className="oarea">{p.area === "Airport" ? "AUA" : p.area}</span>
+                <span><Marked text={p.name} query={query} /></span>
+                <span className="oarea">
+                  {p.area === "Airport" ? "AUA" : <Marked text={p.area} query={query} />}
+                </span>
               </li>
             );
           })}
-          {options.length === 0 && <li className="cempty">Keep typing — or add it as an address once you've typed a few letters.</li>}
+          {typedNothingFound && (
+            <li className="cempty">
+              Nothing matches “{query.trim()}”.{" "}
+              {query.trim().length < MIN_CUSTOM
+                ? "Keep typing — or add it as your own address."
+                : "Add it as an address instead."}
+            </li>
+          )}
         </ul>
+      )}
+
+      {/* The sheet takes the whole screen, so it cannot open on nothing.
+          On the desktop dropdown this stays hidden — there, showing nothing
+          IS the right answer until a letter is typed. */}
+      {open && customQuery === null && !showList && (
+        <div className="clist chint" role="status">
+          <p>Start typing — the airport, a hotel, or your own address.</p>
+        </div>
       )}
 
       {open && customQuery !== null && (

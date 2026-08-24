@@ -24,3 +24,9 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     dispatchEvent() { return false; },
   })) as unknown as typeof window.matchMedia;
 }
+
+// jsdom has no scrollIntoView; the place picker and the time scroller call it
+// to keep the active row in view under arrow-key travel.
+if (typeof Element !== "undefined" && typeof Element.prototype.scrollIntoView !== "function") {
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
