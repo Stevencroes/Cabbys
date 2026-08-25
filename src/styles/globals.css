@@ -529,6 +529,11 @@ body.locked .hero-grid{z-index:auto;}
 .combo .cfield input:focus{outline:none;}
 .combo .cfield .clear{width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px;flex:none;}
 .combo .cfield .clear:hover{color:var(--ink);}
+/* wipes the query while searching; .clear above wipes the selection when
+   the field is at rest. Two buttons because they undo two different things. */
+.combo .cfield .cwipe{width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;
+  color:var(--muted);flex:none;margin-right:-10px;}
+.combo .cfield .cwipe:hover{color:var(--ink);}
 .combo .cfield .cancel{display:none;min-height:var(--tap);padding:0 10px;font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--silver);flex:none;align-items:center;}
 .clist{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:var(--z-modal);background:var(--surface);
   border:1px solid var(--line);box-shadow:var(--shadow-hard-lg);max-height:320px;overflow-y:auto;overscroll-behavior:contain;
@@ -539,7 +544,12 @@ body.locked .hero-grid{z-index:auto;}
   min-height:var(--tap);font-size:15px;font-weight:400;cursor:pointer;}
 .clist li[role="option"] .oarea{font-size:12px;color:var(--muted);letter-spacing:.04em;white-space:nowrap;}
 .clist li[role="option"]:hover,.clist li[role="option"].hl{background:var(--raised);}
-.clist li.custom{border-top:1px dashed var(--line-soft);color:var(--silver);font-weight:500;}
+/* The one row that answers "I'm staying somewhere you don't list" used to
+   be the last row under nineteen hotels. Sticky keeps it a real option —
+   still in the listbox, still arrow-reachable, still announced in order —
+   while putting it permanently within thumb reach. */
+.clist li.custom{border-top:1px dashed var(--line-soft);color:var(--silver);font-weight:500;
+  position:sticky;bottom:0;background:var(--surface);}
 .clist .cempty{padding:14px;font-size:14px;color:var(--muted);line-height:1.55;}
 /* the run of the row that the query matched — a highlight, not a
    marker pen, so <mark>'s yellow default has to go */
@@ -549,7 +559,18 @@ body.locked .hero-grid{z-index:auto;}
    desktop dropdown stays away until a letter is typed, which is the
    honest answer there — an empty floating panel is worse than none. */
 .chint{display:none;}
-.chint p{padding:16px 14px;margin:0;font-size:14.5px;line-height:1.6;color:var(--muted);}
+.chint p{padding:14px;margin:0;font-size:13.5px;line-height:1.6;color:var(--muted);}
+/* Five shortcuts, not a directory. The sheet takes the whole screen, so
+   opening on a single line of hint text wastes it — and for a transfer
+   service the airport is the answer often enough to be worth one tap. */
+.cquick{display:flex;flex-direction:column;}
+.cquick button{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:none;border:none;
+  padding:12px 14px;min-height:54px;margin:0 6px;border-radius:var(--r-xs);color:var(--ink);font-size:16.5px;font-weight:400;}
+/* hover only where there is a pointer: on touch it sticks after the tap and
+   leaves a row looking selected when nothing is */
+@media(hover:hover){.cquick button:hover{background:var(--raised);}}
+.cquick .qicon{flex:none;color:var(--muted);}
+.cquick .qn{flex:1;min-width:0;line-height:1.25;}
 /* custom-address area anchor */
 .areasel{margin:10px 0 4px;padding:12px;border:1px solid var(--line);background:var(--raised);}
 .areasel label{display:block;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
@@ -569,9 +590,18 @@ body.locked .hero-grid{z-index:auto;}
     padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 0;
   }
   .combo.open .chint{display:block;}
-  .combo.open .cfield input{padding:16px 0;font-size:17px;}
-  .combo.open .cfield .cancel{display:flex;}
+  /* Two rows: the label and the way out on top, the field to itself below.
+     Sharing one line meant "Queen Beatrix International Airport" ran right
+     up under Cancel. display:contents lifts the label and input out of
+     .cwrap so both can be placed on the grid. */
+  .combo.open .cfield{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px;}
+  .combo.open .cfield .cwrap{display:contents;}
+  .combo.open .cfield label{grid-column:1;grid-row:1;}
+  .combo.open .cfield .cancel{grid-column:2;grid-row:1;display:flex;justify-content:flex-end;padding-right:0;}
+  .combo.open .cfield input{grid-column:1;grid-row:2;padding:10px 0 14px;font-size:17px;}
+  .combo.open .cfield .cwipe{grid-column:2;grid-row:2;margin-right:-10px;}
   .combo.open .cfield .clear{display:none;}
+  .combo.open .clist li.custom{background:var(--ground);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));}
   .combo.open .clist{
     position:static;flex:1;max-height:none;border:none;box-shadow:none;
     margin:8px -16px 0;padding:0 10px calc(24px + env(safe-area-inset-bottom,0px));

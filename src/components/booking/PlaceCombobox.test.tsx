@@ -2,7 +2,7 @@ import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
 import PlaceCombobox from "./PlaceCombobox";
-import { AIRPORT, selFromPlace, type PlaceSel } from "../../data/places";
+import { AIRPORT, COMMON_PICKUPS, selFromPlace, type PlaceSel } from "../../data/places";
 
 /** The real thing is always driven by a parent that owns the selection, and
     the bugs this file guards live in that round trip — so the harness owns
@@ -97,6 +97,53 @@ describe("PlaceCombobox", () => {
     expect(onSelect).toHaveBeenCalledOnce();
     expect(box()).toHaveValue(name);
     expect(box()).not.toHaveValue(AIRPORT.name);
+  });
+
+  // The sheet takes the whole screen; opening it on one line of hint text
+  // wastes it. Five shortcuts is not the 62-row dump that started all this —
+  // and CSS keeps them off the desktop dropdown, where blank IS right.
+  it("offers a handful of shortcuts before anything is typed", () => {
+    render(<Harness />);
+    fireEvent.focus(box());
+    const quick = document.querySelectorAll(".cquick button");
+    expect(quick).toHaveLength(COMMON_PICKUPS.length);
+    expect(quick.length).toBeLessThanOrEqual(6);
+    // still not a listbox — nothing has been searched for
+    expect(box()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("takes a shortcut as the answer", () => {
+    const onSelect = vi.fn();
+    render(<Harness onSelect={onSelect} />);
+    fireEvent.focus(box());
+    fireEvent.pointerDown(document.querySelectorAll(".cquick button")[0]);
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(box()).toHaveValue(COMMON_PICKUPS[0].name);
+  });
+
+  it("drops the area chip when it only repeats the name", () => {
+    render(<Harness />);
+    fireEvent.focus(box());
+    for (const btn of document.querySelectorAll(".cquick button")) {
+      const area = btn.querySelector(".oarea")?.textContent;
+      const name = btn.querySelector(".qn")?.textContent;
+      if (area) expect(area).not.toEqual(name);
+    }
+    // Palm Beach is a place whose area is its own name — it must show none
+    const palm = [...document.querySelectorAll(".cquick button")]
+      .find((b) => b.querySelector(".qn")?.textContent === "Palm Beach");
+    expect(palm?.querySelector(".oarea")).toBeNull();
+  });
+
+  it("wipes the search in one tap, back to the shortcuts", () => {
+    render(<Harness />);
+    fireEvent.focus(box());
+    type("palm");
+    expect(opts().length).toBeGreaterThan(0);
+    fireEvent.pointerDown(screen.getByLabelText(/clear what you typed/i));
+    expect(box()).toHaveValue("");
+    expect(opts()).toHaveLength(0);
+    expect(document.querySelectorAll(".cquick button")).toHaveLength(COMMON_PICKUPS.length);
   });
 
   it("offers the typed text as an address once there is enough of it", () => {

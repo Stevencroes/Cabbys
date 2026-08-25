@@ -163,6 +163,16 @@ export const PLACES: Place[] = [
 
 export const AIRPORT: Place = PLACES[0];
 
+/** The shortcut list the mobile picker offers before anything is typed.
+    Hand-picked, not measured: the airport and the cruise port are where
+    arrivals start, and the three areas cover where most of the island's
+    beds and restaurants are. Kept to five — a shortcut you can take in at
+    a glance, not a directory to scroll. Replace it with real booking
+    counts when there are enough of them to mean anything. */
+export const COMMON_PICKUPS: Place[] = [
+  AIRPORT_ID, "cruise-terminal", "palm-beach", "eagle-beach", "oranjestad",
+].map((id) => PLACES.find((pl) => pl.id === id)).filter((pl): pl is Place => !!pl);
+
 // ── selection type shared by the quote card + booking modal ──
 // A selection is either a catalog place or a custom address anchored to an
 // area (how fixed-price transfer firms handle villas — no geocoding needed).

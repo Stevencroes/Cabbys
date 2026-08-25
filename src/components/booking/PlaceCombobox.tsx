@@ -14,7 +14,7 @@
 // `text`, now backs the input, and `committed` flows into it.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  AREAS, GROUPS, areaByName, searchPlaces, selFromCustom, selFromPlace,
+  AREAS, COMMON_PICKUPS, GROUPS, areaByName, searchPlaces, selFromCustom, selFromPlace,
   type Place, type PlaceSel,
 } from "../../data/places";
 import { lockBody, unlockBody } from "../../lib/bodyLock";
@@ -74,6 +74,26 @@ function Marked({ text, query }: { text: string; query: string }) {
       <mark>{text.slice(at, at + q.length)}</mark>
       {text.slice(at + q.length)}
     </>
+  );
+}
+
+/** A mark for each shortcut row. These five are different KINDS of place —
+    an airport, a port, two beaches, a town — so a glyph tells them apart at
+    a glance. Deliberately not used on search results: nineteen identical
+    building icons under a "Hotels & resorts" header would be decoration. */
+function QuickIcon({ id }: { id: string }) {
+  const d: Record<string, React.ReactNode> = {
+    airport: <path d="M18 3 L2 10 L8 12 L10 18 Z" />,
+    "cruise-terminal": <><path d="M10 6 V17 M6 9 H14 M4 12c0 3 3 5 6 5s6-2 6-5" /><circle cx="10" cy="4" r="2" /></>,
+    "palm-beach": <><path d="M2 11q3-3 6 0t6 0" /><path d="M2 15q3-3 6 0t6 0" /></>,
+    "eagle-beach": <><path d="M2 11q3-3 6 0t6 0" /><path d="M2 15q3-3 6 0t6 0" /></>,
+    oranjestad: <><path d="M10 18s6-6.5 6-10a6 6 0 1 0-12 0c0 3.5 6 10 6 10z" /><circle cx="10" cy="8" r="2" /></>,
+  };
+  return (
+    <svg className="qicon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {d[id] ?? <><path d="M10 18s6-6.5 6-10a6 6 0 1 0-12 0c0 3.5 6 10 6 10z" /><circle cx="10" cy="8" r="2" /></>}
+    </svg>
   );
 }
 
@@ -252,6 +272,17 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             ✕
           </button>
         )}
+        {/* Wipes the search, not the selection — the sheet has no room for
+            holding backspace down through "Queen Beatrix International
+            Airport". Only while searching; the one above clears the field. */}
+        {open && text.length > 0 && (
+          <button type="button" className="cwipe" aria-label="Clear what you typed"
+            onPointerDown={(e) => { e.preventDefault(); setText(""); setTyping(true); input.current?.focus(); }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 4 L14 14 M14 4 L4 14" />
+            </svg>
+          </button>
+        )}
         <button type="button" className="cancel" onPointerDown={(e) => { e.preventDefault(); closeList(); }}>
           Cancel
         </button>
@@ -299,10 +330,10 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           })}
           {typedNothingFound && (
             <li className="cempty">
-              Nothing matches “{query.trim()}”.{" "}
+              Nothing on the island matches “{query.trim()}”.{" "}
               {query.trim().length < MIN_CUSTOM
-                ? "Keep typing — or add it as your own address."
-                : "Add it as an address instead."}
+                ? "Keep typing — a few more letters and you can use it as your own address."
+                : "Use it as your own address below."}
             </li>
           )}
         </ul>
@@ -312,8 +343,23 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           On the desktop dropdown this stays hidden — there, showing nothing
           IS the right answer until a letter is typed. */}
       {open && customQuery === null && !showList && (
-        <div className="clist chint" role="status">
-          <p>Start typing — the airport, a hotel, or your own address.</p>
+        <div className="clist chint">
+          <div className="cgroup">Common stops</div>
+          <div className="cquick">
+            {COMMON_PICKUPS.map((pl) => (
+              <button key={pl.id} type="button"
+                onPointerDown={(e) => { e.preventDefault(); commitPlace(pl); }}>
+                <QuickIcon id={pl.id} />
+                <span className="qn">{pl.name}</span>
+                {/* the area only earns its column when it says something the
+                    name does not — "Palm Beach · Palm Beach" is furniture */}
+                {pl.area !== pl.name && (
+                  <span className="oarea">{pl.area === "Airport" ? "AUA" : pl.area}</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <p>Somewhere else? Type it — an address prices by area, so villas and condos come out honest.</p>
         </div>
       )}
 
