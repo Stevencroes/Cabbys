@@ -5,11 +5,13 @@ import { useAuth } from "../booking/useAuth";
 import { displayNameOf, initialsOf } from "../lib/displayName";
 import { lockBody, unlockBody } from "../lib/bodyLock";
 
+// §06 — the four the mockup names. "My trips" leaves the rail: it is an
+// account destination, and it now sits with the account itself on the right.
 const LINKS = [
-  { label: "How it works", href: "/#how" },
-  { label: "Fleet", href: "/#fleet" },
-  { label: "FAQ", href: "/#faq" },
-  { label: "My trips", href: "/trips" },
+  { label: "Services", href: "/#services" },
+  { label: "Vehicles", href: "/#fleet" },
+  { label: "About Us", href: "/#about" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 export default function Nav({ onSignIn }: { onSignIn: () => void }) {
@@ -148,8 +150,13 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
         ) : (
           <button type="button" className="nsign" onClick={onSignIn}>Sign in</button>
         )}
+        {/* §06 puts a currency control here. Every fare in this app is USD —
+            quote.ts converts the florin rate card at the boundary and never
+            surfaces AWG — so this is a statement of the unit, not a picker.
+            A chevron on it would promise a choice that does not exist. */}
+        <span className="ncur" aria-label="Prices shown in US dollars">USD</span>
         <button type="button" className="nbtn" onClick={() => booking?.open()}>
-          Book a transfer
+          Book now
         </button>
         {/* below 1040px the links collapse in here — without this,
             My trips and Sign in are unreachable on a phone */}
@@ -195,8 +202,14 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
                 {l.label}
               </Link>
             ))}
+            {/* My trips left the rail for the account cluster (§06). On a
+                phone that cluster is this sheet, so it lands here — dropping
+                it from LINKS must not put it out of reach. */}
             {account && (
-              <Link to="/profile" onClick={() => setOpen(false)}>Profile</Link>
+              <>
+                <Link to="/trips" onClick={() => setOpen(false)}>My trips</Link>
+                <Link to="/profile" onClick={() => setOpen(false)}>Profile</Link>
+              </>
             )}
             {account ? (
               <button type="button" className="sheet-out" onClick={handleSignOut}>Sign out</button>
@@ -208,7 +221,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
               className="sheet-cta"
               onClick={() => { setOpen(false); booking?.open(); }}
             >
-              Book a transfer
+              Book now
             </button>
           </div>
         </>

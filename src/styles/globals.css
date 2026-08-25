@@ -88,6 +88,8 @@ h2.sec em{font-style:italic;}
   max-width:var(--maxw);height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;}
 .nav-left{display:flex;align-items:center;gap:52px;min-width:0;}
+/* the unit, not a picker — see the note in Nav.tsx */
+.ncur{font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--nav-dim);flex:none;}
 .brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:16px;
   padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;}
 .brand .ap{color:var(--silver);}
@@ -397,6 +399,16 @@ h2.sec em{font-style:italic;}
 /* Asymmetric on purpose: the grid centres itself in whatever is left
    between these, so a heavier bottom pad lifts the whole block above
    the optical middle. The phone override below keeps its own values. */
+/* §07 — the hero photograph. A ground the copy sits on, faded into the navy
+   at its edges so it ends in the page rather than on a line. The image file
+   lands at /hero.jpg; until it does the gradient alone carries the section,
+   which is why the fallback is a composition and not a grey box. */
+.hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.92) 34%,rgba(2,11,20,.35) 62%,rgba(2,11,20,.55) 100%),
+    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.10) 42%,rgba(2,11,20,.55) 100%),
+    radial-gradient(120% 90% at 74% 34%,#12293C 0%,#081726 46%,var(--ground) 78%);
+  background-size:cover;background-position:center;}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
   padding:var(--nav-h) 0 150px;
   border-bottom:1px solid var(--line);}
@@ -410,92 +422,124 @@ h2.sec em{font-style:italic;}
    order is not visible anyway, so the context is dropped and the sheet
    competes at the root, where it was always meant to. */
 body.locked .hero-grid{z-index:auto;}
-.hero-grid{position:relative;z-index:var(--z-content);flex:1;display:grid;grid-template-columns:minmax(0,1fr) 366px;gap:clamp(28px,3.6vw,52px);
-  align-items:center;max-width:var(--maxw);margin:0 auto;width:100%;
-  padding:0 var(--gutter);}
+/* §07/§08 — the card is not a column beside the copy any more; it is a wide
+   panel across the foot of the hero, the way the mockup composes it. So the
+   grid becomes a stack that hangs from the bottom, and the photograph gets
+   the whole right-hand side to itself. */
+.hero-grid{position:relative;z-index:var(--z-content);flex:1;display:flex;flex-direction:column;
+  justify-content:flex-end;gap:clamp(26px,3.4vw,44px);max-width:var(--maxw);margin:0 auto;width:100%;
+  padding:clamp(90px,11vh,150px) var(--gutter) clamp(26px,4vh,44px);}
+.hero-copy{max-width:min(560px,58%);}
 @media(max-width:900px){
   .hero{padding:var(--nav-h-sm) 0 22px;}
 }
-.hero-eyebrow{display:flex;align-items:center;gap:12px;color:var(--silver);margin-bottom:18px;}
-.hero-eyebrow .l{height:1px;width:44px;background:var(--silver);}
-.hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(33px,3.75vw,56px);line-height:1.0;
-  letter-spacing:-.025em;margin:0;max-width:13ch;}
-.hero h1 em{font-style:italic;color:var(--silver);}
-.hero-tag{margin-top:22px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
-.hero-tag .big{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(17px,1.55vw,21px);}
-.hero-tag .sm{font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
-.hero-trust{margin-top:24px;display:flex;gap:8px;flex-wrap:wrap;}
-.hero-trust span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--silver);
-  border:1px solid var(--soft);padding:7px 13px;}
+.hero-eyebrow{color:var(--silver);margin-bottom:20px;}
+.hero-eyebrow .eyebrow{font-size:11.5px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}
+/* 500, not 300: at hero size the light cut read as delicate. The mockup's
+   headline is architectural — it has to hold the photograph down. */
+.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,74px);line-height:1.02;
+  letter-spacing:-.02em;margin:0;color:var(--ink);}
+.hero h1 em{font-style:normal;color:var(--ink);}
+.hero-sub{margin:20px 0 0;font-size:clamp(14.5px,1.15vw,16.5px);line-height:1.6;color:var(--silver);font-weight:400;}
+/* three marks, no boxes — the border-and-pill treatment was louder than
+   the claims it carried */
+.hero-trust{margin-top:26px;display:flex;gap:clamp(18px,2.4vw,34px);flex-wrap:wrap;}
+.hero-trust span{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.02em;
+  text-transform:none;font-weight:400;color:var(--silver);border:none;padding:0;}
+.hero-trust svg{color:var(--muted);flex:none;}
 /* Must stay BELOW the rules above: same specificity, so the last one wins.
    Sitting on top of them, this whole block did nothing for a while. */
 @media(max-width:980px){
-  .hero-grid{grid-template-columns:1fr;gap:22px;}
+  .hero-grid{gap:22px;padding-top:clamp(80px,13vh,120px);}
+  .hero-copy{max-width:none;}
   /* One column, DOM order, no swap: the headline says what this is before
      the form asks anything. Leading on a bare fare box means a first-time
      visitor meets a price for a service nobody has named yet — and the
      desktop hierarchy is the right one, so the phone keeps it.
      The headline shrinks instead, so the card still breaks the fold. */
-  .hero h1{font-size:clamp(29px,7.4vw,37px);max-width:none;}
-  .hero-tag{margin-top:14px;}
-  .hero-trust{margin-top:18px;}
+  .hero h1{font-size:clamp(32px,8.2vw,46px);max-width:none;}
+  .hero-sub{margin-top:14px;}
+  .hero-trust{margin-top:20px;gap:14px;}
+  .hero-trust span{font-size:11.5px;gap:7px;}
 }
 
-/* ============ QUOTE CARD (§3.2) ============ */
-/* overflow:visible so date and time popovers can leave the card; the
-   hairline is inset instead of clipped, which is what hidden was for */
-.quote{background:var(--surface);border:1px solid var(--line);width:100%;max-width:366px;
-  justify-self:end;box-shadow:var(--shadow-hard-lg);position:relative;padding:24px 22px 20px;}
-/* the one hairline in the marketing site: a brushed rule across the top */
+/* ============ BOOKING CARD (§08) ============ */
+/* A wide panel across the foot of the hero: trip type, five answers in a
+   row, and the way on. overflow stays visible so the date and time
+   popovers can leave the card. */
+.quote{position:relative;width:100%;max-width:none;background:rgba(9,23,34,.72);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  border:1px solid var(--line);box-shadow:var(--shadow-hard-lg);padding:0;}
 .quote::before{content:"";position:absolute;top:0;left:var(--r-md);right:var(--r-md);height:1px;background:var(--hairline);}
-@media(max-width:980px){.quote{justify-self:stretch;max-width:none;}}
-.qtitle{font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);margin-bottom:16px;}
-/* The quiet row. Reverse is a rescue, not a step — it used to sit as a
-   bordered circle between the two fields, which is exactly where the eye
-   travels most. Guests joins it: one answer most people never change. */
-.qquiet{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;}
-.qswap{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 2px;
-  border:none;background:none;color:var(--muted);font-size:12px;font-weight:600;
-  letter-spacing:.12em;text-transform:uppercase;transition:.2s var(--ease);}
-.qswap:hover{color:var(--ink);}
-.qswap span{font-size:14px;line-height:1;}
-.qpax{display:inline-flex;align-items:center;gap:9px;color:var(--silver);
-  font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;}
-.qpax select{min-height:34px;padding:0 8px;background:none;border:none;border-bottom:1px solid var(--line);
-  color:var(--ink);font-family:var(--sans);font-size:15px;font-weight:400;appearance:none;
-  text-align:center;transition:.2s var(--ease);}
-.qpax select:hover{border-bottom-color:var(--silver);}
-/* Use my location is an offer, not an instruction — a full-width outlined
-   button gave it the same weight as Continue. */
-.qloc{display:inline-flex;align-items:center;min-height:32px;padding:0;margin:2px 0 6px;
-  border:none;background:none;color:var(--silver);font-size:12px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;text-decoration:underline;
-  text-underline-offset:4px;text-decoration-color:var(--soft);transition:.2s var(--ease);}
+
+/* one way / round trip — an underline, not a segmented pill */
+.qtabs{display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid var(--line);}
+.qtabs button{appearance:none;background:none;border:none;color:var(--muted);
+  padding:16px 18px 14px;font-size:13.5px;font-weight:500;letter-spacing:.01em;
+  position:relative;transition:color .25s var(--ease);}
+.qtabs button:hover{color:var(--silver);}
+.qtabs button.on{color:var(--ink);}
+.qtabs button.on::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:var(--ink);}
+
+/* the five answers. Dividers rather than boxes: one field, read across. */
+.qrow{display:grid;grid-template-columns:1.35fr 1.35fr .82fr .74fr .9fr;align-items:stretch;}
+.qcell{position:relative;padding:14px 20px 16px;min-width:0;}
+.qcell + .qcell::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--line);}
+/* the card's own fields shed the standalone control chrome — no rules
+   under them, no boxes; the divider does the separating */
+.qcell .combo{margin:0;}
+.qcell .combo .cfield{border-bottom:none;gap:0;}
+.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:10.5px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+.qcell .combo .cfield input{font-size:14.5px;padding:0;}
+.qcell .combo .cfield .cmark{color:var(--muted);}
+.qcell .combo .cfield .clear{display:none;}
+.qcell .qfld input,.qcell .qfld select{background:none;border:none;padding:0;min-height:0;font-size:14.5px;}
+/* DateField and TimeField ship as self-contained controls with their own
+   box. Inside the card the divider is the boundary, so the box goes and
+   only the value and its mark remain. */
+.qcell .dtf-label{display:block;font-size:10.5px;font-weight:600;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+.qcell .dtf-trigger{background:none;border:none;border-radius:0;padding:0;min-height:0;width:100%;
+  font-size:14.5px;color:var(--ink);gap:8px;white-space:nowrap;}
+.qcell .dtf-trigger.empty{color:var(--placeholder);}
+.qcell .dtf-trigger:hover{background:none;}
+.qcell .qpax{display:block;color:var(--ink);}
+.qcell .qpax select{width:100%;min-height:0;padding:0;background:none;border:none;color:var(--ink);
+  font-size:14.5px;font-family:var(--sans);appearance:none;}
+.qcell .qpax select:hover{border:none;}
+
+.qgo{display:flex;justify-content:flex-end;padding:0 20px 20px;}
+.qbtn{width:auto;min-width:232px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--sheen);color:var(--on-sheen);border:none;padding:15px 26px;min-height:var(--tap);
+  font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),filter .3s var(--ease);}
+.qbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
+.qloc{display:inline-flex;align-items:center;min-height:32px;padding:0 20px;margin:0 0 4px;
+  border:none;background:none;color:var(--silver);font-size:12.5px;font-weight:500;text-decoration:underline;
+  text-underline-offset:3px;text-decoration-color:var(--soft);}
 .qloc:hover{color:var(--ink);text-decoration-color:var(--silver);}
-.qmini{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
-/* date and time read as one answer; guests is its own question */
+.qhint{font-size:13px;color:var(--silver);margin:0;padding:0 20px 10px;font-weight:500;}
 
-/* second column: anchor the popover to its right edge or it runs off */
-.qmini .qfld:nth-child(2) .dtf-pop{left:auto;right:0;}
-
-.qfld label{display:block;font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
-.qfld input,.qfld select{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
-  border:1px solid var(--line);padding:12px 12px;appearance:none;min-height:var(--tap);}
-.qfld input:focus,.qfld select:focus{background:var(--surface);}
-.qprice{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
-  margin:14px 0 0;padding-top:15px;border-top:1px solid var(--line);}
-.qprice .pl{font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
-.qprice .pv{font-family:var(--serif);font-size:40px;font-weight:600;line-height:1;color:var(--ink);white-space:nowrap;}
-/* an em dash set at 40px is a rule, not a number — the placeholder should
-   read as "nothing yet", not as a divider */
-.qprice .pv.waiting{font-size:22px;color:var(--soft);}
-/* the terms of the number, under the number rather than beside its label */
-.quote > .pm{margin:6px 0 16px;font-size:12px;color:var(--muted);letter-spacing:.05em;font-weight:500;}
-.qbtn{width:100%;background:var(--sheen);color:var(--on-sheen);border:none;padding:16px;min-height:var(--tap);font-weight:600;
-  font-size:13px;letter-spacing:.16em;text-transform:uppercase;transition:.3s;}
-.qbtn:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
-.qfoot{margin-top:12px;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.04em;font-weight:500;}
-.qhint{font-size:13px;color:var(--silver);margin:6px 0 4px;min-height:16px;font-weight:500;}
+/* §09 — the phone gets its own composition, not a squeezed desktop card:
+   FROM, TO, DATE + TIME, PASSENGERS, then a full-width action. */
+@media(max-width:980px){
+  .qrow{grid-template-columns:1fr 1fr;}
+  .qcell{grid-column:1 / -1;padding:14px 18px;}
+  /* stacked, the rule between rows has to cross BOTH date and time — a
+     pseudo on the date cell only reaches half way. Borders span the cell,
+     so they carry the horizontal rules and the pseudo is left to do the one
+     vertical divider the row still needs. */
+  .qcell + .qcell::before{display:none;}
+  .qcell + .qcell{border-top:1px solid var(--line);}
+  .qcell-date{grid-column:1;}
+  .qcell-time{grid-column:2;}
+  .qcell-time::before{display:block;left:0;top:14px;bottom:14px;width:1px;height:auto;}
+  .qgo{padding:14px 18px 18px;}
+  .qbtn{width:100%;min-width:0;}
+  .qtabs button{flex:1;text-align:center;padding:15px 10px 13px;}
+  .qtabs button.on::after{left:10px;right:10px;}
+}
 /* Beside the headline the card has to match its weight, and a mouse needs
    none of what a thumb does. Touch keeps the 46px targets and the 16px
    fields — under 16px, iOS zooms the page the moment one takes focus. */
@@ -521,6 +565,8 @@ body.locked .hero-grid{z-index:auto;}
 .combo .cfield{border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
 .combo .cfield label{display:block;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);}
 .combo .cfield .cwrap{flex:1;min-width:0;}
+.combo .cfield .cin{display:flex;align-items:center;gap:9px;min-width:0;}
+.combo .cfield .cmark{flex:none;display:flex;color:var(--muted);}
 /* an input clips rather than ellipses by default, so a long place name
    read as "Queen Beatrix International Air" — a truncation that looks
    like a bug rather than a shortening */
@@ -598,7 +644,8 @@ body.locked .hero-grid{z-index:auto;}
   .combo.open .cfield .cwrap{display:contents;}
   .combo.open .cfield label{grid-column:1;grid-row:1;}
   .combo.open .cfield .cancel{grid-column:2;grid-row:1;display:flex;justify-content:flex-end;padding-right:0;}
-  .combo.open .cfield input{grid-column:1;grid-row:2;padding:10px 0 14px;font-size:17px;}
+  .combo.open .cfield .cin{grid-column:1;grid-row:2;}
+  .combo.open .cfield input{padding:10px 0 14px;font-size:17px;}
   .combo.open .cfield .cwipe{grid-column:2;grid-row:2;margin-right:-10px;}
   .combo.open .cfield .clear{display:none;}
   .combo.open .clist li.custom{background:var(--ground);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));}
@@ -1087,10 +1134,12 @@ input.txt:focus{outline:none;background:var(--surface);}
    round. Bands stay full-bleed; corners soften everywhere else. */
 
 /* hero + landing */
-.hero-trust span{border-radius:var(--r-pill);}
-.quote{border-radius:var(--r-lg);}
+/* the trust marks lost their pills with their borders */
+.quote{border-radius:var(--r-md);}
 .qfld input,.qfld select{border-radius:var(--r-sm);}
-.qbtn{border-radius:var(--r-pill);}
+/* §15 restraint: the action is a rectangle with a soft corner, not a
+   lozenge — the pill read as a consumer app rather than a marque. */
+.qbtn{border-radius:var(--r-sm);}
 .hgrid{border-radius:var(--r-md);overflow:hidden;}
 .fcard{border-radius:var(--r-md);overflow:hidden;}
 .ffoot button{border-radius:var(--r-pill);}

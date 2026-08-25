@@ -1,35 +1,23 @@
-// §3.2 — the hero quote card. Symmetric pickup/drop-off, swap, instant
-// fare from the SAME quote() the modal uses, Continue never disabled.
+// §08 — the hero booking card. One way or return, five answers in a row,
+// and the way on. It no longer quotes: the mockup asks for availability
+// first and shows money once the route is real, so the rate card is loaded
+// by the flow that spends it rather than by the card that opens it.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import PlaceCombobox from "./PlaceCombobox";
 import DateField from "./DateField";
 import TimeField from "./TimeField";
 import { todayInAruba } from "../../lib/datetime";
-import { VEHICLES, fitsParty, type Vehicle } from "../../data/vehicles";
-import { loadPricing, type Pricing } from "../../lib/pricing";
-import { quote, usd } from "../../lib/quote";
 import { isOnIsland, locate } from "../../lib/geo";
 import { AIRPORT, selFromCustom, selFromPlace } from "../../data/places";
 
-export function autoVehicle(pax: number, bags: number): Vehicle {
-  return VEHICLES.find((v) => fitsParty(v, pax, bags)) ?? VEHICLES[VEHICLES.length - 1];
-}
-
 export default function QuoteCard() {
-  const { state, setField, swap, open } = useBooking();
-  const [pricing, setPricing] = useState<Pricing | null>(null);
+  const { state, setField, open } = useBooking();
   const [hint, setHint] = useState("");
   const [locMsg, setLocMsg] = useState("");
   const onIsland = useMemo(() => isOnIsland(), []);
   const fromInput = useRef<HTMLInputElement | null>(null);
   const toInput = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadPricing().then((p) => !cancelled && setPricing(p));
-    return () => { cancelled = true; };
-  }, []);
 
   // §3.8 — planning from abroad: pickup pre-fills to the airport; guests
   // already on the island get an empty form (they know where they are).
@@ -37,17 +25,6 @@ export default function QuoteCard() {
     if (!onIsland && !state.from) setField("from", selFromPlace(AIRPORT));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Same auto-selection rule as the modal (§3.4): bags default to
-  // min(guests, 2), so hero and modal always agree on the vehicle.
-  const bags = Math.min(state.pax, 2);
-  const vehicle = autoVehicle(state.pax, bags);
-  // No pickup time is asked for here, so this deliberately passes none:
-  // quote() then prices at the neutral hour rather than at whatever the
-  // viewer's own clock happens to say.
-  const q = state.from && state.to && state.from.id !== state.to.id
-    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing })
-    : null;
 
   async function handleLocate() {
     const res = await locate();
@@ -81,38 +58,51 @@ export default function QuoteCard() {
     open(); // everything already lives in context — nothing is asked twice
   }
 
+  const Pin = (
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 18s6-6.5 6-10a6 6 0 1 0-12 0c0 3.5 6 10 6 10z" /><circle cx="10" cy="8" r="2" />
+    </svg>
+  );
+
   return (
     <div className="quote rise">
-      <div className="qtitle">Your fare, instantly</div>
+      {/* §08 — one way or return, then the five answers in a row, then the
+          way on. The card carries no fare: the mockup asks for availability
+          first and shows the money once the route is real. */}
+      <div className="qtabs" role="tablist" aria-label="Trip type">
+        <button type="button" role="tab" aria-selected={state.journey === "one"}
+          className={state.journey === "one" ? "on" : ""}
+          onClick={() => setField("journey", "one")}>One Way</button>
+        <button type="button" role="tab" aria-selected={state.journey === "return"}
+          className={state.journey === "return" ? "on" : ""}
+          onClick={() => setField("journey", "return")}>Round Trip</button>
+      </div>
 
-      {/* Two fields, one rule under each. The swap used to sit between them
-          as a bordered circle, which put a control in the one place the eye
-          travels most — it is a rescue, not a step, so it waits at the end
-          with the other quiet things. */}
-      <PlaceCombobox
-        label="Pick up"
-        value={state.from}
-        onSelect={(sel) => setField("from", sel)}
-        placeholder={onIsland ? "Where are you now?" : "Airport, hotel or address"}
-        inputRef={fromInput}
-      />
-      {onIsland && (
-        <button type="button" className="qloc" onClick={handleLocate}>
-          Use my location
-        </button>
-      )}
-      {locMsg && <div className="qhint" role="status">{locMsg}</div>}
+      <div className="qrow">
+        <div className="qcell">
+          <PlaceCombobox
+            label="From"
+            value={state.from}
+            onSelect={(sel) => setField("from", sel)}
+            placeholder={onIsland ? "Where are you now?" : "Airport, Hotel, Address"}
+            inputRef={fromInput}
+            icon={Pin}
+          />
+        </div>
 
-      <PlaceCombobox
-        label="Drop off"
-        value={state.to}
-        onSelect={(sel) => setField("to", sel)}
-        placeholder="Hotel, beach, restaurant…"
-        inputRef={toInput}
-      />
+        <div className="qcell">
+          <PlaceCombobox
+            label="To"
+            value={state.to}
+            onSelect={(sel) => setField("to", sel)}
+            placeholder="Hotel, Address, Destination"
+            inputRef={toInput}
+            icon={Pin}
+          />
+        </div>
 
-      <div className="qmini">
-        <div className="qfld">
+        <div className="qcell qcell-date">
           <DateField
             id="q-date"
             label="Date"
@@ -122,9 +112,10 @@ export default function QuoteCard() {
             compact
           />
         </div>
+
         {/* Asked here so step 1 opens answered. An airport run derives its
             pickup from the flight instead, so the overlay overrides this. */}
-        <div className="qfld">
+        <div className="qcell qcell-time">
           <TimeField
             id="q-time"
             label="Time"
@@ -134,34 +125,34 @@ export default function QuoteCard() {
             hideZone
           />
         </div>
+
+        <div className="qcell qcell-pax">
+          <label className="qpax" htmlFor="q-pax">
+            <span className="qpax-l">Passengers</span>
+            <select id="q-pax" value={state.pax} onChange={(e) => setField("pax", +e.target.value)}>
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <option key={n} value={n}>{n} Passenger{n > 1 ? "s" : ""}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
-      {/* The quiet row: the thing most people never touch, and the thing
-          they touch once. Neither earns a box. */}
-      <div className="qquiet">
-        <button type="button" className="qswap" aria-label="Reverse pickup and drop-off" onClick={swap}>
-          <span aria-hidden="true">⇅</span> Reverse
-        </button>
-        <label className="qpax" htmlFor="q-pax">
-          Guests
-          <select id="q-pax" value={state.pax} onChange={(e) => setField("pax", +e.target.value)}>
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </label>
-      </div>
-
-      <div className="qprice">
-        <span className="pl">Your fare</span>
-        <span className={q ? "pv" : "pv waiting"}>{q ? usd(q.totalUsd) : "—"}</span>
-      </div>
-      <div className="pm">
-        {q ? `${q.minutes} min · all in · ${vehicle.name}` : "Choose your route to see it"}
-      </div>
-
+      {onIsland && (
+        <button type="button" className="qloc" onClick={handleLocate}>Use my location</button>
+      )}
+      {locMsg && <div className="qhint" role="status">{locMsg}</div>}
       {hint && <div className="qhint" role="alert">{hint}</div>}
 
-      <button type="button" className="qbtn" onClick={handleContinue}>Continue</button>
-      <div className="qfoot">All fares in US dollars · free cancellation up to 24h before</div>
+      <div className="qgo">
+        <button type="button" className="qbtn" onClick={handleContinue}>
+          Check availability
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 10h13M11 5l5 5-5 5" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

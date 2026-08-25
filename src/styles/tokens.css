@@ -5,25 +5,34 @@
    only two gradients in the system. Text on --sheen is always --deep.
    ========================================================================== */
 :root{
-  /* ---------- grounds ---------- */
-  --deep:#070D16;        /* FAQ band, footer, bottom nav */
-  --ground:#0B1420;      /* page background */
-  --surface:#121D2B;     /* cards, nav pill, fare panel, job cards */
-  --raised:#1A2739;      /* inputs, segmented strips, category strips */
-  --line:#26374C;        /* borders, dividers */
+  /* ---------- grounds ----------
+     Brand-positioned palette (§04). The page is midnight navy, near black,
+     and every surface above it steps LIGHTER — the reverse of the old scale,
+     where --deep sat below the page. Bands, cards and inputs are now three
+     rungs of one ladder instead of two directions from a middle. */
+  --ground:#020B14;      /* page background — deep midnight navy */
+  --deep:#06121D;        /* secondary band: FAQ, footer, bottom nav */
+  --surface:#091722;     /* cards, fare panel, job cards */
+  --raised:#0D1C29;      /* inputs, segmented strips, elevated rows */
+  --line:#23313D;        /* borders, dividers */
   --soft:#3A506B;        /* disabled, faint icons */
 
   /* ---------- type (contrast quoted against --ground) ---------- */
-  --ink:#F2F5F8;         /* 13.8:1 — headings, prices, primary values */
-  --silver:#B9C6D4;      /*  9.1:1 — labels, eyebrows, small caps, accents */
-  --muted:#8FA1B4;       /*  6.0:1 — body copy, secondary text */
-  --placeholder:#7C93AC; /*  5.4:1 — input placeholders only */
+  --ink:#F5F5F3;         /* 18.5:1 — headings, prices, primary values */
+  --silver:#A7ADB4;      /*  8.7:1 — labels, eyebrows, small caps, accents */
+  /* §04 gives #6F7882 here. Against a ground this dark that measures 4.4:1,
+     just under the 4.5 floor for body text, so it is lifted one step. The
+     brief calls its values approximate; failing AA is not the part to
+     reproduce faithfully. */
+  --muted:#737C86;       /*  4.7:1 — body copy, secondary text */
+  --placeholder:#737C86; /*  4.7:1 — input placeholders only */
   --silver-deep:#8A9AAB; /* pressed states, borders on silver elements */
+  --highlight:#D7D9D8;   /* subtle highlight (§04) */
 
   /* ---------- silver as material — the only two gradients ---------- */
-  --sheen:linear-gradient(135deg,#E3E9EF 0%,#B9C6D4 46%,#D6DEE6 78%,#A8B7C6 100%);
-  --hairline:linear-gradient(90deg,transparent,#B9C6D4 22%,#E3E9EF 50%,#B9C6D4 78%,transparent);
-  --on-sheen:var(--deep);
+  --sheen:linear-gradient(180deg,#EFEDE9 0%,#E5E3DE 100%);
+  --hairline:linear-gradient(90deg,transparent,#A7ADB4 22%,#D7D9D8 50%,#A7ADB4 78%,transparent);
+  --on-sheen:#080C10;
 
   /* ---------- functional — never decorative ----------
      signal marks live states only; alert marks problems only. Both render
@@ -43,15 +52,19 @@
   --alert-line:rgba(207,106,95,.42);
 
   /* ---------- translucent grounds (blurred bars, scrims, rules) ---------- */
-  --nav-deep:rgba(7,13,22,.9);    /* driver bottom nav */
-  --scrim:rgba(7,13,22,.72);      /* modal + menu scrims */
-  --scrim-heavy:rgba(7,13,22,.94);/* full-screen ride offer */
-  --line-soft:rgba(38,55,76,.62); /* dashed and half-weight rules */
-  --on-sheen-wash:rgba(7,13,22,.22); /* count badge riding on --sheen */
+  --nav-deep:rgba(2,11,20,.92);    /* driver bottom nav */
+  --scrim:rgba(2,11,20,.76);      /* modal + menu scrims */
+  --scrim-heavy:rgba(2,11,20,.95);/* full-screen ride offer */
+  --line-soft:rgba(35,49,61,.66); /* dashed and half-weight rules */
+  --on-sheen-wash:rgba(8,12,16,.22); /* count badge riding on --sheen */
 
   /* ---------- type ---------- */
-  --serif:'Cormorant Garamond', Georgia, serif;   /* display */
-  --sans:'Jost', system-ui, sans-serif;           /* everything else */
+  /* The pairing IS the identity (§05): an editorial serif for display, a
+     neutral grotesque for everything you operate. Cormorant carries the
+     headlines at 500-600 — the old 300 read as delicate rather than
+     architectural. Inter takes the UI, prices and forms. */
+  --serif:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --sans:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* ---------- layout ---------- */
   --maxw:1120px;
@@ -68,11 +81,11 @@
   --nav-h:70px;
   --nav-h-sm:60px;
   --nav-clear:calc(var(--nav-h) + 26px);
-  --nav-ink:#EDF2F7;                              /* wordmark, active link, step number */
-  --nav-dim:#8A98A8;                              /* resting links, step remainder */
-  --nav-underline:#C9D3DF;                        /* link underline, progress fill */
-  --nav-rule:rgba(201,211,223,.13);               /* the hairline, and the progress track */
-  --nav-bg:rgba(7,13,22,.55);                     /* --deep at 55%, behind the blur */
+  --nav-ink:#F5F5F3;                              /* wordmark, active link, step number */
+  --nav-dim:#A7ADB4;                              /* resting links, step remainder */
+  --nav-underline:#D7D9D8;                        /* link underline, progress fill */
+  --nav-rule:rgba(215,217,216,.14);               /* the hairline, and the progress track */
+  --nav-bg:rgba(2,11,20,.62);                     /* --deep at 55%, behind the blur */
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;

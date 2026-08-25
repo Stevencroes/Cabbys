@@ -64,6 +64,9 @@ export function useParallax(): void {
 interface SplitPart {
   text: string;
   em?: boolean;
+  /** start this part on its own line — a break the words reveal around,
+      rather than one CSS has to guess at a given width */
+  br?: boolean;
 }
 
 /** Word-by-word reveal heading. Text content stays a clean sentence —
@@ -98,10 +101,16 @@ export function SplitHeading({
           if (wi < words.length - 1) nodes.push(" ");
         });
         const trail = /\s$/.test(part.text) || pi < parts.length - 1 ? " " : "";
-        return part.em ? (
-          <em key={pi}>{nodes}{trail}</em>
+        const body = part.em ? (
+          <em>{nodes}{trail}</em>
         ) : (
-          <span key={pi} style={{ display: "contents" }}>{nodes}{trail}</span>
+          <span style={{ display: "contents" }}>{nodes}{trail}</span>
+        );
+        return (
+          <span key={pi} style={{ display: "contents" }}>
+            {part.br && <br />}
+            {body}
+          </span>
         );
       })}
     </Tag>

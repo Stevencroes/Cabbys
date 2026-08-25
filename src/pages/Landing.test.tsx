@@ -36,18 +36,24 @@ describe("Landing", () => {
         </BookingProvider>
       </MemoryRouter>,
     );
-    // headline reads as a clean sentence for SR / copy-paste / SEO
+    // The headline is two lines by design now, so it carries a <br>. What
+    // must survive that is the SENTENCE: a screen reader, a copy-paste and a
+    // crawler all still get one clean line with the space intact — which is
+    // what this asserts, and why the old "no <br>" rule is no longer the
+    // way to guarantee it.
     expect(container.querySelector("h1")?.textContent?.replace(/\s+/g, " ").trim())
-      .toBe("Getting there was always the point.");
-    expect(container.querySelector("h1 br")).toBeNull();
-    // trust strip + hero badge both carry the promise
-    expect(screen.getAllByText(/Settled in advance/i).length).toBeGreaterThanOrEqual(1);
-    // the fare card is symmetric: pickup and drop-off are the same control,
-    // and planning-from-abroad pre-fills pickup to the airport (§3.8)
-    const pickup = screen.getByRole("combobox", { name: "Pick up" });
+      .toBe("Elevated transfers. Every time.");
+    // the three marks under the headline (§07)
+    expect(screen.getAllByText(/Professional Drivers/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/No Hidden Fees/i).length).toBeGreaterThanOrEqual(1);
+    // the card is symmetric: from and to are the same control, and
+    // planning-from-abroad pre-fills pickup to the airport (§3.8)
+    const pickup = screen.getByRole("combobox", { name: "From" });
     expect(pickup).toHaveValue("Queen Beatrix International Airport");
-    expect(screen.getByRole("combobox", { name: "Drop off" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /reverse pickup and drop-off/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "To" })).toBeInTheDocument();
+    // Reverse is not on the hero card in the mockup; it lives on step 1 of
+    // the flow, which is the only place it was ever used twice.
+    expect(screen.queryByRole("button", { name: /reverse pickup and drop-off/i })).toBeNull();
     // certainty needs no exclamation mark
     expect(container.textContent).not.toContain("!");
   });

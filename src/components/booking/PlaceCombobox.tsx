@@ -34,6 +34,8 @@ interface PlaceComboboxProps {
   /** id of the error paragraph, so a screen reader reads the reason */
   describedBy?: string;
   invalid?: boolean;
+  /** a mark before the value — the hero card sets a pin on FROM and TO */
+  icon?: React.ReactNode;
 }
 
 interface Row {
@@ -101,7 +103,7 @@ function QuickIcon({ id }: { id: string }) {
 // layout have to agree on what counts as a sheet.
 const isSheet = () => window.matchMedia("(max-width:760px)").matches;
 
-export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid }: PlaceComboboxProps) {
+export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid, icon }: PlaceComboboxProps) {
   const uid = useId();
   const listId = `${uid}-listbox`;
   const [open, setOpen] = useState(false);
@@ -241,7 +243,11 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       <div className={`cfield${invalid ? " invalid" : ""}`}>
         <div className="cwrap">
           <label htmlFor={`${uid}-in`}>{label}</label>
-          <input
+          {/* the input always sits in .cin, with or without a mark, so the
+              sheet's grid has one thing to place either way */}
+          <span className="cin">
+            {icon && <span className="cmark" aria-hidden="true">{icon}</span>}
+            <input
             id={`${uid}-in`}
             ref={input as React.RefObject<HTMLInputElement>}
             role="combobox"
@@ -265,6 +271,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             onChange={(e) => { setText(e.target.value); setTyping(true); openList(); setActive(0); setCustomQuery(null); }}
             onKeyDown={onKeyDown}
           />
+          </span>
         </div>
         {value && !open && (
           <button type="button" className="clear" aria-label={`Clear ${label.toLowerCase()}`}
