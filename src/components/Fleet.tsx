@@ -1,5 +1,7 @@
-// Fleet — full-bleed bone-2 band. Names, capacities and "from" fares are
-// bound to the app's data (vehicles.ts + the quote engine), never hardcoded.
+// §11 — the vehicle section. Premium automotive product cards: the car, its
+// name, what it holds, and the fare it starts from. Names, capacities and
+// "from" prices are bound to the app's own data (vehicles.ts + the quote
+// engine), never written into the markup.
 import { useEffect, useState } from "react";
 import { SplitHeading } from "./motion";
 import { VEHICLES } from "../data/vehicles";
@@ -27,31 +29,41 @@ export default function Fleet() {
     <section id="fleet">
       <div className="fleet flow">
         <div className="inner">
-          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>02 — The fleet</div>
-          <SplitHeading className="sec" parts={[{ text: `${VEHICLES.length === 3 ? "Three" : "Four"} cars. ` }, { text: "All spotless.", em: true }]} />
+          <div className="sec-head">
+            <div>
+              <div className="eyebrow rise">Our vehicles</div>
+              <SplitHeading className="sec" parts={[{ text: "Choose your perfect ride." }]} />
+            </div>
+            <button type="button" className="lnk-ghost" onClick={() => booking?.open()}>
+              View all vehicles
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 10h13M11 5l5 5-5 5" />
+              </svg>
+            </button>
+          </div>
+
           <div className="fgrid stagger">
             {VEHICLES.map((v) => {
               const from = to
                 ? quote({ from: selFromPlace(AIRPORT), to: selFromPlace(to), vehicle: v, isReturn: false, pricing })
                 : null;
               return (
-                <div className="fcard" key={v.id}>
-                  <div className="fbar"><span className="fc">{v.classLabel}</span></div>
-                  <div className="fbody">
-                    <h3>{v.name}</h3>
-                    <div className="fm">{v.desc}</div>
-                    <div className="fspecs">
-                      <div>Guests<b>{v.pax}</b></div>
-                      <div>Bags<b>{v.bags}</b></div>
-                    </div>
-                    {from && <div className="fprice-line">from<b>{usd(from.totalUsd)}</b></div>}
-                    <div className="ffoot">
-                      <button type="button" onClick={() => booking?.open({ vehicle: v.id })}>
-                        Select this car
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <button type="button" className="fcard" key={v.id} onClick={() => booking?.open({ vehicle: v.id })}>
+                  <span className="fshot">
+                    <img src={v.photo} alt="" loading="lazy" decoding="async" />
+                  </span>
+                  <span className="fmeta">
+                    <span className="fname">{v.name}</span>
+                    <span className="fpax">1&ndash;{v.pax} Passengers</span>
+                  </span>
+                  {from && (
+                    <span className="ffrom">
+                      <span className="fl">From</span>
+                      <span className="fv">{usd(from.totalUsd)}</span>
+                    </span>
+                  )}
+                </button>
               );
             })}
           </div>

@@ -27,7 +27,7 @@ const ITEMS = [
 export default function Faq() {
   const [open, setOpen] = useState(0);
   return (
-    <section id="faq">
+    <section id="about">
       <div className="faq flow">
         <div className="inner">
           <div className="eyebrow rise" style={{ color: "var(--silver)" }}>03 — The honest answers</div>

@@ -101,7 +101,7 @@ describe("BookingOverlay — the three-step booking", () => {
 
     // Step 2 — the party and the fleet, each car priced for this route
     expect(screen.getByText(/Who's coming/)).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /The Voyager/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Premium Van/ })).toBeInTheDocument();
     toDetails();
 
     // Step 3 — review shows the same total the bar shows, then the guest
@@ -193,14 +193,14 @@ describe("BookingOverlay — the three-step booking", () => {
     toCar();
 
     // a car that is not the default, so going back and forth can lose it
-    fireEvent.click(screen.getByRole("radio", { name: /The Scout/ }));
-    expect(screen.getByRole("radio", { name: /The Scout/ })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("radio", { name: /Luxury SUV/ }));
+    expect(screen.getByRole("radio", { name: /Luxury SUV/ })).toHaveAttribute("aria-checked", "true");
     toDetails();
     expect(await screen.findByLabelText(/name for the driver's sign/i)).toBeInTheDocument();
 
     // Back is one step, not out of the modal
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
-    await waitFor(() => expect(screen.getByRole("radio", { name: /The Scout/ })).toHaveAttribute("aria-checked", "true"));
+    await waitFor(() => expect(screen.getByRole("radio", { name: /Luxury SUV/ })).toHaveAttribute("aria-checked", "true"));
 
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
     await waitFor(() => expect(screen.getByText(/Landing in/)).toBeInTheDocument());
@@ -327,7 +327,7 @@ describe("BookingOverlay — the three-step booking", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(/can't be before Thu 10 Sep 2026/i);
     // still on step 1 — the fleet never appears
-    expect(screen.queryByRole("radio", { name: /The Voyager/ })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Premium Van/ })).toBeNull();
   });
 
   it("blocks with a reason instead of a disabled button", () => {

@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="site-foot">
+    <footer id="contact" className="site-foot">
       <div className="wrap">
         <div className="ftop">
           <div>
@@ -32,7 +32,7 @@ export default function Footer() {
         </div>
         <div className="fbot">
           <span>© {new Date().getFullYear()} Cabby's · cabbys.aw · 12.5°N 69.9°W</span>
-          <span>Cormorant Garamond · Jost</span>
+          <span>Cormorant Garamond · Inter</span>
         </div>
       </div>
     </footer>
