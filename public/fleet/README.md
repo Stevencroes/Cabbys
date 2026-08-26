@@ -4,19 +4,30 @@ One cut-out PNG per car, keyed by the vehicle id in `src/data/vehicles.ts`:
 
 | file           | tier            | the car in the shot |
 | -------------- | --------------- | ------------------- |
+| `sedan.png`    | Executive Sedan | Mercedes E-Class    |
 | `suv.png`      | Luxury SUV      | Lincoln Nautilus    |
-| `vclass.png`   | Executive Van   | Mercedes V-Class    |
 | `transit.png`  | Premium Van     | Ford Transit        |
 | `sprinter.png` | Luxury Sprinter | Mercedes Sprinter   |
 
 A tier is a category, not a car — drivers arrive in their own vehicles, so the
-shot shows a representative one. `vclass.png` and `sprinter.png` are not here
-yet; those two rows fall back to their text-only layout until they are.
+shot shows a representative one.
+
+Filenames are lower case and the code asks for them exactly. `SUV.png` worked
+on a Mac and 404'd everywhere else; Linux and the deploy host are both
+case-sensitive.
 
 Shoot/source them the same way:
 
 - **Transparent background.** The cards are dark; the photo sits straight on
   them, with the drop shadow coming from CSS, not from the file.
+- **The cut is automated and it protects the glass.** The fill starts at the
+  image border and only clears what it can walk to from there, so a window —
+  however bright its reflection — is unreachable while bodywork encloses it.
+  The same rule protects the alloys. What it cannot do is tell a chrome roof
+  rail from a studio shadow by colour alone, which is why the shadow is lifted
+  by a second, connectivity-aware pass confined to the lower half of the frame.
+  Check any new cut on a saturated background before shipping it: a breach in
+  the glass is invisible on white and obvious on magenta.
 - **Square canvas, car centred**, front three-quarter view facing left — so
   the four rows read as one set.
 - ~1280×1280 is plenty. They render into a 78×46 box, so keep them light.

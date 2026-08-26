@@ -3,23 +3,24 @@ import { MAX_PAX, VEHICLES, fitsParty } from "./vehicles";
 
 describe("vehicles", () => {
   it("has the four classes", () => {
-    expect(VEHICLES.map(v => v.id)).toEqual(["suv", "vclass", "transit", "sprinter"]);
+    expect(VEHICLES.map(v => v.id)).toEqual(["sedan", "suv", "transit", "sprinter"]);
   });
   // The seat counts are claims about real cars, and the fleet has been wrong
   // about them before — the Scout advertised six while its car seats five.
   // Pinned here so a capacity can only change on purpose.
   it("seats what the cars actually seat", () => {
     expect(VEHICLES.map(v => [v.id, v.pax])).toEqual([
+      ["sedan", 3],     // Mercedes E-Class
       ["suv", 4],       // Lincoln Nautilus — five seats, one is the driver's
-      ["vclass", 6],    // Mercedes V-Class
       ["transit", 7],   // Ford Transit
       ["sprinter", 12], // Mercedes Sprinter
     ]);
   });
   it("climbs the fleet as the party grows, and can seat twelve", () => {
     const fitFor = (n: number) => VEHICLES.find(v => fitsParty(v, n, 0))?.id;
+    expect(fitFor(3)).toBe("sedan");
     expect(fitFor(4)).toBe("suv");
-    expect(fitFor(5)).toBe("vclass");
+    expect(fitFor(5)).toBe("transit");
     expect(fitFor(7)).toBe("transit");
     expect(fitFor(8)).toBe("sprinter");
     // the ceiling the steppers expose has to be a party the fleet can carry

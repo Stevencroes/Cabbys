@@ -399,16 +399,25 @@ h2.sec em{font-style:italic;}
 /* Asymmetric on purpose: the grid centres itself in whatever is left
    between these, so a heavier bottom pad lifts the whole block above
    the optical middle. The phone override below keeps its own values. */
-/* §07 — the hero photograph. A ground the copy sits on, faded into the navy
-   at its edges so it ends in the page rather than on a line. The image file
-   lands at /hero.jpg; until it does the gradient alone carries the section,
-   which is why the fallback is a composition and not a grey box. */
+/* §07 — the hero photograph. A ground the copy sits on, not a picture in a
+   box: two scrims ride over it, one pulling the left side down to the navy so
+   the headline has something to sit on, one pulling the foot down so the
+   image ends IN the page rather than on a line.
+   The radial underneath is not decoration — it is what paints while a 240KB
+   photograph is still arriving, and what the section falls back to if it
+   never does. */
 .hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:
-    linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.92) 34%,rgba(2,11,20,.35) 62%,rgba(2,11,20,.55) 100%),
-    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.10) 42%,rgba(2,11,20,.55) 100%),
+    linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.90) 30%,rgba(2,11,20,.30) 60%,rgba(2,11,20,.50) 100%),
+    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.12) 40%,rgba(2,11,20,.50) 100%),
+    url("/hero.jpg"),
     radial-gradient(120% 90% at 74% 34%,#12293C 0%,#081726 46%,var(--ground) 78%);
-  background-size:cover;background-position:center;}
+  background-size:cover,cover,cover,cover;
+  /* the car sits right of centre in the frame; on a narrow screen the crop
+     keeps it rather than centring on empty driveway */
+  background-position:center,center,72% center,center;
+  background-repeat:no-repeat;}
+@media(max-width:760px){.hero-photo{background-position:center,center,64% center,center;}}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
   padding:var(--nav-h) 0 150px;
   border-bottom:1px solid var(--line);}

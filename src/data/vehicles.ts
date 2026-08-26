@@ -10,34 +10,31 @@ export type Vehicle = {
   photo: string;
 };
 
-// §11's four categories, carrying the four cars this fleet actually runs.
-// A tier is a CATEGORY, not a car: drivers turn up in their own vehicles, so
+// The four categories, carrying the four cars this fleet actually runs.
+// A tier is a CATEGORY, not a car: drivers arrive in their own vehicles, so
 // `desc` names a representative one and says "or similar" because it means it.
 //
-//   Luxury SUV      Lincoln Nautilus     4 guests
-//   Executive Van   Mercedes V-Class     6
-//   Premium Van     Ford Transit         7
-//   Luxury Sprinter Mercedes Sprinter   12
+//   Executive Sedan   Mercedes E-Class     3 guests   $40
+//   Luxury SUV        Lincoln Nautilus     4          $55
+//   Premium Van       Ford Transit         7          $64
+//   Luxury Sprinter   Mercedes Sprinter   12          $82
 //
-// There is no sedan tier. The fleet has no sedan in it — the two the site
-// used to sell were left over from an older line-up, and a V-Class is a
-// six-seat MPV whatever tier it is filed under. §11's own name for the 1-6
-// rung is Executive Van, so that is what it is called here.
+// The first rung was briefly filed as "Executive Van, 1-6, Mercedes V-Class".
+// The photograph settles it: fleet/sedan.png is a four-door Mercedes saloon,
+// not an MPV, so the tier is a sedan and seats three. Trusting the picture
+// over the label is the rule that has caught every one of these.
 //
-// The multipliers are the same four numbers as before, reassigned in order
-// of size: nothing about the fare ladder moved, only which vehicle sits on
-// each rung. A route that quoted $40 / $55 / $64 / $82 still does.
+// Multipliers are the same four numbers this site has always used, ordered by
+// size, so a route quoting $40 / $55 / $64 / $82 still does. Ordering by
+// capacity is load-bearing: priced the other way the smaller car would be the
+// dearer one, and the auto-fit would never choose it.
 //
-// Ordering by capacity is not cosmetic. Priced the other way — a six-seat
-// V-Class below a four-seat SUV — the SUV would be both dearer and smaller,
-// so the auto-fit would never once choose it.
-//
-// Ids key the pricing multipliers and the rides rows the driver dashboard
-// reads. They changed with the fleet; rows written before this keep their old
-// strings, which the driver screens render as plain text.
+// Ids key the multipliers and the rides rows the driver dashboard reads. Rows
+// written before this keep their old strings, which those screens render as
+// plain text.
 export const VEHICLES: Vehicle[] = [
-  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.0,  note: "",            desc: "Lincoln Nautilus or similar",  photo: "/fleet/suv.png" },
-  { id: "vclass",   name: "Executive Van",   pax: 6,  bags: 6,  mult: 1.38, note: "Most chosen", desc: "Mercedes V-Class or similar",  photo: "/fleet/vclass.png" },
+  { id: "sedan",    name: "Executive Sedan", pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: "/fleet/sedan.png" },
+  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: "/fleet/suv.png" },
   { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: "/fleet/transit.png" },
   { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: "/fleet/sprinter.png" },
 ];

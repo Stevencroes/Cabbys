@@ -12,7 +12,7 @@ const booking = {
   to: "The Ritz-Carlton Aruba",
   date: "2026-07-20",
   time: "14:35",
-  vehicle: "vclass",
+  vehicle: "suv",
   total: 58, // USD — the only currency in the UI
   paid: false,
   flightNumber: "AA1234",
