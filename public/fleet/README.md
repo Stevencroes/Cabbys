@@ -2,15 +2,16 @@
 
 One cut-out PNG per car, keyed by the vehicle id in `src/data/vehicles.ts`:
 
-| file          | car         | class           | the car in the shot |
-| ------------- | ----------- | --------------- | ------------------- |
-| `sedan.png`   | The Saloon  | Executive sedan | Ford Fusion         |
-| `premium.png` | The Grand   | First class     | Mercedes S-Class    |
-| `suv.png`     | The Scout   | Luxury SUV      | Lincoln Nautilus    |
-| `van.png`     | The Voyager | Luxury van      | Ford Transit        |
+| file           | tier            | the car in the shot |
+| -------------- | --------------- | ------------------- |
+| `suv.png`      | Luxury SUV      | Lincoln Nautilus    |
+| `vclass.png`   | Executive Van   | Mercedes V-Class    |
+| `transit.png`  | Premium Van     | Ford Transit        |
+| `sprinter.png` | Luxury Sprinter | Mercedes Sprinter   |
 
-The two sedans are the easy pair to cross: the Mercedes is **The Grand**
-(`premium.png`), the Ford is **The Saloon** (`sedan.png`).
+A tier is a category, not a car — drivers arrive in their own vehicles, so the
+shot shows a representative one. `vclass.png` and `sprinter.png` are not here
+yet; those two rows fall back to their text-only layout until they are.
 
 Shoot/source them the same way:
 

@@ -6,7 +6,7 @@ import { useBooking } from "../../../booking/BookingContext";
 import Stepper from "../../Stepper";
 import LiveMap from "../LiveMap";
 import VehiclePhoto from "../VehiclePhoto";
-import { VEHICLES, fitsParty } from "../../../data/vehicles";
+import { MAX_BAGS, MAX_PAX, VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
 import { effectivePickupTime, type StepProblem } from "./shared";
@@ -79,11 +79,11 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
       <div className="steppers">
         <div className="stw">
           <label>Guests</label>
-          <Stepper value={state.pax} min={1} max={7} onChange={(v) => setField("pax", v)} testId="b-pax" />
+          <Stepper value={state.pax} min={1} max={MAX_PAX} onChange={(v) => setField("pax", v)} testId="b-pax" />
         </div>
         <div className="stw">
           <label>Bags</label>
-          <Stepper value={state.bags} min={0} max={8} onChange={(v) => setField("bags", v)} />
+          <Stepper value={state.bags} min={0} max={MAX_BAGS} onChange={(v) => setField("bags", v)} />
         </div>
         <div className="stw">
           <label>Child seats</label>

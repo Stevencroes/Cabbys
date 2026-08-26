@@ -4,7 +4,7 @@ import { buildRidePayload, type RideDraft } from "./bookingPayload";
 const base: RideDraft = {
   from: "Queen Beatrix International Airport", to: "The Ritz-Carlton Aruba",
   date: "2026-07-01", time: "14:35", passengers: 2, luggage: 2,
-  vehicle: "sedan", fareBase: 75.18, fareTotal: 75.18, addonKeys: [],
+  vehicle: "suv", fareBase: 75.18, fareTotal: 75.18, addonKeys: [],
 };
 
 describe("buildRidePayload", () => {
@@ -14,7 +14,7 @@ describe("buildRidePayload", () => {
       passenger_id: "user-123",
       pickup_location: "Queen Beatrix International Airport",
       dropoff_location: "The Ritz-Carlton Aruba",
-      vehicle_type: "sedan", passengers_count: 2,
+      vehicle_type: "suv", passengers_count: 2,
       price: 75.18, status: "pending",
     });
   });
@@ -22,7 +22,7 @@ describe("buildRidePayload", () => {
   it("builds withCoords with canonical fare + scheduled_at", () => {
     const { withCoords } = buildRidePayload(base, "user-123");
     expect(withCoords).toMatchObject({
-      vehicle_class: "sedan", fare_base: 75.18, fare_total: 75.18, is_asap: false,
+      vehicle_class: "suv", fare_base: 75.18, fare_total: 75.18, is_asap: false,
     });
     expect(typeof withCoords.scheduled_at).toBe("string");
   });

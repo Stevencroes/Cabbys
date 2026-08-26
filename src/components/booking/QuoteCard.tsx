@@ -10,6 +10,7 @@ import TimeField from "./TimeField";
 import { todayInAruba } from "../../lib/datetime";
 import { isOnIsland, locate } from "../../lib/geo";
 import { AIRPORT, selFromCustom, selFromPlace } from "../../data/places";
+import { MAX_PAX } from "../../data/vehicles";
 
 export default function QuoteCard() {
   const { state, setField, open } = useBooking();
@@ -130,7 +131,7 @@ export default function QuoteCard() {
           <label className="qpax" htmlFor="q-pax">
             <span className="qpax-l">Passengers</span>
             <select id="q-pax" value={state.pax} onChange={(e) => setField("pax", +e.target.value)}>
-              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              {Array.from({ length: MAX_PAX }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>{n} Passenger{n > 1 ? "s" : ""}</option>
               ))}
             </select>

@@ -10,31 +10,43 @@ export type Vehicle = {
   photo: string;
 };
 
-// Named the way §11 names them: tier plus body style, so the label tells a
-// traveller what turns up. Two come straight from the mockup's home page —
-// Luxury SUV at 1-4 and Premium Van at 1-7 match these cars exactly. Its
-// other two, Executive Van (1-6) and Luxury Sprinter (1-12), describe
-// vehicles this fleet does not run, so the sedans take the same grammar
-// rather than a van's name. `name` now carries the class outright; the
-// separate classLabel it used to sit beside said the same thing twice.
+// §11's four categories, carrying the four cars this fleet actually runs.
+// A tier is a CATEGORY, not a car: drivers turn up in their own vehicles, so
+// `desc` names a representative one and says "or similar" because it means it.
 //
-// Ids stay stable: they key the pricing multipliers and the rides rows the
-// driver dashboard reads.
+//   Luxury SUV      Lincoln Nautilus     4 guests
+//   Executive Van   Mercedes V-Class     6
+//   Premium Van     Ford Transit         7
+//   Luxury Sprinter Mercedes Sprinter   12
 //
-// `desc` names the car in public/fleet/<id>.png. The row shows the words and
-// the picture together now, so a mismatch between them is not a detail — keep
-// the two in step when either changes.
+// There is no sedan tier. The fleet has no sedan in it — the two the site
+// used to sell were left over from an older line-up, and a V-Class is a
+// six-seat MPV whatever tier it is filed under. §11's own name for the 1-6
+// rung is Executive Van, so that is what it is called here.
 //
-// `pax` is seats minus the driver, counted off the actual car — not the tier
-// it is sold as. The SUV advertised 6 while the fleet still ran an Escalade;
-// it is a Nautilus, a five-seater, so it takes four. Parties of five and six
-// fall to the van, which is the only vehicle here that can carry them.
+// The multipliers are the same four numbers as before, reassigned in order
+// of size: nothing about the fare ladder moved, only which vehicle sits on
+// each rung. A route that quoted $40 / $55 / $64 / $82 still does.
+//
+// Ordering by capacity is not cosmetic. Priced the other way — a six-seat
+// V-Class below a four-seat SUV — the SUV would be both dearer and smaller,
+// so the auto-fit would never once choose it.
+//
+// Ids key the pricing multipliers and the rides rows the driver dashboard
+// reads. They changed with the fleet; rows written before this keep their old
+// strings, which the driver screens render as plain text.
 export const VEHICLES: Vehicle[] = [
-  { id: "sedan",   name: "Executive Sedan", pax: 3, bags: 2, mult: 1.0,  note: "",            desc: "Ford Fusion or similar",     photo: "/fleet/sedan.png" },
-  { id: "premium", name: "Luxury Sedan",    pax: 3, bags: 3, mult: 1.38, note: "Most chosen", desc: "Mercedes S-Class or similar", photo: "/fleet/premium.png" },
-  { id: "suv",     name: "Luxury SUV",      pax: 4, bags: 5, mult: 1.6,  note: "",            desc: "Lincoln Nautilus or similar", photo: "/fleet/suv.png" },
-  { id: "van",     name: "Premium Van",     pax: 7, bags: 8, mult: 2.05, note: "",            desc: "Ford Transit or similar",     photo: "/fleet/van.png" },
+  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.0,  note: "",            desc: "Lincoln Nautilus or similar",  photo: "/fleet/suv.png" },
+  { id: "vclass",   name: "Executive Van",   pax: 6,  bags: 6,  mult: 1.38, note: "Most chosen", desc: "Mercedes V-Class or similar",  photo: "/fleet/vclass.png" },
+  { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: "/fleet/transit.png" },
+  { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: "/fleet/sprinter.png" },
 ];
+
+/** The largest party and load the fleet can take — what the guest and bag
+    steppers are allowed to reach. Derived, so adding a bigger vehicle raises
+    the ceiling by itself instead of leaving a number behind in a component. */
+export const MAX_PAX = Math.max(...VEHICLES.map((v) => v.pax));
+export const MAX_BAGS = Math.max(...VEHICLES.map((v) => v.bags));
 
 export function fitsParty(v: Vehicle, passengers: number, luggage: number): boolean {
   return passengers <= v.pax && luggage <= v.bags;

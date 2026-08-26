@@ -64,7 +64,7 @@ const initialState: BookingState = {
   bags: 2,
   seats: 0,
   seatAges: "",
-  vehicle: "sedan",
+  vehicle: "suv",
   contactName: "",
   contactEmail: "",
   contactPhone: "",
