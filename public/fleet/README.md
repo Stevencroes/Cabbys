@@ -20,14 +20,22 @@ Shoot/source them the same way:
 
 - **Transparent background.** The cards are dark; the photo sits straight on
   them, with the drop shadow coming from CSS, not from the file.
-- **The cut is automated and it protects the glass.** The fill starts at the
-  image border and only clears what it can walk to from there, so a window —
-  however bright its reflection — is unreachable while bodywork encloses it.
-  The same rule protects the alloys. What it cannot do is tell a chrome roof
-  rail from a studio shadow by colour alone, which is why the shadow is lifted
-  by a second, connectivity-aware pass confined to the lower half of the frame.
-  Check any new cut on a saturated background before shipping it: a breach in
-  the glass is invisible on white and obvious on magenta.
+- **The cut is automated, and it works by finding the CAR, not the floor.**
+  Chasing the background needs a new exception every time: the floor is not
+  reliably lighter than the car's chrome, the sunset put a tan cast on it that
+  is not neutral, and the strip of it between the wheels is sealed off by the
+  contact shadow so an edge fill can never reach it.
+  Instead: these are black cars on a bright floor, so the car is the largest
+  dark region in the frame. Windows and alloys are then not exceptions to be
+  protected — they are HOLES inside it, and filling holes is one total
+  operation. A hole is only treated as floor if it is flat, light AND low,
+  which is true of a slice of ground under a sill and of nothing else.
+  The silhouette is grown three pixels to recover chrome sitting on its edge,
+  then the boundary is walked back in four times to drop the halo of bright
+  floor that growing it drags along — that halo is invisible on white and
+  glaring on a dark card, which is how it shipped once.
+  Check any new cut BOTH ways before shipping: on magenta, where a breach in
+  glass is unmissable, and on the card's own dark ground, where a pale rim is.
 - **Square canvas, car centred**, front three-quarter view facing left — so
   the four rows read as one set.
 - ~1280×1280 is plenty. They render into a 78×46 box, so keep them light.
