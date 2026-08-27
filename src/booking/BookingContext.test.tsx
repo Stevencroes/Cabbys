@@ -7,15 +7,17 @@ const wrapper = ({ children }: { children: React.ReactNode }) => <BookingProvide
 const ritz = () => selFromPlace(placeById("ritz")!);
 
 describe("BookingContext v3", () => {
-  it("has three steps: the ride, the car, then you", () => {
+  it("has four steps, and the route is not one of them", () => {
     const { result } = renderHook(() => useBooking(), { wrapper });
-    expect(result.current.STEP_NAMES).toEqual(["The ride", "Your car", "Your details"]);
+    // The hero card already took where and when, so the flow starts at the
+    // first thing it did NOT ask. Losing that would mean asking twice.
+    expect(result.current.STEP_NAMES).toEqual(["Your car", "Your details", "Review", "Payment"]);
     act(() => result.current.open());
     expect(result.current.state.step).toBe(1);
-    act(() => result.current.goTo(2));
-    expect(result.current.state.step).toBe(2);
-    act(() => result.current.goTo(3));
-    expect(result.current.state.step).toBe(3);
+    for (const n of [2, 3, 4] as const) {
+      act(() => result.current.goTo(n));
+      expect(result.current.state.step).toBe(n);
+    }
     // and opening again always starts at the first question
     act(() => result.current.open());
     expect(result.current.state.step).toBe(1);

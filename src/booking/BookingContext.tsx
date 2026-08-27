@@ -5,11 +5,16 @@ import { isOnIsland } from "../lib/geo";
 // v3 booking — three steps: the ride, the car, then you. The ride and the
 // car used to share one screen; three columns of questions at once read as
 // a form to survive rather than a trip to look forward to.
-export const STEP_NAMES = ["The ride", "Your car", "Your details"] as const;
+// Four steps, not five. The hero card already took the route, so the flow
+// never asks for it again — it shows it as a summary you can edit in place.
+// What the card could NOT ask (a flight time, a return leg) rides with that
+// summary; what it never touched (party, contact, payment) gets its own step.
+export const STEP_NAMES = ["Your car", "Your details", "Review", "Payment"] as const;
 
-/** 1-indexed, and there are exactly as many as STEP_NAMES. */
-export type Step = 1 | 2 | 3;
-export const LAST_STEP = STEP_NAMES.length as Step;
+/** 1-indexed, and there are exactly as many as STEP_NAMES. Where the flow
+    ENDS is not a constant: with no Stripe key there is no card to take, so
+    the overlay derives its own last step and Review is the finish line. */
+export type Step = 1 | 2 | 3 | 4;
 
 export interface BookingState {
   open: boolean;

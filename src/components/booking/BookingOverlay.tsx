@@ -1,9 +1,8 @@
-// The v3 booking modal — three steps, real URLs per step (§3.10), a running
+// The booking modal — four steps, real URLs per step (§3.10), a running
 // total that sits flat at the end of the step, iOS-safe scroll lock, and a
 // focus trap.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useBooking, STEP_NAMES, LAST_STEP, type Step } from "../../booking/BookingContext";
-import Step1Ride from "./steps/Step1Ride";
+import { useBooking, STEP_NAMES, type Step } from "../../booking/BookingContext";
 import Step2Car from "./steps/Step2Car";
 import Step3Details, { type PayPhase } from "./steps/Step3Details";
 import { effectivePickupTime, type StepProblem } from "./steps/shared";
@@ -16,9 +15,12 @@ import type { ConfirmedBooking } from "../../booking/types";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
-/** The steps, in order. The header row and the progress fill are both
-    derived from this, so adding a fourth step needs no edits here. */
-const STEPS = STEP_NAMES;
+/** The steps, in order. The header row, the progress fill and where the
+    flow ENDS are all derived from this — so the payment step simply is not
+    part of the flow when there is no key to take a card with, rather than
+    being a fourth station everyone is counted towards and then denied. */
+const STEPS: readonly string[] = STRIPE_KEY ? STEP_NAMES : STEP_NAMES.slice(0, -1);
+const LAST = STEPS.length as Step;
 
 /** "Step two of three" reads; "Step 2/3" is a receipt. Falls back to the
     numeral past the point where spelling it out helps anyone. */
@@ -29,7 +31,7 @@ const word = (n: number) => WORDS[n] ?? String(n);
     back gesture walks the steps instead of leaving the site. */
 const stepFromHash = (hash: string): Step | null => {
   const n = Number(/^#step-(\d+)$/.exec(hash)?.[1]);
-  return n >= 1 && n <= LAST_STEP ? (n as Step) : null;
+  return n >= 1 && n <= LAST ? (n as Step) : null;
 };
 
 interface BookingOverlayProps {
@@ -153,7 +155,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
       return;
     }
     setProblem(null);
-    if (state.step < LAST_STEP) {
+    if (state.step < LAST) {
       const next = (state.step + 1) as Step;
       history.pushState({ cb: next }, "", `#step-${next}`);
       goTo(next);
@@ -163,19 +165,26 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   }
 
   const busy = phase === "creating" || phase === "paying";
+  // Each label names the screen it opens, so the button is a signpost and
+  // not a dare — except on the last one, where it names what it costs.
   const primaryLabel = state.step === 1
-    ? "Your car"
-    : state.step === 2
     ? "Your details"
+    : state.step === 2
+    ? "Review"
+    : state.step === 3
+    ? (STRIPE_KEY ? "Continue to payment"
+       : phase === "creating" ? "Reserving…" : "Reserve your car")
     : phase === "paying" ? "Processing…"
-    : phase === "creating" ? "Reserving…"
-    : phase === "payment" ? `Pay ${q ? usd(q.totalUsd) : ""}`
-    : STRIPE_KEY ? "Continue to payment" : "Reserve your car";
+    : phase === "creating" ? "Preparing…"
+    // back at "review" on the payment step means the reservation or the
+    // card field did not arrive, and the button is the way to try again
+    : phase === "review" ? "Try again"
+    : `Pay ${q ? usd(q.totalUsd) : ""}`;
 
   const foot = (
     <StepFoot
-      // the last step carries its total in the facts table beside the form
-      total={state.step < LAST_STEP ? (q ? usd(q.totalUsd) : "—") : undefined}
+      // review and payment carry the total in the facts table beside them
+      total={state.step < 3 ? (q ? usd(q.totalUsd) : "—") : undefined}
       meta={q ? `${q.minutes} min · ${vehicle.name}${state.journey === "return" ? " · return" : ""}` : "Route sets the fare"}
       primaryLabel={primaryLabel}
       onPrimary={handlePrimary}
@@ -212,9 +221,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
           the last choice — no pinned bar stealing a fifth of the viewport */}
       <div className="bbody" ref={bodyRef}>
         {state.step === 1 ? (
-          <Step1Ride pricing={pricing} problem={problem} registerValidator={registerValidator} foot={foot} />
-        ) : state.step === 2 ? (
-          <Step2Car pricing={pricing} registerValidator={registerValidator} foot={foot} />
+          <Step2Car pricing={pricing} problem={problem} registerValidator={registerValidator} foot={foot} />
         ) : (
           <Step3Details
             pricing={pricing}

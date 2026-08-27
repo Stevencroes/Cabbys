@@ -291,16 +291,61 @@ h2.sec em{font-style:italic;}
 /* the live canvas has nothing of its own to measure, so it gets the number
    — 360, matching MAP_H in Step3Details */
 .tripmap .lmap{height:360px;}
-/* steps 1 and 2 carry the map in a rail beside the questions. 340, matching
-   MAP_H in Step1Ride and Step2Car — both, if this changes. */
+/* step 1 carries the map in a rail beside the questions. 340, matching
+   MAP_H in Step2Car — both, if this changes. */
 .pcol-rail .tripmap .lmap{height:340px;}
 
-/* ── step 1's quiet row ── the reverse and the journey, neither of which
-   earned the labelled block it used to have */
-.ride-quiet{margin:10px 0 2px;}
-/* Steps 1 and 2 each have to fit a 1280x800 laptop without scrolling, and
-   an airport pickup is step 1's worst case: a flight field and a timing note
-   the other routes do not have. Two pixels a field is what closes it. */
+/* ── the trip, as a band you can edit ────────────────────────────────
+   This was a step of its own, and the hero card had already asked all of
+   it. Now it sits across the top of step 1: answered on arrival, open to
+   correction, and never asked a second time. Someone who came in from
+   "Book now" with no route at all types theirs right here. */
+.trip{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);
+  padding:15px 17px 3px;margin:0 0 20px;}
+.trip .fld{margin-bottom:12px;}
+.trip-route{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:0 12px;align-items:start;}
+.trip-f{min-width:0;}
+/* clears the field label, so the button lands on the inputs' own line */
+.trip-swap{align-self:start;margin-top:25px;width:38px;height:38px;flex:none;
+  display:flex;align-items:center;justify-content:center;border-radius:50%;
+  border:1px solid var(--line);background:var(--raised);color:var(--silver);
+  transition:.25s var(--ease);}
+.trip-swap svg{transform:rotate(90deg);}
+@media(hover:hover){
+  .trip-swap:hover{color:var(--ink);background:var(--surface);border-color:var(--silver-deep);}
+}
+.trip-when{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:0 14px;align-items:start;}
+.trip-l{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--silver);margin-bottom:7px;}
+.trip-l .soft{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;}
+/* the band's own input, matching .fld's without inheriting its margin */
+.trip-when input{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
+  border:1px solid var(--line);border-radius:var(--r-sm);padding:0 14px;min-height:var(--tap);}
+.trip-when input:focus{background:var(--surface);}
+.trip-when input::placeholder{color:var(--placeholder);}
+.trip-f-journey{padding-bottom:12px;}
+.trip-f-journey .qtoggle-sm{width:100%;}
+.trip-f-journey .qtoggle-sm button{flex:1;}
+/* the band is a summary, so its notes are read at a glance rather than
+   settled into — the same words, in less of the screen */
+.trip .timing{padding:12px 16px;margin:2px 0 12px;}
+.trip .timing b{font-size:18px;}
+.trip .timing p{margin-top:5px;line-height:1.55;}
+.trip .notice{margin-bottom:12px;}
+@media(max-width:720px){
+  /* stacked, so the arrow points the way the fields now run — and pulled
+     into the seam between the two fields rather than given a row */
+  .trip-route{grid-template-columns:minmax(0,1fr);}
+  .trip-swap{margin:-15px 0 -9px auto;width:34px;height:34px;background:var(--surface);}
+  .trip-swap svg{transform:none;}
+  .trip-when{grid-template-columns:1fr 1fr;}
+  /* two to a row is only right for the date and the time. Anything past
+     them takes the full width instead of leaving half the row empty. */
+  .trip-when > .trip-f:nth-child(n+3){grid-column:1 / -1;}
+}
+/* Every step has to fit a 1280x800 laptop without scrolling, and an airport
+   pickup is the worst case: a flight field and a timing note the other
+   routes do not have. Two pixels a field is what closes it. */
 .pcols-rail .pcol .fld{margin-bottom:12px;}
 /* the timing note is the tallest single block in the column, and an airport
    pickup is the only route that shows it */
@@ -559,7 +604,6 @@ body.locked .hero-grid{z-index:auto;}
   .combo .cfield label,.qfld label{font-size:11px;letter-spacing:.12em;}
   .combo .cfield input{font-size:15px;padding:6px 0 8px;}
   .combo .cfield .clear{width:34px;height:34px;}
-  .qswap{width:38px;height:38px;}
   .locbtn{min-height:40px;font-size:11px;margin-bottom:10px;}
   .qmini{gap:12px;margin-top:10px;}
   .qfld input,.qfld select{font-size:15px;padding:9px 10px;min-height:40px;}
@@ -866,14 +910,22 @@ body.locked .hero-grid{z-index:auto;}
      fields underneath worth filling in */
   .pcols-map{display:flex;flex-direction:column;}
   .pcol-map{order:-1;margin-bottom:22px;}
+  /* Review is the exception: its aside is the summary, and the summary is
+     what you came to read. Dissolving the aside lets the two halves of it
+     take their own places — the facts first, the ways to change them after
+     the button, where an escape hatch belongs. */
+  .pcols-review .pcol-map{display:contents;}
+  .pcols-review .tm-facts{order:-1;margin:0 0 22px;}
+  .pcols-review .rv-edit{order:3;margin-top:18px;}
 }
 .fld{margin-bottom:14px;}
 .fld label{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
 .fld label .soft{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;}
-.fld input,.fld select{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
+.fld input,.fld select,.fld textarea{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
   border:1px solid var(--line);padding:14px 16px;appearance:none;transition:.25s;min-height:var(--tap);}
-.fld input:focus,.fld select:focus{background:var(--surface);}
-.fld input::placeholder{color:var(--placeholder);}
+.fld input:focus,.fld select:focus,.fld textarea:focus{background:var(--surface);}
+.fld input::placeholder,.fld textarea::placeholder{color:var(--placeholder);}
+.fld textarea{resize:vertical;min-height:64px;line-height:1.55;}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:480px){.frow{grid-template-columns:1fr;}}
 .qtoggle{display:flex;border:1px solid var(--line);background:var(--raised);}
@@ -928,25 +980,6 @@ body.locked .hero-grid{z-index:auto;}
 @media(max-width:380px){.vopt{padding:14px 14px;gap:10px;}.vopt .vn{font-size:19px;}.vopt .vp{font-size:21px;}
   .vopt .vthumb{width:56px;height:36px;}}
 
-/* review */
-.review{border:1px solid var(--line);margin-bottom:18px;background:var(--surface);}
-.rrow{display:flex;justify-content:space-between;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);}
-.rrow:last-child{border-bottom:none;}
-.rrow .rl{font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);align-self:center;}
-.rrow .rv{font-size:14.5px;text-align:right;font-weight:400;}
-.rrow.total{background:var(--raised);color:var(--ink);}
-.rrow.total .rl{color:var(--silver);}
-.rrow.total .rv{font-family:var(--serif);font-size:28px;font-weight:600;}
-.rrow.change{padding:0;}
-.rrow.change button{width:100%;text-align:left;padding:14px 18px;font-weight:600;font-size:12px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--silver);min-height:var(--tap);}
-.rrow.change button:hover{background:var(--raised);color:var(--ink);}
-@media(max-width:460px){
-  .rrow{flex-direction:column;gap:4px;}
-  .rrow .rv{text-align:left;}
-  .rrow.total{flex-direction:row;}
-}
-
 .pnav{display:flex;gap:12px;margin-top:6px;}
 .btn{flex:1;border:none;padding:15px;min-height:var(--tap);font-weight:600;font-size:13px;letter-spacing:.14em;
   text-transform:uppercase;transition:.3s;}
@@ -960,6 +993,16 @@ body.locked .hero-grid{z-index:auto;}
 .combo .cfield.invalid{border-color:var(--alert);}
 .secure{margin-top:14px;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.05em;font-weight:500;}
 .pay-error{margin:0 0 16px;padding:14px 16px;border:1px solid var(--alert-line);background:var(--alert-tint);font-size:13.5px;color:var(--alert-ink);font-weight:400;}
+/* Stripe's iframe arrives a beat after the step does. Reserving the room it
+   will need keeps the Pay button still instead of shunting it down the page. */
+.pay-mount{min-height:210px;}
+.pay-wait{font-size:13px;color:var(--muted);margin:10px 0 0;font-weight:400;}
+/* review's two ways back — each to the screen that owns the line */
+.rv-edit{display:flex;flex-direction:column;gap:2px;margin-top:12px;}
+.rv-edit button{display:flex;align-items:center;text-align:left;padding:0 2px;border:none;
+  background:none;color:var(--silver);font-size:12px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;min-height:var(--tap);transition:.2s var(--ease);}
+@media(hover:hover){.rv-edit button:hover{color:var(--ink);}}
 
 /* running total — flat, at the end of the step's own column */
 .pfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
@@ -1216,12 +1259,11 @@ input.txt:focus{outline:none;background:var(--surface);}
 }
 
 /* booking modal */
-.fld input,.fld select{border-radius:var(--r-sm);}
+.fld input,.fld select,.fld textarea{border-radius:var(--r-sm);}
 .qtoggle{border-radius:var(--r-pill);overflow:hidden;}
 .stepper{border-radius:var(--r-pill);overflow:hidden;}
 .timing,.notice{border-radius:var(--r-md);}
 .vopt{border-radius:var(--r-md);}
-.review{border-radius:var(--r-md);overflow:hidden;}
 .btn{border-radius:var(--r-pill);}
 .pay-error{border-radius:var(--r-sm);}
 .totalbar .tb-r .btn{border-radius:var(--r-pill);}

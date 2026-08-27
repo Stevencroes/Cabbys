@@ -1,6 +1,10 @@
-// Step 2 — YOUR CAR. Party · child seats · the fleet, with every fare
-// already carrying the route it was quoted for.
-// This was two columns of step 1 until the ride got a step of its own.
+// Step 1 — YOUR CAR. The trip as an editable band, then party, child seats
+// and the fleet, with every fare already carrying the route it was quoted for.
+//
+// The route used to have a step to itself. The hero card asks for it before
+// the flow ever opens, so that step was a second asking; it is now the
+// summary at the top of this one, which is also where someone arriving with
+// no route at all types theirs.
 import { useEffect, useRef } from "react";
 import { useBooking } from "../../../booking/BookingContext";
 import Stepper from "../../Stepper";
@@ -9,7 +13,9 @@ import VehiclePhoto from "../VehiclePhoto";
 import { MAX_BAGS, MAX_PAX, VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
+import { AIRPORT_ID } from "../../../data/places";
 import { effectivePickupTime, type StepProblem } from "./shared";
+import TripSummary, { validateTrip } from "../TripSummary";
 
 /** The rail map's height, mirrored by .pcol-rail .tripmap .lmap in
     globals.css — change both. */
@@ -17,14 +23,27 @@ const MAP_H = 340;
 
 interface Step2Props {
   pricing: Pricing | null;
+  problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
   /** the total + primary action, rendered flat under the map rail */
   foot: React.ReactNode;
 }
 
-export default function Step2Car({ pricing, registerValidator, foot }: Step2Props) {
+export default function Step2Car({ pricing, problem, registerValidator, foot }: Step2Props) {
   const { state, setField } = useBooking();
   const carsRef = useRef<HTMLDivElement>(null);
+  const fromInput = useRef<HTMLInputElement | null>(null);
+  const toInput = useRef<HTMLInputElement | null>(null);
+
+  const fromAirport = state.from?.id === AIRPORT_ID;
+  const toAirport = state.to?.id === AIRPORT_ID;
+  // The screen greets the trip it was handed. An arrival is not the same
+  // errand as a departure, and neither is a run across the island.
+  const heading = fromAirport
+    ? { h: <>Landing in <em>Aruba?</em></>, sub: "Tell us the flight — we do the timing. Then pick your car." }
+    : toAirport
+    ? { h: <>Catching a <em>flight?</em></>, sub: "Tell us when it leaves — we work backwards. Then pick your car." }
+    : { h: <>Who's coming, and in <em>what?</em></>, sub: "Every fare below is all in — the route already set it." };
 
   const time = effectivePickupTime(state);
   const selVehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
@@ -44,10 +63,16 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
   }, [selectedFits, state.pax, state.bags, setField]);
 
   // Nothing here can be left blank — the steppers top out at what the
-  // Voyager carries, and an unfittable car cannot be selected — so this
-  // step never blocks. The validator still registers, or step 1's would
-  // stay live and stop the traveller on a question already answered.
-  useEffect(() => registerValidator(() => null), [registerValidator]);
+  // The party can never exceed what the largest vehicle carries, and an
+  // unfittable car cannot be selected — so nothing about the CAR can block
+  // here. The route and schedule can, though: they live in the summary at
+  // the top of this step now, so their validator lives here too.
+  const focusById = (id: string) => () => document.getElementById(id)?.focus();
+  useEffect(() => registerValidator(() => validateTrip(state, {
+    from: () => fromInput.current?.focus(),
+    to: () => toInput.current?.focus(),
+    byId: focusById,
+  })), [registerValidator, state]);
 
   // cars — real radio group with roving tabindex
   function onCarsKeyDown(e: React.KeyboardEvent) {
@@ -70,9 +95,11 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
   return (
     <div className="panel">
       <div className="phead">
-        <h2>Who's coming, and in <em>what?</em></h2>
-        <p className="psub">Every fare below is all in — the route already set it.</p>
+        <h2>{heading.h}</h2>
+        <p className="psub">{heading.sub}</p>
       </div>
+
+      <TripSummary problem={problem} fromRef={fromInput} toRef={toInput} lateNight={!!selQuote?.lateNight} />
 
       <div className="pcols pcols-rail">
       <div className="pcol">
