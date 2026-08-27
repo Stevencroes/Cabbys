@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useBookingOptional } from "../booking/BookingContext";
+import { useStartBooking } from "../booking/useStartBooking";
 import { useAuth } from "../booking/useAuth";
 import { displayNameOf, initialsOf } from "../lib/displayName";
 import { lockBody, unlockBody } from "../lib/bodyLock";
@@ -15,7 +15,7 @@ const LINKS = [
 ];
 
 export default function Nav({ onSignIn }: { onSignIn: () => void }) {
-  const booking = useBookingOptional();
+  const startBooking = useStartBooking();
   // `account`, not `user`: booking as a guest mints an anonymous session, and
   // a receipt is not an identity — that must still read as signed out.
   const { account, signOut } = useAuth();
@@ -155,7 +155,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
             surfaces AWG — so this is a statement of the unit, not a picker.
             A chevron on it would promise a choice that does not exist. */}
         <span className="ncur" aria-label="Prices shown in US dollars">USD</span>
-        <button type="button" className="nbtn" onClick={() => booking?.open()}>
+        <button type="button" className="nbtn" onClick={() => startBooking()}>
           Book now
         </button>
         {/* below 1040px the links collapse in here — without this,
@@ -219,7 +219,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
             <button
               type="button"
               className="sheet-cta"
-              onClick={() => { setOpen(false); booking?.open(); }}
+              onClick={() => { setOpen(false); startBooking(); }}
             >
               Book now
             </button>

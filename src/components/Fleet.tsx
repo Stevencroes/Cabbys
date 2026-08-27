@@ -8,13 +8,13 @@ import { VEHICLES } from "../data/vehicles";
 import { loadPricing, type Pricing } from "../lib/pricing";
 import { quote, usd } from "../lib/quote";
 import { AIRPORT, placeById, selFromPlace } from "../data/places";
-import { useBookingOptional } from "../booking/BookingContext";
+import { useStartBooking } from "../booking/useStartBooking";
 
 // Representative popular route for the indicative "from" fare.
 const SAMPLE_TO = "palm-beach";
 
 export default function Fleet() {
-  const booking = useBookingOptional();
+  const startBooking = useStartBooking();
   const [pricing, setPricing] = useState<Pricing | null>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function Fleet() {
               <div className="eyebrow rise">Our vehicles</div>
               <SplitHeading className="sec" parts={[{ text: "Choose your perfect ride." }]} />
             </div>
-            <button type="button" className="lnk-ghost" onClick={() => booking?.open()}>
+            <button type="button" className="lnk-ghost" onClick={() => startBooking()}>
               View all vehicles
               <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                 strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -49,7 +49,7 @@ export default function Fleet() {
                 ? quote({ from: selFromPlace(AIRPORT), to: selFromPlace(to), vehicle: v, isReturn: false, pricing })
                 : null;
               return (
-                <button type="button" className="fcard" key={v.id} onClick={() => booking?.open({ vehicle: v.id })}>
+                <button type="button" className="fcard" key={v.id} onClick={() => startBooking({ vehicle: v.id })}>
                   <span className="fshot">
                     <img src={v.photo} alt="" loading="lazy" decoding="async" />
                   </span>

@@ -1,10 +1,12 @@
-// Step 1 — YOUR CAR. The trip as an editable band, then party, child seats
-// and the fleet, with every fare already carrying the route it was quoted for.
+// Step 1 — YOUR CAR. Party, child seats and the fleet, with every fare
+// already carrying the route it was quoted for.
 //
-// The route used to have a step to itself. The hero card asks for it before
-// the flow ever opens, so that step was a second asking; it is now the
-// summary at the top of this one, which is also where someone arriving with
-// no route at all types theirs.
+// The route used to have a step to itself, and then a band at the top of
+// this one. Both were a second asking: the card on the home page takes the
+// route, the day, the hour and the party before the flow ever opens, and
+// every "Book now" on the site now comes through that card (useStartBooking)
+// rather than around it. So this screen asks the one thing the card cannot:
+// which car, now that the fare for each of them is known.
 import { useEffect, useRef } from "react";
 import { useBooking } from "../../../booking/BookingContext";
 import Stepper from "../../Stepper";
@@ -13,37 +15,26 @@ import VehiclePhoto from "../VehiclePhoto";
 import { MAX_BAGS, MAX_PAX, VEHICLES, fitsParty } from "../../../data/vehicles";
 import { quote, usd } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
-import { AIRPORT_ID } from "../../../data/places";
 import { effectivePickupTime, type StepProblem } from "./shared";
-import TripSummary, { validateTrip } from "../TripSummary";
 
 /** The rail map's height, mirrored by .pcol-rail .tripmap .lmap in
     globals.css — change both. */
 const MAP_H = 340;
 
+/** Child seats we carry on one run. A third belongs in a second car, and
+    a stepper that counts to four promises one we cannot fit. */
+const MAX_SEATS = 2;
+
 interface Step2Props {
   pricing: Pricing | null;
-  problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
   /** the total + primary action, rendered flat under the map rail */
   foot: React.ReactNode;
 }
 
-export default function Step2Car({ pricing, problem, registerValidator, foot }: Step2Props) {
+export default function Step2Car({ pricing, registerValidator, foot }: Step2Props) {
   const { state, setField } = useBooking();
   const carsRef = useRef<HTMLDivElement>(null);
-  const fromInput = useRef<HTMLInputElement | null>(null);
-  const toInput = useRef<HTMLInputElement | null>(null);
-
-  const fromAirport = state.from?.id === AIRPORT_ID;
-  const toAirport = state.to?.id === AIRPORT_ID;
-  // The screen greets the trip it was handed. An arrival is not the same
-  // errand as a departure, and neither is a run across the island.
-  const heading = fromAirport
-    ? { h: <>Landing in <em>Aruba?</em></>, sub: "Tell us the flight — we do the timing. Then pick your car." }
-    : toAirport
-    ? { h: <>Catching a <em>flight?</em></>, sub: "Tell us when it leaves — we work backwards. Then pick your car." }
-    : { h: <>Who's coming, and in <em>what?</em></>, sub: "Every fare below is all in — the route already set it." };
 
   const time = effectivePickupTime(state);
   const selVehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
@@ -62,17 +53,10 @@ export default function Step2Car({ pricing, problem, registerValidator, foot }: 
     }
   }, [selectedFits, state.pax, state.bags, setField]);
 
-  // Nothing here can be left blank — the steppers top out at what the
-  // The party can never exceed what the largest vehicle carries, and an
-  // unfittable car cannot be selected — so nothing about the CAR can block
-  // here. The route and schedule can, though: they live in the summary at
-  // the top of this step now, so their validator lives here too.
-  const focusById = (id: string) => () => document.getElementById(id)?.focus();
-  useEffect(() => registerValidator(() => validateTrip(state, {
-    from: () => fromInput.current?.focus(),
-    to: () => toInput.current?.focus(),
-    byId: focusById,
-  })), [registerValidator, state]);
+  // Nothing on this screen can be left blank. The party can never exceed
+  // what the largest vehicle carries, an unfittable car cannot be selected,
+  // and the route arrived answered — so nothing here can block the way on.
+  useEffect(() => registerValidator(() => null), [registerValidator]);
 
   // cars — real radio group with roving tabindex
   function onCarsKeyDown(e: React.KeyboardEvent) {
@@ -95,11 +79,12 @@ export default function Step2Car({ pricing, problem, registerValidator, foot }: 
   return (
     <div className="panel">
       <div className="phead">
-        <h2>{heading.h}</h2>
-        <p className="psub">{heading.sub}</p>
+        {/* The screen greets what it is FOR. It used to greet the route,
+            back when the route was on it — the flight moved to the details
+            step with the name it gets printed beside. */}
+        <h2>Who's coming, and in <em>what?</em></h2>
+        <p className="psub">Every fare below is all in — the route already set it.</p>
       </div>
-
-      <TripSummary problem={problem} fromRef={fromInput} toRef={toInput} lateNight={!!selQuote?.lateNight} />
 
       <div className="pcols pcols-rail">
       <div className="pcol">
@@ -114,7 +99,7 @@ export default function Step2Car({ pricing, problem, registerValidator, foot }: 
         </div>
         <div className="stw">
           <label>Child seats</label>
-          <Stepper value={state.seats} min={0} max={4} onChange={(v) => setField("seats", v)} />
+          <Stepper value={state.seats} min={0} max={MAX_SEATS} onChange={(v) => setField("seats", v)} />
         </div>
       </div>
 

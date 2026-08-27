@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 // Self-contained supabase stub: pricing queries resolve empty (the km model
@@ -9,6 +9,10 @@ import { describe, it, expect, vi } from "vitest";
 // No VITE_STRIPE_PUBLISHABLE_KEY is set under test, so the payment step is
 // not part of the flow here and Review is where it ends — see
 // BookingOverlay.payment.test.tsx for the four-step shape.
+//
+// Every Opener below stands in for the card on the home page: it fills the
+// route, the day and the hour, because nothing can reach the flow without
+// them (useStartBooking). The flow itself never asks for any of the three.
 const auth: { account: Record<string, unknown> | null } = { account: null };
 vi.mock("../../booking/useAuth", () => ({
   useAuth: () => ({ account: auth.account, user: auth.account, loading: false }),
@@ -48,31 +52,49 @@ import BookingOverlay from "./BookingOverlay";
 import { placeById, selFromPlace, AIRPORT } from "../../data/places";
 
 function Opener() {
-  const { open } = useBooking();
+  const { open, setField } = useBooking();
   return (
     <button
-      onClick={() =>
+      onClick={() => {
+        // the card asks an airport pickup for its LANDING time, not a
+        // pickup time — the driver's moment is worked out from it
+        setField("flightLanding", "14:05");
         open({
           from: selFromPlace(AIRPORT),
           to: selFromPlace(placeById("ritz")!),
           date: "2026-09-01",
           pax: 2,
-        })
-      }
+        });
+      }}
     >
       launch
     </button>
   );
 }
 
-/**
- * The time picker is one trigger over a popover now. A flight lands at
- * 14:05, which is not a quarter hour, so these go through the exact row —
- * the reason that row exists.
- */
-function setExactTime(triggerName: RegExp, hhmm: string) {
-  fireEvent.click(screen.getByRole("button", { name: triggerName }));
-  fireEvent.change(screen.getByLabelText(/exact time/i), { target: { value: hhmm } });
+/** A round trip to the airport, as the card would hand it over: the leg
+    out is timed off the departure, and the way back is what the flow asks. */
+function ReturnOpener() {
+  const { open, setField } = useBooking();
+  return (
+    <button
+      onClick={() => {
+        setField("depTime", "14:00");
+        setField("journey", "return");
+        // the way back, a day before the way out
+        setField("returnDate", "2026-09-09");
+        setField("returnTime", "10:00");
+        open({
+          from: selFromPlace(placeById("ritz")!),
+          to: selFromPlace(AIRPORT),
+          date: "2026-09-10",
+          pax: 2,
+        });
+      }}
+    >
+      launch
+    </button>
+  );
 }
 
 /** The primary button is named for the screen it opens, so walking the flow
@@ -92,23 +114,20 @@ describe("BookingOverlay — the booking flow", () => {
     );
     fireEvent.click(screen.getByText("launch"));
 
-    // Step 1 — the route arrives already answered by the hero card and is
-    // never asked again; what the card could NOT ask is asked here.
-    expect(screen.getByText(/Landing in/)).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /from/i })).toHaveValue("Queen Beatrix International Airport");
-    // the time picker is three explicit controls — no 24h guessing, and a
-    // partial selection can never reach state
-    setExactTime(/flight lands at/i, "14:05");
-    // the derived moment that sells the service
-    expect(await screen.findByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
-    // and the fleet is on this same screen, each car priced for this route
+    // Step 1 — one question. The route, the day and the hour arrived with
+    // the card, and not one of them is on this screen.
+    expect(screen.getByText(/Who's coming/)).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("button", { name: /flight lands at/i })).toBeNull();
     expect(screen.getByRole("radio", { name: /Premium Van/ })).toBeInTheDocument();
 
-    // Continue is never disabled; with a complete ride it advances
+    // Continue is never disabled; nothing here can block it
     toDetails();
 
-    // Step 2 — who the driver is looking for
+    // Step 2 — the flight, then who the driver is looking for. The derived
+    // moment that sells the service reads back from the card's landing time.
     expect(screen.getByText(/Who are we/)).toBeInTheDocument();
+    expect(await screen.findByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
     fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/whatsapp \/ phone/i), { target: { value: "+1 555 123 4567" } });
@@ -129,6 +148,24 @@ describe("BookingOverlay — the booking flow", () => {
     );
   });
 
+  it("stops the child seats at two — a third belongs in a second car", () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+
+    const seats = () => screen.getByText("Child seats").closest(".stw") as HTMLElement;
+    const plus = () => within(seats()).getByRole("button", { name: "+" });
+    fireEvent.click(plus());
+    fireEvent.click(plus());
+    expect(within(seats()).getByText("2")).toBeInTheDocument();
+    // and there is no way to ask for a third
+    expect(plus()).toBeDisabled();
+  });
+
   it("carries the profile into the details step rather than asking for it again", async () => {
     auth.account = {
       id: "u1", email: "greta@example.com",
@@ -142,7 +179,6 @@ describe("BookingOverlay — the booking flow", () => {
         </BookingProvider>,
       );
       fireEvent.click(screen.getByText("launch"));
-      setExactTime(/flight lands at/i, "14:05");
       toDetails();
 
       expect(await screen.findByLabelText(/name for the driver's sign/i)).toHaveValue("Greta Croes");
@@ -173,7 +209,6 @@ describe("BookingOverlay — the booking flow", () => {
     // the fill is derived from the step, not hardcoded
     expect(fill()).toBe("33%");
 
-    setExactTime(/flight lands at/i, "14:05");
     toDetails();
 
     await waitFor(() => expect(label()).toHaveTextContent("Step two of three · Your details"));
@@ -195,7 +230,6 @@ describe("BookingOverlay — the booking flow", () => {
       </BookingProvider>,
     );
     fireEvent.click(screen.getByText("launch"));
-    setExactTime(/flight lands at/i, "14:05");
 
     // a car that is not the default, so going back and forth can lose it
     fireEvent.click(screen.getByRole("radio", { name: /Luxury SUV/ }));
@@ -209,8 +243,6 @@ describe("BookingOverlay — the booking flow", () => {
     // Back is one step, not out of the modal
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
     await waitFor(() => expect(screen.getByRole("radio", { name: /Luxury SUV/ })).toHaveAttribute("aria-checked", "true"));
-    // and the flight it was told is still the flight
-    expect(screen.getByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
   });
 
   it("keeps the step indicator a status rather than a control", () => {
@@ -232,42 +264,40 @@ describe("BookingOverlay — the booking flow", () => {
   it("lets Escape close a picker without closing the whole booking", () => {
     render(
       <BookingProvider>
-        <Opener />
-        <BookingOverlay />
-      </BookingProvider>,
-    );
-    fireEvent.click(screen.getByText("launch"));
-    fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
-    expect(screen.getByRole("dialog", { name: /flight lands at/i })).toBeInTheDocument();
-
-    fireEvent.keyDown(screen.getByRole("dialog", { name: /flight lands at/i }), { key: "Escape" });
-    expect(screen.queryByRole("dialog", { name: /flight lands at/i })).toBeNull();
-    // the ride survives the dismissal
-    expect(screen.getByRole("button", { name: /flight lands at/i })).toBeInTheDocument();
-  });
-
-  it("puts the reason under the field it belongs to, wired for a screen reader (Phase 4)", () => {
-    function BareOpener() {
-      const { open, setField } = useBooking();
-      return <button onClick={() => { open(); setField("from", null); }}>launch</button>;
-    }
-    render(
-      <BookingProvider>
-        <BareOpener />
+        <ReturnOpener />
         <BookingOverlay />
       </BookingProvider>,
     );
     fireEvent.click(screen.getByText("launch"));
     toDetails();
+    fireEvent.click(screen.getByRole("button", { name: /return flight lands/i }));
+    expect(screen.getByRole("dialog", { name: /return flight lands/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(screen.getByRole("dialog", { name: /return flight lands/i }), { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: /return flight lands/i })).toBeNull();
+    // the ride survives the dismissal
+    expect(screen.getByRole("button", { name: /return flight lands/i })).toBeInTheDocument();
+  });
+
+  it("puts the reason under the field it belongs to, wired for a screen reader (Phase 4)", () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    toDetails();
+    toReview();
 
     // the sentence is announced, not just a red border
     const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent(/tell us where to pick you up first/i);
+    expect(alert).toHaveTextContent(/a name lets the driver hold the right sign/i);
 
     // and the control points at it, so the reason is read with the field
-    const pickup = screen.getByRole("combobox", { name: /from/i });
-    expect(pickup).toHaveAttribute("aria-invalid", "true");
-    expect(pickup).toHaveAttribute("aria-describedby", alert.id);
+    const name = screen.getByLabelText(/name for the driver's sign/i);
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(name).toHaveAttribute("aria-describedby", alert.id);
     expect(alert.id).toBeTruthy();
   });
 
@@ -279,46 +309,17 @@ describe("BookingOverlay — the booking flow", () => {
       </BookingProvider>,
     );
     fireEvent.click(screen.getByText("launch"));
-
-    // Blocked on an empty landing time — three controls, none of them set.
     toDetails();
-    expect(screen.getByRole("alert")).toHaveTextContent(/when does your flight land/i);
-    expect(screen.getByRole("button", { name: /flight lands at/i })).toHaveAttribute("aria-invalid", "true");
+    toReview();
+    expect(screen.getByRole("alert")).toHaveTextContent(/a name lets the driver/i);
 
-    // Fill all three. The confirmation copy proves the value is valid, so the
-    // red outline and the sentence under it have stopped being true.
-    // 2 PM is on the quarter-hour list: open it and tap the time
-    fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
-    fireEvent.click(screen.getByRole("option", { name: "2:00 PM" }));
-
-    expect(await screen.findByText(/Your driver waits from 2:30 PM/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
+    // the NEXT gap is not promoted to the screen — nobody has walked into it
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(screen.getByRole("button", { name: /flight lands at/i })).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText(/name for the driver's sign/i)).not.toHaveAttribute("aria-invalid");
   });
 
   it("refuses a return date that precedes the outbound date (Phase 4)", () => {
-    function ReturnOpener() {
-      const { open, setField } = useBooking();
-      return (
-        <button
-          onClick={() => {
-            open({
-              from: selFromPlace(placeById("ritz")!),
-              to: selFromPlace(AIRPORT),
-              date: "2026-09-10",
-              pax: 2,
-            });
-            setField("journey", "return");
-            setField("depTime", "14:00");
-            // the way back, a day before the way out
-            setField("returnDate", "2026-09-09");
-            setField("returnTime", "10:00");
-          }}
-        >
-          launch
-        </button>
-      );
-    }
     render(
       <BookingProvider>
         <ReturnOpener />
@@ -327,29 +328,25 @@ describe("BookingOverlay — the booking flow", () => {
     );
     fireEvent.click(screen.getByText("launch"));
     toDetails();
+    toReview();
 
     expect(screen.getByRole("alert")).toHaveTextContent(/can't be before Thu 10 Sep 2026/i);
-    // still on step 1 — the contact fields never appear
-    expect(screen.queryByLabelText(/name for the driver/i)).toBeNull();
+    // still on the details step — the review never appears
+    expect(screen.queryByText(/Does this look/)).toBeNull();
   });
 
   it("blocks with a reason instead of a disabled button", () => {
-    function BareOpener() {
-      const { open, setField } = useBooking();
-      return (
-        <button onClick={() => { open(); setField("from", null); }}>launch</button>
-      );
-    }
     render(
       <BookingProvider>
-        <BareOpener />
+        <Opener />
         <BookingOverlay />
       </BookingProvider>,
     );
     fireEvent.click(screen.getByText("launch"));
-    const cont = screen.getByRole("button", { name: /^your details$/i });
+    toDetails();
+    const cont = screen.getByRole("button", { name: /^review$/i });
     expect(cont).toBeEnabled();
     fireEvent.click(cont);
-    expect(screen.getByText(/tell us where to pick you up first/i)).toBeInTheDocument();
+    expect(screen.getByText(/a name lets the driver hold the right sign/i)).toBeInTheDocument();
   });
 });

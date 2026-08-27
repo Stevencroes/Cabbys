@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../booking/useAuth";
 import { useBookingOptional } from "../booking/BookingContext";
+import { useStartBooking } from "../booking/useStartBooking";
 import { supabase } from "../lib/supabase";
 import { cancelRide } from "../lib/rides";
 import { claimGuestRides } from "../lib/claimRides";
@@ -279,6 +280,7 @@ export default function MyTrips() {
   const { account, loading: authLoading } = useAuth();
   const { openAuth } = useAuthModal();
   const booking = useBookingOptional();
+  const startBooking = useStartBooking();
   const [params, setParams] = useSearchParams();
   // Only one shelf can be open at a time, so switching shelves collapses
   // the previous one without needing an effect to reset it.
@@ -434,7 +436,7 @@ export default function MyTrips() {
             <div className="tp-empty">
               <p>No trips yet. The island is waiting.</p>
               {booking && (
-                <button type="button" className="tp-link" onClick={() => booking.open()}>
+                <button type="button" className="tp-link" onClick={() => startBooking()}>
                   Book a transfer
                 </button>
               )}
@@ -470,7 +472,7 @@ export default function MyTrips() {
                   <div className="tp-empty">
                     <p>{EMPTY_COPY[active]}</p>
                     {booking && active === "upcoming" && (
-                      <button type="button" className="tp-link" onClick={() => booking.open()}>
+                      <button type="button" className="tp-link" onClick={() => startBooking()}>
                         Book a transfer
                       </button>
                     )}

@@ -221,7 +221,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
           the last choice — no pinned bar stealing a fifth of the viewport */}
       <div className="bbody" ref={bodyRef}>
         {state.step === 1 ? (
-          <Step2Car pricing={pricing} problem={problem} registerValidator={registerValidator} foot={foot} />
+          <Step2Car pricing={pricing} registerValidator={registerValidator} foot={foot} />
         ) : (
           <Step3Details
             pricing={pricing}

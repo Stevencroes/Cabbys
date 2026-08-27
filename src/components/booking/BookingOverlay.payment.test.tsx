@@ -73,15 +73,20 @@ beforeAll(async () => {
 });
 afterAll(() => vi.unstubAllEnvs());
 
+/** Stands in for the card on the home page, which takes the route, the day
+    and — for an airport pickup — the landing hour before the flow opens. */
 function Opener() {
-  const { open } = useBooking();
+  const { open, setField } = useBooking();
   return (
-    <button onClick={() => open({
-      from: selFromPlace(AIRPORT),
-      to: selFromPlace(placeById("ritz")!),
-      date: "2026-09-01",
-      pax: 2,
-    })}>launch</button>
+    <button onClick={() => {
+      setField("flightLanding", "14:00");
+      open({
+        from: selFromPlace(AIRPORT),
+        to: selFromPlace(placeById("ritz")!),
+        date: "2026-09-01",
+        pax: 2,
+      });
+    }}>launch</button>
   );
 }
 
@@ -107,17 +112,17 @@ describe("BookingOverlay — four steps, with a card at the end", () => {
     const label = () => document.querySelector(".bstep")!;
     const fill = () => document.querySelector<HTMLElement>(".bprog-fill")!.style.width;
 
-    // Step 1 — the car. The route is here to CORRECT, not to answer: the
-    // hero card already took it, and it arrives filled in.
+    // Step 1 — the car, and nothing the card already took. Not the route,
+    // not the day, not the hour: none of the three is on this screen.
     expect(label()).toHaveTextContent("Step one of four · Your car");
     expect(fill()).toBe("25%");
-    expect(screen.getByRole("combobox", { name: /from/i })).toHaveValue("Queen Beatrix International Airport");
-    fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
-    fireEvent.click(screen.getByRole("option", { name: "2:00 PM" }));
-    expect(await screen.findByText(/Your driver waits from 2:30 PM/)).toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("button", { name: /flight lands at/i })).toBeNull();
 
     next(/^your details$/i);
     await waitFor(() => expect(label()).toHaveTextContent("Step two of four · Your details"));
+    // the card's landing time is what the driver's moment is worked out from
+    expect(await screen.findByText(/Your driver waits from 2:30 PM/)).toBeInTheDocument();
     fillContact();
 
     next(/^review$/i);
@@ -152,9 +157,6 @@ describe("BookingOverlay — four steps, with a card at the end", () => {
         </BookingProvider>,
       );
       fireEvent.click(screen.getByText("launch"));
-      fireEvent.click(screen.getByRole("button", { name: /flight lands at/i }));
-      fireEvent.click(screen.getByRole("option", { name: /^2:00 PM$/ }));
-      await screen.findByText(/Your driver waits from 2:30 PM/);
       next(/^your details$/i);
       await screen.findByLabelText(/name for the driver's sign/i);
       fillContact();

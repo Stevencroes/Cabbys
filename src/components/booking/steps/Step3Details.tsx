@@ -25,6 +25,7 @@ import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
 import LiveMap from "../LiveMap";
 import FieldError from "../FieldError";
+import TripSchedule, { validateTrip } from "../TripSchedule";
 import { effectivePickupTime, type StepProblem } from "./shared";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
@@ -100,8 +101,12 @@ export default function Step3Details({
 
   // Only the details screen can be blocked. Review has nothing to fill in,
   // and payment is gated by Stripe's own element, not by us.
+  const focusById = (id: string) => () => document.getElementById(id)?.focus();
   const validate = useMemo(() => () => {
     if (state.step !== DETAILS) return null;
+    // The schedule reads above the contact fields, so it is checked first.
+    const trip = validateTrip(state, { byId: focusById });
+    if (trip) return trip;
     if (state.contactName.trim().length < 2)
       return { field: "name", message: airportTrip ? "A name lets the driver hold the right sign." : "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
     if (!isValidEmail(state.contactEmail))
@@ -109,7 +114,8 @@ export default function Step3Details({
     if (!isValidPhone(state.contactPhone))
       return { field: "phone", message: "A WhatsApp number lets your driver reach you on the day.", focus: () => phoneRef.current?.focus() };
     return null;
-  }, [state.step, state.contactName, state.contactEmail, state.contactPhone, airportTrip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, airportTrip]);
   useEffect(() => registerValidator(validate), [validate, registerValidator]);
 
   const err = (f: string) => (problem?.field === f ? problem.message : undefined);
@@ -333,11 +339,15 @@ export default function Step3Details({
       <div className="panel">
         <div className="phead">
           <h2>Who are we <em>meeting?</em></h2>
-          <p className="psub">Three lines, and your driver knows exactly who to look for.</p>
+          <p className="psub">{airportTrip
+            ? "The flight, and the name on the sign."
+            : "Three lines, and your driver knows exactly who to look for."}</p>
         </div>
 
         <div className="pcols pcols-map">
         <div className="pcol pcol-form">
+          <TripSchedule problem={problem} lateNight={!!q?.lateNight} />
+
           <div className="fld">
             <label htmlFor="b-name">{airportTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
             <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName}

@@ -9,8 +9,9 @@ import DateField from "./DateField";
 import TimeField from "./TimeField";
 import { todayInAruba } from "../../lib/datetime";
 import { isOnIsland, locate } from "../../lib/geo";
-import { AIRPORT, selFromCustom, selFromPlace } from "../../data/places";
+import { AIRPORT, AIRPORT_ID, selFromCustom, selFromPlace } from "../../data/places";
 import { MAX_PAX } from "../../data/vehicles";
+import { CARD_ID } from "../../booking/useStartBooking";
 
 export default function QuoteCard() {
   const { state, setField, open } = useBooking();
@@ -38,6 +39,19 @@ export default function QuoteCard() {
     }
   }
 
+  // The card asks the ONE time question the route actually has. An airport
+  // pickup is timed off the landing, a departure off the take-off, and the
+  // driver's moment is worked out from there — so asking for a "pickup time"
+  // on an airport run collects a number nothing uses and then asks for the
+  // flight anyway. The flow downstream never asks the hour twice.
+  const fromAirport = state.from?.id === AIRPORT_ID;
+  const toAirport = state.to?.id === AIRPORT_ID;
+  const when = fromAirport
+    ? { label: "Flight lands", ph: "Landing", key: "flightLanding" as const, value: state.flightLanding }
+    : toAirport
+    ? { label: "Flight departs", ph: "Departure", key: "depTime" as const, value: state.depTime }
+    : { label: "Time", ph: "Pick up", key: "pickupTime" as const, value: state.pickupTime };
+
   // Continue is never disabled — an empty field gets focus and a reason.
   function handleContinue() {
     if (!state.from) {
@@ -55,6 +69,13 @@ export default function QuoteCard() {
       toInput.current?.focus();
       return;
     }
+    if (!when.value) {
+      setHint(fromAirport ? "When does your flight land? Set the hour, minutes and AM/PM."
+        : toAirport ? "When does your flight leave? Set the hour, minutes and AM/PM."
+        : "What time should the car be there? Set the hour, minutes and AM/PM.");
+      document.getElementById("q-time")?.focus();
+      return;
+    }
     setHint("");
     open(); // everything already lives in context — nothing is asked twice
   }
@@ -67,7 +88,9 @@ export default function QuoteCard() {
   );
 
   return (
-    <div className="quote rise">
+    // Every "Book now" on the site lands here when it has no route to
+    // open the flow with, so the card needs a name to be scrolled to.
+    <div className="quote rise" id={CARD_ID}>
       {/* §08 — one way or return, then the five answers in a row, then the
           way on. The card carries no fare: the mockup asks for availability
           first and shows the money once the route is real. */}
@@ -114,15 +137,14 @@ export default function QuoteCard() {
           />
         </div>
 
-        {/* Asked here so step 1 opens answered. An airport run derives its
-            pickup from the flight instead, so the overlay overrides this. */}
+        {/* The hour, asked once, in the terms the route puts it in. */}
         <div className="qcell qcell-time">
           <TimeField
             id="q-time"
-            label="Time"
-            value={state.pickupTime}
-            onChange={(t) => setField("pickupTime", t)}
-            placeholder="Pick up"
+            label={when.label}
+            value={when.value}
+            onChange={(t) => setField(when.key, t)}
+            placeholder={when.ph}
             hideZone
           />
         </div>

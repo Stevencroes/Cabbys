@@ -295,54 +295,6 @@ h2.sec em{font-style:italic;}
    MAP_H in Step2Car — both, if this changes. */
 .pcol-rail .tripmap .lmap{height:340px;}
 
-/* ── the trip, as a band you can edit ────────────────────────────────
-   This was a step of its own, and the hero card had already asked all of
-   it. Now it sits across the top of step 1: answered on arrival, open to
-   correction, and never asked a second time. Someone who came in from
-   "Book now" with no route at all types theirs right here. */
-.trip{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);
-  padding:15px 17px 3px;margin:0 0 20px;}
-.trip .fld{margin-bottom:12px;}
-.trip-route{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:0 12px;align-items:start;}
-.trip-f{min-width:0;}
-/* clears the field label, so the button lands on the inputs' own line */
-.trip-swap{align-self:start;margin-top:25px;width:38px;height:38px;flex:none;
-  display:flex;align-items:center;justify-content:center;border-radius:50%;
-  border:1px solid var(--line);background:var(--raised);color:var(--silver);
-  transition:.25s var(--ease);}
-.trip-swap svg{transform:rotate(90deg);}
-@media(hover:hover){
-  .trip-swap:hover{color:var(--ink);background:var(--surface);border-color:var(--silver-deep);}
-}
-.trip-when{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:0 14px;align-items:start;}
-.trip-l{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--silver);margin-bottom:7px;}
-.trip-l .soft{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;}
-/* the band's own input, matching .fld's without inheriting its margin */
-.trip-when input{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
-  border:1px solid var(--line);border-radius:var(--r-sm);padding:0 14px;min-height:var(--tap);}
-.trip-when input:focus{background:var(--surface);}
-.trip-when input::placeholder{color:var(--placeholder);}
-.trip-f-journey{padding-bottom:12px;}
-.trip-f-journey .qtoggle-sm{width:100%;}
-.trip-f-journey .qtoggle-sm button{flex:1;}
-/* the band is a summary, so its notes are read at a glance rather than
-   settled into — the same words, in less of the screen */
-.trip .timing{padding:12px 16px;margin:2px 0 12px;}
-.trip .timing b{font-size:18px;}
-.trip .timing p{margin-top:5px;line-height:1.55;}
-.trip .notice{margin-bottom:12px;}
-@media(max-width:720px){
-  /* stacked, so the arrow points the way the fields now run — and pulled
-     into the seam between the two fields rather than given a row */
-  .trip-route{grid-template-columns:minmax(0,1fr);}
-  .trip-swap{margin:-15px 0 -9px auto;width:34px;height:34px;background:var(--surface);}
-  .trip-swap svg{transform:none;}
-  .trip-when{grid-template-columns:1fr 1fr;}
-  /* two to a row is only right for the date and the time. Anything past
-     them takes the full width instead of leaving half the row empty. */
-  .trip-when > .trip-f:nth-child(n+3){grid-column:1 / -1;}
-}
 /* Every step has to fit a 1280x800 laptop without scrolling, and an airport
    pickup is the worst case: a flight field and a timing note the other
    routes do not have. Two pixels a field is what closes it. */
@@ -371,15 +323,15 @@ h2.sec em{font-style:italic;}
 .tm-facts{margin:16px 0 0;display:grid;gap:0;border:1px solid var(--line);border-radius:var(--r-md);
   background:var(--surface);overflow:hidden;}
 .tm-facts > div{display:flex;justify-content:space-between;gap:14px;align-items:baseline;
-  padding:11px 16px;border-bottom:1px solid var(--line);}
+  padding:13px 17px;border-bottom:1px solid var(--line);}
 .tm-facts > div:last-child{border-bottom:none;}
-.tm-facts dt{font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);flex:none;}
-.tm-facts dd{margin:0;font-size:14px;text-align:right;color:var(--ink);}
-.tm-facts .rv-zone{display:block;font-size:11px;color:var(--muted);letter-spacing:.04em;}
+.tm-facts dt{font-weight:600;font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--silver);flex:none;}
+.tm-facts dd{margin:0;font-size:16px;text-align:right;color:var(--ink);}
+.tm-facts .rv-zone{display:block;font-size:12.5px;color:var(--muted);letter-spacing:.04em;}
 .tm-facts .tm-total{background:var(--raised);}
-.tm-facts .tm-total dd{font-family:var(--serif);font-size:26px;font-weight:600;line-height:1;}
+.tm-facts .tm-total dd{font-family:var(--serif);font-size:31px;font-weight:600;line-height:1;}
 .tm-change{margin-top:10px;padding:10px 2px;border:none;background:none;color:var(--silver);
-  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
+  font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
 .tm-change:hover{color:var(--ink);}
 
 /* ── route map ── real tiles with a token, a sketch of the island without */
@@ -536,31 +488,35 @@ body.locked .hero-grid{z-index:auto;}
 .qtabs button.on::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:var(--ink);}
 
 /* the five answers. Dividers rather than boxes: one field, read across. */
-.qrow{display:grid;grid-template-columns:1.35fr 1.35fr .82fr .74fr .9fr;align-items:stretch;}
+.qrow{display:grid;grid-template-columns:1.42fr 1.42fr .68fr .9fr .95fr;align-items:stretch;}
 .qcell{position:relative;padding:14px 20px 16px;min-width:0;}
 .qcell + .qcell::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--line);}
 /* the card's own fields shed the standalone control chrome — no rules
    under them, no boxes; the divider does the separating */
 .qcell .combo{margin:0;}
 .qcell .combo .cfield{border-bottom:none;gap:0;}
-.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:10.5px;font-weight:600;
+.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:11.5px;font-weight:600;
   letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
-.qcell .combo .cfield input{font-size:14.5px;padding:0;}
+.qcell .combo .cfield input{font-size:16px;padding:0;}
 .qcell .combo .cfield .cmark{color:var(--muted);}
 .qcell .combo .cfield .clear{display:none;}
-.qcell .qfld input,.qcell .qfld select{background:none;border:none;padding:0;min-height:0;font-size:14.5px;}
+.qcell .qfld input,.qcell .qfld select{background:none;border:none;padding:0;min-height:0;font-size:16px;}
 /* DateField and TimeField ship as self-contained controls with their own
    box. Inside the card the divider is the boundary, so the box goes and
    only the value and its mark remain. */
-.qcell .dtf-label{display:block;font-size:10.5px;font-weight:600;letter-spacing:.16em;
+.qcell .dtf-label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.13em;white-space:nowrap;
   text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
 .qcell .dtf-trigger{background:none;border:none;border-radius:0;padding:0;min-height:0;width:100%;
-  font-size:14.5px;color:var(--ink);gap:8px;white-space:nowrap;}
+  font-size:16px;color:var(--ink);gap:8px;white-space:nowrap;}
 .qcell .dtf-trigger.empty{color:var(--placeholder);}
 .qcell .dtf-trigger:hover{background:none;}
 .qcell .qpax{display:block;color:var(--ink);}
-.qcell .qpax select{width:100%;min-height:0;padding:0;background:none;border:none;color:var(--ink);
-  font-size:14.5px;font-family:var(--sans);appearance:none;}
+/* A <select> is as wide as its widest OPTION whatever width says, so
+   "12 Passengers" was pushing this cell out past the card's own padding and
+   the chosen value sat flush against the edge. min-width lets it shrink. */
+.qcell .qpax select{width:100%;min-width:0;min-height:0;padding:0;background:none;border:none;
+  color:var(--ink);font-size:16px;font-family:var(--sans);appearance:none;
+  text-overflow:ellipsis;}
 .qcell .qpax select:hover{border:none;}
 
 .qgo{display:flex;justify-content:flex-end;padding:0 20px 20px;}
@@ -616,14 +572,14 @@ body.locked .hero-grid{z-index:auto;}
 /* ============ COMBOBOX (§3.3) ============ */
 .combo{position:relative;margin-bottom:12px;}
 .combo .cfield{border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
-.combo .cfield label{display:block;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);}
+.combo .cfield label{display:block;font-weight:600;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--silver);}
 .combo .cfield .cwrap{flex:1;min-width:0;}
 .combo .cfield .cin{display:flex;align-items:center;gap:9px;min-width:0;}
 .combo .cfield .cmark{flex:none;display:flex;color:var(--muted);}
 /* an input clips rather than ellipses by default, so a long place name
    read as "Queen Beatrix International Air" — a truncation that looks
    like a bug rather than a shortening */
-.combo .cfield input{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:none;border:none;padding:8px 0 10px;text-overflow:ellipsis;}
+.combo .cfield input{width:100%;font-size:17px;font-weight:400;color:var(--ink);background:none;border:none;padding:8px 0 10px;text-overflow:ellipsis;}
 .combo .cfield input::placeholder{color:var(--placeholder);}
 .combo .cfield input:focus{outline:none;}
 .combo .cfield .clear{width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px;flex:none;}
@@ -858,7 +814,7 @@ body.locked .hero-grid{z-index:auto;}
    .panel rules that set them, so the two cannot drift apart. */
 .bhead-inner{max-width:620px;height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;gap:16px;}
-.bstep{margin:0;font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+.bstep{margin:0;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;
   color:var(--nav-dim);font-weight:300;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0;}
 /* the numeral is the part that changes, so it is the part that is lit */
@@ -874,9 +830,9 @@ body.locked .hero-grid{z-index:auto;}
 /* 26px plus the heading's own 8px top margin puts it ~34px under the header
    row — the tabs above used to hold it 90px further down */
 .panel{max-width:620px;margin:0 auto;padding:26px var(--gutter) clamp(32px,5vh,56px);}
-.panel h2{font-family:var(--serif);font-weight:300;font-size:clamp(22px,2.15vw,27px);line-height:1.1;margin:8px 0 6px;letter-spacing:-.01em;}
+.panel h2{font-family:var(--serif);font-weight:300;font-size:clamp(26px,2.5vw,34px);line-height:1.1;margin:8px 0 6px;letter-spacing:-.01em;}
 .panel h2 em{font-style:italic;color:var(--silver);}
-.psub{font-size:14px;color:var(--muted);font-weight:400;margin-bottom:18px;line-height:1.6;}
+.psub{font-size:16px;color:var(--muted);font-weight:400;margin-bottom:18px;line-height:1.6;}
 /* wide screens read as two columns, so the step stops being one long ribbon */
 .pcols{display:grid;gap:0;}
 @media(min-width:1000px){
@@ -919,7 +875,7 @@ body.locked .hero-grid{z-index:auto;}
   .pcols-review .rv-edit{order:3;margin-top:18px;}
 }
 .fld{margin-bottom:14px;}
-.fld label{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
+.fld label{display:block;font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
 .fld label .soft{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;}
 .fld input,.fld select,.fld textarea{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
   border:1px solid var(--line);padding:14px 16px;appearance:none;transition:.25s;min-height:var(--tap);}
@@ -932,27 +888,33 @@ body.locked .hero-grid{z-index:auto;}
 .qtoggle button{flex:1;background:none;border:none;padding:12px;min-height:var(--tap);font-weight:600;font-size:12px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);transition:.28s;}
 .qtoggle button.on{background:var(--silver);color:var(--deep);}
-.subh{font-weight:600;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);margin:0 0 9px;}
+.subh{font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin:0 0 9px;}
 .pcol > .subh + * + .subh,.pcol .steppers + .subh,.pcol .fld + .subh{margin-top:18px;}
 .steppers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-@media(max-width:420px){.steppers{grid-template-columns:repeat(2,minmax(0,1fr));}}
-.stw label{display:block;font-weight:600;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
+@media(max-width:460px){
+  /* three across, tighter, rather than two-and-a-stray on its own line */
+  .steppers{gap:7px;}
+  .stw label{font-size:11px;letter-spacing:.08em;}
+  .steppers .stepper button{width:38px;height:44px;}
+  .steppers .stepper .sv,.steppers .stepper .num{min-width:26px;font-size:21px;height:44px;line-height:44px;}
+}
+.stw label{display:block;font-weight:600;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
 .stepper{display:flex;align-items:center;border:1px solid var(--line);width:fit-content;background:var(--raised);}
 .stepper button{background:none;border:none;width:var(--tap);height:var(--tap);font-size:19px;color:var(--ink);transition:.2s;display:flex;align-items:center;justify-content:center;}
 .stepper button:hover:not(:disabled){background:var(--surface);}
 .stepper button:disabled{opacity:.3;cursor:not-allowed;}
-.stepper .sv,.stepper .num{min-width:48px;text-align:center;font-family:var(--serif);font-size:21px;font-weight:600;height:var(--tap);line-height:var(--tap);}
+.stepper .sv,.stepper .num{min-width:52px;text-align:center;font-family:var(--serif);font-size:24px;font-weight:600;height:var(--tap);line-height:var(--tap);}
 
 /* derived-time panel (§3.6) — a raised block with the hour in silver */
 .timing{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;margin:2px 0 14px;}
-.timing b{font-family:var(--serif);font-size:20px;font-weight:600;display:block;line-height:1.2;color:var(--silver);}
-.timing p{font-size:13.5px;line-height:1.65;margin:8px 0 0;color:var(--muted);font-weight:400;}
+.timing b{font-family:var(--serif);font-size:22px;font-weight:600;display:block;line-height:1.2;color:var(--silver);}
+.timing p{font-size:15px;line-height:1.65;margin:8px 0 0;color:var(--muted);font-weight:400;}
 /* min-notice — informational, never a problem, so never alert */
-.notice{border:1px solid var(--line);background:var(--raised);padding:12px 15px;margin:0 0 14px;font-size:13.5px;line-height:1.6;font-weight:400;color:var(--ink);}
+.notice{border:1px solid var(--line);background:var(--raised);padding:13px 16px;margin:0 0 14px;font-size:15px;line-height:1.6;font-weight:400;color:var(--ink);}
 
 /* vehicles — real radio group */
-.vopt{display:flex;align-items:center;gap:12px;width:100%;background:var(--raised);border:1px solid var(--line);
-  padding:11px 15px;text-align:left;margin-bottom:8px;transition:all .3s var(--ease);color:var(--ink);}
+.vopt{display:flex;align-items:center;gap:14px;width:100%;background:var(--raised);border:1px solid var(--line);
+  padding:13px 17px;text-align:left;margin-bottom:8px;transition:all .3s var(--ease);color:var(--ink);}
 .vopt:hover:not(.unfit){background:var(--surface);transform:translateY(-2px);}
 .vopt.sel{background:var(--surface);border-color:var(--silver);}
 .vopt.sel .vm,.vopt.sel .vs{color:var(--muted);}
@@ -961,7 +923,7 @@ body.locked .hero-grid{z-index:auto;}
 .vopt.sel .vd::after{content:"";position:absolute;inset:2.5px;border-radius:50%;background:var(--silver);}
 /* the car's portrait — cut-out PNG, no plate behind it. Fixed box so all
    four rows line their names up whatever the shot's aspect ratio is. */
-.vopt .vthumb{flex:none;width:78px;height:46px;display:flex;align-items:center;justify-content:center;}
+.vopt .vthumb{flex:none;width:88px;height:52px;display:flex;align-items:center;justify-content:center;}
 /* The shots are square canvases with the car centred and air above and
    below it. `contain` would fit that whole square into a 46px-tall box and
    leave a car the size of a stamp, so cover it instead: the crop eats the
@@ -972,16 +934,26 @@ body.locked .hero-grid{z-index:auto;}
 .vopt:hover:not(.unfit) .vthumb img{transform:scale(1.05);}
 .vopt.unfit .vthumb img{filter:grayscale(1);}
 .vopt .vmain{flex:1;min-width:0;}
-.vopt .vn{display:block;font-family:var(--serif);font-size:17px;font-weight:500;line-height:1.05;}
-.vopt .vm{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;}
-.vopt .vs{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--silver);margin-top:4px;font-weight:600;}
-.vopt .vp{font-family:var(--serif);font-size:20px;font-weight:600;white-space:nowrap;}
-@media(max-width:560px){.vopt .vthumb{width:64px;height:40px;}}
-@media(max-width:380px){.vopt{padding:14px 14px;gap:10px;}.vopt .vn{font-size:19px;}.vopt .vp{font-size:21px;}
-  .vopt .vthumb{width:56px;height:36px;}}
+.vopt .vn{display:block;font-family:var(--serif);font-size:20px;font-weight:500;line-height:1.05;}
+.vopt .vm{display:block;font-size:13.5px;color:var(--muted);margin-top:4px;}
+.vopt .vs{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--silver);margin-top:4px;font-weight:600;}
+.vopt .vp{font-family:var(--serif);font-size:25px;font-weight:600;white-space:nowrap;}
+@media(max-width:560px){
+  .vopt{padding:12px 13px;gap:10px;}
+  .vopt .vthumb{width:58px;height:38px;}
+  .vopt .vn{font-size:18px;}
+  .vopt .vm{font-size:12.5px;}
+  .vopt .vs{font-size:11px;letter-spacing:.05em;}
+  .vopt .vp{font-size:22px;}
+}
+@media(max-width:380px){
+  .vopt{gap:9px;}
+  .vopt .vthumb{width:52px;height:34px;}
+  .vopt .vp{font-size:21px;}
+}
 
 .pnav{display:flex;gap:12px;margin-top:6px;}
-.btn{flex:1;border:none;padding:15px;min-height:var(--tap);font-weight:600;font-size:13px;letter-spacing:.14em;
+.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:14.5px;letter-spacing:.12em;
   text-transform:uppercase;transition:.3s;}
 .btn.primary{background:var(--sheen);color:var(--on-sheen);}
 .btn.primary:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
@@ -989,27 +961,27 @@ body.locked .hero-grid{z-index:auto;}
 .btn.back{flex:0 0 auto;background:transparent;border:1px solid var(--silver-deep);color:var(--silver);padding:17px 26px;}
 .btn.back:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
 /* one reason, under the field it belongs to (Phase 4) */
-.ferr{font-size:13px;line-height:1.45;color:var(--alert-ink);font-weight:500;margin:7px 0 14px;}
+.ferr{font-size:14.5px;line-height:1.45;color:var(--alert-ink);font-weight:500;margin:7px 0 14px;}
 .combo .cfield.invalid{border-color:var(--alert);}
-.secure{margin-top:14px;font-size:12px;color:var(--muted);text-align:center;letter-spacing:.05em;font-weight:500;}
-.pay-error{margin:0 0 16px;padding:14px 16px;border:1px solid var(--alert-line);background:var(--alert-tint);font-size:13.5px;color:var(--alert-ink);font-weight:400;}
+.secure{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;letter-spacing:.05em;font-weight:500;}
+.pay-error{margin:0 0 16px;padding:15px 17px;border:1px solid var(--alert-line);background:var(--alert-tint);font-size:15px;color:var(--alert-ink);font-weight:400;}
 /* Stripe's iframe arrives a beat after the step does. Reserving the room it
    will need keeps the Pay button still instead of shunting it down the page. */
 .pay-mount{min-height:210px;}
-.pay-wait{font-size:13px;color:var(--muted);margin:10px 0 0;font-weight:400;}
+.pay-wait{font-size:14.5px;color:var(--muted);margin:10px 0 0;font-weight:400;}
 /* review's two ways back — each to the screen that owns the line */
 .rv-edit{display:flex;flex-direction:column;gap:2px;margin-top:12px;}
 .rv-edit button{display:flex;align-items:center;text-align:left;padding:0 2px;border:none;
-  background:none;color:var(--silver);font-size:12px;font-weight:600;letter-spacing:.14em;
+  background:none;color:var(--silver);font-size:13px;font-weight:600;letter-spacing:.13em;
   text-transform:uppercase;min-height:var(--tap);transition:.2s var(--ease);}
 @media(hover:hover){.rv-edit button:hover{color:var(--ink);}}
 
 /* running total — flat, at the end of the step's own column */
 .pfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   margin-top:20px;padding-top:18px;border-top:1px solid var(--line);}
-.pfoot .tk{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
-.pfoot .tv{display:block;font-family:var(--serif);font-size:34px;font-weight:600;color:var(--ink);line-height:1.05;}
-.pfoot .tm{display:block;font-size:12px;color:var(--muted);font-weight:500;}
+.pfoot .tk{display:block;font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);}
+.pfoot .tv{display:block;font-family:var(--serif);font-size:38px;font-weight:600;color:var(--ink);line-height:1.05;}
+.pfoot .tm{display:block;font-size:13.5px;color:var(--muted);font-weight:500;}
 .pfoot .pf-r{display:flex;gap:10px;flex:1 1 240px;justify-content:flex-end;}
 /* step 3 — the review card already carries the fare, so this is buttons only */
 .pfoot.bare{margin-top:16px;padding-top:16px;}
