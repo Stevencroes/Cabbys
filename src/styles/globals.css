@@ -428,6 +428,15 @@ h2.sec em{font-style:italic;}
    order is not visible anyway, so the context is dropped and the sheet
    competes at the root, where it was always meant to. */
 body.locked .hero-grid{z-index:auto;}
+/* The same trap one level down, and a nastier one: backdrop-filter does not
+   merely make a stacking context, it makes a CONTAINING BLOCK for fixed
+   descendants. So the card's glass quietly redefined `position:fixed;inset:0`
+   to mean "fill this card" — the picker's full-screen sheet was laid out
+   inside a 352px-wide box two-thirds of the way down the page, and had been
+   for as long as the card has had a blur. Dropping the blur while a sheet is
+   open costs nothing: the card is behind a full-screen layer at that moment
+   and cannot be seen through it. */
+body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* §07/§08 — the card is not a column beside the copy any more; it is a wide
    panel across the foot of the hero, the way the mockup composes it. So the
    grid becomes a stack that hangs from the bottom, and the photograph gets
@@ -488,9 +497,15 @@ body.locked .hero-grid{z-index:auto;}
 .qtabs button.on::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:var(--ink);}
 
 /* the five answers. Dividers rather than boxes: one field, read across. */
-.qrow{display:grid;grid-template-columns:1.42fr 1.42fr .68fr .9fr .95fr;align-items:stretch;}
-.qcell{position:relative;padding:14px 20px 16px;min-width:0;}
+/* Widths follow what the cells actually hold. The date trigger renders
+   "Sat 29 Aug" plus its icon at 112px and had 85 to do it in, which is the
+   crush; From and To carry the longest strings on the card and get the
+   slack the other three do not need. */
+.qrow{display:grid;grid-template-columns:1.3fr 1.3fr .8fr .78fr .82fr;align-items:stretch;}
+.qcell{position:relative;padding:14px 16px 16px;min-width:0;}
 .qcell + .qcell::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--line);}
+/* the trigger must never be the thing that wraps — the cell is sized for it */
+.qcell .dtf-trigger,.qcell .qpax select{min-width:0;}
 /* the card's own fields shed the standalone control chrome — no rules
    under them, no boxes; the divider does the separating */
 .qcell .combo{margin:0;}
@@ -590,26 +605,66 @@ body.locked .hero-grid{z-index:auto;}
   color:var(--muted);flex:none;margin-right:-10px;}
 .combo .cfield .cwipe:hover{color:var(--ink);}
 .combo .cfield .cancel{display:none;min-height:var(--tap);padding:0 10px;font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--silver);flex:none;align-items:center;}
-.clist{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:var(--z-modal);background:var(--surface);
-  border:1px solid var(--line);box-shadow:var(--shadow-hard-lg);max-height:320px;overflow-y:auto;overscroll-behavior:contain;
+/* ── the results panel ────────────────────────────────────────────────
+   A dropdown as wide as the field is a dropdown as wide as a fifth of a
+   booking card, and "Manchebo Beach Resort" came out of that three lines
+   tall, broken mid-name. The panel is a layer, not a column: it takes the
+   width its contents need and lets the card show through it. */
+/* The panel: a glass layer with a scrolling list inside it and a footer
+   under that. Opaque enough to read a hotel name off — at .82 the hero's
+   headline came straight through the rows and competed with them, which is
+   a lovely effect and an unusable menu. */
+.cpanel{position:absolute;top:calc(100% + 10px);left:0;z-index:var(--z-modal);
+  display:flex;flex-direction:column;
+  min-width:100%;width:max-content;max-width:min(460px, calc(100vw - 32px));
+  max-height:min(420px, 60vh);overflow:hidden;
+  background:rgba(9,19,29,.94);
+  -webkit-backdrop-filter:blur(30px) saturate(160%);backdrop-filter:blur(30px) saturate(160%);
+  border:1px solid var(--nav-rule);box-shadow:var(--shadow-hard-lg);}
+/* opened upward, because there was no room below — see PlaceCombobox */
+.cpanel.up{top:auto;bottom:calc(100% + 10px);}
+.clist{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
   list-style:none;margin:0;padding:6px 0;}
-.clist .cgroup{font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);
-  padding:12px 14px 6px;}
-.clist li[role="option"]{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 14px;
-  min-height:var(--tap);font-size:15px;font-weight:400;cursor:pointer;}
-.clist li[role="option"] .oarea{font-size:12px;color:var(--muted);letter-spacing:.04em;white-space:nowrap;}
-.clist li[role="option"]:hover,.clist li[role="option"].hl{background:var(--raised);}
+.cpanel .cgroup{font-weight:600;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);
+  padding:13px 16px 7px;}
+/* Icon, then two lines: what it is called, and where it is. They used to
+   share one row and compete for it — the name lost, mid-word. */
+.clist li[role="option"]{display:flex;align-items:center;gap:13px;padding:10px 16px;
+  min-height:var(--tap);font-weight:400;cursor:pointer;}
+.clist li[role="option"] .oicon{flex:none;color:var(--muted);}
+.clist li[role="option"] .otext{min-width:0;display:flex;flex-direction:column;gap:2px;}
+.clist li[role="option"] .on{font-size:15.5px;line-height:1.3;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.clist li[role="option"] .oa{font-size:13px;line-height:1.35;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.clist li[role="option"].hl{background:rgba(201,211,223,.09);}
+.clist li[role="option"].hl .oicon{color:var(--silver);}
+/* A touch leaves :hover behind on the row it tapped, so the sheet showed
+   two rows lit at once — the keyboard's and the finger's. A finger has no
+   hover to show. */
+@media(hover:hover){
+  .clist li[role="option"]:hover{background:rgba(201,211,223,.09);}
+  .clist li[role="option"]:hover .oicon{color:var(--silver);}
+  .clist li[role="option"]:hover mark{color:var(--sheen);}
+}
 /* The one row that answers "I'm staying somewhere you don't list" used to
    be the last row under nineteen hotels. Sticky keeps it a real option —
    still in the listbox, still arrow-reachable, still announced in order —
    while putting it permanently within thumb reach. */
-.clist li.custom{border-top:1px dashed var(--line-soft);color:var(--silver);font-weight:500;
-  position:sticky;bottom:0;background:var(--surface);}
-.clist .cempty{padding:14px;font-size:14px;color:var(--muted);line-height:1.55;}
+.clist li.custom{border-top:1px dashed var(--line-soft);color:var(--silver);
+  position:sticky;bottom:0;background:rgba(9,19,29,.97);
+  -webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);}
+.clist .cempty{padding:14px 16px;font-size:14px;color:var(--muted);line-height:1.55;}
+.clist .csearching{color:var(--silver);}
+/* Where the answers come from, said once, quietly, under everything — the
+   place every map and search UI has taught people to look for it. */
+.cpanel .cattrib{flex:none;padding:10px 16px 11px;
+  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  border-top:1px solid var(--line-soft);}
 /* the run of the row that the query matched — a highlight, not a
    marker pen, so <mark>'s yellow default has to go */
 .clist mark{background:none;color:var(--nav-ink);font-weight:600;}
-.clist li[role="option"].hl mark,.clist li[role="option"]:hover mark{color:var(--sheen);}
+.clist li[role="option"].hl mark{color:var(--sheen);}
 /* Shown only in the sheet: a full screen cannot open on nothing. The
    desktop dropdown stays away until a letter is typed, which is the
    honest answer there — an empty floating panel is worse than none. */
@@ -626,7 +681,8 @@ body.locked .hero-grid{z-index:auto;}
 @media(hover:hover){.cquick button:hover{background:var(--raised);}}
 .cquick .qicon{flex:none;color:var(--muted);}
 .cquick .qn{flex:1;min-width:0;line-height:1.25;}
-/* custom-address area anchor */
+/* custom-address area anchor — the panel clips, so the form scrolls */
+.cpanel > .areasel{flex:1;min-height:0;overflow-y:auto;}
 .areasel{margin:10px 0 4px;padding:12px;border:1px solid var(--line);background:var(--raised);}
 .areasel label{display:block;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
 .areasel select,.areasel input{width:100%;font-size:16px;background:var(--surface);border:1px solid var(--line);padding:11px 12px;appearance:none;min-height:var(--tap);color:var(--ink);}
@@ -657,12 +713,19 @@ body.locked .hero-grid{z-index:auto;}
   .combo.open .cfield input{padding:10px 0 14px;font-size:17px;}
   .combo.open .cfield .cwipe{grid-column:2;grid-row:2;margin-right:-10px;}
   .combo.open .cfield .clear{display:none;}
-  .combo.open .clist li.custom{background:var(--ground);padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));}
-  .combo.open .clist{
-    position:static;flex:1;max-height:none;border:none;box-shadow:none;
-    margin:8px -16px 0;padding:0 10px calc(24px + env(safe-area-inset-bottom,0px));
+  .combo.open .clist li.custom{background:var(--ground);padding-bottom:14px;}
+  .combo.open .cpanel{
+    /* a full screen is not a floating layer — no glass, no measured width */
+    position:static;flex:1;min-height:0;max-height:none;border:none;box-shadow:none;
+    width:auto;min-width:0;max-width:none;background:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none;
+    margin:8px -16px 0;
   }
-  .combo.open .clist li[role="option"]{min-height:54px;font-size:16.5px;}
+  .combo.open .clist{padding:0 10px;}
+  .combo.open .clist li[role="option"]{min-height:58px;}
+  .combo.open .clist li[role="option"] .on{font-size:16.5px;}
+  .combo.open .clist li[role="option"] .oa{font-size:13.5px;}
+  .combo.open .cpanel .cattrib{padding:12px 26px calc(14px + env(safe-area-inset-bottom,0px));}
 }
 
 /* ============ HOW — one bordered grid, shared rules ============ */
@@ -1221,9 +1284,9 @@ input.txt:focus{outline:none;background:var(--surface);}
 .fq .qi{border-radius:50%;}
 
 /* combobox */
-.clist{border-radius:var(--r-md);}
+.cpanel{border-radius:var(--r-md);}
 .clist li[role="option"]{border-radius:var(--r-xs);margin:0 6px;}
-.clist .cgroup{margin:0 6px;}
+.cpanel .cgroup{margin:0 6px;}
 .areasel{border-radius:var(--r-sm);}
 .areasel select,.areasel input{border-radius:var(--r-xs);}
 @media(max-width:760px){

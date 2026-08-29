@@ -1,5 +1,5 @@
 // §3.8 — timezone first, GPS only on tap.
-import { AREAS, type Area } from "../data/places";
+import { nearestArea, type Area } from "../data/places";
 
 /** Silent, permission-free hint: are they already on the island? */
 export function isOnIsland(): boolean {
@@ -18,16 +18,11 @@ export function inAruba(lat: number, lon: number): boolean {
   return lat >= b.latMin && lat <= b.latMax && lon >= b.lonMin && lon <= b.lonMax;
 }
 
-/** Snap an on-island fix to the nearest of the ten area centres. */
-export function nearestArea(lat: number, lon: number): Area {
-  let best = AREAS[0];
-  let bestD = Infinity;
-  for (const a of AREAS) {
-    const d = (a.lat - lat) ** 2 + (a.lon - lon) ** 2;
-    if (d < bestD) { bestD = d; best = a; }
-  }
-  return best;
-}
+/** Snap an on-island fix to the nearest of the ten area centres. The snap
+    itself lives with the areas, in data/places — a GPS fix and a geocoded
+    address must not get different answers to the same question. */
+export { nearestArea };
+export type { Area };
 
 export interface LocateResult {
   ok: boolean;

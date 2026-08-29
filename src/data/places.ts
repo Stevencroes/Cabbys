@@ -61,6 +61,28 @@ export function areaByName(name: string): Area | undefined {
   return AREAS.find((a) => a.name.toLowerCase() === name.trim().toLowerCase());
 }
 
+/**
+ * Snap a coordinate to the pricing area it sits in.
+ *
+ * Lives here rather than in lib/geo because the areas do, and because two
+ * different callers need it for the same reason: "use my location" turns a
+ * GPS fix into a pickup, and a typed address turns a geocoder's answer into
+ * a fare. Both are the same question — which of the ten does this belong
+ * to — and the answer must not depend on which one asked.
+ *
+ * Squared degrees, not haversine: at this latitude, over an island 30 km
+ * long, the ranking is identical and the cheaper sum is easier to trust.
+ */
+export function nearestArea(lat: number, lon: number): Area {
+  let best = AREAS[0];
+  let bestD = Infinity;
+  for (const a of AREAS) {
+    const d = (a.lat - lat) ** 2 + (a.lon - lon) ** 2;
+    if (d < bestD) { bestD = d; best = a; }
+  }
+  return best;
+}
+
 export const AIRPORT_ID = "airport";
 
 export interface Place {
@@ -74,6 +96,17 @@ export interface Place {
   mf?: number;           // floor fare, USD (detour spots)
   md?: number;           // floor duration, minutes
   meta?: string;
+  /**
+   * What to call it in a one-line field.
+   *
+   * `name` is the canonical string: it matches pricing_locations rows and it
+   * is what the driver's job sheet says, so it cannot be shortened. But a
+   * booking card cell is about 26 characters wide, and "Queen Beatrix
+   * Internati…" hides the one word — Airport — that identifies it. Set this
+   * only where the truncation would cost the meaning; the full name still
+   * shows in the dropdown and everywhere with room for it.
+   */
+  short?: string;
 }
 
 const A = Object.fromEntries(AREAS.map((a) => [a.name, a])) as Record<AreaName, Area>;
@@ -84,8 +117,8 @@ const p = (
 
 export const PLACES: Place[] = [
   // ── Airport & port ──
-  { id: AIRPORT_ID, name: "Queen Beatrix International Airport", group: "Airport & port", area: "Airport", km: 0, min: 0, fare: null, meta: "AUA · Oranjestad" },
-  p("cruise-terminal", "Cruise Terminal, Oranjestad", "Airport & port", "Oranjestad", { km: 4.5, min: 11 }),
+  { id: AIRPORT_ID, name: "Queen Beatrix International Airport", short: "Queen Beatrix Airport", group: "Airport & port", area: "Airport", km: 0, min: 0, fare: null, meta: "AUA · Oranjestad" },
+  p("cruise-terminal", "Cruise Terminal, Oranjestad", "Airport & port", "Oranjestad", { km: 4.5, min: 11, short: "Cruise Terminal" }),
 
   // ── Hotels & resorts ──
   p("ritz", "The Ritz-Carlton Aruba", "Hotels & resorts", "Palm Beach", { km: 14.5, min: 19 }),
@@ -99,18 +132,18 @@ export const PLACES: Place[] = [
   p("playa-linda", "Playa Linda Beach Resort", "Hotels & resorts", "Palm Beach"),
   p("the-mill", "The Mill Resort", "Hotels & resorts", "Palm Beach"),
   p("brickell-bay", "Brickell Bay Beach Club", "Hotels & resorts", "Palm Beach"),
-  p("courtyard", "Courtyard by Marriott Aruba", "Hotels & resorts", "Palm Beach"),
+  p("courtyard", "Courtyard by Marriott Aruba", "Hotels & resorts", "Palm Beach", { short: "Courtyard Aruba" }),
   p("embassy-suites", "Embassy Suites Aruba", "Hotels & resorts", "Palm Beach"),
   p("divi", "Divi Aruba All Inclusive", "Hotels & resorts", "Druif Beach"),
   p("manchebo", "Manchebo Beach Resort", "Hotels & resorts", "Eagle Beach"),
-  p("bucuti", "Bucuti & Tara Beach Resort", "Hotels & resorts", "Eagle Beach"),
+  p("bucuti", "Bucuti & Tara Beach Resort", "Hotels & resorts", "Eagle Beach", { short: "Bucuti & Tara" }),
   p("la-cabana", "La Cabana Beach Resort", "Hotels & resorts", "Eagle Beach"),
   p("costa-linda", "Costa Linda Beach Resort", "Hotels & resorts", "Eagle Beach"),
-  p("casa-del-mar", "Casa del Mar Beach Resort", "Hotels & resorts", "Eagle Beach"),
+  p("casa-del-mar", "Casa del Mar Beach Resort", "Hotels & resorts", "Eagle Beach", { short: "Casa del Mar" }),
   p("eagle-aruba", "Eagle Aruba Resort", "Hotels & resorts", "Eagle Beach"),
   p("aruba-beach-club", "Aruba Beach Club", "Hotels & resorts", "Eagle Beach"),
   p("tierra-del-sol", "Tierra del Sol Resort", "Hotels & resorts", "Malmok", { km: 19, min: 24 }),
-  p("caribbean-palm-village", "Caribbean Palm Village Resort", "Hotels & resorts", "Noord"),
+  p("caribbean-palm-village", "Caribbean Palm Village Resort", "Hotels & resorts", "Noord", { short: "Caribbean Palm Village" }),
   p("renaissance", "Renaissance Aruba", "Hotels & resorts", "Oranjestad"),
 
   // ── Beaches ──
@@ -119,14 +152,14 @@ export const PLACES: Place[] = [
   p("arashi-beach", "Arashi Beach", "Beaches", "Malmok", { km: 19, min: 25 }),
   p("boca-catalina", "Boca Catalina", "Beaches", "Malmok", { km: 18, min: 24 }),
   p("malmok-beach", "Malmok Beach", "Beaches", "Malmok"),
-  p("flamingo-beach", "Flamingo Beach (Renaissance Island)", "Beaches", "Oranjestad", { meta: "Private island · via Renaissance dock" }),
+  p("flamingo-beach", "Flamingo Beach (Renaissance Island)", "Beaches", "Oranjestad", { short: "Flamingo Beach", meta: "Private island · via Renaissance dock" }),
   p("mangel-halto", "Mangel Halto", "Beaches", "Savaneta"),
   p("baby-beach", "Baby Beach", "Beaches", "San Nicolas", { km: -20, min: 35 }),
 
   // ── Sights & tours ──
   p("california-lighthouse", "California Lighthouse", "Sights & tours", "Malmok", { km: 20, min: 26 }),
   p("alto-vista-chapel", "Alto Vista Chapel", "Sights & tours", "Noord", { km: 16, min: 24, md: 24 }),
-  p("casibari", "Casibari Rock Formations", "Sights & tours", "Paradera", { md: 20 }),
+  p("casibari", "Casibari Rock Formations", "Sights & tours", "Paradera", { md: 20, short: "Casibari Rocks" }),
   p("ayo-rocks", "Ayo Rock Formations", "Sights & tours", "Santa Cruz", { md: 22 }),
   // PROVISIONAL floors — confirm mf against the rate card before go-live
   p("arikok", "Arikok National Park", "Sights & tours", "Santa Cruz", { km: -6, min: 30, mf: 55, md: 30 }),
@@ -186,10 +219,57 @@ export interface PlaceSel {
   md?: number;
   custom?: boolean;
   note?: string;         // free text for the driver (custom addresses)
+  /** the field-width name, when the canonical one is too long to read in
+      a single-line cell — display only, never sent anywhere */
+  shortName?: string;
+  /** where it actually is, when a geocoder said so — the map draws the
+      real point instead of the area centre, and the driver gets a pin */
+  lat?: number;
+  lon?: number;
 }
 
 export function selFromPlace(place: Place): PlaceSel {
-  return { id: place.id, name: place.name, area: place.area, km: place.km, min: place.min, mf: place.mf, md: place.md };
+  return {
+    id: place.id, name: place.name, shortName: place.short, area: place.area,
+    km: place.km, min: place.min, mf: place.mf, md: place.md,
+  };
+}
+
+/** What a one-line field should show for a selection. The canonical name
+    everywhere else — this is the only place the two differ. */
+export function displayName(sel: PlaceSel): string {
+  return sel.shortName ?? sel.name;
+}
+
+/**
+ * A geocoded address, priced.
+ *
+ * This is the whole reason the geocoder returns coordinates. A fixed-fare
+ * transfer prices by area, and until now a typed address got its area from
+ * a dropdown the traveller had to answer — which asks someone who has never
+ * been to Aruba whether their villa is in Noord or Paradera, and prices the
+ * ride on whichever they guessed. The coordinates already know. The menu
+ * survives only for the case where there are no coordinates to ask.
+ *
+ * It stays `custom`, because it is still not a rate-card row: quote.ts sends
+ * custom selections to the km model on purpose, and a geocoder's spelling of
+ * a hotel must not start matching pricing_locations by accident.
+ */
+export function selFromGeo(
+  g: { id: string; name: string; address: string; lat: number; lon: number },
+): PlaceSel {
+  const area = nearestArea(g.lat, g.lon);
+  return {
+    id: g.id,
+    name: g.name,
+    area: area.name,
+    km: area.km,
+    min: area.min,
+    custom: true,
+    note: g.address,
+    lat: g.lat,
+    lon: g.lon,
+  };
 }
 
 export function selFromCustom(label: string, area: Area, note = ""): PlaceSel {

@@ -79,3 +79,70 @@ describe("the on-page debug channel", () => {
     vi.resetModules();
   });
 });
+
+/**
+ * What comes back from Mapbox and what a row can show are not the same
+ * shape. These lock the three transforms in between, because each one was a
+ * visible defect in the panel before it existed.
+ */
+describe("geocode", () => {
+  const feature = (f: Record<string, unknown>) => ({
+    id: "poi.1", place_type: ["poi"], center: [-70.04, 12.58], ...f,
+  });
+  async function withFeatures(features: unknown[], query = "manche") {
+    vi.resetModules();
+    vi.stubEnv("VITE_MAPBOX_TOKEN", "pk.test");
+    const fetchMock = vi.fn(async (_url: string) => ({ ok: true, json: async () => ({ features }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    const fresh = await import("./mapbox");
+    const out = await fresh.geocode(query);
+    return { out, fetchMock };
+  }
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetModules(); });
+
+  it("rejoins a house number with its street", async () => {
+    // Mapbox splits them: text is the street, address is the number. On its
+    // own, "34" is not a place anyone recognises.
+    const { out } = await withFeatures([feature({
+      id: "address.9", place_type: ["address"], text: "Sasakiweg", address: "34",
+      place_name: "Sasakiweg 34, Oranjestad, Aruba",
+    })]);
+    expect(out[0].name).toBe("Sasakiweg 34");
+    expect(out[0].kind).toBe("address");
+  });
+
+  it("does not spend the second line repeating the first", async () => {
+    // place_name leads with the name already shown in bold above it
+    const { out } = await withFeatures([feature({
+      text: "Manchebo Beach Resort",
+      place_name: "Manchebo Beach Resort, J.E. Irausquin Blvd 55, Oranjestad, Aruba",
+    })]);
+    expect(out[0].name).toBe("Manchebo Beach Resort");
+    expect(out[0].address).toBe("J.E. Irausquin Blvd 55, Oranjestad");
+  });
+
+  it("falls back to the island when the name is the whole address", async () => {
+    const { out } = await withFeatures([feature({
+      place_type: ["place"], text: "Tanki Leendert", place_name: "Tanki Leendert, Aruba",
+    })]);
+    expect(out[0].address).toBe("Aruba");
+  });
+
+  it("drops a result it could not price", async () => {
+    // No centre means no area, and no area means no fare. A row we cannot
+    // price is worse than one we never showed.
+    const { out } = await withFeatures([
+      feature({ id: "poi.a", text: "With coords" }),
+      feature({ id: "poi.b", text: "No coords", center: undefined }),
+    ]);
+    expect(out.map((s) => s.name)).toEqual(["With coords"]);
+  });
+
+  it("asks Aruba only, and says so in the request", async () => {
+    const { fetchMock } = await withFeatures([]);
+    const url = String(fetchMock.mock.calls[0][0]);
+    expect(url).toContain("country=aw");
+    expect(url).toContain("bbox=");
+    expect(url).toContain("autocomplete=true");
+  });
+});

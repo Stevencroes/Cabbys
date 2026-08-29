@@ -145,10 +145,18 @@ export function reportMapboxFailure(where: string, status?: number, detail?: unk
   }
 }
 
+/** What kind of thing Mapbox matched, so a row can carry the right mark. */
+export type GeoKind = "poi" | "address" | "place";
+
 export interface GeoSuggestion {
   id: string;
+  /** the short name — "Manchebo Beach Resort", "Caya Ernesto Petronia 12" */
   name: string;
-  meta?: string;
+  /** the full line, minus the country — what the row reads underneath */
+  address: string;
+  kind: GeoKind;
+  lat: number;
+  lon: number;
 }
 
 // Aruba bounding box + centre (Oranjestad) to bias results to the island.
@@ -160,8 +168,33 @@ interface MapboxFeature {
   text?: string;
   place_name?: string;
   place_type?: string[];
+  center?: [number, number];
+  address?: string;
 }
 
+/** Mapbox's dozen feature types, reduced to the three a row can draw. */
+function kindOf(types: string[] | undefined): GeoKind {
+  if (!types?.length) return "place";
+  if (types.includes("poi")) return "poi";
+  if (types.includes("address")) return "address";
+  return "place";
+}
+
+/**
+ * Everything Aruba has an address for.
+ *
+ * The catalog holds the sixty-odd places most rides start or end at, and it
+ * always will be sixty-odd — nobody is going to type every villa on the
+ * island into a TypeScript file. This is the rest of the island: house
+ * numbers on Caya Ernesto Petronia, a condo block, the restaurant that
+ * opened last month. Results come back with coordinates, which is what lets
+ * a typed address price honestly — see selFromGeo, which snaps it to the
+ * pricing area it actually sits in rather than asking the traveller to
+ * guess one from a menu.
+ *
+ * `limit` is 7 rather than 5: the island is small and the useful answer for
+ * a street name is often the fourth house number down.
+ */
 export async function geocode(query: string, signal?: AbortSignal): Promise<GeoSuggestion[]> {
   const q = query.trim();
   if (!mapboxEnabled || !q) return [];
@@ -169,20 +202,45 @@ export async function geocode(query: string, signal?: AbortSignal): Promise<GeoS
     `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
     `?access_token=${MAPBOX_TOKEN}` +
     `&country=aw&bbox=${ARUBA_BBOX}&proximity=${ARUBA_PROXIMITY}` +
-    `&types=poi,address,place,locality,neighborhood&limit=5&autocomplete=true`;
+    `&types=poi,address,place,locality,neighborhood&limit=7&autocomplete=true`;
   try {
     const res = await fetch(url, { signal });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      reportMapboxFailure("address search", res.status);
+      return [];
+    }
     const data = (await res.json()) as { features?: MapboxFeature[] };
-    return (data.features ?? []).map((f) => {
-      const name = f.text ?? f.place_name ?? "";
-      // strip the leading name from the full place string to use the rest as context
-      const meta = f.place_name && f.text && f.place_name.startsWith(f.text)
-        ? f.place_name.slice(f.text.length).replace(/^,\s*/, "").replace(/,?\s*Aruba$/i, "")
-        : undefined;
-      return { id: `mb-${f.id}`, name, meta: meta || undefined };
-    }).filter((s) => s.name);
-  } catch {
+    return (data.features ?? []).flatMap((f) => {
+      const center = f.center;
+      // Without coordinates there is no area, and without an area there is
+      // no fare. A row we cannot price is worse than one we never showed.
+      if (!center || center.length !== 2) return [];
+      // A house number arrives split from the street: text "Caya Ernesto
+      // Petronia", address "12". Rejoined, because "12" is not a place.
+      const base = f.text ?? f.place_name ?? "";
+      const name = f.address ? `${base} ${f.address}` : base;
+      if (!name) return [];
+      // place_name leads with the name we are already showing in bold —
+      // "Sasakiweg 34, Oranjestad, Aruba" under a row titled "Sasakiweg 34"
+      // spends the second line saying the first one again. Keep the part
+      // that adds something; where nothing is left, the island will do.
+      const full = (f.place_name ?? name).replace(/,?\s*Aruba$/i, "").trim();
+      const rest = full.toLowerCase().startsWith(name.toLowerCase())
+        ? full.slice(name.length).replace(/^[,\s]+/, "")
+        : full;
+      const address = rest || "Aruba";
+      return [{
+        id: `mb-${f.id}`,
+        name,
+        address,
+        kind: kindOf(f.place_type),
+        lon: center[0],
+        lat: center[1],
+      }];
+    });
+  } catch (err) {
+    // an aborted request is the next keystroke, not a failure
+    if ((err as { name?: string })?.name !== "AbortError") reportMapboxFailure("address search");
     return [];
   }
 }

@@ -14,9 +14,10 @@
 // `text`, now backs the input, and `committed` flows into it.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  AREAS, COMMON_PICKUPS, GROUPS, areaByName, searchPlaces, selFromCustom, selFromPlace,
-  type Place, type PlaceSel,
+  AREAS, COMMON_PICKUPS, GROUPS, areaByName, displayName, searchPlaces, selFromCustom,
+  selFromGeo, selFromPlace, type Place, type PlaceSel,
 } from "../../data/places";
+import { geocode, mapboxEnabled, type GeoSuggestion } from "../../lib/mapbox";
 import { lockBody, unlockBody } from "../../lib/bodyLock";
 
 /** Letters before the list appears. The picker suggests what you are
@@ -24,6 +25,13 @@ import { lockBody, unlockBody } from "../../lib/bodyLock";
 const MIN_QUERY = 1;
 /** Letters before "use this as an address" is worth offering. */
 const MIN_CUSTOM = 4;
+/** Letters before the island itself is searched. Two letters match half of
+    Aruba and cost a request per keystroke to prove it. */
+const MIN_GEO = 3;
+/** Pause after the last keystroke before asking Mapbox. Short enough to
+    feel like it is keeping up, long enough that typing a street name is
+    one request rather than fourteen. */
+const GEO_DEBOUNCE = 220;
 
 interface PlaceComboboxProps {
   label: string;
@@ -39,16 +47,34 @@ interface PlaceComboboxProps {
 }
 
 interface Row {
-  kind: "group" | "place" | "custom";
+  kind: "group" | "place" | "geo" | "custom";
   id: string;
   place?: Place;
+  geo?: GeoSuggestion;
   group?: string;
   query?: string;
 }
 
-/** Rows for a query. Empty query means no rows — the "everything at once"
-    state is not reachable from here rather than merely unused. */
-function buildRows(query: string): Row[] {
+/** The line under a catalog place's name — where it is, in the same shape
+    the geocoder answers in, so the two kinds of row read as one list. */
+export function placeLine(p: Place): string {
+  if (p.area === "Airport") return "AUA · Oranjestad, Aruba";
+  const extra = p.meta && p.meta !== p.area ? ` · ${p.meta}` : "";
+  return `${p.area}, Aruba${extra}`;
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Rows for a query. Empty query means no rows — the "everything at once"
+ * state is not reachable from here rather than merely unused.
+ *
+ * The catalog comes first and always will: those sixty places are the ones
+ * with rate-card rows, and a hotel that prices from the live rate card must
+ * never lose its own row to the geocoder's copy of it. Everything the
+ * geocoder found that the catalog does not already have follows underneath.
+ */
+function buildRows(query: string, geo: GeoSuggestion[]): Row[] {
   const q = query.trim();
   if (q.length < MIN_QUERY) return [];
   const matches = searchPlaces(q);
@@ -59,8 +85,21 @@ function buildRows(query: string): Row[] {
     rows.push({ kind: "group", id: `g-${g}`, group: g });
     for (const p of inGroup) rows.push({ kind: "place", id: p.id, place: p });
   }
-  // villas, condos and Airbnbs are not in the list and never will be
-  if (q.length >= MIN_CUSTOM) rows.push({ kind: "custom", id: "custom", query: q });
+
+  // A geocoded row for a place already in the catalog is the same place
+  // with a worse price attached — it would fall to the km model instead of
+  // the rate card. Drop it and keep ours.
+  const known = new Set(matches.map((p) => norm(p.name)));
+  const extra = geo.filter((g) => !known.has(norm(g.name)));
+  if (extra.length) {
+    rows.push({ kind: "group", id: "g-geo", group: "Addresses & places" });
+    for (const g of extra) rows.push({ kind: "geo", id: g.id, geo: g });
+  }
+
+  // The manual escape hatch, for when the island could not be searched at
+  // all — no token, no network. With real results above it, it is a worse
+  // answer offered next to better ones.
+  if (q.length >= MIN_CUSTOM && !extra.length) rows.push({ kind: "custom", id: "custom", query: q });
   return rows;
 }
 
@@ -99,6 +138,53 @@ function QuickIcon({ id }: { id: string }) {
   );
 }
 
+/**
+ * A mark for every result row.
+ *
+ * The old list had no icons on results on purpose — nineteen identical
+ * building glyphs under a "Hotels & resorts" header is decoration. That
+ * argument stops holding the moment the list mixes kinds: a hotel, a
+ * street address and a district now sit in one column, and the glyph is
+ * the fastest way to tell which is which before reading a word.
+ */
+const MARKS: Record<string, React.ReactNode> = {
+  plane: <path d="M18 3 L2 10 L8 12 L10 18 Z" />,
+  ship: <><path d="M10 6 V17 M6 9 H14 M4 12c0 3 3 5 6 5s6-2 6-5" /><circle cx="10" cy="4" r="2" /></>,
+  hotel: <><path d="M4 18V4h9v14M13 9h3v9M4 18h14" /><path d="M7 7h3M7 10h3M7 13h3" /></>,
+  waves: <><path d="M2 11q3-3 6 0t6 0" /><path d="M2 15q3-3 6 0t6 0" /></>,
+  star: <path d="M10 3l2.1 4.5 4.9.6-3.6 3.4.9 4.9L10 14l-4.3 2.4.9-4.9L3 8.1l4.9-.6z" />,
+  fork: <><path d="M6 3v6a2 2 0 0 0 4 0V3M8 9v8" /><path d="M14 3c-1.5 1-2 2.5-2 4s.7 2 2 2v8" /></>,
+  bag: <><path d="M4 7h12l-1 10H5z" /><path d="M7.5 7V5a2.5 2.5 0 0 1 5 0v2" /></>,
+  pin: <><path d="M10 18s6-6.5 6-10a6 6 0 1 0-12 0c0 3.5 6 10 6 10z" /><circle cx="10" cy="8" r="2" /></>,
+  road: <><path d="M7 3 5 17M13 3l2 14" /><path d="M10 4v2M10 9v2M10 14v2" /></>,
+};
+
+const GROUP_MARK: Record<string, string> = {
+  "Airport & port": "plane",
+  "Hotels & resorts": "hotel",
+  "Beaches": "waves",
+  "Sights & tours": "star",
+  "Restaurants & bars": "fork",
+  "Shopping": "bag",
+  "Towns & areas": "pin",
+};
+
+function Mark({ name }: { name: string }) {
+  return (
+    <svg className="oicon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {MARKS[name] ?? MARKS.pin}
+    </svg>
+  );
+}
+
+/** The airport gets the plane whatever its group says; a geocoded row gets
+    a mark for what Mapbox says it is. */
+const markForPlace = (p: Place) =>
+  p.id === "cruise-terminal" ? "ship" : GROUP_MARK[p.group] ?? "pin";
+const markForGeo = (k: GeoSuggestion["kind"]) =>
+  k === "poi" ? "hotel" : k === "address" ? "road" : "pin";
+
 // Must match the sheet's own breakpoint in globals.css — the lock and the
 // layout have to agree on what counts as a sheet.
 const isSheet = () => window.matchMedia("(max-width:760px)").matches;
@@ -122,7 +208,11 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   const lockedRef = useRef(false);
 
   const input = inputRef ?? ownInputRef;
-  const committed = value ? value.name : "";
+  // The field is one line about twenty-six characters wide. `name` is the
+  // canonical string — the rate card's and the driver's — and for eight
+  // places it does not fit, so the field shows the short form and the
+  // dropdown, the review and the job sheet all still show the full one.
+  const committed = value ? displayName(value) : "";
   // closeList can run from a document listener, outside React's render, and
   // must restore the CURRENT place rather than whichever one its closure was
   // built with
@@ -133,8 +223,53 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   useEffect(() => { setText(committed); setTyping(false); }, [committed]);
 
   const query = typing ? text : "";
-  const rows = useMemo(() => buildRows(query), [query]);
+  const q = query.trim();
+
+  /**
+   * The island, searched as you type.
+   *
+   * Debounced and abortable, and the abort matters twice over: it stops a
+   * request per keystroke reaching Mapbox, and it stops a slow answer to
+   * "man" landing on top of the answer to "manchebo" — the out-of-order
+   * reply is the bug that makes a live search feel haunted.
+   */
+  const [geo, setGeo] = useState<GeoSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    if (!mapboxEnabled || q.length < MIN_GEO) { setGeo([]); setSearching(false); return; }
+    const ctl = new AbortController();
+    setSearching(true);
+    const t = setTimeout(() => {
+      void geocode(q, ctl.signal).then((res) => {
+        if (ctl.signal.aborted) return;
+        setGeo(res);
+        setSearching(false);
+      });
+    }, GEO_DEBOUNCE);
+    return () => { clearTimeout(t); ctl.abort(); };
+  }, [q]);
+
+  const rows = useMemo(() => buildRows(query, geo), [query, geo]);
+
+  /**
+   * Which way the panel opens, and how tall it may be.
+   *
+   * Two lines a row makes a list roughly twice as tall as the one that used
+   * to hang here, and the card it hangs off sits low in a full-height hero
+   * — so the results ran off the bottom of the screen and the ones worth
+   * reading were the ones you could not see.
+   *
+   * Both halves matter. Flipping alone still overflows when neither side
+   * has 420px; capping alone leaves a 60px list under a field near the
+   * bottom. So: open toward the roomier side, then take no more room than
+   * that side has. `max` is null in the sheet, where the list is the screen
+   * and a measured height would fight the layout.
+   */
+  const [drop, setDrop] = useState<{ up: boolean; max: number | null }>({ up: false, max: null });
   const options = useMemo(() => rows.filter((r) => r.kind !== "group"), [rows]);
+  // Geocoded rows land a beat after the catalog ones, so the highlight can
+  // be pointing past the end of a list that just changed under it.
+  const activeIdx = Math.min(active, Math.max(options.length - 1, 0));
   /** the list is a consequence of typing, never of focus */
   const showList = open && customQuery === null && typing && query.trim().length >= MIN_QUERY;
 
@@ -197,7 +332,17 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
 
   function commitPlace(p: Place) {
     onSelect(selFromPlace(p));
-    setText(p.name);
+    setText(p.short ?? p.name);
+    setTyping(false);
+    setOpen(false);
+    setCustomQuery(null);
+    if (lockedRef.current) { lockedRef.current = false; unlockBody(); }
+  }
+  /** A geocoded address commits like any other place. Its area — and so
+      its fare — comes from its coordinates, not from a menu. */
+  function commitGeo(g: GeoSuggestion) {
+    onSelect(selFromGeo(g));
+    setText(g.name);
     setTyping(false);
     setOpen(false);
     setCustomQuery(null);
@@ -222,21 +367,46 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
     else if (e.key === "Enter") {
       e.preventDefault();
-      const row = options[active];
+      const row = options[activeIdx];
       if (!row) return;
       if (row.kind === "place" && row.place) commitPlace(row.place);
+      else if (row.kind === "geo" && row.geo) commitGeo(row.geo);
       else if (row.kind === "custom") setCustomQuery(row.query ?? text.trim());
     }
   }
 
+  useEffect(() => {
+    if (!showList || isSheet()) { setDrop({ up: false, max: null }); return; }
+    const measure = () => {
+      const r = wrapRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const GAP = 10, EDGE = 16, WANT = 420, FLOOR = 220;
+      const below = innerHeight - r.bottom - GAP - EDGE;
+      const above = r.top - GAP - EDGE;
+      const up = below < WANT && above > below;
+      const room = up ? above : below;
+      // A list shorter than a few rows is not worth flipping the world for,
+      // so below the floor we let it overflow rather than shrink to nothing.
+      setDrop({ up, max: Math.max(FLOOR, Math.min(WANT, Math.round(room))) });
+    };
+    measure();
+    addEventListener("resize", measure);
+    // capture: the page scrolls, but so can any container above this one
+    addEventListener("scroll", measure, true);
+    return () => {
+      removeEventListener("resize", measure);
+      removeEventListener("scroll", measure, true);
+    };
+  }, [showList]);
+
   // keep the active option visible under arrow-key travel
   useEffect(() => {
-    const el = listRef.current?.querySelector(`[data-oid="${options[active]?.id}"]`);
+    const el = listRef.current?.querySelector(`[data-oid="${options[activeIdx]?.id}"]`);
     el?.scrollIntoView({ block: "nearest" });
-  }, [active, options]);
+  }, [activeIdx, options]);
 
-  const activeId = options[active] ? `${uid}-opt-${options[active].id}` : undefined;
-  const typedNothingFound = typing && query.trim().length >= MIN_QUERY && options.length === 0;
+  const activeId = options[activeIdx] ? `${uid}-opt-${options[activeIdx].id}` : undefined;
+  const typedNothingFound = typing && q.length >= MIN_QUERY && options.length === 0 && !searching;
 
   return (
     <div className={`combo${open ? " open" : ""}`} ref={wrapRef}>
@@ -263,6 +433,9 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             spellCheck={false}
             enterKeyHint="search"
             placeholder={open && committed ? committed : (placeholder ?? "Type a hotel, beach or address")}
+            // the cell truncates a long address whatever we call it — hover
+            // and the assistive-tech name both carry the whole thing
+            title={!open && value ? value.name : undefined}
             value={text}
             onFocus={beginSearch}
             // committing keeps focus on the input, so a second tap raises no
@@ -296,6 +469,10 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       </div>
 
       {showList && (
+        <div
+          className={`cpanel${drop.up ? " up" : ""}`}
+          style={drop.max ? { maxHeight: drop.max } : undefined}
+        >
         <ul className="clist" id={listId} role="listbox" aria-label={label} ref={listRef}>
           {rows.map((row) => {
             if (row.kind === "group") {
@@ -310,10 +487,34 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                   data-oid={row.id}
                   role="option"
                   aria-selected={false}
-                  className={`custom${oIdx === active ? " hl" : ""}`}
+                  className={`custom${oIdx === activeIdx ? " hl" : ""}`}
                   onPointerDown={(e) => { e.preventDefault(); setCustomQuery(row.query ?? text.trim()); }}
                 >
-                  <span>Use “{row.query}” as an address — Airbnb, condo, villa</span>
+                  <Mark name="road" />
+                  <span className="otext">
+                    <span className="on">Use “{row.query}” as an address</span>
+                    <span className="oa">Airbnb, condo or villa — you pick the area</span>
+                  </span>
+                </li>
+              );
+            }
+            if (row.kind === "geo") {
+              const g = row.geo!;
+              return (
+                <li
+                  key={row.id}
+                  id={`${uid}-opt-${row.id}`}
+                  data-oid={row.id}
+                  role="option"
+                  aria-selected={value?.id === g.id}
+                  className={oIdx === activeIdx ? "hl" : ""}
+                  onPointerDown={(e) => { e.preventDefault(); commitGeo(g); }}
+                >
+                  <Mark name={markForGeo(g.kind)} />
+                  <span className="otext">
+                    <span className="on"><Marked text={g.name} query={query} /></span>
+                    <span className="oa">{g.address}</span>
+                  </span>
                 </li>
               );
             }
@@ -325,32 +526,50 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                 data-oid={row.id}
                 role="option"
                 aria-selected={value?.id === p.id}
-                className={oIdx === active ? "hl" : ""}
+                className={oIdx === activeIdx ? "hl" : ""}
                 onPointerDown={(e) => { e.preventDefault(); commitPlace(p); }}
               >
-                <span><Marked text={p.name} query={query} /></span>
-                <span className="oarea">
-                  {p.area === "Airport" ? "AUA" : <Marked text={p.area} query={query} />}
+                <Mark name={markForPlace(p)} />
+                {/* Two lines, always: the name you are looking for, and
+                    where it is. One line meant "Manchebo Beach Resort" and
+                    "Eagle Beach" competed for the same row and the name
+                    lost, three words deep, mid-wrap. */}
+                <span className="otext">
+                  <span className="on"><Marked text={p.name} query={query} /></span>
+                  <span className="oa"><Marked text={placeLine(p)} query={query} /></span>
                 </span>
               </li>
             );
           })}
+          {searching && options.length === 0 && (
+            <li className="cempty csearching" aria-live="polite">Searching Aruba…</li>
+          )}
           {typedNothingFound && (
             <li className="cempty">
-              Nothing on the island matches “{query.trim()}”.{" "}
-              {query.trim().length < MIN_CUSTOM
+              Nothing on the island matches “{q}”.{" "}
+              {q.length < MIN_CUSTOM
                 ? "Keep typing — a few more letters and you can use it as your own address."
                 : "Use it as your own address below."}
             </li>
           )}
         </ul>
+        {/* Outside the scrolling list: a footer, not a row. As a sticky <li>
+            it floated over the options and left a half-row visible beneath
+            it, and a non-option <li> inside a listbox is a lie to a screen
+            reader besides. */}
+        {mapboxEnabled && (
+          <div className="cattrib">
+            {searching && options.length > 0 ? "Searching Aruba…" : "Every address in Aruba · Mapbox"}
+          </div>
+        )}
+        </div>
       )}
 
       {/* The sheet takes the whole screen, so it cannot open on nothing.
           On the desktop dropdown this stays hidden — there, showing nothing
           IS the right answer until a letter is typed. */}
       {open && customQuery === null && !showList && (
-        <div className="clist chint">
+        <div className="cpanel chint">
           <div className="cgroup">Common stops</div>
           <div className="cquick">
             {COMMON_PICKUPS.map((pl) => (
@@ -371,7 +590,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       )}
 
       {open && customQuery !== null && (
-        <div className="clist">
+        <div className="cpanel">
           <div className="areasel">
             <label htmlFor={`${uid}-area`}>Which area is “{customQuery}” in? This sets your fare.</label>
             <select id={`${uid}-area`} value={customArea} onChange={(e) => setCustomArea(e.target.value as typeof customArea)}>

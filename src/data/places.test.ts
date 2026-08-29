@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName,
-  searchPlaces, selFromCustom, areaByName,
+  searchPlaces, selFromCustom, selFromGeo, areaByName, nearestArea,
 } from "./places";
 
 describe("places catalog (§3.1)", () => {
@@ -42,5 +42,38 @@ describe("places catalog (§3.1)", () => {
     const s = selFromCustom("Casa Bunita 7", areaByName("Noord")!, "Blue door");
     expect(s.custom).toBe(true);
     expect(s.km).toBe(areaByName("Noord")!.km);
+  });
+
+  // The whole point of the geocoder returning coordinates. A fixed-fare
+  // transfer prices by area, and until this existed a typed address got its
+  // area from a dropdown — which asks someone who has never been to Aruba
+  // whether their villa is in Noord or Paradera, and then charges them for
+  // the answer. The coordinates already know.
+  it("prices a geocoded address from where it actually is", () => {
+    const villa = selFromGeo({
+      id: "mb-poi.1", name: "Boca Catalina Villa",
+      address: "Malmokweg 9, Noord", lat: 12.594, lon: -70.051,
+    });
+    // Malmok is the nearest of the ten to those coordinates
+    expect(villa.area).toBe("Malmok");
+    expect(villa.km).toBe(areaByName("Malmok")!.km);
+    expect(villa.min).toBe(areaByName("Malmok")!.min);
+    // still custom: quote.ts routes custom selections to the km model, and a
+    // geocoder's spelling of a hotel must never start matching the rate card
+    expect(villa.custom).toBe(true);
+    expect(villa.lat).toBe(12.594);
+
+    // the other end of the island resolves to the other end of the ladder
+    const south = selFromGeo({
+      id: "mb-address.2", name: "Seroe Colorado 3",
+      address: "San Nicolas", lat: 12.433, lon: -69.905,
+    });
+    expect(south.area).toBe("San Nicolas");
+    expect(south.km).toBeLessThan(0);
+  });
+
+  it("snaps a coordinate to exactly one area, wherever it is", () => {
+    // every area centre must resolve to itself, or the snap is lying
+    for (const a of AREAS) expect(nearestArea(a.lat, a.lon).name).toBe(a.name);
   });
 });
