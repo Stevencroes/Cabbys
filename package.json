@@ -11,10 +11,10 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.1.1",
     "@stripe/stripe-js": "^9.8.0",
     "@supabase/supabase-js": "^2.107.0",
     "framer-motion": "^12.42.0",
-    "mapbox-gl": "^3.29.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0"
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.0",
+    "@types/google.maps": "^3.66.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.7.0",

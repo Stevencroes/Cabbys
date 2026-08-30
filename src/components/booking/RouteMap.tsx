@@ -1,15 +1,16 @@
 // The ride, drawn.
 //
-// Two states, both useful: with VITE_MAPBOX_TOKEN it is a real dark map
-// with the driving line on it; without one it is a sketch of the island
-// with the two ends marked. The sketch is not a placeholder waiting to be
-// replaced — it is what every visitor sees until the token exists, so it
-// has to be worth looking at.
+// Two states, both useful: with VITE_GOOGLE_PLACES_KEY it is a real dark
+// map with the driving line on it; without one it is a sketch of the
+// island with the two ends marked. The sketch is not a placeholder waiting
+// to be replaced — it is what every visitor sees until the key exists, so
+// it has to be worth looking at.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { PlaceSel } from "../../data/places";
 import {
-  lastMapFailure, mapDebugOn, mapboxEnabled, onMapFailure, reportMapboxFailure,
-} from "../../lib/mapbox";
+  googleMapsEnabled, lastMapFailure, onMapFailure, reportGoogleMapsFailure,
+} from "../../lib/googleMaps";
+import { mapDebugOn } from "../../lib/mapDebug";
 import {
   coordOf, drivingRoute, islandPath, project, staticMapUrl,
   type Coord, type RouteLine,
@@ -31,7 +32,7 @@ const VB_H = 200;
 /**
  * Widths are rounded up to a step so a scrollbar appearing does not buy a
  * second map. It also means every visitor at a given breakpoint asks for
- * the same URL, which Mapbox's CDN can then serve from cache.
+ * the same URL, which Google's Static Maps API can then serve from cache.
  */
 const WIDTH_STEP = 32;
 const bucket = (w: number) => (w > 0 ? Math.ceil(w / WIDTH_STEP) * WIDTH_STEP : 0);
@@ -59,7 +60,7 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
   useEffect(() => {
     setLine(null);
     setFailed(false);
-    if (!a || !b || !mapboxEnabled) return;
+    if (!a || !b || !googleMapsEnabled) return;
     if (a.lat === b.lat && a.lon === b.lon) return;
     const ctl = new AbortController();
     void drivingRoute(a, b, ctl.signal).then((r) => { if (!ctl.signal.aborted) setLine(r); });
@@ -107,7 +108,7 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
         <img className="rmap-img" src={url} alt={`Map of the route from ${label}`} width={width} height={height}
           onError={() => {
             // an <img> gives no status, so this only says which call died
-            reportMapboxFailure("static image");
+            reportGoogleMapsFailure("static image");
             setFailed(true);
           }} />
       ) : (
@@ -118,7 +119,7 @@ export default function RouteMap({ from, to, minutes, height = 208 }: RouteMapPr
 
       {/* Licence, not decoration — see staticMapUrl(). */}
       {url ? (
-        <span className="rmap-attr">© Mapbox · © OpenStreetMap</span>
+        <span className="rmap-attr">© Google</span>
       ) : debug ? (
         <span className="rmap-attr rmap-why">{why || "Sketch — no failure recorded yet."}</span>
       ) : (

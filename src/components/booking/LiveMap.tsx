@@ -1,18 +1,17 @@
 // The ride, drawn on a map you can actually move.
 //
-// Mapbox GL JS is 523 KB gzipped — more than three times the rest of this
-// app put together — so it is never in the main bundle: the import is
-// dynamic and only fires when a step that shows a map mounts. Until it
-// resolves — and forever, if there is no token — RouteMap renders instead,
-// which is a real map when a token exists and a drawn sketch of Aruba when
-// it does not. Nobody waits on a blank rectangle.
+// The Maps JavaScript API is loaded on demand — the import is dynamic and
+// only fires when a step that shows a map mounts. Until it resolves — and
+// forever, if there is no key — RouteMap renders instead, which is a real
+// map when a key exists and a drawn sketch of Aruba when it does not.
+// Nobody waits on a blank rectangle.
 import { useEffect, useRef, useState } from "react";
-import type { Map as MapboxMap } from "mapbox-gl";
 import type { PlaceSel } from "../../data/places";
 import {
-  MAPBOX_TOKEN, buildLine, mapDebugOn, mapTrace, mapboxEnabled, onMapTrace,
-  reportMapboxFailure, traceMap,
-} from "../../lib/mapbox";
+  buildLine, googleMapsEnabled, loadGoogleMaps, DARK_MAP_STYLE,
+  reportGoogleMapsFailure,
+} from "../../lib/googleMaps";
+import { mapDebugOn, mapTrace, onMapTrace, traceMap } from "../../lib/mapDebug";
 import RouteMap from "./RouteMap";
 import { coordOf, drivingRoute, type RouteLine } from "../../lib/route";
 
@@ -20,7 +19,7 @@ interface LiveMapProps {
   from: PlaceSel | null;
   to: PlaceSel | null;
   minutes?: number | null;
-  /** falls back to RouteMap at this height while GL loads or if it cannot */
+  /** falls back to RouteMap at this height while the map loads or if it cannot */
   fallbackHeight?: number;
   /** floats the two end labels over the tiles, ride-hailing style. The
       sketch fallback draws its own strip instead — chips laid over a fixed
@@ -31,17 +30,16 @@ interface LiveMapProps {
 
 const SILVER = "#B9C6D4";
 const INK = "#F2F5F8";
-const STYLE = "mapbox://styles/mapbox/dark-v11";
+const CENTER = { lat: 12.53, lng: -70.02 };
 
 export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends }: LiveMapProps) {
   const holdRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<MapboxMap | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const overlaysRef = useRef<{ markers: google.maps.Marker[]; line: google.maps.Polyline | null }>({
+    markers: [], line: null,
+  });
   const [ready, setReady] = useState(false);
   const [dead, setDead] = useState(false);
-  // A ref, not the `ready` state: the error handler is registered once and
-  // closes over whatever it can see at that moment, which would be false
-  // forever.
-  const loadedRef = useRef(false);
   const [line, setLine] = useState<RouteLine | null>(null);
 
   const a = coordOf(from);
@@ -51,7 +49,7 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
   // a null answer means draw what we can, never show an error.
   useEffect(() => {
     setLine(null);
-    if (!a || !b || !mapboxEnabled) return;
+    if (!a || !b || !googleMapsEnabled) return;
     const ctl = new AbortController();
     void drivingRoute(a, b, ctl.signal).then((r) => { if (!ctl.signal.aborted) setLine(r); });
     return () => ctl.abort();
@@ -60,115 +58,51 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
   }, [from?.id, to?.id]);
 
   // Build the map once, then keep it. Tearing it down per route change
-  // would re-bill a map load every time somebody edits a field.
+  // would re-mount the whole thing every time somebody edits a field.
   useEffect(() => {
-    if (!mapboxEnabled || dead || mapRef.current || !holdRef.current) return;
+    if (!googleMapsEnabled || dead || mapRef.current || !holdRef.current) return;
     let cancelled = false;
-    let created: MapboxMap | null = null;
 
-    void (async () => {
-      try {
-        traceMap("importing mapbox-gl");
-        const gl = (await import("mapbox-gl")).default;
-        await import("mapbox-gl/dist/mapbox-gl.css");
-        if (cancelled || !holdRef.current) {
-          traceMap(cancelled ? "cancelled before construct" : "container gone");
-          return;
-        }
-        traceMap(`constructing map (v${gl.version ?? "?"})`);
-        gl.accessToken = MAPBOX_TOKEN as string;
-        created = new gl.Map({
-          container: holdRef.current,
-          style: STYLE,
-          center: [-70.02, 12.53],
-          zoom: 10.2,
-          attributionControl: true,
-          // the panel is short and the route is the point — tilting it
-          // only makes the line harder to follow
-          pitchWithRotate: false,
-          dragRotate: false,
-          cooperativeGestures: true,
-        });
-        created.addControl(new gl.NavigationControl({ showCompass: false }), "bottom-right");
-        created.on("load", () => {
-          loadedRef.current = true;
-          // GL measures its container once, when it is constructed. If the
-          // panel had not settled by then the canvas is the wrong size —
-          // and a canvas of the wrong size paints nothing at all, while
-          // still reporting a perfectly successful load.
-          created?.resize();
-          const c = created?.getCanvas();
-          traceMap(`LOADED — canvas ${c?.clientWidth ?? "?"}x${c?.clientHeight ?? "?"}`);
-          if (!cancelled) setReady(true);
-        });
-
-        // A WebGL context can be taken away — too many live maps, a GPU
-        // reset, a background tab reclaimed. It looks exactly like a blank
-        // map, so name it rather than leaving it to be guessed at.
-        created.on("webglcontextlost", () => traceMap("WEBGL CONTEXT LOST"));
-        created.on("webglcontextrestored", () => {
-          traceMap("webgl context restored");
-          mapRef.current?.resize();
-        });
-        created.on("error", (e) => {
-          const err = (e as { error?: { status?: number; message?: string } }).error;
-
-          // A map that has already drawn stays drawn. GL reports plenty of
-          // things through this one event that are not fatal — a tile that
-          // 404s, a glyph range, a telemetry beacon an ad blocker refused —
-          // and treating any of them as fatal tears down a working map a
-          // second or two after it appears. Log it and carry on.
-          if (loadedRef.current) {
-            traceMap(`error after load, KEPT: ${(err?.message ?? "?").slice(0, 60)}`);
-            console.warn("[map] non-fatal Mapbox error, map kept:", err?.message ?? err);
-            return;
-          }
-
-          // Before the first load there is nothing to keep, but that is not
-          // a reason to give up on anything that goes wrong: only a refused
-          // token or a style that will not load makes a map impossible.
-          // Anything else — a slow tile, one glyph range — is worth waiting
-          // through, and waiting looks like the sketch, which is what would
-          // be on screen anyway.
-          if (!isFatal(err)) {
-            traceMap(`error before load, waiting: ${(err?.message ?? "?").slice(0, 60)}`);
-            console.warn("[map] Mapbox error before load, still waiting:", err?.message ?? err);
-            return;
-          }
-          traceMap(`FATAL ${err?.status ?? ""} ${(err?.message ?? "?").slice(0, 50)}`);
-          reportMapboxFailure("gl", err?.status, err?.message);
-          if (!cancelled) setDead(true);
-        });
-        mapRef.current = created;
-      } catch (err) {
-        reportMapboxFailure("gl", undefined, err);
-        if (!cancelled) setDead(true);
+    traceMap("loading Maps JavaScript API");
+    void loadGoogleMaps().then((g) => {
+      if (cancelled || !holdRef.current) {
+        traceMap(cancelled ? "cancelled before construct" : "container gone");
+        return;
       }
-    })();
-
-    // Whatever the panel does after the map is built, the map follows it.
-    // The rail is sticky and its neighbours change height as fields appear,
-    // so "the size at construction time" is not a size worth trusting.
-    const box = holdRef.current;
-    const ro = typeof ResizeObserver !== "undefined"
-      ? new ResizeObserver(() => {
-          const m = mapRef.current;
-          if (!m) return;
-          m.resize();
-          const c = m.getCanvas();
-          traceMap(`resized to ${c.clientWidth}x${c.clientHeight}`);
-        })
-      : null;
-    if (box && ro) ro.observe(box);
+      traceMap("constructing map");
+      const map = new g.maps.Map(holdRef.current, {
+        center: CENTER,
+        zoom: 10.2,
+        styles: DARK_MAP_STYLE,
+        disableDefaultUI: true,
+        zoomControl: true,
+        // requires two fingers to pan on a touchscreen and ctrl+scroll to
+        // zoom on a trackpad — the same "cooperativeGestures" Mapbox had,
+        // so scrolling the page past this panel never gets trapped by it
+        gestureHandling: "cooperative",
+        keyboardShortcuts: false,
+      });
+      // 'idle' — not 'tilesloaded' — is Google's "the first frame is on
+      // screen" signal; it also re-fires after every fitBounds, which the
+      // route/marker effect below relies on to know redraws finished.
+      g.maps.event.addListenerOnce(map, "idle", () => {
+        traceMap("LOADED — first idle");
+        if (!cancelled) setReady(true);
+      });
+      mapRef.current = map;
+    }).catch((err) => {
+      // A restricted or rejected key does not reject this promise — it
+      // renders a grey, watermarked map instead and calls
+      // window.gm_authFailure, wired in lib/googleMaps.ts, which reports
+      // through the same channel this catch does. This catch is for
+      // everything else: the script itself refused to load.
+      traceMap(`FAILED to load: ${String(err).slice(0, 60)}`);
+      reportGoogleMapsFailure("gl", undefined, err);
+      if (!cancelled) setDead(true);
+    });
 
     return () => {
       cancelled = true;
-      ro?.disconnect();
-      // the one line that would explain a map vanishing without any error
-      if (created) traceMap("TORN DOWN — effect cleanup ran");
-      loadedRef.current = false;
-      created?.remove();
-      if (mapRef.current === created) mapRef.current = null;
     };
   }, [dead]);
 
@@ -176,52 +110,48 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
+    void loadGoogleMaps().then((g) => {
+      const store = overlaysRef.current;
+      store.markers.forEach((m) => m.setMap(null));
+      store.line?.setMap(null);
 
-    const src = map.getSource("route") as { setData?: (d: unknown) => void } | undefined;
-    const geo = line ? decodePolyline(line.polyline) : (a && b ? [[a.lon, a.lat], [b.lon, b.lat]] as [number, number][] : []);
-    const data = { type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: geo } };
+      // decodePolyline, not the Maps JS "geometry" library: Google's Routes
+      // API and the old Mapbox Directions API encode the same way, so the
+      // one decoder this file already had needed no changes — and no
+      // second library load just to draw a line already this reachable.
+      const path = line
+        ? decodePolyline(line.polyline).map(([lon, lat]) => new g.maps.LatLng(lat, lon))
+        : a && b
+        ? [new g.maps.LatLng(a.lat, a.lon), new g.maps.LatLng(b.lat, b.lon)]
+        : [];
+      const nextLine = path?.length
+        ? new g.maps.Polyline({
+            path, map,
+            strokeColor: SILVER, strokeWeight: 4, strokeOpacity: 0.95,
+          })
+        : null;
 
-    if (src?.setData) {
-      src.setData(data);
-    } else if (geo.length) {
-      map.addSource("route", { type: "geojson", data: data as never });
-      map.addLayer({
-        id: "route-line", type: "line", source: "route",
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": SILVER, "line-width": 4, "line-opacity": 0.95 },
-      });
-    }
+      const nextMarkers: google.maps.Marker[] = [];
+      if (a) nextMarkers.push(new g.maps.Marker({ position: { lat: a.lat, lng: a.lon }, map, icon: dot(INK) }));
+      if (b) nextMarkers.push(new g.maps.Marker({ position: { lat: b.lat, lng: b.lon }, map, icon: dot(SILVER) }));
+      overlaysRef.current = { markers: nextMarkers, line: nextLine };
 
-    // Markers are recreated rather than moved: there are two of them, and
-    // a stale marker on a changed route is worse than a cheap rebuild.
-    void (async () => {
-      const gl = (await import("mapbox-gl")).default;
-      const store = markerStore.get(map) ?? [];
-      store.forEach((m) => m.remove());
-      const next: { remove: () => void }[] = [];
-      if (a) next.push(new gl.Marker({ color: INK }).setLngLat([a.lon, a.lat]).addTo(map));
-      if (b) next.push(new gl.Marker({ color: SILVER }).setLngLat([b.lon, b.lat]).addTo(map));
-      markerStore.set(map, next);
-    })();
-
-    if (geo.length > 1) {
-      const lons = geo.map((c) => c[0]);
-      const lats = geo.map((c) => c[1]);
-      map.fitBounds(
-        [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+      if (path && path.length > 1) {
+        const bounds = new g.maps.LatLngBounds();
+        path.forEach((p) => bounds.extend(p));
         // heavier at the top: the two end labels sit up there, and a route
         // fitted under them is a route half-covered
-        { padding: { top: 96, bottom: 44, left: 44, right: 44 }, duration: 600, maxZoom: 14 },
-      );
-    }
+        map.fitBounds(bounds, { top: 96, bottom: 44, left: 44, right: 44 });
+      }
+    });
   }, [ready, line, a?.lat, a?.lon, b?.lat, b?.lon]);
 
-  // No token, or GL refused to start: the drawn map is the whole answer.
-  if (!mapboxEnabled || dead) {
+  // No key, or the script refused to load: the drawn map is the whole answer.
+  if (!googleMapsEnabled || dead) {
     return (
       <>
         <RouteMap from={from} to={to} minutes={minutes} height={fallbackHeight} />
-        <MapTrace note={dead ? "gave up (dead)" : "no token in this build"} />
+        <MapTrace note={dead ? "gave up (dead)" : "no key in this build"} />
       </>
     );
   }
@@ -246,8 +176,18 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
   );
 }
 
+/** A small filled circle, the same shape the sketch fallback uses for its
+    pins, so the two maps agree on how an end is marked. */
+function dot(color: string): google.maps.Symbol {
+  return {
+    path: "M0,0 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0",
+    fillColor: color, fillOpacity: 1,
+    strokeColor: "#0D1C29", strokeWeight: 2,
+  };
+}
+
 /**
- * Under ?mapdebug=1 only: which build this is, what token it carries, and
+ * Under ?mapdebug=1 only: which build this is, what key it carries, and
  * the ordered list of everything the map has done. A symptom like "it
  * renders and then disappears" is a sequence, and this is the sequence.
  */
@@ -268,24 +208,11 @@ function MapTrace({ note }: { note: string }) {
 }
 
 /**
- * Whether a Mapbox error means no map can be drawn at all.
- *
- * GL reports everything through one `error` event, so the question is not
- * "did something fail" but "did the thing that fails everything fail". A
- * refused token and a style that will not load are that; a tile is not.
- */
-export function isFatal(err?: { status?: number; message?: string }): boolean {
-  if (err?.status === 401 || err?.status === 403) return true;
-  return /token|unauthorized|forbidden|style/i.test(err?.message ?? "");
-}
-
-/** Markers live outside React — one list per map instance. */
-const markerStore = new WeakMap<MapboxMap, { remove: () => void }[]>();
-
-/**
- * Mapbox returns the route as an encoded polyline at precision 5. Decoding
- * it here costs a few lines and saves asking for the GeoJSON variant, which
- * is several times the payload for the same shape.
+ * Google's Routes API returns the route the same way the old Mapbox
+ * Directions API did: an encoded polyline at precision 5, the "Encoded
+ * Polyline Algorithm Format" both providers share. Decoding it here costs
+ * a few lines and saves loading Maps JS's separate "geometry" library for
+ * one function.
  */
 export function decodePolyline(str: string, precision = 5): [number, number][] {
   const factor = Math.pow(10, precision);

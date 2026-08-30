@@ -14,7 +14,7 @@
 // The fare is a separate question and does NOT come from here: it is a
 // fixed price for the area, by design — see quote.ts.
 import { AREAS, type PlaceSel } from "../data/places";
-import { MAPBOX_TOKEN, mapboxEnabled, reportMapboxFailure } from "./mapbox";
+import { GOOGLE_MAPS_KEY, googleMapsEnabled, reportGoogleMapsFailure, DARK_MAP_STYLE } from "./googleMaps";
 
 export interface Coord {
   lat: number;
@@ -38,7 +38,9 @@ export function coordOf(sel: PlaceSel | null | undefined): Coord | null {
 }
 
 export interface RouteLine {
-  /** Mapbox-encoded polyline, ready to drop into a static map path. */
+  /** An encoded polyline at precision 5 — Google's Routes API and the old
+      Mapbox Directions API both speak the same "Encoded Polyline Algorithm
+      Format", so decodePolyline() in LiveMap.tsx never had to change. */
   polyline: string;
   km: number;
   minutes: number;
@@ -46,36 +48,55 @@ export interface RouteLine {
 
 /**
  * The driving line between two points. Returns null whenever it cannot
- * answer — no token, same area, network refused — and every caller treats
+ * answer — no key, same area, network refused — and every caller treats
  * null as "draw the fallback", never as an error worth showing anyone.
+ *
+ * Routes API rather than the older Directions API: Directions is a
+ * "legacy" Maps Platform web service that Google's own docs say to call
+ * server-side (its responses carry no CORS header, so a browser fetch to
+ * it is refused before Google even sees the request); Routes API is part
+ * of the same client-callable family as Places API (New), which this app
+ * already calls directly from the browser for address search.
  */
 export async function drivingRoute(
   from: Coord, to: Coord, signal?: AbortSignal,
 ): Promise<RouteLine | null> {
-  if (!mapboxEnabled) return null;
-  const pair = `${from.lon},${from.lat};${to.lon},${to.lat}`;
-  const url =
-    `https://api.mapbox.com/directions/v5/mapbox/driving/${pair}` +
-    `?access_token=${MAPBOX_TOKEN}&overview=simplified&geometries=polyline`;
+  if (!googleMapsEnabled) return null;
   try {
-    const res = await fetch(url, { signal });
+    const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+      method: "POST",
+      signal,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_MAPS_KEY,
+        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline",
+      },
+      body: JSON.stringify({
+        origin: { location: { latLng: { latitude: from.lat, longitude: from.lon } } },
+        destination: { location: { latLng: { latitude: to.lat, longitude: to.lon } } },
+        travelMode: "DRIVE",
+      }),
+    });
     if (!res.ok) {
-      reportMapboxFailure("directions", res.status);
+      reportGoogleMapsFailure("directions", res.status);
       return null;
     }
     const data = (await res.json()) as {
-      routes?: { geometry?: string; distance?: number; duration?: number }[];
+      routes?: { polyline?: { encodedPolyline?: string }; distanceMeters?: number; duration?: string }[];
     };
     const r = data.routes?.[0];
-    if (!r?.geometry) return null;
+    const polyline = r?.polyline?.encodedPolyline;
+    if (!polyline) return null;
+    // duration comes back as a string like "812s", not a number of seconds
+    const seconds = r?.duration ? Number.parseInt(r.duration, 10) || 0 : 0;
     return {
-      polyline: r.geometry,
-      km: Math.round((r.distance ?? 0) / 100) / 10,
-      minutes: Math.round((r.duration ?? 0) / 60),
+      polyline,
+      km: Math.round((r?.distanceMeters ?? 0) / 100) / 10,
+      minutes: Math.round(seconds / 60),
     };
   } catch (err) {
     // an aborted request is the component doing its job, not a failure
-    if (!signal?.aborted) reportMapboxFailure("directions", undefined, err);
+    if (!signal?.aborted) reportGoogleMapsFailure("directions", undefined, err);
     return null;
   }
 }
@@ -83,35 +104,53 @@ export async function drivingRoute(
 interface StaticMapOptions {
   width: number;
   height: number;
-  /** device pixel ratio; Mapbox only offers 1x and 2x */
+  /** device pixel ratio; Google's Static Maps API only offers 1x and 2x */
   retina?: boolean;
 }
 
 const SILVER = "b9c6d4";
 const INK = "f2f5f8";
 
+/** DARK_MAP_STYLE, translated into Static Maps API's flatter `style=`
+    query-param shape — one rule, one param, so the interactive map and its
+    static fallback are driven by the same colour choices instead of two
+    copies that can drift apart. */
+function staticStyleParams(): string[] {
+  return DARK_MAP_STYLE.map((rule) => {
+    const parts = [`feature:${rule.featureType ?? "all"}`, `element:${rule.elementType ?? "all"}`];
+    for (const s of rule.stylers ?? []) {
+      if ("color" in s && s.color) parts.push(`color:0x${String(s.color).replace(/^#/, "")}`);
+      if ("visibility" in s && s.visibility) parts.push(`visibility:${s.visibility}`);
+    }
+    return parts.join("|");
+  });
+}
+
 /**
  * A dark static map with the route drawn on it.
  *
- * `attribution=false&logo=false` is only permitted because the component
- * renders its own "© Mapbox · © OpenStreetMap" line. Do not remove that
- * caption without also removing these two parameters — the attribution is
- * a term of the licence, not decoration.
+ * With a path or markers present, Google infers the viewport itself — the
+ * same "auto"-fit behaviour the old Mapbox URL asked for explicitly, so
+ * this never has to compute its own centre or zoom.
+ *
+ * Unlike Mapbox, the Static Maps API has no parameter that removes
+ * Google's own watermark — there is nothing to suppress here, and nothing
+ * for the component's caption to stand in for.
  */
 export function staticMapUrl(
   from: Coord, to: Coord, line: RouteLine | null, opts: StaticMapOptions,
 ): string | null {
-  if (!mapboxEnabled) return null;
-  const overlays: string[] = [];
-  if (line) overlays.push(`path-4+${SILVER}-0.95(${encodeURIComponent(line.polyline)})`);
-  overlays.push(`pin-s+${INK}(${from.lon},${from.lat})`);
-  overlays.push(`pin-s+${SILVER}(${to.lon},${to.lat})`);
-  const size = `${Math.round(opts.width)}x${Math.round(opts.height)}${opts.retina ? "@2x" : ""}`;
-  return (
-    `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/` +
-    `${overlays.join(",")}/auto/${size}` +
-    `?access_token=${MAPBOX_TOKEN}&padding=44&attribution=false&logo=false`
-  );
+  if (!googleMapsEnabled) return null;
+  const params = new URLSearchParams();
+  params.set("size", `${Math.round(opts.width)}x${Math.round(opts.height)}`);
+  if (opts.retina) params.set("scale", "2");
+  params.set("maptype", "roadmap");
+  for (const s of staticStyleParams()) params.append("style", s);
+  if (line) params.append("path", `color:0x${SILVER}f2|weight:4|enc:${line.polyline}`);
+  params.append("markers", `size:small|color:0x${INK}|${from.lat},${from.lon}`);
+  params.append("markers", `size:small|color:0x${SILVER}|${to.lat},${to.lon}`);
+  params.set("key", GOOGLE_MAPS_KEY);
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
 
 // ── the no-token fallback ────────────────────────────────────────────

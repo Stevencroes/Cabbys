@@ -1,20 +1,24 @@
 // ── Address search: Google Places (New) ─────────────────────────────────
-// This used to be Mapbox's job. Mapbox's directions and static-map tiles
-// are fine — lib/mapbox.ts and lib/route.ts still draw every map in this
-// app from Mapbox, untouched — but its Aruba ADDRESS data is thin: real
-// house numbers and side streets kept coming back empty, which is what
-// sent the search to "type it, pick your area" for addresses that plainly
-// exist. Google's data is the industry's best for exactly this territory,
-// which is why the reference site this booking card was modelled on
-// (blacklane.com) says "powered by Google" at the bottom of its own
-// dropdown.
+// This used to be Mapbox's job, moved here because its Aruba ADDRESS data
+// was thin: real house numbers and side streets kept coming back empty,
+// which is what sent the search to "type it, pick your area" for addresses
+// that plainly exist. Google's data is the industry's best for exactly
+// this territory, which is why the reference site this booking card was
+// modelled on (blacklane.com) says "powered by Google" at the bottom of
+// its own dropdown.
 //
-// The shape is deliberately identical to what lib/mapbox.ts used to export:
-// GeoSuggestion, GeoStatus, GeoAnswer, geocode(), geoStatusLine(). Only the
-// wire format underneath changed — PlaceCombobox does not know or care
-// which provider answered, and swapping providers again later is a file,
-// not a rewrite.
-import { mapDebugOn } from "./mapbox";
+// The MAP itself — the interactive route, its static fallback, the
+// driving line — moved to Google too, in lib/googleMaps.ts + lib/route.ts,
+// for the same reason: a visitor who cannot get a real map at all is a
+// harder problem than one whose map is merely a different brand. This
+// file's GOOGLE_PLACES_KEY is the one key both now share; lib/mapbox.ts,
+// which used to own the token and the search, no longer exists.
+//
+// The shape here is deliberately provider-agnostic: GeoSuggestion,
+// GeoStatus, GeoAnswer, geocode(), geoStatusLine(). PlaceCombobox does not
+// know or care which provider answered, and swapping again later is a
+// file, not a rewrite — which is exactly what just happened to the map.
+import { mapDebugOn } from "./mapDebug";
 
 /** What kind of thing Google matched, so a row can carry the right mark. */
 export type GeoKind = "poi" | "address" | "place";

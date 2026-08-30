@@ -248,30 +248,31 @@ h2.sec em{font-style:italic;}
 .tmf-exactly{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
 .tmf-zone{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
 
-/* ── live map ── Mapbox GL, loaded only when a step that shows one mounts.
-   The canvas fills its column; RouteMap holds the space until GL is up, so
-   the panel never reflows around an arriving map. */
+/* ── live map ── Google Maps JavaScript API, loaded only when a step that
+   shows one mounts. The canvas fills its column; RouteMap holds the space
+   until the map is up, so the panel never reflows around an arriving map. */
 .lmap{position:relative;height:100%;min-height:260px;border-radius:var(--r-md);overflow:hidden;
   border:1px solid var(--line);background:var(--surface);}
-/* Two selectors deep, and belt-and-braces on the size, because Mapbox
-   ships `.mapboxgl-map{position:relative}` and puts that class on this very
-   element. Same specificity as a bare .lmap-canvas — and its stylesheet is
-   injected at runtime, so it lands after ours in <head> and wins. The
-   container then stops being stretched, collapses to whatever the canvas
-   happens to be, and the map paints into a box it no longer fills. */
-.lmap > .lmap-canvas{position:absolute;inset:0;width:100%;height:100%;}
+/* Belt-and-braces on both position and size, !important and all: Google's
+   Map constructor sets `position` and `overflow` as INLINE styles directly
+   on the container element you hand it — not a class, an attribute — so
+   no stylesheet rule of any specificity beats it by the normal cascade.
+   Mapbox hit the same failure a different way (a runtime-injected
+   stylesheet happened to load after ours); the fix generalises: never
+   trust a mapping library to leave your own container's box model alone. */
+.lmap > .lmap-canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;}
 .lmap-wait{position:absolute;inset:0;z-index:2;background:var(--surface);}
 .lmap-wait .rmap-wrap{height:100%;}
 .lmap-dur{position:absolute;left:12px;bottom:12px;z-index:3;
   font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);
   background:rgba(7,13,22,.82);border:1px solid var(--line);border-radius:var(--r-pill);padding:6px 12px;}
-/* Mapbox paints its own controls; these bring them onto the palette */
-.lmap .mapboxgl-ctrl-group{background:var(--surface);border:1px solid var(--line);box-shadow:none;}
-.lmap .mapboxgl-ctrl-group button+button{border-top-color:var(--line);}
-.lmap .mapboxgl-ctrl-icon{filter:invert(1) hue-rotate(180deg) brightness(1.1);}
-.lmap .mapboxgl-ctrl-attrib{background:rgba(7,13,22,.74);font-size:10px;}
-.lmap .mapboxgl-ctrl-attrib a{color:var(--muted);}
-.lmap .mapboxgl-ctrl-logo{opacity:.7;}
+/* Google's own zoom control and copyright line are left at their default
+   styling — their DOM is undocumented and semi-private (unlabelled divs,
+   no stable class names to hang a dark theme off the way Mapbox's named
+   .mapboxgl-ctrl-* classes allowed), and their copyright text specifically
+   must not be restyled into illegibility or hidden — that is a term of
+   the licence, not decoration. A small patch of default-light UI in one
+   corner is the honest trade for that. */
 
 /* ?mapdebug=1 only — the ordered account of what the map did. Sits under
    whichever branch rendered, so it is visible whether the map is live or
