@@ -13,7 +13,7 @@
 // same way, by HTTP referrer to this site's own domain(s).
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { GOOGLE_PLACES_KEY } from "./places";
-import { buildLine as sharedBuildLine } from "./mapDebug";
+import { buildLine as sharedBuildLine, mapDebugOn, traceMap } from "./mapDebug";
 
 export const GOOGLE_MAPS_KEY = GOOGLE_PLACES_KEY;
 export const googleMapsEnabled = GOOGLE_MAPS_KEY.length > 0;
@@ -118,6 +118,50 @@ function wireAuthFailure(): void {
   };
 }
 
+/**
+ * What "AUTH REFUSED" actually means, in the words of whoever has to fix
+ * it. Google distinguishes these five precisely — and then tells you which
+ * one it was in a console.error and nowhere else: not in gm_authFailure,
+ * which takes no arguments, and not in anything the page can read back.
+ * Left unread, all five look like one symptom, which is the same
+ * indistinguishable-failure problem the address search already had.
+ */
+const AUTH_REASONS: Record<string, string> = {
+  ApiTargetBlockedMapError:
+    "the KEY's own API restrictions do not list this API. Enabling an API on the project is a separate switch from allowing this key to call it — check both",
+  ApiNotActivatedMapError:
+    "the API is not enabled on this Google Cloud project",
+  RefererNotAllowedMapError:
+    "the key's HTTP-referrer restrictions do not list this domain",
+  InvalidKeyMapError: "the key itself is not valid",
+  BillingNotEnabledMapError: "billing is not enabled on this project",
+  ExpiredKeyMapError: "the key has expired",
+};
+
+/**
+ * Lift Google's reason out of the console and into the debug panel.
+ *
+ * Only under ?mapdebug=1, and it chains to the original console.error
+ * rather than replacing it — this is a diagnostic tap, not a takeover. The
+ * alternative is asking whoever is fixing this to open dev tools and know
+ * which line to look for, which is exactly the round trip ?mapdebug=1
+ * exists to remove.
+ */
+let reasonTapped = false;
+function tapAuthReason(): void {
+  if (reasonTapped || !mapDebugOn()) return;
+  reasonTapped = true;
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    const found = /Google Maps JavaScript API (?:error|warning): (\w+)/.exec(String(args[0] ?? ""));
+    if (found) {
+      const code = found[1];
+      traceMap(`GOOGLE SAYS ${code}${AUTH_REASONS[code] ? ` — ${AUTH_REASONS[code]}` : ""}`);
+    }
+    original.apply(console, args as []);
+  };
+}
+
 let loaderPromise: Promise<typeof google> | null = null;
 
 /**
@@ -132,6 +176,7 @@ let loaderPromise: Promise<typeof google> | null = null;
 export function loadGoogleMaps(): Promise<typeof google> {
   if (!loaderPromise) {
     wireAuthFailure();
+    tapAuthReason();
     setOptions({ key: GOOGLE_MAPS_KEY, v: "weekly" });
     loaderPromise = importLibrary("maps").then(() => google);
   }

@@ -141,6 +141,68 @@ describe("loadGoogleMaps", () => {
     vi.resetModules();
   });
 
+  // "AUTH REFUSED" alone leaves five very different fixes on the table.
+  // Google distinguishes them precisely and then says which in a
+  // console.error and nowhere else — gm_authFailure takes no arguments.
+  it("lifts Google's own reason out of the console into the trace", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_GOOGLE_PLACES_KEY", "test-key");
+    const url = new URL(window.location.href);
+    url.search = "?mapdebug=1";
+    history.replaceState({}, "", url);
+
+    const fresh = await import("./googleMaps");
+    const debug = await import("./mapDebug");
+    void fresh.loadGoogleMaps();
+
+    // Google's real wording, verbatim, for a key whose own API
+    // restrictions do not list the Maps JavaScript API
+    console.error("Google Maps JavaScript API error: ApiTargetBlockedMapError",
+      "https://developers.google.com/maps/documentation/javascript/error-messages");
+
+    const said = debug.mapTrace().join("\n");
+    expect(said).toMatch(/ApiTargetBlockedMapError/);
+    // and in words that name the actual fix, not just the code
+    expect(said).toMatch(/API restrictions/i);
+
+    history.replaceState({}, "", "/");
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("passes other console.error output through untouched", async () => {
+    // a diagnostic tap, not a takeover — anything else logged still logs
+    vi.resetModules();
+    vi.stubEnv("VITE_GOOGLE_PLACES_KEY", "test-key");
+    const url = new URL(window.location.href);
+    url.search = "?mapdebug=1";
+    history.replaceState({}, "", url);
+
+    // The spy goes on FIRST, so the tap installs *around* it and the tap
+    // is genuinely in the path. Spying afterwards would replace the tap
+    // outright and this would assert nothing — which is exactly what an
+    // earlier version of this test did, and a mutation caught.
+    const seen: unknown[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => { seen.push(args[0]); };
+
+    const fresh = await import("./googleMaps");
+    void fresh.loadGoogleMaps();
+    console.error("something else entirely");
+    console.error("Google Maps JavaScript API error: InvalidKeyMapError");
+
+    console.error = original;
+    // both reached the underlying console: the tap reads, it does not eat
+    expect(seen).toEqual([
+      "something else entirely",
+      "Google Maps JavaScript API error: InvalidKeyMapError",
+    ]);
+
+    history.replaceState({}, "", "/");
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
   it("loads the script once and reuses the same promise on a second mount", async () => {
     vi.resetModules();
     vi.stubEnv("VITE_GOOGLE_PLACES_KEY", "test-key");
