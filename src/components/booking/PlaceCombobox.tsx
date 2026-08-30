@@ -17,7 +17,7 @@ import {
   AREAS, COMMON_PICKUPS, GROUPS, areaByName, displayName, searchPlaces, selFromCustom,
   selFromGeo, selFromPlace, type Place, type PlaceSel,
 } from "../../data/places";
-import { geoStatusLine, geocode, mapboxEnabled, type GeoStatus, type GeoSuggestion } from "../../lib/mapbox";
+import { geoStatusLine, geocode, placesSearchEnabled, type GeoStatus, type GeoSuggestion } from "../../lib/places";
 import { lockBody, unlockBody } from "../../lib/bodyLock";
 
 /** Letters before the list appears. The picker suggests what you are
@@ -240,7 +240,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   // traveller and to whoever had to fix it.
   const [status, setStatus] = useState<{ s: GeoStatus; http?: number }>({ s: "ok" });
   useEffect(() => {
-    if (!mapboxEnabled) { setGeo([]); setSearching(false); setStatus({ s: "off" }); return; }
+    if (!placesSearchEnabled) { setGeo([]); setSearching(false); setStatus({ s: "off" }); return; }
     if (q.length < MIN_GEO) { setGeo([]); setSearching(false); setStatus({ s: "ok" }); return; }
     const ctl = new AbortController();
     setSearching(true);

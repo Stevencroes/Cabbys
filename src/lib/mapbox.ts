@@ -1,7 +1,14 @@
-// ── Mapbox address autocomplete ──────────────────────────────────────
-// Live geocoding against the Mapbox Geocoding API, constrained to Aruba.
-// When VITE_MAPBOX_TOKEN is unset it degrades gracefully to the curated
-// place list (callers merge `geocode()` results with PLACES).
+// ── Mapbox: the maps ──────────────────────────────────────────────────
+// Every map in this app — the GL map in the booking flow, the static
+// fallback, the driving route drawn on both — comes from Mapbox and lives
+// here or in lib/route.ts.
+//
+// Address SEARCH does not: it moved to lib/places.ts (Google Places),
+// because Mapbox's Aruba address data was too thin to find a real street.
+// This file no longer exports GeoSuggestion/geocode/geoStatusLine — see
+// places.ts for those. mapDebugOn() is the one thing shared both ways: a
+// map that cannot load and a search that cannot answer are the same kind
+// of question, so they share the one flag.
 
 /**
  * The token, cleaned up on the way in.
@@ -145,147 +152,3 @@ export function reportMapboxFailure(where: string, status?: number, detail?: unk
   }
 }
 
-/** What kind of thing Mapbox matched, so a row can carry the right mark. */
-export type GeoKind = "poi" | "address" | "place";
-
-/**
- * Why an address search came back with nothing.
- *
- * Four very different things — a token that never made it into the build, a
- * token Mapbox refuses, a network that never answered, and a street Mapbox
- * genuinely does not know — produced one identical outcome: the panel
- * quietly offering to guess an area instead. That is unfixable from the
- * outside, because there is nothing to tell the four apart, and it is
- * exactly the class of failure reportMapboxFailure already exists to name
- * for maps. The search says which one now.
- */
-export type GeoStatus = "ok" | "off" | "empty" | "http" | "network";
-
-export interface GeoAnswer {
-  results: GeoSuggestion[];
-  status: GeoStatus;
-  /** the HTTP code, when status is "http" */
-  httpStatus?: number;
-}
-
-export interface GeoSuggestion {
-  id: string;
-  /** the short name — "Manchebo Beach Resort", "Caya Ernesto Petronia 12" */
-  name: string;
-  /** the full line, minus the country — what the row reads underneath */
-  address: string;
-  kind: GeoKind;
-  lat: number;
-  lon: number;
-}
-
-// Aruba bounding box + centre (Oranjestad) to bias results to the island.
-export const ARUBA_BBOX = "-70.10,12.40,-69.85,12.65";
-const ARUBA_PROXIMITY = "-70.0086,12.5092";
-
-interface MapboxFeature {
-  id: string;
-  text?: string;
-  place_name?: string;
-  place_type?: string[];
-  center?: [number, number];
-  address?: string;
-}
-
-/** Mapbox's dozen feature types, reduced to the three a row can draw. */
-function kindOf(types: string[] | undefined): GeoKind {
-  if (!types?.length) return "place";
-  if (types.includes("poi")) return "poi";
-  if (types.includes("address")) return "address";
-  return "place";
-}
-
-/**
- * Everything Aruba has an address for.
- *
- * The catalog holds the sixty-odd places most rides start or end at, and it
- * always will be sixty-odd — nobody is going to type every villa on the
- * island into a TypeScript file. This is the rest of the island: house
- * numbers on Caya Ernesto Petronia, a condo block, the restaurant that
- * opened last month. Results come back with coordinates, which is what lets
- * a typed address price honestly — see selFromGeo, which snaps it to the
- * pricing area it actually sits in rather than asking the traveller to
- * guess one from a menu.
- *
- * `limit` is 7 rather than 5: the island is small and the useful answer for
- * a street name is often the fourth house number down.
- */
-export async function geocode(query: string, signal?: AbortSignal): Promise<GeoAnswer> {
-  const q = query.trim();
-  if (!mapboxEnabled) return { results: [], status: "off" };
-  if (!q) return { results: [], status: "empty" };
-  const url =
-    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
-    `?access_token=${MAPBOX_TOKEN}` +
-    `&country=aw&bbox=${ARUBA_BBOX}&proximity=${ARUBA_PROXIMITY}` +
-    `&types=poi,address,place,locality,neighborhood&limit=7&autocomplete=true`;
-  try {
-    const res = await fetch(url, { signal });
-    if (!res.ok) {
-      reportMapboxFailure("address search", res.status);
-      return { results: [], status: "http", httpStatus: res.status };
-    }
-    const data = (await res.json()) as { features?: MapboxFeature[] };
-    const results = (data.features ?? []).flatMap((f) => {
-      const center = f.center;
-      // Without coordinates there is no area, and without an area there is
-      // no fare. A row we cannot price is worse than one we never showed.
-      if (!center || center.length !== 2) return [];
-      // A house number arrives split from the street: text "Caya Ernesto
-      // Petronia", address "12". Rejoined, because "12" is not a place.
-      const base = f.text ?? f.place_name ?? "";
-      const name = f.address ? `${base} ${f.address}` : base;
-      if (!name) return [];
-      // place_name leads with the name we are already showing in bold —
-      // "Sasakiweg 34, Oranjestad, Aruba" under a row titled "Sasakiweg 34"
-      // spends the second line saying the first one again. Keep the part
-      // that adds something; where nothing is left, the island will do.
-      const full = (f.place_name ?? name).replace(/,?\s*Aruba$/i, "").trim();
-      const rest = full.toLowerCase().startsWith(name.toLowerCase())
-        ? full.slice(name.length).replace(/^[,\s]+/, "")
-        : full;
-      const address = rest || "Aruba";
-      return [{
-        id: `mb-${f.id}`,
-        name,
-        address,
-        kind: kindOf(f.place_type),
-        lon: center[0],
-        lat: center[1],
-      }];
-    });
-    return { results, status: results.length ? "ok" : "empty" };
-  } catch (err) {
-    // an aborted request is the next keystroke, not a failure
-    if ((err as { name?: string })?.name !== "AbortError") reportMapboxFailure("address search");
-    return { results: [], status: "network" };
-  }
-}
-
-/** What to say about a search that found nothing, in one line. The second
-    half only appears under ?mapdebug=1 — a traveller needs the way forward,
-    whoever is fixing it needs the cause. */
-export function geoStatusLine(status: GeoStatus, httpStatus?: number): string {
-  if (status === "ok") return "Every address in Aruba · Mapbox";
-  if (status === "empty") return "Every address in Aruba · Mapbox";
-  const plain = "Address search is offline — type your address and pick an area";
-  if (!mapDebugOn()) return plain;
-  const why =
-    status === "off"
-      ? "no VITE_MAPBOX_TOKEN in this build — Vite inlines it at BUILD time, so setting it on the host does nothing until the site is rebuilt"
-      : status === "network"
-      ? "the request never completed — network, or a blocked host"
-      : httpStatus === 401
-      ? "401: Mapbox rejected the token. Wrong, or rotated after this build was made"
-      : httpStatus === 403
-      ? "403: the token's URL restrictions probably do not list this domain"
-      : httpStatus === 429
-      ? "429: rate limited"
-      : `HTTP ${httpStatus ?? "?"}`;
-  return `${plain} · ${why}`;
-}

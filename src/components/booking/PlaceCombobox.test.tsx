@@ -18,15 +18,15 @@ function Harness({ initial = null, onSelect }: { initial?: PlaceSel | null; onSe
   );
 }
 
-/** The island, stubbed. mapboxEnabled is read at import, so the module is
-    mocked whole rather than the token being faked. */
+/** The island, stubbed. placesSearchEnabled is read at import, so the
+    module is mocked whole rather than the key being faked. */
 const island = { results: [] as unknown[], status: "ok" as string, http: undefined as number | undefined };
-vi.mock("../../lib/mapbox", () => ({
-  mapboxEnabled: true,
+vi.mock("../../lib/places", () => ({
+  placesSearchEnabled: true,
   geocode: async () => ({ results: island.results, status: island.status, httpStatus: island.http }),
   geoStatusLine: (s: string) =>
     s === "ok" || s === "empty"
-      ? "Every address in Aruba · Mapbox"
+      ? "Every address in Aruba · Google"
       : "Address search is offline — type your address and pick an area",
 }));
 afterEach(() => { island.results = []; island.status = "ok"; island.http = undefined; });
