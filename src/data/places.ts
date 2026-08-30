@@ -83,6 +83,65 @@ export function nearestArea(lat: number, lon: number): Area {
   return best;
 }
 
+/**
+ * Where a coordinate sits on the fare axis, and how far into the drive.
+ *
+ * `km` is not a distance and cannot be computed from one — Santa Cruz is
+ * 5.9 km from the airport and sits at −2, Palm Beach is 9.0 km away and
+ * sits at +13, because the axis encodes the road and the direction, not the
+ * crow. It is a scale DEFINED by the eleven points below, so a new address
+ * is placed relative to them rather than measured against anything.
+ *
+ * Inverse-distance weighting over the three nearest, squared: an address on
+ * top of an area centre gets that area's numbers exactly — so the common
+ * case prices as it always has — and one off-centre slides smoothly toward
+ * whichever neighbours it is actually between.
+ *
+ * The honest limit: past the outermost anchor the answer stops moving, so a
+ * villa beyond Malmok prices as Malmok rather than as the +20 the catalog
+ * gives California Lighthouse. Under-reaching at the tips is the safe
+ * direction to be wrong in, and adding anchors up there is how to fix it.
+ */
+/** The shortest drive anyone is quoted, in minutes. */
+const MIN_DRIVE = 5;
+
+const ANCHORS: { lat: number; lon: number; km: number; min: number }[] = [
+  ...AREAS.map((a) => ({ lat: a.lat, lon: a.lon, km: a.km, min: a.min })),
+  // the origin of the scale; it is not an area
+  { lat: 12.5014, lon: -70.0152, km: 0, min: 0 },
+];
+
+/** Rough local metres. Fine over one 30 km island, and only ever used to
+    rank and weight — never reported as a distance. */
+function metresBetween(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const y = (aLat - bLat) * 110570;
+  const x = (aLon - bLon) * 108680 * Math.cos((aLat * Math.PI) / 180);
+  return Math.hypot(x, y);
+}
+
+export function axisAt(lat: number, lon: number): { km: number; min: number } {
+  const near = ANCHORS
+    .map((a) => ({ a, d: metresBetween(lat, lon, a.lat, a.lon) }))
+    .sort((p, q) => p.d - q.d)
+    .slice(0, 3);
+  // standing on one of them — take it, and skip the division by zero
+  if (near[0].d < 60) return { km: near[0].a.km, min: near[0].a.min };
+  let wk = 0, wm = 0, w = 0;
+  for (const { a, d } of near) {
+    const weight = 1 / (d * d);
+    wk += a.km * weight;
+    wm += a.min * weight;
+    w += weight;
+  }
+  return {
+    km: Math.round((wk / w) * 10) / 10,
+    // The airport anchor's 0 is the origin of the SCALE, not a journey, and
+    // it drags anything near the terminal toward a one-minute transfer. No
+    // ride on this island is shorter than five minutes door to door.
+    min: Math.max(MIN_DRIVE, Math.round(wm / w)),
+  };
+}
+
 export const AIRPORT_ID = "airport";
 
 export interface Place {
@@ -254,17 +313,24 @@ export function displayName(sel: PlaceSel): string {
  * It stays `custom`, because it is still not a rate-card row: quote.ts sends
  * custom selections to the km model on purpose, and a geocoder's spelling of
  * a hotel must not start matching pricing_locations by accident.
+ *
+ * The AREA is still the nearest one, because that is what a driver is told
+ * and what the ride record files it under. The FARE is not: it comes from
+ * where the address actually is (axisAt), so a villa at the far end of Palm
+ * Beach no longer prices as though it were in the middle of it. An address
+ * sitting on an area centre gets that area's numbers unchanged.
  */
 export function selFromGeo(
   g: { id: string; name: string; address: string; lat: number; lon: number },
 ): PlaceSel {
   const area = nearestArea(g.lat, g.lon);
+  const axis = axisAt(g.lat, g.lon);
   return {
     id: g.id,
     name: g.name,
     area: area.name,
-    km: area.km,
-    min: area.min,
+    km: axis.km,
+    min: axis.min,
     custom: true,
     note: g.address,
     lat: g.lat,

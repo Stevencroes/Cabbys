@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName,
-  searchPlaces, selFromCustom, selFromGeo, areaByName, nearestArea,
+  searchPlaces, selFromCustom, selFromGeo, areaByName, nearestArea, axisAt,
 } from "./places";
 
 describe("places catalog (§3.1)", () => {
@@ -75,5 +75,44 @@ describe("places catalog (§3.1)", () => {
   it("snaps a coordinate to exactly one area, wherever it is", () => {
     // every area centre must resolve to itself, or the snap is lying
     for (const a of AREAS) expect(nearestArea(a.lat, a.lon).name).toBe(a.name);
+  });
+
+  // `km` is a hand-set fare axis, not a distance — Santa Cruz is 5.9 km from
+  // the airport and sits at −2, Palm Beach is 9.0 km away and sits at +13.
+  // So a typed address is placed relative to the points that DEFINE the
+  // scale, never computed from geometry.
+  describe("axisAt — placing an address on the fare scale", () => {
+    it("gives an area centre exactly the numbers it already had", () => {
+      for (const a of AREAS) {
+        expect(axisAt(a.lat, a.lon)).toEqual({ km: a.km, min: Math.max(5, a.min) });
+      }
+      // and the origin of the scale is still zero
+      expect(axisAt(12.5014, -70.0152).km).toBe(0);
+    });
+
+    it("slides between neighbours instead of snapping to one", () => {
+      // north of the Palm Beach centre, on the way to Malmok
+      const north = axisAt(12.5905, -70.0455);
+      expect(north.km).toBeGreaterThan(13);
+      expect(north.km).toBeLessThan(17);
+    });
+
+    it("never quotes a drive shorter than anyone could actually make", () => {
+      // 600 m from the terminal. The airport anchor's min is 0 because it is
+      // the origin, and interpolation would otherwise offer a one-minute ride.
+      expect(axisAt(12.5060, -70.0180).min).toBeGreaterThanOrEqual(5);
+    });
+
+    it("prices a typed address from where it is, not from its area centre", () => {
+      const villa = selFromGeo({
+        id: "mb-poi.1", name: "Villa", address: "", lat: 12.5905, lon: -70.0455,
+      });
+      const area = areaByName(villa.area as "Malmok")!;
+      // the area is still what the driver is told
+      expect(villa.area).toBe("Malmok");
+      // the fare is not the area's
+      expect(villa.km).not.toBe(area.km);
+      expect(villa.km).toBeCloseTo(15.8, 1);
+    });
   });
 });
