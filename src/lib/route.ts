@@ -1,13 +1,18 @@
 // ── Where the ride actually goes ─────────────────────────────────────
-// Coordinates come from the area a place belongs to, not from the place
-// itself: only the ten area centres in data/places.ts carry lat/lon, so
-// two Palm Beach hotels share a pin. That is honest for a route overview
-// of a 30 km island and wrong for turn-by-turn, which is why nothing here
-// claims to be navigation. Fill Place.lat/lon and change coordOf() the
-// day per-hotel pins matter.
+// A selection points at a real place when it can, and at the centre of its
+// area when it cannot.
 //
-// Distance and duration on screen do NOT come from here — they come from
-// the pricing engine, which is the rate card and is exact.
+// The catalog's sixty places carry no coordinates of their own, so two Palm
+// Beach hotels still share a pin — honest enough for a route overview of a
+// 30 km island, and wrong for turn-by-turn, which is why nothing here
+// claims to be navigation. A GEOCODED address is different: it arrived with
+// coordinates, and drawing it at the middle of Oranjestad instead of where
+// it is makes the map disagree with the address above it. Somebody who
+// typed their street and got a pin a kilometre away has no reason to trust
+// the number underneath.
+//
+// The fare is a separate question and does NOT come from here: it is a
+// fixed price for the area, by design — see quote.ts.
 import { AREAS, type PlaceSel } from "../data/places";
 import { MAPBOX_TOKEN, mapboxEnabled, reportMapboxFailure } from "./mapbox";
 
@@ -23,6 +28,11 @@ const BY_AREA = new Map(AREAS.map((a) => [a.name, { lat: a.lat, lon: a.lon }]));
 
 export function coordOf(sel: PlaceSel | null | undefined): Coord | null {
   if (!sel) return null;
+  // Its own point, when it has one. Geocoded addresses carry lat/lon; this
+  // is the whole reason they are asked for and kept.
+  if (typeof sel.lat === "number" && typeof sel.lon === "number") {
+    return { lat: sel.lat, lon: sel.lon };
+  }
   if (sel.area === "Airport") return AIRPORT_COORD;
   return BY_AREA.get(sel.area) ?? null;
 }

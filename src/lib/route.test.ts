@@ -6,7 +6,7 @@ const mapbox = vi.hoisted(() => ({ MAPBOX_TOKEN: "pk.test", mapboxEnabled: true 
 vi.mock("./mapbox", () => mapbox);
 
 import { AIRPORT_COORD, coordOf, islandPath, project, staticMapUrl } from "./route";
-import { AIRPORT, placeById, selFromPlace } from "../data/places";
+import { AIRPORT, areaByName, placeById, selFromCustom, selFromGeo, selFromPlace } from "../data/places";
 
 const sel = (id: string) => selFromPlace(placeById(id)!);
 
@@ -22,6 +22,28 @@ describe("route", () => {
 
   it("puts two hotels in one area on one pin — the known limit", () => {
     expect(coordOf(sel("ritz"))).toEqual(coordOf(sel("hyatt")));
+  });
+
+  // The catalog has no coordinates of its own, so a hotel gets its area's.
+  // A geocoded address DOES, and drawing it at the middle of Oranjestad
+  // instead of where it is puts the map at odds with the address written
+  // above it — which is the one thing that has to be true before anyone
+  // believes the price underneath.
+  it("draws a geocoded address where it actually is", () => {
+    const typed = selFromGeo({
+      id: "mb-address.1", name: "Sasakiweg 34", address: "Oranjestad",
+      lat: 12.513, lon: -70.026,
+    });
+    expect(coordOf(typed)).toEqual({ lat: 12.513, lon: -70.026 });
+    // not the area centre it is priced from
+    expect(coordOf(typed)).not.toEqual(coordOf(sel("oranjestad")));
+  });
+
+  // An address typed into the manual fallback has no coordinates at all, and
+  // the area centre remains the only honest answer for it.
+  it("still falls back to the area for an address nobody could place", () => {
+    const guessed = selFromCustom("Casa Bunita 7", areaByName("Noord")!);
+    expect(coordOf(guessed)).toEqual({ lat: 12.578, lon: -70.027 });
   });
 
   it("has no coordinates to give for nothing", () => {
