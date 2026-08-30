@@ -20,12 +20,16 @@ function Harness({ initial = null, onSelect }: { initial?: PlaceSel | null; onSe
 
 /** The island, stubbed. mapboxEnabled is read at import, so the module is
     mocked whole rather than the token being faked. */
-const island = { results: [] as unknown[] };
+const island = { results: [] as unknown[], status: "ok" as string, http: undefined as number | undefined };
 vi.mock("../../lib/mapbox", () => ({
   mapboxEnabled: true,
-  geocode: async () => island.results,
+  geocode: async () => ({ results: island.results, status: island.status, httpStatus: island.http }),
+  geoStatusLine: (s: string) =>
+    s === "ok" || s === "empty"
+      ? "Every address in Aruba · Mapbox"
+      : "Address search is offline — type your address and pick an area",
 }));
-afterEach(() => { island.results = []; });
+afterEach(() => { island.results = []; island.status = "ok"; island.http = undefined; });
 
 /** <Marked> splits a row's name around the run that matched, so the name
     is not one text node. Read the line, not the fragments. */

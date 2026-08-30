@@ -148,6 +148,26 @@ export function reportMapboxFailure(where: string, status?: number, detail?: unk
 /** What kind of thing Mapbox matched, so a row can carry the right mark. */
 export type GeoKind = "poi" | "address" | "place";
 
+/**
+ * Why an address search came back with nothing.
+ *
+ * Four very different things — a token that never made it into the build, a
+ * token Mapbox refuses, a network that never answered, and a street Mapbox
+ * genuinely does not know — produced one identical outcome: the panel
+ * quietly offering to guess an area instead. That is unfixable from the
+ * outside, because there is nothing to tell the four apart, and it is
+ * exactly the class of failure reportMapboxFailure already exists to name
+ * for maps. The search says which one now.
+ */
+export type GeoStatus = "ok" | "off" | "empty" | "http" | "network";
+
+export interface GeoAnswer {
+  results: GeoSuggestion[];
+  status: GeoStatus;
+  /** the HTTP code, when status is "http" */
+  httpStatus?: number;
+}
+
 export interface GeoSuggestion {
   id: string;
   /** the short name — "Manchebo Beach Resort", "Caya Ernesto Petronia 12" */
@@ -195,9 +215,10 @@ function kindOf(types: string[] | undefined): GeoKind {
  * `limit` is 7 rather than 5: the island is small and the useful answer for
  * a street name is often the fourth house number down.
  */
-export async function geocode(query: string, signal?: AbortSignal): Promise<GeoSuggestion[]> {
+export async function geocode(query: string, signal?: AbortSignal): Promise<GeoAnswer> {
   const q = query.trim();
-  if (!mapboxEnabled || !q) return [];
+  if (!mapboxEnabled) return { results: [], status: "off" };
+  if (!q) return { results: [], status: "empty" };
   const url =
     `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json` +
     `?access_token=${MAPBOX_TOKEN}` +
@@ -207,10 +228,10 @@ export async function geocode(query: string, signal?: AbortSignal): Promise<GeoS
     const res = await fetch(url, { signal });
     if (!res.ok) {
       reportMapboxFailure("address search", res.status);
-      return [];
+      return { results: [], status: "http", httpStatus: res.status };
     }
     const data = (await res.json()) as { features?: MapboxFeature[] };
-    return (data.features ?? []).flatMap((f) => {
+    const results = (data.features ?? []).flatMap((f) => {
       const center = f.center;
       // Without coordinates there is no area, and without an area there is
       // no fare. A row we cannot price is worse than one we never showed.
@@ -238,9 +259,33 @@ export async function geocode(query: string, signal?: AbortSignal): Promise<GeoS
         lat: center[1],
       }];
     });
+    return { results, status: results.length ? "ok" : "empty" };
   } catch (err) {
     // an aborted request is the next keystroke, not a failure
     if ((err as { name?: string })?.name !== "AbortError") reportMapboxFailure("address search");
-    return [];
+    return { results: [], status: "network" };
   }
+}
+
+/** What to say about a search that found nothing, in one line. The second
+    half only appears under ?mapdebug=1 — a traveller needs the way forward,
+    whoever is fixing it needs the cause. */
+export function geoStatusLine(status: GeoStatus, httpStatus?: number): string {
+  if (status === "ok") return "Every address in Aruba · Mapbox";
+  if (status === "empty") return "Every address in Aruba · Mapbox";
+  const plain = "Address search is offline — type your address and pick an area";
+  if (!mapDebugOn()) return plain;
+  const why =
+    status === "off"
+      ? "no VITE_MAPBOX_TOKEN in this build — Vite inlines it at BUILD time, so setting it on the host does nothing until the site is rebuilt"
+      : status === "network"
+      ? "the request never completed — network, or a blocked host"
+      : httpStatus === 401
+      ? "401: Mapbox rejected the token. Wrong, or rotated after this build was made"
+      : httpStatus === 403
+      ? "403: the token's URL restrictions probably do not list this domain"
+      : httpStatus === 429
+      ? "429: rate limited"
+      : `HTTP ${httpStatus ?? "?"}`;
+  return `${plain} · ${why}`;
 }

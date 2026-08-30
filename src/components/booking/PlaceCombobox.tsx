@@ -17,7 +17,7 @@ import {
   AREAS, COMMON_PICKUPS, GROUPS, areaByName, displayName, searchPlaces, selFromCustom,
   selFromGeo, selFromPlace, type Place, type PlaceSel,
 } from "../../data/places";
-import { geocode, mapboxEnabled, type GeoSuggestion } from "../../lib/mapbox";
+import { geoStatusLine, geocode, mapboxEnabled, type GeoStatus, type GeoSuggestion } from "../../lib/mapbox";
 import { lockBody, unlockBody } from "../../lib/bodyLock";
 
 /** Letters before the list appears. The picker suggests what you are
@@ -235,14 +235,20 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
    */
   const [geo, setGeo] = useState<GeoSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
+  // Why there is nothing, when there is nothing — see geoStatusLine. A
+  // failed search and an unknown street used to look identical, to the
+  // traveller and to whoever had to fix it.
+  const [status, setStatus] = useState<{ s: GeoStatus; http?: number }>({ s: "ok" });
   useEffect(() => {
-    if (!mapboxEnabled || q.length < MIN_GEO) { setGeo([]); setSearching(false); return; }
+    if (!mapboxEnabled) { setGeo([]); setSearching(false); setStatus({ s: "off" }); return; }
+    if (q.length < MIN_GEO) { setGeo([]); setSearching(false); setStatus({ s: "ok" }); return; }
     const ctl = new AbortController();
     setSearching(true);
     const t = setTimeout(() => {
-      void geocode(q, ctl.signal).then((res) => {
+      void geocode(q, ctl.signal).then((ans) => {
         if (ctl.signal.aborted) return;
-        setGeo(res);
+        setGeo(ans.results);
+        setStatus({ s: ans.status, http: ans.httpStatus });
         setSearching(false);
       });
     }, GEO_DEBOUNCE);
@@ -557,11 +563,14 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             it floated over the options and left a half-row visible beneath
             it, and a non-option <li> inside a listbox is a lie to a screen
             reader besides. */}
-        {mapboxEnabled && (
-          <div className="cattrib">
-            {searching && options.length > 0 ? "Searching Aruba…" : "Every address in Aruba · Mapbox"}
-          </div>
-        )}
+        {/* Always shown, because "the island was searched" and "the island
+            could not be searched" are the two things a traveller staring at
+            a short list most needs told apart. */}
+        <div className={`cattrib${status.s === "ok" || status.s === "empty" ? "" : " cattrib-down"}`}>
+          {searching && options.length > 0
+            ? "Searching Aruba…"
+            : geoStatusLine(status.s, status.http)}
+        </div>
         </div>
       )}
 

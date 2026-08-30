@@ -95,8 +95,8 @@ describe("geocode", () => {
     const fetchMock = vi.fn(async (_url: string) => ({ ok: true, json: async () => ({ features }) }));
     vi.stubGlobal("fetch", fetchMock);
     const fresh = await import("./mapbox");
-    const out = await fresh.geocode(query);
-    return { out, fetchMock };
+    const ans = await fresh.geocode(query);
+    return { out: ans.results, ans, fetchMock };
   }
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.resetModules(); });
 
@@ -144,5 +144,55 @@ describe("geocode", () => {
     expect(url).toContain("country=aw");
     expect(url).toContain("bbox=");
     expect(url).toContain("autocomplete=true");
+  });
+
+  // Four very different failures used to produce one identical outcome: the
+  // panel quietly offering to guess an area. Nobody could tell a rejected
+  // token from a street Mapbox has never heard of, which is why "it doesn't
+  // work" had no next step.
+  it("says which of the four kinds of nothing it got", async () => {
+    const { ans } = await withFeatures([]);
+    expect(ans.status).toBe("empty");
+
+    vi.resetModules();
+    vi.stubEnv("VITE_MAPBOX_TOKEN", "pk.test");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) })));
+    const denied = await (await import("./mapbox")).geocode("manche");
+    expect(denied.status).toBe("http");
+    expect(denied.httpStatus).toBe(403);
+
+    vi.resetModules();
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("boom"); }));
+    const dead = await (await import("./mapbox")).geocode("manche");
+    expect(dead.status).toBe("network");
+
+    // and the one that needs a rebuild rather than a fix
+    vi.resetModules();
+    vi.stubEnv("VITE_MAPBOX_TOKEN", "");
+    const off = await (await import("./mapbox")).geocode("manche");
+    expect(off.status).toBe("off");
+    expect(off.results).toEqual([]);
+  });
+
+  it("tells a traveller the way forward and a maintainer the cause", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_MAPBOX_TOKEN", "pk.test");
+    const fresh = await import("./mapbox");
+
+    // no flag: what to do next, and nothing about tokens
+    const plain = fresh.geoStatusLine("http", 403);
+    expect(plain).toMatch(/type your address and pick an area/i);
+    expect(plain).not.toMatch(/token|403/i);
+
+    // ?mapdebug=1: the specific cause, named
+    const url = new URL(window.location.href);
+    url.search = "?mapdebug=1";
+    history.replaceState({}, "", url);
+    expect(fresh.geoStatusLine("http", 403)).toMatch(/URL restrictions/i);
+    expect(fresh.geoStatusLine("http", 401)).toMatch(/rejected the token/i);
+    expect(fresh.geoStatusLine("off")).toMatch(/BUILD time/i);
+    // a search that ran and found nothing is not a failure
+    expect(fresh.geoStatusLine("empty")).toMatch(/Every address in Aruba/i);
+    history.replaceState({}, "", "/");
   });
 });
