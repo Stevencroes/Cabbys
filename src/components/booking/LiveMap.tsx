@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PlaceSel } from "../../data/places";
 import {
-  buildLine, googleMapsEnabled, loadGoogleMaps, DARK_MAP_STYLE,
+  buildLine, googleMapsEnabled, loadGoogleMaps, onGoogleAuthFailure, DARK_MAP_STYLE,
   reportGoogleMapsFailure,
 } from "../../lib/googleMaps";
 import { mapDebugOn, mapTrace, onMapTrace, traceMap } from "../../lib/mapDebug";
@@ -44,6 +44,16 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
 
   const a = coordOf(from);
   const b = coordOf(to);
+
+  // A key Google refuses does not throw — it paints Google's own white
+  // "Oops! Something went wrong" card over the panel. Hearing about it is
+  // what lets this hand over to the sketch instead, which is a drawn map
+  // of the island with the route on it and is the honest thing to show.
+  useEffect(() => onGoogleAuthFailure(() => {
+    traceMap("AUTH REFUSED — handing over to the sketch");
+    setReady(false);
+    setDead(true);
+  }), []);
 
   // The driving geometry. Same call the static map uses, and the same rule:
   // a null answer means draw what we can, never show an error.

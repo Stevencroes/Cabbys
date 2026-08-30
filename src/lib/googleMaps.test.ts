@@ -100,6 +100,47 @@ describe("loadGoogleMaps", () => {
     vi.resetModules();
   });
 
+  // Found by running the real Google runtime against a bad key: the map
+  // "loads" and paints Google's own white "Oops! Something went wrong"
+  // card over the panel. Nothing throws, nothing rejects. Without a
+  // subscriber to hand over to the sketch, that card is what a customer
+  // sees whenever an API is left un-enabled — strictly worse than this
+  // app's own drawn fallback.
+  it("tells subscribers when Google refuses the key", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_GOOGLE_PLACES_KEY", "test-key");
+    const fresh = await import("./googleMaps");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let heard = 0;
+    const off = fresh.onGoogleAuthFailure(() => { heard++; });
+    void fresh.loadGoogleMaps();
+    win.gm_authFailure?.();
+    expect(heard).toBe(1);
+    off();
+    warn.mockRestore();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("replays the refusal to a subscriber that arrived late", async () => {
+    // gm_authFailure can fire before a component has mounted to hear it,
+    // and a fallback that depends on having been listening at the right
+    // moment is a fallback that sometimes does not happen.
+    vi.resetModules();
+    vi.stubEnv("VITE_GOOGLE_PLACES_KEY", "test-key");
+    const fresh = await import("./googleMaps");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    void fresh.loadGoogleMaps();
+    win.gm_authFailure?.();
+    let heard = 0;
+    const off = fresh.onGoogleAuthFailure(() => { heard++; });
+    expect(heard).toBe(1);
+    off();
+    warn.mockRestore();
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
   it("loads the script once and reuses the same promise on a second mount", async () => {
     vi.resetModules();
     vi.stubEnv("VITE_GOOGLE_PLACES_KEY", "test-key");

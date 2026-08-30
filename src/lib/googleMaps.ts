@@ -83,17 +83,38 @@ export function reportGoogleMapsFailure(where: string, status?: number, detail?:
  * Google's own failure channel for the interactive map.
  *
  * A refused or restricted key does not throw and does not reject the
- * loader's promise — the map still "loads", just as a grey, watermarked
- * "For development purposes only" rectangle, and Google's only signal that
- * this happened is a GLOBAL callback it calls if one exists at
- * `window.gm_authFailure`. Registered once, before the first load.
+ * loader's promise — the map still "loads", and paints a white "Oops!
+ * Something went wrong / This page didn't load Google Maps correctly" box
+ * over the whole panel. Google's only signal that this happened is a
+ * GLOBAL callback it calls if one exists at `window.gm_authFailure`.
+ * Registered once, before the first load.
+ *
+ * Subscribers matter as much as the log line: without one, a key that is
+ * merely missing an API ends up SHOWING Google's error card to a customer
+ * — strictly worse than this app's own sketch fallback, which is a drawn
+ * map of Aruba with the route on it and says "Sketch — not to scale". The
+ * flag is module-level and replayed to late subscribers, because the
+ * callback can fire before a component has mounted to hear it.
  */
 let authFailureWired = false;
+let authFailed = false;
+const authListeners = new Set<() => void>();
+
+/** Fires when Google refuses the key for the interactive map. Replays
+    immediately if it has already happened. Returns an unsubscribe. */
+export function onGoogleAuthFailure(fn: () => void): () => void {
+  authListeners.add(fn);
+  if (authFailed) fn();
+  return () => { authListeners.delete(fn); };
+}
+
 function wireAuthFailure(): void {
   if (authFailureWired) return;
   authFailureWired = true;
   (window as unknown as { gm_authFailure?: () => void }).gm_authFailure = () => {
+    authFailed = true;
     reportGoogleMapsFailure("gl", 401);
+    authListeners.forEach((fn) => fn());
   };
 }
 
