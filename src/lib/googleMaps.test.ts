@@ -77,7 +77,15 @@ describe("the failure channel", () => {
  */
 vi.mock("@googlemaps/js-api-loader", () => ({
   setOptions: vi.fn(),
-  importLibrary: vi.fn(async () => ({})),
+  // The real importLibrary populates the `google` global as a side effect,
+  // and loadGoogleMaps hands that back. A mock that only resolves leaves
+  // `() => google` throwing a bare ReferenceError into a promise nobody
+  // awaits — six unhandled rejections that Vitest itself warns can mask a
+  // real one. Mirror the side effect instead of swallowing the symptom.
+  importLibrary: vi.fn(async () => {
+    (globalThis as { google?: unknown }).google = { maps: {} };
+    return {};
+  }),
 }));
 
 type WithAuthFailure = { gm_authFailure?: () => void };
