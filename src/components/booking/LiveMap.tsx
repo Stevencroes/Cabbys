@@ -14,6 +14,7 @@ import {
 import { mapDebugOn, mapTrace, onMapTrace, traceMap } from "../../lib/mapDebug";
 import RouteMap from "./RouteMap";
 import { coordOf, drivingRoute, type RouteLine } from "../../lib/route";
+import { onPinsChanged, resolvePin } from "../../lib/placePins";
 
 interface LiveMapProps {
   from: PlaceSel | null;
@@ -42,6 +43,16 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
   const [dead, setDead] = useState(false);
   const [line, setLine] = useState<RouteLine | null>(null);
 
+  // A catalog place starts at its area centre and moves to its real point
+  // when Google answers. Both ends are asked once; the subscription is what
+  // turns a late answer into a redraw instead of a pin nobody sees move.
+  const [, bumpPins] = useState(0);
+  useEffect(() => onPinsChanged(() => bumpPins((n) => n + 1)), []);
+  useEffect(() => {
+    void resolvePin(from);
+    void resolvePin(to);
+  }, [from, to]);
+
   const a = coordOf(from);
   const b = coordOf(to);
 
@@ -63,9 +74,12 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
     const ctl = new AbortController();
     void drivingRoute(a, b, ctl.signal).then((r) => { if (!ctl.signal.aborted) setLine(r); });
     return () => ctl.abort();
-    // coordOf is derived from the ids, so those are the real inputs
+    // The COORDINATES are the real inputs, not the ids. They used to be the
+    // same thing; they stopped being when a pin started arriving after the
+    // selection did, and keying this on the ids left the driving line drawn
+    // between two area centres the pins had already moved off.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [from?.id, to?.id]);
+  }, [a?.lat, a?.lon, b?.lat, b?.lon]);
 
   // Build the map once, then keep it. Tearing it down per route change
   // would re-mount the whole thing every time somebody edits a field.

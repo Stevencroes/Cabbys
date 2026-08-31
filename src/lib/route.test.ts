@@ -27,7 +27,12 @@ describe("route", () => {
     expect(ritz).toEqual({ lat: 12.578, lon: -70.043 });
   });
 
-  it("puts two hotels in one area on one pin — the known limit", () => {
+  // What the FIRST paint shows, before anything has been resolved: two
+  // hotels in one area share their area's centre. This used to be the end
+  // of the story and is now only the start of it — placePins.ts moves each
+  // to its own point once Google answers, which placePins.test.ts covers.
+  // Nothing here resolves a pin, so this is the un-resolved state on purpose.
+  it("starts two hotels in one area on one pin, before Google is asked", () => {
     expect(coordOf(sel("ritz"))).toEqual(coordOf(sel("hyatt")));
   });
 

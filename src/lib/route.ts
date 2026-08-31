@@ -2,10 +2,12 @@
 // A selection points at a real place when it can, and at the centre of its
 // area when it cannot.
 //
-// The catalog's sixty places carry no coordinates of their own, so two Palm
-// Beach hotels still share a pin — honest enough for a route overview of a
-// 30 km island, and wrong for turn-by-turn, which is why nothing here
-// claims to be navigation. A GEOCODED address is different: it arrived with
+// The catalog's sixty places carry no coordinates of their own. They get
+// the area centre on first paint and their real point a moment later, once
+// placePins.ts has asked Google where they are — which is what stops two
+// Palm Beach hotels sharing a pin, and what stopped "Eagle Beach" landing
+// a kilometre inland. None of it claims to be navigation.
+// A GEOCODED address is different: it arrived with
 // coordinates, and drawing it at the middle of Oranjestad instead of where
 // it is makes the map disagree with the address above it. Somebody who
 // typed their street and got a pin a kilometre away has no reason to trust
@@ -15,6 +17,7 @@
 // fixed price for the area, by design — see quote.ts.
 import { AREAS, type PlaceSel } from "../data/places";
 import { GOOGLE_MAPS_KEY, googleMapsEnabled, reportGoogleMapsFailure, DARK_MAP_STYLE } from "./googleMaps";
+import { pinFor } from "./placePins";
 
 export interface Coord {
   lat: number;
@@ -34,6 +37,12 @@ export function coordOf(sel: PlaceSel | null | undefined): Coord | null {
     return { lat: sel.lat, lon: sel.lon };
   }
   if (sel.area === "Airport") return AIRPORT_COORD;
+  // A catalog place, once Google has said where it is — see placePins.ts.
+  // Empty until something resolves it, which is why the area centre below
+  // is still the answer this function is built around rather than a last
+  // resort: it is what every first paint uses.
+  const pin = pinFor(sel.id);
+  if (pin) return pin;
   return BY_AREA.get(sel.area) ?? null;
 }
 

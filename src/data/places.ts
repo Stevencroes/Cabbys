@@ -113,7 +113,10 @@ const ANCHORS: { lat: number; lon: number; km: number; min: number }[] = [
 
 /** Rough local metres. Fine over one 30 km island, and only ever used to
     rank and weight — never reported as a distance. */
-function metresBetween(aLat: number, aLon: number, bLat: number, bLon: number): number {
+/** Flat-earth metres, good to a fraction of a percent over an island this
+    size — and exported because placePins.ts checks a geocoded pin against
+    the area it is supposed to be in using the same yardstick. */
+export function metresBetween(aLat: number, aLon: number, bLat: number, bLon: number): number {
   const y = (aLat - bLat) * 110570;
   const x = (aLon - bLon) * 108680 * Math.cos((aLat * Math.PI) / 180);
   return Math.hypot(x, y);
