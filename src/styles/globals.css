@@ -263,7 +263,14 @@ h2.sec em{font-style:italic;}
 .lmap > .lmap-canvas{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;}
 .lmap-wait{position:absolute;inset:0;z-index:2;background:var(--surface);}
 .lmap-wait .rmap-wrap{height:100%;}
-.lmap-dur{position:absolute;left:12px;bottom:12px;z-index:3;
+/* The duration is the last row of the top-left stack (.lmap-hud), not a
+   free-floating pill. It used to be absolutely placed at left:12/bottom:12,
+   which is exactly where Google anchors its logo — and that logo staying
+   visible is a term of the licence, spelled out just below. Google owns
+   both bottom corners (logo left, copyright right); putting everything
+   this app draws in the one corner it does not claim keeps clear of both
+   without guessing at the height of anything Google renders. */
+.lmap-dur{align-self:flex-start;max-width:100%;
   font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);
   background:rgba(7,13,22,.82);border:1px solid var(--line);border-radius:var(--r-pill);padding:6px 12px;}
 /* Google's own zoom control and copyright line are left at their default
@@ -309,9 +316,12 @@ h2.sec em{font-style:italic;}
 .qtoggle-sm button{min-height:34px;padding:0 14px;font-size:11px;letter-spacing:.1em;
   white-space:nowrap;flex:none;}
 .tripmap .lmap,.tripmap .rmap{border-radius:var(--r-md);}
-/* the two ends ride the map the way every ride-hailing app shows them.
-   fitBounds reserves the top for exactly this — see LiveMap. */
-.tm-ends{position:absolute;left:12px;top:12px;z-index:4;display:flex;flex-direction:column;
+/* Everything the app floats over the tiles, in one column. Stacking them
+   rather than scattering them into corners is what makes the overlap with
+   Google's own chrome impossible by construction instead of by arithmetic
+   — and it reads better besides: both ends and the drive time as one
+   block. fitBounds reserves the top for exactly this — see LiveMap. */
+.lmap-hud{position:absolute;left:12px;top:12px;z-index:4;display:flex;flex-direction:column;
   gap:6px;align-items:flex-start;max-width:calc(100% - 60px);}
 .tme{display:inline-flex;align-items:center;gap:9px;max-width:100%;
   background:rgba(7,13,22,.86);border:1px solid var(--line);border-radius:var(--r-xs);

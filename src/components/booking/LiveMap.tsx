@@ -149,9 +149,10 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
       if (path && path.length > 1) {
         const bounds = new g.maps.LatLngBounds();
         path.forEach((p) => bounds.extend(p));
-        // heavier at the top: the two end labels sit up there, and a route
-        // fitted under them is a route half-covered
-        map.fitBounds(bounds, { top: 96, bottom: 44, left: 44, right: 44 });
+        // heavier at the top: the end labels AND the duration sit up
+        // there in one stack, and a route fitted under them is a route
+        // half-covered. Bottom stays clear of Google's own two corners.
+        map.fitBounds(bounds, { top: 132, bottom: 44, left: 44, right: 44 });
       }
     });
   }, [ready, line, a?.lat, a?.lon, b?.lat, b?.lon]);
@@ -174,13 +175,24 @@ export default function LiveMap({ from, to, minutes, fallbackHeight = 260, ends 
           <RouteMap from={from} to={to} minutes={minutes} height={fallbackHeight} />
         </div>
       )}
-      {ready && ends && (
-        <div className="tm-ends">
-          <span className="tme"><i className="tme-a" aria-hidden="true" />{from?.name}</span>
-          <span className="tme"><i className="tme-b" aria-hidden="true" />{to?.name}</span>
+      {/* One stack in the top-left corner, ends and duration together.
+          They used to sit in opposite corners, which put the duration on
+          top of Google's logo — and that logo staying visible is a term
+          of the licence, not a preference. Google owns the bottom-left
+          (logo) and bottom-right (copyright); one group in the corner it
+          does not use keeps clear of both without this file having to
+          know how tall any of Google's own chrome is. */}
+      {ready && (ends || minutes) ? (
+        <div className="lmap-hud">
+          {ends && (
+            <>
+              <span className="tme"><i className="tme-a" aria-hidden="true" />{from?.name}</span>
+              <span className="tme"><i className="tme-b" aria-hidden="true" />{to?.name}</span>
+            </>
+          )}
+          {minutes ? <span className="lmap-dur">{minutes} min drive</span> : null}
         </div>
-      )}
-      {ready && minutes ? <span className="lmap-dur">{minutes} min drive</span> : null}
+      ) : null}
       <MapTrace note={ready ? "live" : "waiting for tiles"} />
     </div>
   );
