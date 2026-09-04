@@ -120,3 +120,74 @@ describe("quote — the fare does not depend on when you asked", () => {
     expect(arubaHour(undefined)).toBeNull();
   });
 });
+
+/**
+ * A typed address is priced by the rate card, like everything else.
+ *
+ * It used to skip the card entirely and land on the km model, which quoted
+ * a typed "Manchebo Beach Resort" 38% above the same hotel picked from the
+ * list — same car, same road, two prices, decided by how the traveller
+ * happened to enter it. The card is now asked about the address's AREA,
+ * which for a geocoded address was chosen from its coordinates.
+ */
+describe("a typed address on the rate card", () => {
+  // ƒ35 airport → Eagle Beach, the row the deployed card actually carries
+  const card: Pricing = {
+    // Eagle Beach and Palm Beach sit in DIFFERENT zones at different
+    // prices on purpose. Same-zone fixtures hide this class of bug: a
+    // wrong name match lands on the same fare and the test still passes.
+    zones: [
+      { zone_code: "A", island: "aruba", active: true },
+      { zone_code: "B", island: "aruba", active: true },
+    ],
+    locations: [
+      { name: "Queen Beatrix International Airport", zone_code: "AIRPORT" },
+      { name: "Eagle Beach", zone_code: "A" },
+      { name: "Palm Beach", zone_code: "B" },
+    ],
+    routes: [
+      { from_name: "Airport", to_name: "Eagle Beach", price: 35, bidirectional: true },
+      { from_name: "ZONE:AIRPORT", to_name: "ZONE:A", price: 35, bidirectional: true },
+      { from_name: "ZONE:AIRPORT", to_name: "ZONE:B", price: 60, bidirectional: true },
+    ],
+    addons: [],
+    config: { min_fare: 12, late_night_start: 23, late_night_end: 5 },
+    loaded: true,
+  };
+  const priced = (to: ReturnType<typeof sel>) =>
+    quote({ from: airport, to, vehicle: saloon, isReturn: false, pricing: card });
+
+  const typedInEagleBeach = {
+    id: "gp-x", name: "Sasakiweg 34", area: "Eagle Beach" as const,
+    km: 8, min: 15, custom: true, lat: 12.5585, lon: -70.0565,
+  };
+
+  it("charges a typed address what the catalog place beside it costs", () => {
+    expect(priced(typedInEagleBeach).totalUsd).toBe(priced(sel("eagle-beach")).totalUsd);
+  });
+
+  it("reads that price off the rate card, not the km model", () => {
+    const t = priced(typedInEagleBeach);
+    expect(t.source).toBe("engine");
+    // the model would have said $33 for this leg; the card says ƒ35 → $21
+    expect(t.totalUsd).toBe(21);
+  });
+
+  // pricing.ts pairs location names by loose substring in BOTH directions,
+  // so a typed line reaching it is how a villa prices as the resort it is
+  // named after. The area is asked about instead — ten strings this app
+  // owns — and no character the traveller typed is ever matched.
+  it("never lets the typed text reach the matcher", () => {
+    const villa = {
+      id: "gp-y", name: "Palm Beach Villa 3", area: "Eagle Beach" as const,
+      km: 8, min: 15, custom: true, lat: 12.5585, lon: -70.0565,
+    };
+    // named for Palm Beach, standing in Eagle Beach: the coordinates win
+    expect(priced(villa).totalUsd).toBe(priced(sel("eagle-beach")).totalUsd);
+  });
+
+  it("still falls to the km model where the card has no row for the area", () => {
+    const remote = selFromCustom("Casa Bunita 7", areaByName("San Nicolas")!);
+    expect(priced(remote).source).toBe("model");
+  });
+});

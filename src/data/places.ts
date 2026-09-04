@@ -313,9 +313,12 @@ export function displayName(sel: PlaceSel): string {
  * ride on whichever they guessed. The coordinates already know. The menu
  * survives only for the case where there are no coordinates to ask.
  *
- * It stays `custom`, because it is still not a rate-card row: quote.ts sends
- * custom selections to the km model on purpose, and a geocoder's spelling of
- * a hotel must not start matching pricing_locations by accident.
+ * It stays `custom`, because it is still not a rate-card row: a geocoder's
+ * spelling of a hotel must never be matched against pricing_locations,
+ * which pairs names by loose substring. quote.ts honours that by asking the
+ * rate card about the AREA below rather than about `name` — so a typed
+ * address is priced by the card like everything else, without a single
+ * character the traveller typed reaching the matcher.
  *
  * The AREA is still the nearest one, because that is what a driver is told
  * and what the ride record files it under. The FARE is not: it comes from

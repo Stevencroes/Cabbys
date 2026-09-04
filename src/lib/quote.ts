@@ -38,6 +38,28 @@ export interface Quote {
 const isAirport = (s: PlaceSel) => s.id === AIRPORT_ID;
 
 /**
+ * The name the rate card is asked about for one end of a leg.
+ *
+ * A catalog place answers with its own name, which is canonical and
+ * matches pricing_locations rows by construction. A CUSTOM selection —
+ * a geocoded address, or one typed into the manual fallback — answers
+ * with its AREA instead, and never with what the traveller typed.
+ *
+ * That distinction is the whole point. pricing.ts matches location names
+ * by loose substring in both directions, so letting arbitrary text reach
+ * it is how "Villa Bucuti 3" starts pricing as the Bucuti resort. An area
+ * name is one of ten strings this app owns, and for a geocoded address it
+ * was chosen from COORDINATES (nearestArea in data/places.ts), not from
+ * spelling — so it is both safe to match and more trustworthy than the
+ * text would have been.
+ *
+ * Custom selections used to skip the rate card entirely and go straight to
+ * the km model, which priced a typed "Manchebo Beach Resort" 38% above the
+ * same hotel picked from the list. Same car, same road, two prices.
+ */
+const fareName = (s: PlaceSel): string => (s.custom ? s.area : s.name);
+
+/**
  * The hour the fare is priced against when no pickup time has been chosen.
  *
  * computeFare's `when` defaulted to `new Date()`, which meant the engine's
@@ -56,10 +78,11 @@ function legBaseUsd(
   pricing: Pricing | null,
   hour: number,
 ): { base: number; source: "engine" | "model"; lateNight: boolean } {
-  // 1 — live rate card (catalog names match pricing_locations/routes rows;
-  //     custom addresses never match and fall through to the model)
-  if (pricing?.loaded && !from.custom && !to.custom) {
-    const r = computeFare(pricing, { pickup: from.name, dropoff: to.name, when: hour });
+  // 1 — live rate card. Catalog names match pricing_locations/routes rows
+  //     directly; a custom address is asked about by its area (fareName).
+  //     Anything the card has no row for still falls through to the model.
+  if (pricing?.loaded) {
+    const r = computeFare(pricing, { pickup: fareName(from), dropoff: fareName(to), when: hour });
     if (r.source !== "min") {
       return {
         base: (r.total * (1 + TAX_RATE)) / AWG_PER_USD,
