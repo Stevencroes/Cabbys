@@ -85,7 +85,7 @@ export default function RideOffer({ job, onAccept, onDismiss, busy, refused }: R
           )}
         </div>
 
-        <div className="ofare">{job.fare != null ? `$${Math.round(job.fare)}` : "—"}</div>
+        <div className="ofare">{job.payoutUsd != null ? `$${Math.round(job.payoutUsd)}` : "—"}</div>
         <div className="owhen">{jobTime(job.scheduledAt)}</div>
 
         <div className="olegs">

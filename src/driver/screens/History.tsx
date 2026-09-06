@@ -60,7 +60,7 @@ export default function History({ driver }: { driver: DriverProfile }) {
                     {[whenLabel(r.completedAt ?? r.scheduledAt), r.vehicle].filter(Boolean).join(" · ")}
                   </div>
                 </div>
-                <div className="drv-hf">{r.fare != null ? `$${Math.round(r.fare)}` : "—"}</div>
+                <div className="drv-hf">{r.payoutUsd != null ? `$${Math.round(r.payoutUsd)}` : "—"}</div>
               </div>
             ))}
           </div>

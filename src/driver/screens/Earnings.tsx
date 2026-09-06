@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadCompleted, type AssignedJob, type DriverProfile } from "../lib/driver";
 import { ARUBA_OFFSET_MINUTES, todayInAruba } from "../../lib/datetime";
+import { COMMISSION_RATE } from "../../lib/quote";
 
 type Range = "week" | "today";
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -47,7 +48,7 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
       const d = arubaDay(r.completedAt ?? r.scheduledAt);
       if (!d) continue;
       const cur = m.get(d) ?? { total: 0, jobs: 0 };
-      cur.total += r.fare ?? 0;
+      cur.total += r.payoutUsd ?? 0;
       cur.jobs += 1;
       m.set(d, cur);
     }
@@ -72,10 +73,11 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
         </div>
 
         <div className="drv-etot">
-          <div className="ek">Net earned</div>
+          <div className="ek">Your earnings</div>
           <div className="ev">${Math.round(total).toLocaleString("en-US")}</div>
           <div className="ed">
-            {range === "today" ? "Today" : "Mon–Sun"} · {jobs} job{jobs === 1 ? "" : "s"}
+            {range === "today" ? "Today" : "Mon–Sun"} · {jobs} job{jobs === 1 ? "" : "s"} ·
+            after {Math.round(COMMISSION_RATE * 100)}% Cabby's
           </div>
         </div>
 

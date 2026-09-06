@@ -132,7 +132,7 @@ export default function Pool() {
                     key={j.id}
                     job={j}
                     chip={{ tone: "", label: jobTime(j.scheduledAt) }}
-                    headline={j.fare != null ? `$${Math.round(j.fare)}` : "—"}
+                    headline={j.payoutUsd != null ? `$${Math.round(j.payoutUsd)}` : "—"}
                     leaving={leaving.includes(j.id)}
                     action={{
                       label: busy === j.id ? "…" : "Accept",

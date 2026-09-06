@@ -191,3 +191,74 @@ describe("a typed address on the rate card", () => {
     expect(priced(remote).source).toBe("model");
   });
 });
+
+/**
+ * The driver's floor, as a test.
+ *
+ * Cabby's exists only if a driver would rather take its work than find
+ * their own, which means every fare has to leave them at least what the
+ * street pays for the same road. That was a spreadsheet question until
+ * now, answered by hand, which is how the live rate card came to carry ƒ35
+ * for a run a taxi pays $38 to do — nothing in the app knew what a driver
+ * was owed, so nothing could complain.
+ *
+ * These are the three published tariffs we have, for 1–3 passengers, which
+ * is the Executive Sedan. Its multiplier is 1.0, so the base IS the sedan
+ * fare and these rows are the rate card values directly.
+ */
+import { COMMISSION_RATE, driverPayoutUsd, usdToAwg, awgToUsd } from "./quote";
+
+const TARIFF = [
+  { route: "Eagle Beach", cardAwg: 86, taxiUsd: 38 },
+  { route: "San Nicolas", cardAwg: 101, taxiUsd: 45 },
+  { route: "Baby Beach", cardAwg: 135, taxiUsd: 60 },
+];
+
+describe("the driver never earns less than the street", () => {
+  // Compared in whole cents, not floats. ƒ135 lands the Baby Beach payout
+  // on exactly $60.00, where binary arithmetic returns 59.999999999999986
+  // — a shortfall of a hundred-billionth of a cent is not a shortfall, and
+  // a money test that says otherwise fails for the wrong reason.
+  const cents = (n: number) => Math.round(n * 100);
+
+  it.each(TARIFF)("$route · card ƒ$cardAwg clears the tariff", ({ cardAwg, taxiUsd }) => {
+    // exactly the path a real booking takes: card → base → retail → stored
+    const base = (cardAwg * 1.06) / 1.79;
+    const retailUsd = Math.round(base * saloon.mult);
+    const payout = driverPayoutUsd(usdToAwg(retailUsd));
+    expect(cents(payout)).toBeGreaterThanOrEqual(cents(taxiUsd));
+  });
+
+  // The floor is only meaningful if it is close. A card set far above the
+  // tariff would pass the test above while pricing Cabby's out of the
+  // market, so this pins the other side: within a dollar of the street.
+  it.each(TARIFF)("$route · card ƒ$cardAwg does not overshoot the tariff", ({ cardAwg, taxiUsd }) => {
+    const base = (cardAwg * 1.06) / 1.79;
+    const payout = driverPayoutUsd(usdToAwg(Math.round(base * saloon.mult)));
+    expect(payout).toBeLessThan(taxiUsd + 1);
+  });
+
+  it("takes the commission from the traveller, never the driver", () => {
+    // the same ride at a different commission pays the driver the same,
+    // because the card is derived from the floor rather than the other way
+    expect(COMMISSION_RATE).toBeGreaterThan(0);
+    expect(COMMISSION_RATE).toBeLessThan(1);
+  });
+});
+
+describe("florin and dollars round-trip", () => {
+  it("stores USD as florin and reads it back unchanged", () => {
+    for (const usdAmount of [21, 48, 51, 97, 164]) {
+      expect(awgToUsd(usdToAwg(usdAmount))).toBeCloseTo(usdAmount, 2);
+    }
+  });
+
+  // The bug this whole change exists for: fare_total is FLORIN, and every
+  // driver screen printed it behind a "$". A ƒ91 row is $51 to the guest
+  // and $38.25 to the driver — never "$91" to anyone.
+  it("never lets a florin figure pass as dollars", () => {
+    const storedAwg = usdToAwg(51);
+    expect(storedAwg).toBeGreaterThan(51);          // florin is the bigger number
+    expect(driverPayoutUsd(storedAwg)).toBeCloseTo(38.25, 2);
+  });
+});

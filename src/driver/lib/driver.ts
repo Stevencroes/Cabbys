@@ -7,6 +7,7 @@
 //  · accepting calls the claim_ride RPC, never an update, so two drivers
 //    tapping at the same moment cannot both win.
 import { supabase } from "../../lib/supabase";
+import { driverPayoutUsd } from "../../lib/quote";
 import { arubaInstant } from "../../lib/datetime";
 
 export type DriverStatus = "pending" | "approved" | "suspended";
@@ -34,7 +35,14 @@ export interface OpenJob {
   passengers: number | null;
   luggage: number | null;
   childSeats: number | null;
-  fare: number | null;
+  /** the CUSTOMER's fare, in florin, exactly as the ride row stores it.
+      Named for its currency and its owner on purpose: it was called `fare`,
+      and every driver screen printed it under a dollar sign as though it
+      were the driver's own money in dollars. It is neither. */
+  fareAwg: number | null;
+  /** what this job pays the DRIVER, in USD, after Cabby's commission —
+      the only money figure a driver screen should ever show */
+  payoutUsd: number | null;
   bookingRef: string | null;
 }
 
@@ -69,6 +77,7 @@ function effectiveScheduledAt(r: Row): string | null {
 }
 
 function toOpen(r: Row): OpenJob {
+  const fare = nNum(r.fare_total) ?? nNum(r.price);
   return {
     id: str(r.id),
     status: str(r.status) || "confirmed",
@@ -79,7 +88,8 @@ function toOpen(r: Row): OpenJob {
     passengers: nNum(r.passengers_count),
     luggage: nNum(r.luggage_count),
     childSeats: nNum(r.child_seats),
-    fare: nNum(r.fare_total) ?? nNum(r.price),
+    fareAwg: fare,
+    payoutUsd: fare == null ? null : driverPayoutUsd(fare),
     bookingRef: nStr(r.booking_ref),
   };
 }

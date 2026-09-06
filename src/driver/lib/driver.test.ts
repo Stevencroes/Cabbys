@@ -199,7 +199,9 @@ describe("driver data layer", () => {
       expect(job.vehicle).toBe("SUV");
       // price is the core-tier fare column; fare_total only exists once
       // the later tier succeeded
-      expect(job.fare).toBe(6700);
+      expect(job.fareAwg).toBe(6700);
+      // and the driver is quoted their own cut of it, in dollars
+      expect(job.payoutUsd).toBeCloseTo((6700 / 1.79) * 0.75, 2);
     });
 
     it("derives scheduledAt from scheduled_date + scheduled_time, the always-present columns", async () => {

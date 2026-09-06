@@ -170,6 +170,10 @@
 .drv-r .rl{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
   font-weight:600;align-self:center;}
 .drv-r .rv{font-size:13.5px;text-align:right;font-weight:400;color:var(--ink);}
+/* the commission note beside the guest's total — present so the driver can
+   check the arithmetic themselves, quiet so it never competes with their
+   own figure directly above it */
+.drv-r .rsub{font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap;}
 .drv-r .rv.hl{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink);}
 
 .drv-pax{display:flex;align-items:center;gap:12px;padding:14px 0;margin-bottom:16px;

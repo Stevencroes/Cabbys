@@ -143,7 +143,7 @@ export default function JobCard({ job, chip, action, onOpen, showDay, headline, 
             {action.label}
           </button>
         ) : (
-          <span className="fare">{job.fare != null ? `$${Math.round(job.fare)}` : "—"}</span>
+          <span className="fare">{job.payoutUsd != null ? `$${Math.round(job.payoutUsd)}` : "—"}</span>
         )}
       </div>
     </>

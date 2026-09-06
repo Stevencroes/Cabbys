@@ -22,7 +22,9 @@ import Pool from "./Pool";
 const job = (id: string, pickup = "Queen Beatrix International Airport") => ({
   id, status: "confirmed", scheduledAt: "2026-09-01T18:35:00.000Z",
   pickup, dropoff: "The Ritz-Carlton Aruba", vehicle: "The Scout",
-  passengers: 3, luggage: 2, childSeats: 0, fare: 67, bookingRef: "CB-1",
+  passengers: 3, luggage: 2, childSeats: 0,
+  // ƒ89.50 is what the guest pays; the driver's cut of it is $37.50
+  fareAwg: 89.5, payoutUsd: (89.5 / 1.79) * 0.75, bookingRef: "CB-1",
 });
 
 const renderPool = () => render(<MemoryRouter><Pool /></MemoryRouter>);
@@ -36,10 +38,16 @@ beforeEach(() => {
 });
 
 describe("Open pool", () => {
-  it("shows the route and fare but never the guest's identity", async () => {
+  // The pool leads with money, and it must be the DRIVER's money. This
+  // used to print fare_total — the guest's fare, in florin — under a
+  // dollar sign, so a ƒ89.50 job advertised itself as "$90" against a real
+  // payout of $37.50. Two errors compounding: wrong currency, wrong party.
+  it("leads with what the driver is paid, not what the guest pays", async () => {
     renderPool();
     expect(await screen.findByText(/Queen Beatrix International Airport/)).toBeInTheDocument();
-    expect(screen.getByText("$67")).toBeInTheDocument();
+    expect(screen.getByText("$38")).toBeInTheDocument();
+    expect(screen.queryByText("$90")).toBeNull();
+    expect(screen.queryByText("$89")).toBeNull();
     // the view withholds these; the card must not invent a place for them
     expect(screen.queryByText(/contact/i)).toBeNull();
     expect(screen.getByText(/no guest names or numbers shown until a job is yours/i)).toBeInTheDocument();

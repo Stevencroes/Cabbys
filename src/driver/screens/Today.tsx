@@ -85,7 +85,7 @@ export default function Today({ driver }: { driver: DriverProfile }) {
   const setSpan = (s: Span) => setParams(s === preferred ? {} : { span: s }, { replace: true });
 
   const doneToday = done.filter((j) => arubaDay(j.completedAt ?? j.scheduledAt) === today);
-  const earned = doneToday.reduce((sum, j) => sum + (j.fare ?? 0), 0);
+  const earned = doneToday.reduce((sum, j) => sum + (j.payoutUsd ?? 0), 0);
   const list = buckets[span];
   const firstName = (driver.fullName || "Driver").split(" ")[0];
 

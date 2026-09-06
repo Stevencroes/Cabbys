@@ -146,3 +146,38 @@ export function quote({ from, to, vehicle, isReturn, pricing, pickupTime }: Quot
 export function usdToAwg(usdAmount: number): number {
   return Math.round(usdAmount * AWG_PER_USD * 100) / 100;
 }
+
+/** Back the other way — the ride row stores florin, drivers are shown USD. */
+export function awgToUsd(awgAmount: number): number {
+  return awgAmount / AWG_PER_USD;
+}
+
+/**
+ * Cabby's share of a fare.
+ *
+ * The number the whole fare model is built backwards from: every rate card
+ * row is set so that what is LEFT after this still clears what a taxi pays
+ * the same driver for the same road. Change it and every fare has to be
+ * re-derived, which is why it lives here beside the fare and not in a
+ * component.
+ *
+ * It belongs in pricing_config eventually, alongside min_fare and the
+ * late-night window, so it can move without a deploy. It is a constant for
+ * now because a half-wired config read that never fires is worse than an
+ * honest constant.
+ */
+export const COMMISSION_RATE = 0.25;
+
+/**
+ * What the driver actually receives, in USD, from a fare stored in florin.
+ *
+ * This exists because the driver portal had no concept of it. Every screen
+ * showed `fare_total` — the CUSTOMER's fare, in florin — under a dollar
+ * sign, and the earnings screen called it "Net earned". Two errors stacked
+ * the same way: a $51 ride was stored as ƒ91 and displayed to the driver as
+ * "$91", against a true payout of $38.25. Nothing in the app could have
+ * caught it, because nothing in the app knew what a driver was owed.
+ */
+export function driverPayoutUsd(fareTotalAwg: number): number {
+  return awgToUsd(fareTotalAwg) * (1 - COMMISSION_RATE);
+}

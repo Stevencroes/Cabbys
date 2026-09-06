@@ -12,6 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { jobDate, jobTime, shortPlace } from "../JobCard";
 import { loadRide, setRideStatus, type AssignedJob, type RideStatus } from "../lib/driver";
+import { awgToUsd, COMMISSION_RATE } from "../../lib/quote";
 import { formatFlightNumber } from "../../lib/flight";
 import { normalizePhone } from "../../lib/contact";
 
@@ -165,9 +166,19 @@ export default function RideDetail() {
           <div className="drv-r"><span className="rl">Pick up</span><span className="rv">{ride.pickup}</span></div>
           <div className="drv-r"><span className="rl">Drop off</span><span className="rv">{ride.dropoff}</span></div>
           {ride.vehicle && <div className="drv-r"><span className="rl">Vehicle</span><span className="rv">{ride.vehicle}</span></div>}
+          {/* The driver's money leads. The guest's total is shown under it
+              rather than hidden — a driver who can see both trusts the
+              first number, and this is the one screen with room for it. */}
           <div className="drv-r">
-            <span className="rl">Fare</span>
-            <span className="rv hl">{ride.fare != null ? `$${Math.round(ride.fare)}` : "—"}</span>
+            <span className="rl">You earn</span>
+            <span className="rv hl">{ride.payoutUsd != null ? `$${Math.round(ride.payoutUsd)}` : "—"}</span>
+          </div>
+          <div className="drv-r">
+            <span className="rl">Guest pays</span>
+            <span className="rv">
+              {ride.fareAwg != null ? `$${Math.round(awgToUsd(ride.fareAwg))}` : "—"}
+              <small className="rsub"> · less {Math.round(COMMISSION_RATE * 100)}% Cabby's</small>
+            </span>
           </div>
         </div>
 

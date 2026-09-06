@@ -108,7 +108,7 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
           <div className="gi">
             <span className="gk">Still open</span>
             <span className="gv">
-              {jobTime(offers.missed.scheduledAt)} · {offers.missed.fare != null ? `$${Math.round(offers.missed.fare)}` : "—"}
+              {jobTime(offers.missed.scheduledAt)} · {offers.missed.payoutUsd != null ? `$${Math.round(offers.missed.payoutUsd)}` : "—"}
             </span>
           </div>
           <button
