@@ -48,6 +48,24 @@
     document.body.appendChild(g);
   }
   if (on("smooth")) document.documentElement.style.scrollBehavior = "smooth";
+  if (on("par")) {          // a composited layer, like the parallax suns
+    const s2 = document.createElement("div");
+    s2.style.cssText = "position:absolute;top:120px;left:50%;width:300px;height:300px;" +
+      "border-radius:50%;background:radial-gradient(#E8A87C,#8C5A3C);" +
+      "will-change:transform;transform:translate3d(-50%,0,0);z-index:1";
+    document.body.appendChild(s2);
+    addEventListener("scroll", () => {
+      s2.style.transform = "translate3d(-50%," + (scrollY * -0.05).toFixed(1) + "px,0)";
+    }, { passive: true });
+  }
+  if (on("bd")) {           // a backdrop-filter card, like the booking panel
+    const c = document.createElement("div");
+    c.style.cssText = "position:relative;z-index:2;margin:80px 16px;padding:40px 20px;" +
+      "background:rgba(9,19,29,.6);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);" +
+      "border:1px solid #23313D;border-radius:12px";
+    c.textContent = "backdrop-filter card";
+    document.getElementById("page").appendChild(c);
+  }
   if (on("cover")) {                                                // viewport-fit=cover
     document.querySelector('meta[name=viewport]').setAttribute(
       "content", "width=device-width, initial-scale=1.0, viewport-fit=cover");
@@ -70,7 +88,7 @@
   const out = document.getElementById("readout");
   const draw = () => {
     const vv = window.visualViewport;
-    const flags = ["ox","vh","grain","smooth","cover"].filter(on).join(",") || "none";
+    const flags = ["ox","vh","grain","smooth","cover","par","bd"].filter(on).join(",") || "none";
     out.innerHTML =
       "<b>flags</b> " + flags +
       " · <b>win</b> " + innerWidth + "×" + innerHeight +
