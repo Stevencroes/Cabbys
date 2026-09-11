@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#020B14">
+<title>Nav strip test</title>
+<style>
+  /* Deliberately minimal. This page exists to find out which line in the
+     real stylesheet lets page content paint above a fixed bar on iOS, by
+     starting from a bar that has nothing else around it and adding the
+     suspects back one query parameter at a time. */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020B14;color:#F5F5F3;font:400 15px/1.5 system-ui,sans-serif}
+  .nav{position:fixed;top:0;left:0;right:0;height:60px;z-index:50;
+       background:#020B14;border-bottom:1px solid #23313D;
+       display:flex;align-items:center;padding:0 18px;
+       font:600 15px/1 system-ui;letter-spacing:.2em}
+  .page{padding-top:60px}
+  .band{height:260px;display:flex;align-items:center;justify-content:center;
+        font:700 42px/1 system-ui;color:#0B1420}
+  .a{background:linear-gradient(160deg,#E8A87C,#8C5A3C)}
+  .b{background:linear-gradient(160deg,#7CC5E8,#3C6A8C)}
+  .readout{position:fixed;bottom:16px;left:8px;right:8px;z-index:60;
+           background:#000;border:2px solid #FF4FD8;color:#FF4FD8;border-radius:8px;
+           padding:8px 10px;font:600 12px/1.45 ui-monospace,Menlo,monospace}
+  .readout b{color:#fff}
+</style>
+</head>
+<body>
+<div class="nav">TEST BAR</div>
+<div class="page" id="page"></div>
+<div class="readout" id="readout"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const on = (k) => q.get(k) === "1";
+
+  // Each flag adds back one thing the real site does that a plain page does not.
+  if (on("ox")) document.body.style.overflowX = "hidden";          // body{overflow-x:hidden}
+  if (on("vh")) {                                                   // a 100vh first section
+    const h = document.createElement("div");
+    h.style.cssText = "min-height:100vh;background:linear-gradient(#12324a,#020B14)";
+    document.getElementById("page").appendChild(h);
+  }
+  if (on("grain")) {                                                // body::after fixed overlay
+    const g = document.createElement("div");
+    g.style.cssText = "position:fixed;inset:0;z-index:40;pointer-events:none;opacity:.04;background:#fff";
+    document.body.appendChild(g);
+  }
+  if (on("smooth")) document.documentElement.style.scrollBehavior = "smooth";
+  if (on("cover")) {                                                // viewport-fit=cover
+    document.querySelector('meta[name=viewport]').setAttribute(
+      "content", "width=device-width, initial-scale=1.0, viewport-fit=cover");
+  }
+
+  // enough tall, strongly coloured bands that anything sliding above the bar
+  // is unmistakable in a photograph
+  const page = document.getElementById("page");
+  for (let i = 0; i < 12; i++) {
+    const d = document.createElement("div");
+    d.className = "band " + (i % 2 ? "b" : "a");
+    d.textContent = i + 1;
+    page.appendChild(d);
+  }
+
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;top:0;visibility:hidden;height:env(safe-area-inset-top,0px)";
+  document.body.appendChild(probe);
+
+  const out = document.getElementById("readout");
+  const draw = () => {
+    const vv = window.visualViewport;
+    const flags = ["ox","vh","grain","smooth","cover"].filter(on).join(",") || "none";
+    out.innerHTML =
+      "<b>flags</b> " + flags +
+      " · <b>win</b> " + innerWidth + "×" + innerHeight +
+      " · <b>vv</b> " + (vv ? Math.round(vv.width) + "×" + Math.round(vv.height) : "-") +
+      " · <b>vv top</b> " + (vv ? Math.round(vv.offsetTop) : "-") +
+      " · <b>safe-top</b> " + Math.round(probe.getBoundingClientRect().height) +
+      " · <b>navTop</b> " + Math.round(document.querySelector(".nav").getBoundingClientRect().top) +
+      " · <b>scrollY</b> " + Math.round(scrollY);
+  };
+  draw();
+  addEventListener("scroll", draw, true);
+  addEventListener("resize", draw);
+  window.visualViewport?.addEventListener("resize", draw);
+  window.visualViewport?.addEventListener("scroll", draw);
+</script>
+</body>
+</html>
