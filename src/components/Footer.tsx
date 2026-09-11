@@ -1,7 +1,19 @@
-export default function Footer() {
+import Closer from "./Closer";
+import Reviews from "./Reviews";
+
+// `closing` makes this the landing page's whole closing band: the CTA, the
+// proof and the sitemap used to be three stacked sections in two different
+// grounds, which put a seam right under the one button the page is asking
+// you to press. Together they are one element — a single ground, with
+// hairlines rather than colour changes separating the close from the small
+// print. The account pages (trips, profile, reset) take the plain footer:
+// nothing there is asking for a booking, so nothing there closes.
+export default function Footer({ closing = false }: { closing?: boolean }) {
   return (
-    <footer id="contact" className="site-foot">
+    <footer id="contact" className={`site-foot${closing ? " closing" : ""}`}>
+      {closing && <Closer />}
       <div className="wrap">
+        {closing && <Reviews />}
         <div className="ftop">
           <div>
             <div className="fbrand">Cabby<span className="ap">'</span>s</div>

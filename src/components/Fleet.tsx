@@ -30,17 +30,8 @@ export default function Fleet() {
       <div className="fleet flow">
         <div className="inner">
           <div className="sec-head">
-            <div>
-              <div className="eyebrow rise">Our vehicles</div>
-              <SplitHeading className="sec" parts={[{ text: "Choose your perfect ride." }]} />
-            </div>
-            <button type="button" className="lnk-ghost" onClick={() => startBooking()}>
-              View all vehicles
-              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-                strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 10h13M11 5l5 5-5 5" />
-              </svg>
-            </button>
+            <div className="eyebrow rise">Our vehicles</div>
+            <SplitHeading className="sec" parts={[{ text: "Choose your perfect ride." }]} />
           </div>
 
           <div className="fgrid stagger">

@@ -781,15 +781,12 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 
 /* ============ HOW — one bordered grid, shared rules ============ */
 /* ============ SECTION HEAD — shared by §10 and §11 ============ */
-/* eyebrow and serif headline on the left, one quiet link on the right */
-.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;flex-wrap:wrap;}
+/* An eyebrow and a serif headline, and nothing else. The head used to carry
+   a ghost link to the right of the headline in both sections; both said
+   "book", which the page already asks for in the nav, the hero and the
+   closer. The heading is stronger on its own. */
 .sec-head .eyebrow{color:var(--silver);font-size:11.5px;font-weight:500;letter-spacing:.26em;}
 .sec-head .sec{margin:14px 0 0;}
-.lnk-ghost{display:inline-flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 20px;
-  border:1px solid var(--line);background:transparent;color:var(--silver);
-  font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
-  border-radius:var(--r-sm);transition:.3s var(--ease);flex:none;}
-.lnk-ghost:hover{border-color:var(--silver-deep);color:var(--ink);}
 
 /* ============ §10 — THE FOUR PILLARS ============ */
 /* No boxes. A mark, a name, a claim, and air between them — the border-grid
@@ -848,10 +845,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 
 /* ============ §12 — SOCIAL PROOF ============ */
 /* One line across on a wide screen: the score, one voice, the three places
-   it is public. Nothing here is a card. */
-.proof{border-bottom:1px solid var(--line);}
+   it is public. Nothing here is a card.
+
+   It lives in the footer. On its own it was a 120px band between two full
+   sections — too thin to read as a section and too loud to read as a rule,
+   so it fell between the two. Under the closing CTA it is the last thing
+   said before the small print, which is the job it was always doing. */
 .proof-in{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
-  gap:clamp(28px,4vw,56px);padding-top:clamp(30px,4vh,44px);padding-bottom:clamp(30px,4vh,44px);}
+  gap:clamp(26px,4vw,56px);padding-top:clamp(30px,4vh,42px);padding-bottom:clamp(30px,4vh,42px);
+  /* the rule is on the row, not the section: inside the footer every
+     divider stops at the gutter, so they stack as one column of hairlines
+     instead of one full-bleed line among inset ones */
+  border-top:1px solid var(--line);}
 .proof-score{display:flex;flex-direction:column;gap:5px;}
 .proof-score .ps-n{font-family:var(--serif);font-size:34px;font-weight:600;line-height:1;color:var(--ink);}
 .proof-score .ps-stars{display:flex;gap:3px;color:var(--highlight);}
@@ -862,7 +867,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .proof-on{display:flex;align-items:center;gap:clamp(18px,2.4vw,30px);flex:none;}
 .proof-on span{font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--silver);white-space:nowrap;}
 @media(max-width:900px){
-  .proof-in{grid-template-columns:1fr;gap:22px;}
+  .proof-in{grid-template-columns:1fr;gap:20px;}
   .proof-on{flex-wrap:wrap;gap:16px;}
 }
 
@@ -881,9 +886,12 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fitem.open .fa{max-height:320px;}
 .fa p{margin:0 0 22px;font-size:14.5px;line-height:1.75;color:var(--muted);max-width:64ch;font-weight:400;}
 
-/* ============ CLOSER ============ */
-.closer{position:relative;background:var(--ground);color:var(--ink);text-align:center;
-  padding:78px 0 86px;border-top:1px solid var(--line);}
+/* ============ CLOSER — the head of the footer ============ */
+/* No ground of its own: it sits inside .site-foot and shares it, so the
+   CTA and the sitemap read as one closing block rather than two bands
+   with a colour change running between them. */
+.closer{position:relative;color:var(--ink);text-align:center;
+  padding:clamp(60px,8vh,82px) 0 clamp(56px,7.4vh,78px);border-top:1px solid var(--line);}
 .closer h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,3.9vw,54px);line-height:1.03;
   letter-spacing:-.02em;margin:0;position:relative;z-index:var(--z-content);}
 .closer h2 em{font-style:italic;color:var(--silver);}
@@ -892,11 +900,17 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;position:relative;z-index:var(--z-content);transition:.3s;}
 .closer .cbtn:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
 
-/* ============ FOOTER — full-bleed deep ============ */
+/* ============ FOOTER — one closing band ============ */
 /* Scoped to the site footer on purpose: a bare `footer{}` selector also
    paints every <footer> inside a card (trip actions), which turned them
    into solid blocks. */
 .site-foot{background:var(--deep);color:var(--muted);padding:56px 0 30px;}
+/* The landing's closing band: the closer and the proof row ride in here
+   too, so the footer drops to the closer's ground and lets the closer set
+   the top padding. One colour from the CTA to the copyright line; the only
+   thing dividing them is a hairline. */
+.site-foot.closing{background:var(--ground);padding-top:0;}
+.site-foot.closing .ftop{padding-top:44px;border-top:1px solid var(--line);}
 .ftop{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;padding-bottom:38px;border-bottom:1px solid var(--line);}
 .fbrand{font-family:var(--serif);font-weight:500;letter-spacing:.26em;text-transform:uppercase;font-size:18px;color:var(--ink);padding-left:.26em;}
 .fbrand .ap{color:var(--silver);}

@@ -2,7 +2,6 @@
 // and a great deal of air: the premium reads as restraint, not decoration.
 import { useEffect, useState } from "react";
 import { SplitHeading } from "./motion";
-import { useStartBooking } from "../booking/useStartBooking";
 
 /** The mockup gives the pillars two forms: four columns on a desktop, and a
     list you open one at a time on a phone. That is a change of COMPONENT,
@@ -45,24 +44,14 @@ const PILLARS = [
 ];
 
 export default function HowItWorks() {
-  const startBooking = useStartBooking();
   const phone = useIsPhone();
   const [open, setOpen] = useState<string | null>(PILLARS[0].title);
   return (
     <section className="band" id="services">
       <div className="wrap">
         <div className="sec-head">
-          <div>
-            <div className="eyebrow rise">Why choose Cabby's</div>
-            <SplitHeading className="sec" parts={[{ text: "Service that sets the standard." }]} />
-          </div>
-          <button type="button" className="lnk-ghost" onClick={() => startBooking()}>
-            See all services
-            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-              strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 10h13M11 5l5 5-5 5" />
-            </svg>
-          </button>
+          <div className="eyebrow rise">Why choose Cabby's</div>
+          <SplitHeading className="sec" parts={[{ text: "Service that sets the standard." }]} />
         </div>
 
         <div className={`pillars stagger${phone ? " pillars-list" : ""}`}>

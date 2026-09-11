@@ -1,12 +1,15 @@
 // §12 — social proof, kept deliberately small. A rating, a count, one voice
 // and the three places that voice is public. No testimonial cards: the
 // section earns trust by being brief about it.
+// It renders inside the footer's own .wrap, so it carries no container of
+// its own — that is what keeps its hairline on the same column as the
+// sitemap's and the small print's.
 const PLATFORMS = ["Google", "Tripadvisor", "Trustpilot"];
 
 export default function Reviews() {
   return (
     <section className="proof" id="reviews">
-      <div className="wrap proof-in">
+      <div className="proof-in">
         <div className="proof-score rise">
           <span className="ps-n">5.0</span>
           <span className="ps-stars" aria-hidden="true">
