@@ -11,9 +11,9 @@ import { isOnIsland } from "../lib/geo";
 // summary; what it never touched (party, contact, payment) gets its own step.
 export const STEP_NAMES = ["Your car", "Your details", "Review", "Payment"] as const;
 
-/** 1-indexed, and there are exactly as many as STEP_NAMES. Where the flow
-    ENDS is not a constant: with no Stripe key there is no card to take, so
-    the overlay derives its own last step and Review is the finish line. */
+/** 1-indexed, and there are exactly as many as STEP_NAMES. All four are
+    always in the flow — what the last one can DO depends on whether a card
+    can be taken, but it is a step either way, and it says which it is. */
 export type Step = 1 | 2 | 3 | 4;
 
 export interface BookingState {
