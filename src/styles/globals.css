@@ -1512,6 +1512,16 @@ input.txt{border-radius:var(--r-sm);}
 :focus-visible{outline:2px solid var(--silver);outline-offset:3px;border-radius:6px;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
+/* The From/To cells, brought in line with the other three. Their label and
+   value made one contiguous 43px strip — over the 24px floor, so not the
+   dead-middle failure the date cell had — but the cell's padding was still
+   inert at the top and bottom edges while every other cell on the card was
+   live edge to edge. The label carries `for`, so padding it upward is
+   enough; the input takes its own downward. Appended here for the same
+   reason as the rest: the .qcell rules further up would win otherwise. */
+.qcell .combo .cfield label{padding:14px 16px 8px;margin:-14px -16px 0;}
+.qcell .combo .cfield input{padding:0 0 16px;margin:0 0 -16px;}
+
 /* ── short phones: the card has to FIT ────────────────────────────────
    The hero is sized by its content, not by 100svh, so on a short screen
    the content simply ran past the bottom: on a 375x667 (iPhone SE) the
@@ -1547,7 +1557,9 @@ input.txt{border-radius:var(--r-sm);}
   .qcell .dtf-label{padding:10px 16px 6px;margin:-10px -16px 0;}
   .qcell .dtf-trigger{padding:0 16px 12px;margin:0 -16px -12px;}
   .qcell .qpax{padding:10px 16px 12px;margin:-10px -16px -12px;}
-  .qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{margin-bottom:6px;}
+  .qcell .combo .cfield label{padding:10px 16px 6px;margin:-10px -16px 0;}
+  .qcell .combo .cfield input{padding:0 0 12px;margin:0 0 -12px;}
+  .qcell .qfld label,.qcell .qpax-l{margin-bottom:6px;}
 }
 
 /* And a second step for the genuinely small — a 667px iPhone SE cleared
