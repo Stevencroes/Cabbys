@@ -21,11 +21,27 @@
   --ink:#F5F5F3;         /* 18.5:1 — headings, prices, primary values */
   --silver:#A7ADB4;      /*  8.7:1 — labels, eyebrows, small caps, accents */
   /* §04 gives #6F7882 here. Against a ground this dark that measures 4.4:1,
-     just under the 4.5 floor for body text, so it is lifted one step. The
-     brief calls its values approximate; failing AA is not the part to
-     reproduce faithfully. */
-  --muted:#737C86;       /*  4.7:1 — body copy, secondary text */
-  --placeholder:#737C86; /*  4.7:1 — input placeholders only */
+     just under the 4.5 floor for body text, so it is lifted. The brief
+     calls its values approximate; failing AA is not the part to reproduce
+     faithfully.
+
+     Lifted a second time, because the first lift was measured against
+     --ground alone and this colour does not only sit on --ground. The
+     grounds are a ladder and every rung above the page is LIGHTER, so the
+     contrast falls as the surface rises:
+
+       on --ground  #020B14   old 4.67:1  pass
+       on --deep    #06121D   old 4.46:1  fail   ← the whole FAQ
+       on --surface #091722   old 4.28:1  fail   ← cards
+       on --raised  #0D1C29   old 4.08:1  fail   ← every input and the
+                                                    booking card's labels
+
+     So most of the body copy on the site was failing: the pillars, the
+     fare lines, the FAQ answers, every field label on the hero card.
+     #808994 is measured against --raised, the lightest rung it is ever
+     used on, and clears AA on all four. */
+  --muted:#808994;       /*  4.87:1 on --raised, 5.59:1 on --ground */
+  --placeholder:#808994; /*  placeholder text is text, and held to the same */
   --silver-deep:#8A9AAB; /* pressed states, borders on silver elements */
   --highlight:#D7D9D8;   /* subtle highlight (§04) */
 
