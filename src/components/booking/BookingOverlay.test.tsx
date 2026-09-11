@@ -135,6 +135,10 @@ describe("BookingOverlay — the booking flow", () => {
 
     // Step 3 — a last look, with the same total the bar has been showing
     expect(screen.getByText(/Does this look/)).toBeInTheDocument();
+    // With no key there is still a payment step — it explains that the
+    // fare is settled with the driver, and carries the booking action.
+    fireEvent.click(screen.getByRole("button", { name: /continue to payment/i }));
+    expect(await screen.findByText(/card payment isn't switched on/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /reserve your car/i }));
     await waitFor(() =>
       expect(onConfirmed).toHaveBeenCalledWith(
@@ -205,21 +209,24 @@ describe("BookingOverlay — the booking flow", () => {
     // the numeral is its own span, so read the row rather than a text node
     const label = () => document.querySelector(".bstep")!;
     const fill = () => document.querySelector<HTMLElement>(".bprog-fill")!.style.width;
-    expect(label()).toHaveTextContent("Step one of three · Your car");
+    // Four steps, always. This used to read "of three" with no Stripe key
+    // and "of four" with one, which made the flow two different products
+    // depending on an environment variable.
+    expect(label()).toHaveTextContent("Step one of four · Your car");
     // the fill is derived from the step, not hardcoded
-    expect(fill()).toBe("33%");
+    expect(fill()).toBe("25%");
 
     toDetails();
 
-    await waitFor(() => expect(label()).toHaveTextContent("Step two of three · Your details"));
-    expect(fill()).toBe("67%");
+    await waitFor(() => expect(label()).toHaveTextContent("Step two of four · Your details"));
+    expect(fill()).toBe("50%");
 
     fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
     fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/whatsapp \/ phone/i), { target: { value: "+1 555 123 4567" } });
     toReview();
-    await waitFor(() => expect(label()).toHaveTextContent("Step three of three · Review"));
-    expect(fill()).toBe("100%");
+    await waitFor(() => expect(label()).toHaveTextContent("Step three of four · Review"));
+    expect(fill()).toBe("75%");
   });
 
   it("walks back a step at a time, and the car survives the trip", async () => {

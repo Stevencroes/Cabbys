@@ -45,14 +45,22 @@ vi.mock("../../lib/supabase", () => {
   };
 });
 
-// A card field that records where it was mounted, so the test can prove the
-// step put one on screen without loading Stripe.js.
-const mounted: HTMLElement[] = [];
-const element = { mount: (n: HTMLElement) => { mounted.push(n); } };
-const elements = { create: () => element, getElement: () => null };
-const confirmPayment = vi.fn(async () => ({ error: undefined }));
+// Three card fields now, not one combined element: number, expiry and CVC,
+// each mounted into this form's own field shell. The stub records what was
+// created and where it landed, so the test can prove the split without
+// loading Stripe.js — and carries `on`, because the real elements report
+// their brand and their errors back to us to render.
+const mounted: { type: string; node: HTMLElement }[] = [];
+const elements = {
+  create: (type: string) => ({
+    mount: (node: HTMLElement) => { mounted.push({ type, node }); },
+    on: () => {},
+  }),
+  getElement: () => null,
+};
+const confirmCardPayment = vi.fn(async () => ({ error: undefined }));
 vi.mock("../../lib/stripe", () => ({
-  getStripe: async () => ({ elements: () => elements, confirmPayment }),
+  getStripe: async () => ({ elements: () => elements, confirmCardPayment }),
 }));
 
 import { BookingProvider, useBooking } from "../../booking/BookingContext";
@@ -135,7 +143,12 @@ describe("BookingOverlay — four steps, with a card at the end", () => {
     // the payment intent; the traveller does not press anything to start it.
     next(/^continue to payment$/i);
     await waitFor(() => expect(label()).toHaveTextContent("Step four of four · Payment"));
-    await waitFor(() => expect(mounted.length).toBe(1));
+    // three fields, each in its own shell, in the order a card is read
+    await waitFor(() => expect(mounted.length).toBe(3));
+    expect(mounted.map((m) => m.type)).toEqual(["cardNumber", "cardExpiry", "cardCvc"]);
+    // and each one landed inside this form's field chrome, not a bare box
+    expect(mounted.every((m) => m.node.closest(".cardbox"))).toBe(true);
+    expect(screen.getByLabelText(/name on card/i)).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith("/api/create-payment-intent", expect.objectContaining({ method: "POST" }));
 
     // and the primary is now the price, not another "next"
@@ -168,7 +181,7 @@ describe("BookingOverlay — four steps, with a card at the end", () => {
       await screen.findByRole("alert");
       expect(document.querySelector(".bstep")).toHaveTextContent("Payment");
       // no empty card box sitting where a field never arrived
-      expect(document.querySelector(".pay-mount")).toBeNull();
+      expect(document.querySelector(".cardform")).toBeNull();
 
       // The button in front of the error retries the whole thing rather than
       // doing nothing, and this time the reservation lands.

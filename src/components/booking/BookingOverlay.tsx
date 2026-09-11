@@ -16,10 +16,15 @@ import type { ConfirmedBooking } from "../../booking/types";
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
 /** The steps, in order. The header row, the progress fill and where the
-    flow ENDS are all derived from this — so the payment step simply is not
-    part of the flow when there is no key to take a card with, rather than
-    being a fourth station everyone is counted towards and then denied. */
-const STEPS: readonly string[] = STRIPE_KEY ? STEP_NAMES : STEP_NAMES.slice(0, -1);
+    flow ENDS are all derived from this.
+
+    All four, always. The flow used to drop Payment when no key was
+    configured, which made "Step one of three" and "Step one of four" two
+    different products depending on an environment variable — and left the
+    card screen impossible to see, review or design against without live
+    credentials. The step is always there now; what it can DO depends on
+    the key, and it says so plainly when it cannot take a card. */
+const STEPS: readonly string[] = STEP_NAMES;
 const LAST = STEPS.length as Step;
 
 /** "Step two of three" reads; "Step 2/3" is a receipt. Falls back to the
@@ -172,12 +177,16 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     : state.step === 2
     ? "Review"
     : state.step === 3
-    ? (STRIPE_KEY ? "Continue to payment"
-       : phase === "creating" ? "Reserving…" : "Reserve your car")
+    ? "Continue to payment"
     : phase === "paying" ? "Processing…"
-    : phase === "creating" ? "Preparing…"
+    : phase === "creating" ? (STRIPE_KEY ? "Preparing…" : "Reserving…")
     // back at "review" on the payment step means the reservation or the
     // card field did not arrive, and the button is the way to try again
+    // No key: there is no card to take, so the last action is the booking
+    // itself and the button must not promise a charge that cannot happen.
+    // Checked BEFORE the retry branch — with no key the phase never leaves
+    // "review", and "Try again" would be asking for a retry of nothing.
+    : !STRIPE_KEY ? "Reserve your car"
     : phase === "review" ? "Try again"
     : `Pay ${q ? usd(q.totalUsd) : ""}`;
 

@@ -7,7 +7,7 @@
 // untouched: the same ensureRide → create-payment-intent → confirmPayment
 // calls fire, just from step 4 instead of from the bottom of a long form.
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Stripe, StripeElements } from "@stripe/stripe-js";
+import type { Stripe, StripeElements, StripeCardNumberElement } from "@stripe/stripe-js";
 import { useBooking } from "../../../booking/BookingContext";
 import { useAuth } from "../../../booking/useAuth";
 import { fullNameOf, phoneOf } from "../../../lib/displayName";
@@ -39,6 +39,38 @@ const MAP_H = 360;
     at the bottom, so it needs no constant of its own. */
 const DETAILS = 2, PAYMENT = 4;
 
+/** Whether a card can be taken at all. Without a key the payment step is
+    still in the flow — it just says so rather than showing a dead field. */
+const CARD_ENABLED = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+/**
+ * What Stripe's three iframes are told to look like.
+ *
+ * These are the site's own input values, restated because an iframe cannot
+ * read a stylesheet: --ink, --placeholder and --signal-bad, at the 16px the
+ * rest of the form uses (under 16px iOS zooms the page on focus). Keep them
+ * in step with .qfld input by hand — the alternative is Stripe's own theme,
+ * which is what this replaced.
+ */
+const CARD_STYLE = {
+  base: {
+    color: "#F2F5F8",
+    fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+    fontSize: "16px",
+    fontWeight: "400",
+    lineHeight: "24px",
+    "::placeholder": { color: "#7C93AC" },
+  },
+  invalid: { color: "#CF6A5F", iconColor: "#CF6A5F" },
+} as const;
+
+/** The wordmarks a brand code stands for. Stripe returns "unknown" until
+    the first digits identify one, and for cards we have no mark for. */
+const BRANDS: Record<string, string> = {
+  visa: "VISA", mastercard: "Mastercard", amex: "Amex",
+  discover: "Discover", diners: "Diners", jcb: "JCB", unionpay: "UnionPay",
+};
+
 export type PayPhase = "review" | "creating" | "payment" | "paying";
 
 interface Step3Props {
@@ -69,7 +101,19 @@ export default function Step3Details({
   const phoneRef = useRef<HTMLInputElement>(null);
   const stripeRef = useRef<Stripe | null>(null);
   const elementsRef = useRef<StripeElements | null>(null);
-  const payMountRef = useRef<HTMLDivElement | null>(null);
+  /** the intent's secret, held here because the card fields are built
+      without it — see startCardFlow */
+  const secretRef = useRef<string | null>(null);
+  const numberRef = useRef<HTMLDivElement | null>(null);
+  const expiryRef = useRef<HTMLDivElement | null>(null);
+  const cvcRef = useRef<HTMLDivElement | null>(null);
+  const cardNumberElRef = useRef<StripeCardNumberElement | null>(null);
+  /** what Stripe says about the number as it is typed: which card it is,
+      and what is wrong with it. Ours to render, so it reads like the rest
+      of the form rather than like an iframe's idea of an error. */
+  const [brand, setBrand] = useState<string>("unknown");
+  const [cardErr, setCardErr] = useState<Record<string, string>>({});
+  const [cardName, setCardName] = useState("");
   const rideRef = useRef<{ id: string; bookingRef: string | null } | null>(null);
   const kickedRef = useRef(false);
   const [, force] = useState(0);
@@ -183,12 +227,41 @@ export default function Step3Details({
   /** Put the card field on screen. Stepping back to review unmounts the node
       it was attached to, so re-entering re-mounts the SAME element rather
       than building a second one against the same client secret. */
+  /**
+   * Three fields, not one box.
+   *
+   * This was a single PaymentElement in "tabs" layout — Stripe's own
+   * card/wallet UI, themed as close to the site as its appearance API
+   * allows, which is never all the way: its own labels, its own spacing,
+   * its own idea of an error. Split elements put the number, expiry and
+   * CVC each inside THIS form's field shell, so the card row looks like
+   * the name row above it. The digits still never touch our code — each
+   * field is Stripe's iframe, the same PCI boundary as before — we only
+   * own the chrome around them and the words when something is wrong.
+   */
   function mountPayment() {
     requestAnimationFrame(() => {
       const els = elementsRef.current;
-      if (!payMountRef.current || !els) return;
-      const el = els.getElement("payment") ?? els.create("payment", { layout: "tabs" });
-      el.mount(payMountRef.current);
+      if (!els || !numberRef.current || !expiryRef.current || !cvcRef.current) return;
+
+      const number = els.getElement("cardNumber") ??
+        els.create("cardNumber", { style: CARD_STYLE, placeholder: "1234 1234 1234 1234", showIcon: false });
+      const expiry = els.getElement("cardExpiry") ?? els.create("cardExpiry", { style: CARD_STYLE });
+      const cvc = els.getElement("cardCvc") ?? els.create("cardCvc", { style: CARD_STYLE });
+
+      cardNumberElRef.current = number;
+      // Stripe names the brand as soon as it can; the mark beside the field
+      // is the oldest signal in card forms that the number was understood.
+      number.on("change", (e) => {
+        setBrand(e.brand ?? "unknown");
+        setCardErr((p) => ({ ...p, number: e.error?.message ?? "" }));
+      });
+      expiry.on("change", (e) => setCardErr((p) => ({ ...p, expiry: e.error?.message ?? "" })));
+      cvc.on("change", (e) => setCardErr((p) => ({ ...p, cvc: e.error?.message ?? "" })));
+
+      number.mount(numberRef.current);
+      expiry.mount(expiryRef.current);
+      cvc.mount(cvcRef.current);
     });
   }
 
@@ -203,21 +276,11 @@ export default function Step3Details({
     const stripe = await getStripe();
     if (!clientSecret || !stripe) return false;
     stripeRef.current = stripe;
-    elementsRef.current = stripe.elements({
-      clientSecret,
-      appearance: {
-        theme: "night",
-        variables: {
-          colorPrimary: "#B9C6D4",
-          colorBackground: "#121D2B",
-          colorText: "#F2F5F8",
-          colorTextPlaceholder: "#7C93AC",
-          colorDanger: "#CF6A5F",
-          fontFamily: "Inter, system-ui, sans-serif",
-          borderRadius: "12px",
-        },
-      },
-    });
+    secretRef.current = clientSecret;
+    // No clientSecret on the group: that mode is for the PaymentElement,
+    // and split card fields confirm through confirmCardPayment with the
+    // secret passed at the end instead. Each field carries its own style.
+    elementsRef.current = stripe.elements();
     setPhase("payment");
     mountPayment();
     return true;
@@ -249,6 +312,11 @@ export default function Step3Details({
   // time the step has finished animating in — nothing to press first.
   useEffect(() => {
     if (state.step !== PAYMENT) return;
+    // No key: this step explains itself and waits. It must NOT reserve on
+    // arrival — preparePayment's "Stripe unreachable, take the booking
+    // anyway" path was correct when the step did not exist without a key,
+    // and books the ride behind the traveller's back now that it does.
+    if (!CARD_ENABLED) return;
     if (elementsRef.current) { setPhase("payment"); mountPayment(); return; }
     void preparePayment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -258,16 +326,27 @@ export default function Step3Details({
   // on step 4, or — with no Stripe key configured — reserving from review.
   useEffect(() => {
     registerConfirm(async () => {
-      if (state.step === PAYMENT) {
+      // With no card to take, the payment step's action is the booking
+      // itself — the same path review used to end on.
+      if (state.step === PAYMENT && CARD_ENABLED) {
         // The reservation or the card field never arrived — the button in
         // front of them is the retry, not a dead control.
-        if (!stripeRef.current || !elementsRef.current) { await preparePayment(); return; }
+        if (!stripeRef.current || !secretRef.current || !cardNumberElRef.current) {
+          await preparePayment(); return;
+        }
         setPhase("paying");
         setError(null);
-        const { error: payErr } = await stripeRef.current.confirmPayment({
-          elements: elementsRef.current,
-          confirmParams: { return_url: `${window.location.origin}/?paid=1` },
-          redirect: "if_required",
+        // confirmCardPayment, not confirmPayment: the latter wants a
+        // PaymentElement, and these are three card fields. The number
+        // element is the handle for all three — Stripe pairs them itself.
+        const { error: payErr } = await stripeRef.current.confirmCardPayment(secretRef.current, {
+          payment_method: {
+            card: cardNumberElRef.current,
+            billing_details: {
+              name: cardName.trim() || state.contactName.trim() || undefined,
+              email: state.contactEmail.trim() || undefined,
+            },
+          },
         });
         if (payErr) {
           setError(payErr.message ?? "Payment didn't go through. Your card was not charged.");
@@ -408,18 +487,74 @@ export default function Step3Details({
               button still instead of shunting it down the page when Stripe's
               iframe lands. An empty box is only worth that when something is
               still coming — a failed reservation shows its reason instead. */}
-          {phase !== "review" && (
-            <div className="fld">
-              <label>Payment</label>
-              <div ref={payMountRef} className="pay-mount" />
+          {!CARD_ENABLED ? (
+            /* No key, so no card — and saying so is better than a dead
+               field or a step that quietly vanishes. The fare is still a
+               fixed price; it is simply settled at the end of the ride. */
+            <div className="pay-off">
+              <h3>Card payment isn't switched on yet.</h3>
+              <p>
+                Reserve now and settle the fare with your driver — the price is fixed
+                and won't change. Nothing is charged today.
+              </p>
+            </div>
+          ) : phase !== "review" ? (
+            <div className="cardform">
+              <div className="fld">
+                <label htmlFor="card-name">Name on card</label>
+                <input
+                  id="card-name"
+                  type="text"
+                  autoComplete="cc-name"
+                  placeholder={state.contactName || "As printed on the card"}
+                  value={cardName}
+                  onChange={(e) => setCardName(e.target.value)}
+                />
+              </div>
+
+              {/* Stripe's iframe sits where an <input> would, inside this
+                  form's own field shell — hence .fld wrapping .cardbox
+                  rather than a bare mount point. */}
+              <div className="fld">
+                <label htmlFor="card-number">Card number</label>
+                <div className={`cardbox${cardErr.number ? " bad" : ""}`}>
+                  <div id="card-number" ref={numberRef} className="cardslot" />
+                  <span className={`cardbrand${brand !== "unknown" ? " on" : ""}`} aria-hidden="true">
+                    {BRANDS[brand] ?? ""}
+                  </span>
+                </div>
+                {cardErr.number && <p className="fld-err" role="alert">{cardErr.number}</p>}
+              </div>
+
+              <div className="cardrow">
+                <div className="fld">
+                  <label htmlFor="card-expiry">Expiry</label>
+                  <div className={`cardbox${cardErr.expiry ? " bad" : ""}`}>
+                    <div id="card-expiry" ref={expiryRef} className="cardslot" />
+                  </div>
+                  {cardErr.expiry && <p className="fld-err" role="alert">{cardErr.expiry}</p>}
+                </div>
+                <div className="fld">
+                  <label htmlFor="card-cvc">CVC</label>
+                  <div className={`cardbox${cardErr.cvc ? " bad" : ""}`}>
+                    <div id="card-cvc" ref={cvcRef} className="cardslot" />
+                  </div>
+                  {cardErr.cvc && <p className="fld-err" role="alert">{cardErr.cvc}</p>}
+                </div>
+              </div>
+
               {phase === "creating" && <p className="pay-wait" role="status">Holding your car…</p>}
             </div>
-          )}
+          ) : null}
 
           {errorBlock}
           {foot}
 
-          <div className="secure">Secured by Stripe · charged in US dollars · free cancellation up to 24h before pickup</div>
+          <div className="secure">
+            {CARD_ENABLED
+              ? "Secured by Stripe · charged in US dollars · free cancellation up to 24h before pickup"
+              : "Fixed price · settled with your driver · free cancellation up to 24h before pickup"}
+          </div>
         </div>
 
         <aside className="pcol pcol-map">

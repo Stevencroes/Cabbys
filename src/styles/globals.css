@@ -1081,8 +1081,35 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .pay-error{margin:0 0 16px;padding:15px 17px;border:1px solid var(--alert-line);background:var(--alert-tint);font-size:15px;color:var(--alert-ink);font-weight:400;}
 /* Stripe's iframe arrives a beat after the step does. Reserving the room it
    will need keeps the Pay button still instead of shunting it down the page. */
-.pay-mount{min-height:210px;}
 .pay-wait{font-size:14.5px;color:var(--muted);margin:10px 0 0;font-weight:400;}
+
+/* ── the card, in this form's own fields ──────────────────────────────
+   Stripe's three iframes each sit where an <input> would, so .cardbox
+   restates exactly what .fld input is: same ground, same hairline, same
+   padding, same tap height. The iframe inside reports its own height, so
+   the box cannot be given one — it is padded to the same 24px line the
+   inputs render at instead. Keep this in step with .fld input above, and
+   with CARD_STYLE in Step3Details, which tells the iframe its half. */
+.cardform{display:flex;flex-direction:column;gap:16px;}
+.cardbox{display:flex;align-items:center;gap:10px;
+  background:var(--raised);border:1px solid var(--line);
+  padding:14px 16px;min-height:var(--tap);transition:.25s;}
+.cardbox:focus-within{background:var(--surface);border-color:var(--silver-deep);}
+.cardbox.bad{border-color:var(--signal-bad,#CF6A5F);}
+/* the iframe is the field: it has to take the width and set the height */
+.cardslot{flex:1;min-width:0;}
+.cardslot .StripeElement{width:100%;}
+/* the brand only earns its space once Stripe has recognised the number */
+.cardbrand{flex:none;font-size:11px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .2s;}
+.cardbrand.on{opacity:1;color:var(--silver);}
+/* expiry and CVC share a line — they are short, and a card reads that way */
+.cardrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fld-err{margin:7px 0 0;font-size:13px;color:var(--signal-bad,#CF6A5F);font-weight:400;}
+/* no key configured: say so, rather than showing a field that cannot work */
+.pay-off{border:1px solid var(--line);background:var(--raised);padding:20px;}
+.pay-off h3{font-family:var(--serif);font-weight:400;font-size:21px;margin:0 0 8px;color:var(--ink);}
+.pay-off p{margin:0;font-size:14.5px;line-height:1.6;color:var(--silver);}
 /* review's two ways back — each to the screen that owns the line */
 .rv-edit{display:flex;flex-direction:column;gap:2px;margin-top:12px;}
 .rv-edit button{display:flex;align-items:center;text-align:left;padding:0 2px;border:none;
@@ -1342,7 +1369,8 @@ input.txt:focus{outline:none;background:var(--surface);}
 .areasel select,.areasel input{border-radius:var(--r-xs);}
 
 /* booking modal */
-.fld input,.fld select,.fld textarea{border-radius:var(--r-sm);}
+.fld input,.fld select,.fld textarea,.cardbox{border-radius:var(--r-sm);}
+.pay-off{border-radius:var(--r-md);}
 .qtoggle{border-radius:var(--r-pill);overflow:hidden;}
 .stepper{border-radius:var(--r-pill);overflow:hidden;}
 .timing,.notice{border-radius:var(--r-md);}
