@@ -586,6 +586,22 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .qcell .combo .cfield{border-bottom:none;gap:0;}
 .qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:11.5px;font-weight:600;
   letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+
+/* ── the cell IS the control ──────────────────────────────────────────
+   A cell is 182x74 and only 37px of it did anything: an 18px label strip
+   and a 19px value strip with a 7px dead gap between them, the cell's own
+   14px/16px padding dead above and below. Tapping the obvious middle of
+   "DATE / Fri 11 Sep" — the gap — did nothing at all, and neither strip
+   alone meets the 24px floor in WCAG 2.2 SC 2.5.8.
+
+   Nothing here changes the layout. Each control takes the cell's padding
+   as its OWN padding and gives the space straight back with an equal
+   negative margin, so every pixel of the cell belongs to a control and
+   not one of them moves. The label is <label for>, so its half activates
+   the control too.
+   The padding/margin pairs live on the three rules further down that set
+   these same properties last — putting them here instead lost the cascade
+   to them and grew the cell by 22px. */
 .qcell .combo .cfield input{font-size:16px;padding:0;}
 .qcell .combo .cfield .cmark{color:var(--muted);}
 .qcell .combo .cfield .clear{display:none;}
@@ -594,12 +610,13 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    box. Inside the card the divider is the boundary, so the box goes and
    only the value and its mark remain. */
 .qcell .dtf-label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.13em;white-space:nowrap;
-  text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
-.qcell .dtf-trigger{background:none;border:none;border-radius:0;padding:0;min-height:0;width:100%;
+  text-transform:uppercase;color:var(--muted);padding:14px 16px 8px;margin:-14px -16px 0;}
+.qcell .dtf-trigger{background:none;border:none;border-radius:0;min-height:0;width:100%;
+  padding:0 16px 16px;margin:0 -16px -16px;
   font-size:16px;color:var(--ink);gap:8px;white-space:nowrap;}
 .qcell .dtf-trigger.empty{color:var(--placeholder);}
 .qcell .dtf-trigger:hover{background:none;}
-.qcell .qpax{display:block;color:var(--ink);}
+.qcell .qpax{display:block;color:var(--ink);padding:14px 16px 16px;margin:-14px -16px -16px;}
 /* A <select> is as wide as its widest OPTION whatever width says, so
    "12 Passengers" was pushing this cell out past the card's own padding and
    the chosen value sat flush against the edge. min-width lets it shrink. */
