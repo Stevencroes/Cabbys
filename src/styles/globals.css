@@ -186,31 +186,29 @@ h2.sec em{font-style:italic;}
     backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
 
-/* ── phones: no separately composited layers over the scroller ─────────
+/* ── phones: the two composited layers that ride over the scroller ─────
  *
- * A plain fixed bar on a bare page does NOT let content through on the
- * device this was reported from; this page does. The difference has to be
- * something here, and everything below is a layer iOS composites apart
- * from the scrolling content — the class of thing that makes a fixed bar
- * stop being the top of the screen.
+ * Switching four things off at once cleared the strip of page content that
+ * was appearing above the fixed rail on iOS — a bar that was provably in
+ * the right place the whole time, which is why six changes to its position,
+ * colour and box never touched it. What breaks is not the bar: it is a
+ * layer iOS composites apart from the scrolling content, which moves where
+ * the top of the screen is thought to be.
  *
- * Each is worth dropping on a phone regardless of that. The grain is a
+ * These two stay off. Both are worth dropping on a phone on their own
+ * merits, so neither is a workaround being tolerated: the grain is a
  * full-screen fixed layer repainting every frame for a 4% texture nobody
- * sees at this size. The parallax is a scroll-driven transform, which is
+ * resolves at this size, and the parallax is a scroll-driven transform,
  * the most expensive thing on the page and the least visible on a 6-inch
- * screen. The glass panels each cost a live blur of everything behind
- * them; opaque at the same colour is indistinguishable here.
+ * screen.
  *
- * If this is what fixes it, re-enable them one at a time to find which. */
+ * The glass panels are back — .quote and the picker dropdowns keep their
+ * blur. They were switched off with the others and turned out to be
+ * innocent, which is worth knowing before anyone reaches for
+ * backdrop-filter here again: it is not what breaks the rail. */
 @media(max-width:900px){
   body::after{display:none;}
   .par{will-change:auto;transform:none!important;}
-  .quote{background:var(--surface);
-    backdrop-filter:none;-webkit-backdrop-filter:none;}
-  .cpanel{background:#09131D;
-    backdrop-filter:none;-webkit-backdrop-filter:none;}
-  .clist li.custom{background:#09131D;
-    backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
 @media(max-width:660px){.nsign{display:none;}.nright{gap:16px;}}
 /* at phone widths the sheet carries the account; the bar keeps brand + CTA */
