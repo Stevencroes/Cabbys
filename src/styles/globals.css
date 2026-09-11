@@ -185,6 +185,33 @@ h2.sec em{font-style:italic;}
     background:var(--nav-solid);
     backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
+
+/* ── phones: no separately composited layers over the scroller ─────────
+ *
+ * A plain fixed bar on a bare page does NOT let content through on the
+ * device this was reported from; this page does. The difference has to be
+ * something here, and everything below is a layer iOS composites apart
+ * from the scrolling content — the class of thing that makes a fixed bar
+ * stop being the top of the screen.
+ *
+ * Each is worth dropping on a phone regardless of that. The grain is a
+ * full-screen fixed layer repainting every frame for a 4% texture nobody
+ * sees at this size. The parallax is a scroll-driven transform, which is
+ * the most expensive thing on the page and the least visible on a 6-inch
+ * screen. The glass panels each cost a live blur of everything behind
+ * them; opaque at the same colour is indistinguishable here.
+ *
+ * If this is what fixes it, re-enable them one at a time to find which. */
+@media(max-width:900px){
+  body::after{display:none;}
+  .par{will-change:auto;transform:none!important;}
+  .quote{background:var(--surface);
+    backdrop-filter:none;-webkit-backdrop-filter:none;}
+  .cpanel{background:#09131D;
+    backdrop-filter:none;-webkit-backdrop-filter:none;}
+  .clist li.custom{background:#09131D;
+    backdrop-filter:none;-webkit-backdrop-filter:none;}
+}
 @media(max-width:660px){.nsign{display:none;}.nright{gap:16px;}}
 /* at phone widths the sheet carries the account; the bar keeps brand + CTA */
 @media(max-width:560px){.nacct-wrap{display:none;}}
