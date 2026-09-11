@@ -2,7 +2,15 @@
 <html lang="en" data-theme="tourist">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- No viewport-fit=cover. It asks Safari to paint the page edge to edge,
+       into the status bar strip — but Safari keeps the LAYOUT viewport below
+       that strip anyway (?navdebug=1 on a 402x874 phone reports a 402x754
+       viewport and safe-area-inset-top of 0). So the page was painted into a
+       band that position:fixed cannot reach: the fixed rail is clamped to
+       viewport y=0, which is already below it, and page content scrolled
+       through the gap above the rail. Without cover the two agree, and the
+       browser fills that band with theme-color, which is the rail's colour. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- What this page is. The tagline lives on the page; a title has to say
        what the thing does, because it is read out of context in a search
