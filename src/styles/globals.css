@@ -159,38 +159,25 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
 @media(max-width:1040px){.nlinks{display:none;}.nburger{display:flex;}}
-/* On a phone the rail is opaque, and its box starts well above the screen.
+/* On a phone the rail is opaque and meets the top of the screen.
  *
- * `top:0` is not the top of the screen for as long as the screen is
- * moving, and on a phone it usually is: iOS shifts the visual viewport
- * inside the layout viewport as its toolbars collapse and as the page
- * rubber-bands. A fixed bar is pinned to the LAYOUT viewport, so during
- * that shift it rides down and uncovers a strip of page above itself —
- * the page appearing to scroll over the top of the rail.
+ * Opaque, because the glass is a desktop effect — on a wide bar a little
+ * of the page moving behind it reads as depth, on a 60px one it is the
+ * page smearing through the thing meant to be the screen's edge. It also
+ * has to match: Safari tints the strip around the page with theme-color,
+ * which is #020B14, the same as --nav-solid, so bar and strip are one
+ * colour and the edge disappears. A translucent bar would put the seam
+ * back. Dropping the blur also drops a full-width backdrop-filter from
+ * every scroll frame on the devices least able to afford one.
  *
- * Painting that strip with a pseudo-element outside the bar's box does
- * not work, which is what the first attempt at this did: iOS promotes a
- * fixed bar to its own compositing layer sized to the element's box and
- * clips anything hanging outside it. So the BOX itself starts 200px
- * higher, with the same amount of top padding putting the contents back
- * where they belong. The extra is off-screen at rest and is what gets
- * uncovered in motion — still rail, because it is the rail.
- *
- * The bar is opaque here for the same reason: an extension only reads as
- * seamless against a solid colour, and on a 60px bar the desktop blur was
- * just the page smearing through the thing meant to be the screen's edge.
- * It also drops a full-width backdrop-filter from every scroll frame on
- * the devices least able to afford one. */
+ * The inset is 0 wherever the browser keeps the page out of the status
+ * bar, and the notch's height wherever viewport-fit=cover lets the page
+ * under it. Either way the contents clear it and the background fills it,
+ * so the bar meets the physical edge in both regimes. */
 @media(max-width:900px){
   .nav{
-    --nav-lift:200px;
-    top:calc(var(--nav-lift) * -1);
-    /* the inset is 0 wherever the browser keeps the page out of the status
-       bar, and the notch's height wherever viewport-fit=cover lets the page
-       under it — either way the contents clear it and the background fills
-       it, so the rail meets the physical top edge in both */
-    height:calc(var(--nav-h-sm) + var(--nav-lift) + env(safe-area-inset-top,0px));
-    padding-top:calc(var(--nav-lift) + env(safe-area-inset-top,0px));
+    height:calc(var(--nav-h-sm) + env(safe-area-inset-top,0px));
+    padding-top:env(safe-area-inset-top,0px);
     background:var(--nav-solid);
     backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
