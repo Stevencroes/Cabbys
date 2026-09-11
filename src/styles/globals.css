@@ -149,7 +149,7 @@ h2.sec em{font-style:italic;}
   border:none;background:transparent;color:var(--nav-dim);transition:color .15s linear;}
 .nburger:hover,.nburger.on{color:var(--nav-ink);}
 .nav-scrim{position:fixed;inset:0;z-index:var(--z-nav);background:var(--scrim);}
-.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-h-sm) + 10px);left:var(--gutter);right:var(--gutter);
+.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-h-sm) + 10px + env(safe-area-inset-top,0px));left:var(--gutter);right:var(--gutter);
   display:flex;flex-direction:column;padding:10px;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-hard-lg);}
 .nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 18px;
@@ -185,8 +185,12 @@ h2.sec em{font-style:italic;}
   .nav{
     --nav-lift:200px;
     top:calc(var(--nav-lift) * -1);
-    height:calc(var(--nav-h-sm) + var(--nav-lift));
-    padding-top:var(--nav-lift);
+    /* the inset is 0 wherever the browser keeps the page out of the status
+       bar, and the notch's height wherever viewport-fit=cover lets the page
+       under it — either way the contents clear it and the background fills
+       it, so the rail meets the physical top edge in both */
+    height:calc(var(--nav-h-sm) + var(--nav-lift) + env(safe-area-inset-top,0px));
+    padding-top:calc(var(--nav-lift) + env(safe-area-inset-top,0px));
     background:var(--nav-solid);
     backdrop-filter:none;-webkit-backdrop-filter:none;}
 }

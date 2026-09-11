@@ -33,7 +33,11 @@
 
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <meta name="theme-color" content="#0B1420" />
+  <!-- Safari tints the strip around the page with this, so it has to BE the
+       page: #0B1420 was lighter than anything in the palette and painted a
+       visible band above the fixed rail, which read as a gap at the top of
+       the screen. --ground and the phone rail are both #020B14. -->
+  <meta name="theme-color" content="#020B14" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
