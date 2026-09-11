@@ -233,6 +233,21 @@
 .drv-bar.mid .bfill{background:var(--soft);}
 .drv-bar.peak .bfill{background:var(--silver);}
 .drv-bar .bl{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+/* The bars are buttons now, so they need to look touchable and say which
+   one is open. Reset the button chrome the shared rules would give them
+   and keep the 44px target the rest of the portal uses — a bar is 104px
+   tall, so height is already there; it is the tap affordance that was not. */
+.drv-bar{border:none;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.drv-bar .bfill{transition:background .18s var(--d-ease,ease),opacity .18s;}
+.drv-bar:active .bfill{opacity:.7;}
+.drv-bar.open .bfill{background:var(--ink);}
+.drv-bar.open .bl{color:var(--ink);}
+.drv-bar:focus-visible{outline:2px solid var(--silver);outline-offset:3px;border-radius:6px;}
+/* the way back out of a single day */
+.drv-allweek{margin:0 0 18px;min-height:40px;font-size:11px;}
+/* the rides behind the figure above — History's row, same fact, different
+   reason for looking at it */
+.drv-breakdown{margin:0 0 22px;border-top:1px solid var(--line);}
 
 .drv-payout{border:1px solid var(--line);border-radius:var(--d-r-md);padding:16px;margin-top:6px;}
 .drv-payout .pk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}

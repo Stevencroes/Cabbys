@@ -1,16 +1,28 @@
 // Earnings — the screen that decides whether a driver trusts you.
 //
 // It's the second-most-opened screen in any driver app, so vagueness here
-// costs drivers faster than anything else: show the total, the breakdown
-// and the payout date. Everything sums completed work only, bucketed by
-// completed_at — a job booked Friday and driven Saturday is Saturday's.
+// costs drivers faster than anything else. Two rules follow from that, and
+// both were broken:
+//
+//  · Every figure has to be checkable. A week's total a driver cannot take
+//    apart is a number they have to take on faith, and drivers who take
+//    money on faith stop driving for you. The bars were aria-hidden
+//    decoration; now each one is a day you can open, down to the rides that
+//    made it.
+//  · Nothing may be stated that isn't known. "Next payout $340 · Monday"
+//    was invented — there is no payout table, no paid flag, and no
+//    confirmed schedule. It also summed the CURRENT week, which on a
+//    Wednesday is not what Monday would pay even if the schedule were real.
+//
+// Everything sums completed work only, bucketed by completed_at — a job
+// booked Friday and driven Saturday is Saturday's.
 import { useEffect, useMemo, useState } from "react";
 import { loadCompleted, type AssignedJob, type DriverProfile } from "../lib/driver";
-import { ARUBA_OFFSET_MINUTES, todayInAruba } from "../../lib/datetime";
+import { ARUBA_OFFSET_MINUTES, todayInAruba, formatTime } from "../../lib/datetime";
 import { COMMISSION_RATE } from "../../lib/quote";
 
-type Range = "week" | "today";
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 /** Aruba's calendar day for a stored instant. */
 function arubaDay(iso: string | null | undefined): string {
@@ -18,6 +30,14 @@ function arubaDay(iso: string | null | undefined): string {
   const t = new Date(iso).getTime();
   if (isNaN(t)) return "";
   return new Date(t + ARUBA_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
+}
+
+/** Aruba's wall-clock time for a stored instant. */
+function arubaTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "";
+  return formatTime(new Date(t + ARUBA_OFFSET_MINUTES * 60_000).toISOString().slice(11, 16));
 }
 
 /** The seven ISO dates of the current Aruba week, Monday first. */
@@ -30,8 +50,9 @@ function weekDays(today: string): string[] {
 }
 
 export default function Earnings({ driver }: { driver: DriverProfile }) {
-  const [range, setRange] = useState<Range>("week");
   const [rides, setRides] = useState<AssignedJob[] | null>(null);
+  /** an ISO date when one day is open, null for the whole week */
+  const [day, setDay] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,60 +63,100 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
   const today = todayInAruba();
   const days = useMemo(() => weekDays(today), [today]);
 
+  /** every completed ride of this week, filed under its Aruba day */
   const byDay = useMemo(() => {
-    const m = new Map<string, { total: number; jobs: number }>();
+    const m = new Map<string, AssignedJob[]>();
     for (const r of rides ?? []) {
       const d = arubaDay(r.completedAt ?? r.scheduledAt);
       if (!d) continue;
-      const cur = m.get(d) ?? { total: 0, jobs: 0 };
-      cur.total += r.payoutUsd ?? 0;
-      cur.jobs += 1;
-      m.set(d, cur);
+      const list = m.get(d);
+      if (list) list.push(r); else m.set(d, [r]);
+    }
+    // newest first within a day, so the list reads like the day did
+    for (const list of m.values()) {
+      list.sort((a, b) =>
+        String(b.completedAt ?? b.scheduledAt ?? "").localeCompare(String(a.completedAt ?? a.scheduledAt ?? "")));
     }
     return m;
   }, [rides]);
 
-  const scope = range === "today" ? [today] : days;
-  const total = scope.reduce((s, d) => s + (byDay.get(d)?.total ?? 0), 0);
-  const jobs = scope.reduce((s, d) => s + (byDay.get(d)?.jobs ?? 0), 0);
-  const peak = Math.max(...days.map((d) => byDay.get(d)?.total ?? 0), 0);
+  const paidOn = (d: string) => (byDay.get(d) ?? []).reduce((s, r) => s + (r.payoutUsd ?? 0), 0);
+
+  const scope = day ? [day] : days;
+  const shown = scope.flatMap((d) => byDay.get(d) ?? []);
+  const total = scope.reduce((s, d) => s + paidOn(d), 0);
+  const jobs = shown.length;
+  const peak = Math.max(...days.map(paidOn), 0);
+
+  const dayIndex = day ? days.indexOf(day) : -1;
+  const scopeLabel = day
+    ? (day === today ? "Today" : DAY_NAMES[dayIndex] ?? "That day")
+    : "Mon–Sun";
 
   return (
     <div className="drv-view">
       <div className="drv-pad">
         <div className="kick">Earnings</div>
 
-        <div className="drv-seg" role="group" aria-label="Range">
-          <button type="button" className={range === "week" ? "on" : ""} onClick={() => setRange("week")}
-            aria-pressed={range === "week"}>This week</button>
-          <button type="button" className={range === "today" ? "on" : ""} onClick={() => setRange("today")}
-            aria-pressed={range === "today"}>Today</button>
-        </div>
-
         <div className="drv-etot">
-          <div className="ek">Your earnings</div>
+          <div className="ek">{day ? "Earned" : "Your earnings"}</div>
           <div className="ev">${Math.round(total).toLocaleString("en-US")}</div>
           <div className="ed">
-            {range === "today" ? "Today" : "Mon–Sun"} · {jobs} job{jobs === 1 ? "" : "s"} ·
-            after {Math.round(COMMISSION_RATE * 100)}% Cabby's
+            {scopeLabel} · {jobs} job{jobs === 1 ? "" : "s"} · after {Math.round(COMMISSION_RATE * 100)}% Cabby's
           </div>
         </div>
 
-        <div className="drv-chart" aria-hidden="true">
+        {/* Bars are buttons. A driver who can open Tuesday and count the
+            three rides that made it never has to ask you what the total
+            means — which is most of what the history screen is for. */}
+        <div className="drv-chart" role="group" aria-label="Earnings by day, this week">
           {days.map((d, i) => {
-            const v = byDay.get(d)?.total ?? 0;
+            const v = paidOn(d);
             const pct = peak > 0 ? Math.max((v / peak) * 100, v > 0 ? 6 : 2) : 2;
-            const cls = v > 0 && v === peak ? "peak" : v > 0 ? "mid" : "";
+            const open = day === d;
+            const cls = open ? "open" : v > 0 && v === peak ? "peak" : v > 0 ? "mid" : "";
             return (
-              <div key={d} className={`drv-bar ${cls}`}>
+              <button
+                key={d}
+                type="button"
+                className={`drv-bar ${cls}`}
+                aria-pressed={open}
+                aria-label={`${DAY_NAMES[i]}, $${Math.round(v)}, ${(byDay.get(d) ?? []).length} jobs`}
+                onClick={() => setDay(open ? null : d)}
+              >
                 <div className="bfill" style={{ height: `${pct}%` }} />
                 <div className="bl">{DAY_LETTERS[i]}</div>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        <div className="drv-stats" style={{ marginTop: 0 }}>
+        {day && (
+          <button type="button" className="drv-cta ghost drv-allweek" onClick={() => setDay(null)}>
+            Back to the whole week
+          </button>
+        )}
+
+        {/* The rides behind the number above. Same row as History, because
+            it is the same fact being shown for a different reason. */}
+        {shown.length > 0 && (
+          <div className="drv-breakdown">
+            {shown.map((r) => (
+              <div className="drv-hrow" key={r.id}>
+                <div className="drv-hav">{arubaTime(r.completedAt ?? r.scheduledAt).slice(0, 2) || "·"}</div>
+                <div className="drv-hmain">
+                  <div className="hr">{r.pickup} → {r.dropoff}</div>
+                  <div className="hm">
+                    {[arubaTime(r.completedAt ?? r.scheduledAt), r.vehicle].filter(Boolean).join(" · ")}
+                  </div>
+                </div>
+                <div className="drv-hf">{r.payoutUsd != null ? `$${Math.round(r.payoutUsd)}` : "—"}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="drv-stats">
           <div className="drv-srow">
             <div className="drv-scell">
               <div className="drv-sk">Jobs</div>
@@ -118,13 +179,19 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
           </div>
         </div>
 
+        {/* What is actually known. There is no payouts table, no paid flag
+            on a ride and no schedule agreed with the client, so this says
+            what it can stand behind — the week's earned total — and does
+            not name a day. The version that did was inventing both the
+            date and the amount, and a driver who is told the wrong payday
+            once does not believe the next figure either. */}
         <div className="drv-payout">
-          <div className="pk">Next payout</div>
-          <div className="pv">
-            ${Math.round(days.reduce((s, d) => s + (byDay.get(d)?.total ?? 0), 0)).toLocaleString("en-US")} · Monday
+          <div className="pk">Earned this week</div>
+          <div className="pv">${Math.round(days.reduce((s, d) => s + paidOn(d), 0)).toLocaleString("en-US")}</div>
+          <div className="pd">
+            Cabby's confirms your payout schedule directly. This is your completed work
+            Monday to Sunday, after the {Math.round(COMMISSION_RATE * 100)}% commission.
           </div>
-          {/* TODO: confirm the payout schedule and account tail with the client */}
-          <div className="pd">Paid weekly to your registered account.</div>
         </div>
 
         {rides !== null && rides.length === 0 && (
