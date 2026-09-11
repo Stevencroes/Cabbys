@@ -79,6 +79,17 @@ h2.sec em{font-style:italic;}
   height:var(--nav-h);
   background:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-bottom:1px solid var(--nav-rule);}
+/* The rail paints past its own top edge.
+   `top:0` is not the top of the screen for as long as the screen is moving,
+   and on a phone it is often moving: iOS drags the whole viewport on
+   rubber-band overscroll and shifts it again when Safari's toolbar
+   collapses mid-scroll. A fixed bar travels with the viewport through
+   both, which uncovers a strip of page above it — the page appearing to
+   scroll over the top of the rail. Nothing positions its way out of that,
+   because the bar is already where it was asked to be. So the background
+   continues upward instead, and whatever gets uncovered is still rail. */
+.nav::before{content:"";position:absolute;left:0;right:0;bottom:100%;
+  height:100vh;background:var(--nav-solid);pointer-events:none;}
 /* --maxw and --gutter are exactly what .hero-grid uses, so the wordmark
    sits over the headline and the CTA over the fare card. Alignment is the
    point of the rail, so these must never become numbers. */
