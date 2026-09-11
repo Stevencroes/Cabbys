@@ -4,7 +4,6 @@ import { useStartBooking } from "../booking/useStartBooking";
 import { useAuth } from "../booking/useAuth";
 import { displayNameOf, initialsOf } from "../lib/displayName";
 import { lockBody, unlockBody } from "../lib/bodyLock";
-import NavDebug from "./NavDebug";
 
 // §06 — the four the mockup names. "My trips" leaves the rail: it is an
 // account destination, and it now sits with the account itself on the right.
@@ -102,8 +101,6 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   }
 
   return (
-    <>
-    <NavDebug />
     <nav className="nav">
       {/* The bar is full bleed so the hairline reaches both edges; its
           contents take the hero's own container, or the wordmark lands
@@ -225,6 +222,5 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
         </>
       )}
     </nav>
-    </>
   );
 }
