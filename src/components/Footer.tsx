@@ -26,17 +26,17 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
           <div className="fcols">
             <div className="fcol">
               <h4>Transfers</h4>
-              <a href="/#how">Airport pickup</a>
-              <a href="/#how">Resort to resort</a>
-              <a href="/#how">Cruise terminal</a>
-              <a href="/#faq">Hourly hire</a>
+              <a href="/#services">Airport pickup</a>
+              <a href="/#services">Resort to resort</a>
+              <a href="/#services">Cruise terminal</a>
+              <a href="/#about">Hourly hire</a>
             </div>
             <div className="fcol">
               <h4>Company</h4>
               <a href="/#fleet">The fleet</a>
-              <a href="/#faq">FAQ</a>
+              <a href="/#about">FAQ</a>
               <a href="/trips">My trips</a>
-              <a href="/#faq">Terms &amp; privacy</a>
+              <a href="/#about">Terms &amp; privacy</a>
             </div>
             <div className="fcol">
               <h4>Reach us</h4>
