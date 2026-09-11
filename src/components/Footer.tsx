@@ -1,19 +1,23 @@
 import Closer from "./Closer";
-import Reviews from "./Reviews";
 
-// `closing` makes this the landing page's whole closing band: the CTA, the
-// proof and the sitemap used to be three stacked sections in two different
-// grounds, which put a seam right under the one button the page is asking
-// you to press. Together they are one element — a single ground, with
-// hairlines rather than colour changes separating the close from the small
-// print. The account pages (trips, profile, reset) take the plain footer:
-// nothing there is asking for a booking, so nothing there closes.
+// `closing` makes this the landing page's whole closing band: the CTA and
+// the sitemap used to be two stacked sections in two different grounds,
+// which put a seam right under the one button the page is asking you to
+// press. Together they are one element — a single ground, with one hairline
+// rather than a colour change separating the close from the small print.
+//
+// The proof row used to sit in here too, between the closer and the
+// sitemap, which gave this band three hairlines of identical weight in
+// ~500px and buried the reviews under the fold. It is its own section now,
+// up between the fleet and the FAQ — see Reviews.tsx.
+//
+// The account pages (trips, profile, reset) take the plain footer: nothing
+// there is asking for a booking, so nothing there closes.
 export default function Footer({ closing = false }: { closing?: boolean }) {
   return (
     <footer id="contact" className={`site-foot${closing ? " closing" : ""}`}>
       {closing && <Closer />}
       <div className="wrap">
-        {closing && <Reviews />}
         <div className="ftop">
           <div>
             <div className="fbrand">Cabby<span className="ap">'</span>s</div>
