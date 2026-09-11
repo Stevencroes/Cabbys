@@ -176,8 +176,31 @@ h2.sec em{font-style:italic;}
  * so the bar meets the physical edge in both regimes. */
 @media(max-width:900px){
   .nav{
-    height:calc(var(--nav-h-sm) + env(safe-area-inset-top,0px));
-    padding-top:env(safe-area-inset-top,0px);
+    /* Sticky, not fixed — the one structural difference that matters here.
+     *
+     * Safari paints this page edge to edge, under the status bar, while
+     * keeping the LAYOUT viewport below it (?navdebug=1 reported a 402x754
+     * viewport on a 402x874 screen, safe-area-inset-top 0). A fixed element
+     * is clipped to that viewport, so the rail physically cannot reach the
+     * strip above it however far its box is pushed — top:-200px was tried
+     * and painted nothing. The hero photo scrolls through the strip and the
+     * rail stops below it, which is the gap.
+     *
+     * A sticky element is part of the SCROLLING layer, which is the layer
+     * being painted into that strip. Pinned 140px above the scrollport with
+     * matching padding, its background covers the strip while its contents
+     * stay exactly where they were. The negative margin cancels the lift in
+     * flow, so the rail still occupies --nav-h-sm and nothing below moves.
+     *
+     * Mobile only: on desktop the rail is glass over the hero photo, and
+     * taking it out of the overlay would cost that. */
+    --nav-lift:140px;
+    position:sticky;
+    top:calc(var(--nav-lift) * -1);
+    left:auto;right:auto;
+    margin-top:calc(var(--nav-lift) * -1);
+    height:calc(var(--nav-h-sm) + var(--nav-lift));
+    padding-top:var(--nav-lift);
     background:var(--nav-solid);
     backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
@@ -477,7 +500,10 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   padding:clamp(90px,11vh,150px) var(--gutter) clamp(26px,4vh,44px);}
 .hero-copy{max-width:min(560px,58%);}
 @media(max-width:900px){
-  .hero{padding:var(--nav-h-sm) 0 22px;}
+  /* no top padding: the sticky rail above takes that space in flow now,
+     and the hero's full-height target loses the same amount so the fold
+     still lands at the bottom of the screen rather than 60px past it */
+  .hero{padding:0 0 22px;min-height:calc(100svh - var(--nav-h-sm));}
 }
 .hero-eyebrow{color:var(--silver);margin-bottom:20px;}
 .hero-eyebrow .eyebrow{font-size:11.5px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}
