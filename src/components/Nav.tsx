@@ -150,11 +150,6 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
         ) : (
           <button type="button" className="nsign" onClick={onSignIn}>Sign in</button>
         )}
-        {/* §06 puts a currency control here. Every fare in this app is USD —
-            quote.ts converts the florin rate card at the boundary and never
-            surfaces AWG — so this is a statement of the unit, not a picker.
-            A chevron on it would promise a choice that does not exist. */}
-        <span className="ncur" aria-label="Prices shown in US dollars">USD</span>
         <button type="button" className="nbtn" onClick={() => startBooking()}>
           Book now
         </button>

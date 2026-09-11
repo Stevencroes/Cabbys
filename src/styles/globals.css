@@ -88,8 +88,6 @@ h2.sec em{font-style:italic;}
   max-width:var(--maxw);height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;}
 .nav-left{display:flex;align-items:center;gap:52px;min-width:0;}
-/* the unit, not a picker — see the note in Nav.tsx */
-.ncur{font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--nav-dim);flex:none;}
 .brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:16px;
   padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;}
 .brand .ap{color:var(--silver);}
@@ -160,7 +158,18 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
 @media(max-width:1040px){.nlinks{display:none;}.nburger{display:flex;}}
-@media(max-width:900px){.nav{height:var(--nav-h-sm);}}
+/* On a phone the rail is opaque. The glass is a desktop effect: there, a
+   little of the page moving behind a wide bar reads as depth. On a 60px
+   bar the same blur is just the page smearing through the thing that is
+   supposed to be the top edge of the screen — so below 900px the rail
+   stops being a window and becomes an edge. Dropping the blur also drops
+   a full-width backdrop-filter from every scroll frame on the devices
+   least able to afford one. */
+@media(max-width:900px){
+  .nav{height:var(--nav-h-sm);
+    background:var(--nav-solid);
+    backdrop-filter:none;-webkit-backdrop-filter:none;}
+}
 @media(max-width:660px){.nsign{display:none;}.nright{gap:16px;}}
 /* at phone widths the sheet carries the account; the bar keeps brand + CTA */
 @media(max-width:560px){.nacct-wrap{display:none;}}
@@ -615,7 +624,6 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .combo .cfield .cwipe{width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;
   color:var(--muted);flex:none;margin-right:-10px;}
 .combo .cfield .cwipe:hover{color:var(--ink);}
-.combo .cfield .cancel{display:none;min-height:var(--tap);padding:0 10px;font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--silver);flex:none;align-items:center;}
 /* ── the results panel ────────────────────────────────────────────────
    A dropdown as wide as the field is a dropdown as wide as a fifth of a
    booking card, and "Manchebo Beach Resort" came out of that three lines
@@ -704,43 +712,24 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .areasel .as-note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;}
 .areasel .frow{margin-top:10px;}
 
-/* full-screen sheet under 760px (§4.2) */
+/* A phone types in place. There used to be a full-screen sheet here: a tap
+   on the address field replaced the whole page with a search screen. It
+   solved real problems — stacking, the keyboard covering the list, the
+   page scrolling behind a fixed panel — but it charged a whole screen
+   transition for the act of putting a caret in a box, and it hid the
+   booking card someone was in the middle of filling in.
+   The dropdown handles the same three problems now: it measures against
+   visualViewport, which is the thing the keyboard actually shrinks (see
+   PlaceCombobox), so it sizes itself to the gap above the keys instead of
+   being covered by them. */
 @media(max-width:760px){
-  .combo.open{
-    position:fixed;inset:0;z-index:var(--z-sheet);margin:0;
-    /* dvh, not inset:0 alone: the iOS keyboard shrinks the visual viewport
-       but not the layout viewport, so a sheet pinned to both edges puts its
-       last rows behind the keys you are typing on */
-    height:100dvh;
-    background:var(--ground);display:flex;flex-direction:column;
-    padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 0;
-  }
+  /* edge to edge of the field, not content-width — a phone has no room to
+     spend on a panel narrower than the thing it belongs to */
+  .cpanel{width:auto;min-width:0;left:0;right:0;max-width:none;}
+  /* Common stops, on tap, before a letter is typed. This was the one part
+     of the sheet worth keeping: on a phone the airport and the cruise
+     terminal are most of the pickups, and tapping one beats typing it. */
   .combo.open .chint{display:block;}
-  /* Two rows: the label and the way out on top, the field to itself below.
-     Sharing one line meant "Queen Beatrix International Airport" ran right
-     up under Cancel. display:contents lifts the label and input out of
-     .cwrap so both can be placed on the grid. */
-  .combo.open .cfield{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:8px;}
-  .combo.open .cfield .cwrap{display:contents;}
-  .combo.open .cfield label{grid-column:1;grid-row:1;}
-  .combo.open .cfield .cancel{grid-column:2;grid-row:1;display:flex;justify-content:flex-end;padding-right:0;}
-  .combo.open .cfield .cin{grid-column:1;grid-row:2;}
-  .combo.open .cfield input{padding:10px 0 14px;font-size:17px;}
-  .combo.open .cfield .cwipe{grid-column:2;grid-row:2;margin-right:-10px;}
-  .combo.open .cfield .clear{display:none;}
-  .combo.open .clist li.custom{background:var(--ground);padding-bottom:14px;}
-  .combo.open .cpanel{
-    /* a full screen is not a floating layer — no glass, no measured width */
-    position:static;flex:1;min-height:0;max-height:none;border:none;box-shadow:none;
-    width:auto;min-width:0;max-width:none;background:none;
-    -webkit-backdrop-filter:none;backdrop-filter:none;
-    margin:8px -16px 0;
-  }
-  .combo.open .clist{padding:0 10px;}
-  .combo.open .clist li[role="option"]{min-height:58px;}
-  .combo.open .clist li[role="option"] .on{font-size:16.5px;}
-  .combo.open .clist li[role="option"] .oa{font-size:13.5px;}
-  .combo.open .cpanel .cattrib{padding:12px 26px calc(14px + env(safe-area-inset-bottom,0px));}
 }
 
 /* ============ HOW — one bordered grid, shared rules ============ */
@@ -1304,9 +1293,6 @@ input.txt:focus{outline:none;background:var(--surface);}
 .cpanel .cgroup{margin:0 6px;}
 .areasel{border-radius:var(--r-sm);}
 .areasel select,.areasel input{border-radius:var(--r-xs);}
-@media(max-width:760px){
-  .combo.open .clist{border-radius:0;}
-}
 
 /* booking modal */
 .fld input,.fld select,.fld textarea{border-radius:var(--r-sm);}

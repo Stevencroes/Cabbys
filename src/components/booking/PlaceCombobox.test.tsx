@@ -142,6 +142,35 @@ describe("PlaceCombobox", () => {
   // The sheet takes the whole screen; opening it on one line of hint text
   // wastes it. Five shortcuts is not the 62-row dump that started all this —
   // and CSS keeps them off the desktop dropdown, where blank IS right.
+  /**
+   * A tap puts a caret in the box. Nothing else.
+   *
+   * Under 760px this used to replace the entire page with a search screen,
+   * which meant locking the body behind it — and the booking card someone
+   * was halfway through filling in disappeared for the duration. The lock
+   * is the tell: if the page is frozen, a whole screen has been taken over.
+   */
+  it("does not take over the page when the field is tapped", () => {
+    // The setup stub answers `matches: false` to everything, so a phone has
+    // to be stated outright — against the default this test would pass
+    // whatever the component did, which is what the first version of it did.
+    const real = window.matchMedia;
+    window.matchMedia = ((q: string) => ({
+      matches: /max-width:\s*760px/.test(q), media: q, onchange: null,
+      addListener() {}, removeListener() {},
+      addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      render(<PlaceCombobox label="From" value={null} onSelect={() => {}} />);
+      fireEvent.focus(screen.getByRole("combobox"));
+      expect(document.body.classList.contains("locked")).toBe(false);
+      fireEvent.change(screen.getByRole("combobox"), { target: { value: "palm" } });
+      expect(document.body.classList.contains("locked")).toBe(false);
+    } finally {
+      window.matchMedia = real;
+    }
+  });
+
   it("offers a handful of shortcuts before anything is typed", () => {
     render(<Harness />);
     fireEvent.focus(box());

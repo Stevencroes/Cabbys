@@ -1,8 +1,14 @@
 // §3.3 — the place picker. A real combobox, not a 60-option <select>:
 // type-to-filter across name AND area, grouped results, full keyboard
 // support, pointerdown commits (fires before blur on touch), custom
-// addresses anchored to a pricing area, and a full-screen sheet under
-// 760px (which also solves stacking, keyboard overlap and scroll-trap).
+// addresses anchored to a pricing area, and one dropdown at every size.
+//
+// It used to become a full-screen sheet under 760px. That solved stacking,
+// keyboard overlap and scroll-trap in one move, but it charged a whole
+// screen transition for putting a caret in a box and hid the booking card
+// someone was halfway through. The dropdown answers the same three now:
+// it measures against visualViewport, so the keyboard shrinks it instead
+// of covering it. A tap focuses the field where it stands.
 //
 // The box holds ONE string. It used to hold two — a `query` and the
 // committed place's name, displayed as `query || value.name` — and the
@@ -18,7 +24,6 @@ import {
   selFromGeo, selFromPlace, type Place, type PlaceSel,
 } from "../../data/places";
 import { geoStatusLine, geocode, placesSearchEnabled, type GeoStatus, type GeoSuggestion } from "../../lib/places";
-import { lockBody, unlockBody } from "../../lib/bodyLock";
 
 /** Letters before the list appears. The picker suggests what you are
     typing; it does not open with all 62 places and ask you to scroll. */
@@ -185,9 +190,6 @@ const markForPlace = (p: Place) =>
 const markForGeo = (k: GeoSuggestion["kind"]) =>
   k === "poi" ? "hotel" : k === "address" ? "road" : "pin";
 
-// Must match the sheet's own breakpoint in globals.css — the lock and the
-// layout have to agree on what counts as a sheet.
-const isSheet = () => window.matchMedia("(max-width:760px)").matches;
 
 export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid, icon }: PlaceComboboxProps) {
   const uid = useId();
@@ -205,7 +207,6 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   const wrapRef = useRef<HTMLDivElement>(null);
   const ownInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const lockedRef = useRef(false);
 
   const input = inputRef ?? ownInputRef;
   // The field is one line about twenty-six characters wide. `name` is the
@@ -283,10 +284,6 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     if (!open) {
       setOpen(true);
       setActive(0);
-      if (isSheet() && !lockedRef.current) {
-        lockedRef.current = true;
-        lockBody();
-      }
     }
   }
   /** Entering the box. A tap on a box that already holds a place means
@@ -312,13 +309,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     setCustomQuery(null);
     setTyping(false);
     setText(committedRef.current);
-    if (lockedRef.current) {
-      lockedRef.current = false;
-      unlockBody();
-    }
   }
-  // never leave the body locked behind an unmounted picker
-  useEffect(() => () => { if (lockedRef.current) unlockBody(); }, []);
 
   // close on outside pointerdown (desktop dropdown)
   useEffect(() => {
@@ -342,7 +333,6 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     setTyping(false);
     setOpen(false);
     setCustomQuery(null);
-    if (lockedRef.current) { lockedRef.current = false; unlockBody(); }
   }
   /** A geocoded address commits like any other place. Its area — and so
       its fare — comes from its coordinates, not from a menu. */
@@ -352,7 +342,6 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     setTyping(false);
     setOpen(false);
     setCustomQuery(null);
-    if (lockedRef.current) { lockedRef.current = false; unlockBody(); }
   }
   function commitCustom() {
     const area = areaByName(customArea) ?? AREAS[0];
@@ -363,7 +352,6 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     setCustomNote("");
     setOpen(false);
     setCustomQuery(null);
-    if (lockedRef.current) { lockedRef.current = false; unlockBody(); }
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
@@ -382,12 +370,20 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   }
 
   useEffect(() => {
-    if (!showList || isSheet()) { setDrop({ up: false, max: null }); return; }
+    if (!showList) { setDrop({ up: false, max: null }); return; }
     const measure = () => {
       const r = wrapRef.current?.getBoundingClientRect();
       if (!r) return;
       const GAP = 10, EDGE = 16, WANT = 420, FLOOR = 220;
-      const below = innerHeight - r.bottom - GAP - EDGE;
+      // visualViewport, not innerHeight. An on-screen keyboard shrinks the
+      // VISUAL viewport and leaves the layout viewport alone, so innerHeight
+      // still reports the full screen and a list measured against it runs
+      // on behind the keys. This is the whole reason the phone used to get
+      // a full-screen sheet instead of a dropdown; measuring the right box
+      // is cheaper than replacing the screen.
+      const vv = window.visualViewport;
+      const seen = vv ? vv.height + vv.offsetTop : innerHeight;
+      const below = seen - r.bottom - GAP - EDGE;
       const above = r.top - GAP - EDGE;
       const up = below < WANT && above > below;
       const room = up ? above : below;
@@ -399,9 +395,15 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     addEventListener("resize", measure);
     // capture: the page scrolls, but so can any container above this one
     addEventListener("scroll", measure, true);
+    // the keyboard opening fires neither of the above — only these
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", measure);
+    vv?.addEventListener("scroll", measure);
     return () => {
       removeEventListener("resize", measure);
       removeEventListener("scroll", measure, true);
+      vv?.removeEventListener("resize", measure);
+      vv?.removeEventListener("scroll", measure);
     };
   }, [showList]);
 
@@ -469,9 +471,6 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             </svg>
           </button>
         )}
-        <button type="button" className="cancel" onPointerDown={(e) => { e.preventDefault(); closeList(); }}>
-          Cancel
-        </button>
       </div>
 
       {showList && (

@@ -86,6 +86,7 @@
   --nav-underline:#D7D9D8;                        /* link underline, progress fill */
   --nav-rule:rgba(215,217,216,.14);               /* the hairline, and the progress track */
   --nav-bg:rgba(2,11,20,.62);                     /* --deep at 55%, behind the blur */
+  --nav-solid:#020B14;                            /* the same colour, opaque — the phone rail */
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;
