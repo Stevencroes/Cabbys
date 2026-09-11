@@ -8,9 +8,12 @@ import { lockBody, unlockBody } from "../lib/bodyLock";
 // §06 — the four the mockup names. "My trips" leaves the rail: it is an
 // account destination, and it now sits with the account itself on the right.
 const LINKS = [
-  { label: "Services", href: "/#services" },
+  // Each label names what it actually opens. "Services" landed on four
+  // reasons to book and "About Us" on the FAQ — a company story the page
+  // does not tell, which is a promise broken one click in.
+  { label: "Why Cabby's", href: "/#services" },
   { label: "Vehicles", href: "/#fleet" },
-  { label: "About Us", href: "/#about" },
+  { label: "FAQ", href: "/#about" },
   { label: "Contact", href: "/#contact" },
 ];
 

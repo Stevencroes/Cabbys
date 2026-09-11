@@ -98,12 +98,12 @@ describe("QuoteCard — the one door into the flow", () => {
     pick(/from/i, "Queen Beatrix");
     pick(/to/i, "Ritz");
 
-    fireEvent.click(screen.getByRole("button", { name: /check availability/i }));
+    fireEvent.click(screen.getByRole("button", { name: /get your fixed price/i }));
     expect(screen.getByRole("alert")).toHaveTextContent(/when does your flight land/i);
     expect(screen.getByTestId("open")).toHaveTextContent("false");
 
     setTime(/flight lands/i, /^2:00 PM$/);
-    fireEvent.click(screen.getByRole("button", { name: /check availability/i }));
+    fireEvent.click(screen.getByRole("button", { name: /get your fixed price/i }));
     await waitFor(() => expect(screen.getByTestId("open")).toHaveTextContent("true"));
   });
 });

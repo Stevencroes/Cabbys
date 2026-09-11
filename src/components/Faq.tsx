@@ -11,6 +11,10 @@ const ITEMS = [
     a: "The morning you land we send the driver's name, photo, phone number and licence plate. He waits inside the arrivals hall with a sign showing your name — past customs, before the exit doors. You don't need to call anyone or find a car park.",
   },
   {
+    q: "Can you pick me up from my hotel?",
+    a: "Yes — anywhere on the island to anywhere else, not only the airport run. Set both ends on the card at the top of this page and the price is fixed the same way.",
+  },
+  {
     q: "Is this cheaper than an airport taxi?",
     a: "Not always, and we won't pretend otherwise. A metered taxi may come in lower on a quiet afternoon. What you're paying for is that the price cannot move, the car is booked before you land, and nobody is negotiating with you in a queue at midnight with tired children.",
   },
@@ -30,7 +34,7 @@ export default function Faq() {
     <section id="about">
       <div className="faq flow">
         <div className="inner">
-          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>03 — The honest answers</div>
+          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>The honest answers</div>
           <SplitHeading
             className="sec"
             parts={[{ text: "What you're " }, { text: "actually", em: true }, { text: " worried about." }]}

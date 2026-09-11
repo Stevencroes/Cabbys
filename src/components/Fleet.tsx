@@ -87,7 +87,7 @@ export default function Fleet() {
         <div className="inner">
           <div className="sec-head">
             <div className="eyebrow rise">Our vehicles</div>
-            <SplitHeading className="sec" parts={[{ text: "Choose your perfect ride." }]} />
+            <SplitHeading className="sec" parts={[{ text: "Pick the one that " }, { text: "fits your group.", em: true }]} />
           </div>
 
           <div className={`fgrid stagger${phone ? " frail" : ""}`} ref={railRef}>
@@ -102,7 +102,10 @@ export default function Fleet() {
                   </span>
                   <span className="fmeta">
                     <span className="fname">{v.name}</span>
-                    <span className="fpax">1&ndash;{v.pax} Passengers</span>
+                    {/* Guests AND bags: two people with four suitcases do not
+                        fit the car that seats three, and "1–3 Passengers"
+                        never said so. The booking step already showed both. */}
+                    <span className="fpax">{v.pax} guests &middot; {v.bags} bags</span>
                   </span>
                   {from && (
                     <span className="ffrom">

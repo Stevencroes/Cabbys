@@ -865,7 +865,13 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fcard:hover .fshot img{transform:scale(1.045);}
 .fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);}
 .fname{display:block;font-size:14.5px;font-weight:600;letter-spacing:.01em;color:var(--ink);}
-.fpax{display:block;font-size:12.5px;color:var(--muted);margin-top:5px;}
+/* The price is absolutely positioned bottom-right, so the line beside it
+   has to be told to stop. "1–3 Passengers" happened to be short enough to
+   clear it; "Up to 12 guests · 12 bags" is not, and ran straight under the
+   figure. ch units because what it must clear is a price, and a price is
+   digits: room for "From $1,234" and the 18px inset it sits in. */
+.fpax{display:block;font-size:12.5px;color:var(--muted);margin-top:5px;
+  padding-right:9ch;}
 .ffrom{position:absolute;right:18px;bottom:18px;display:flex;align-items:baseline;gap:6px;}
 .ffrom .fl{font-size:11px;color:var(--muted);}
 .ffrom .fv{font-size:17px;font-weight:600;color:var(--ink);}

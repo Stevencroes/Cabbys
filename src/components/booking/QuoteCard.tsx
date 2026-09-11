@@ -169,7 +169,7 @@ export default function QuoteCard() {
 
       <div className="qgo">
         <button type="button" className="qbtn" onClick={handleContinue}>
-          Check availability
+          Get your fixed price
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
             strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3 10h13M11 5l5 5-5 5" />

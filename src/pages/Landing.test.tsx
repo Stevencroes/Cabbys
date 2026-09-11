@@ -42,10 +42,10 @@ describe("Landing", () => {
     // what this asserts, and why the old "no <br>" rule is no longer the
     // way to guarantee it.
     expect(container.querySelector("h1")?.textContent?.replace(/\s+/g, " ").trim())
-      .toBe("Elevated transfers. Every time.");
+      .toBe("Your ride is ready when you are.");
     // the three marks under the headline (§07)
-    expect(screen.getAllByText(/Professional Drivers/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/No Hidden Fees/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Private, never shared/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Fixed price/i).length).toBeGreaterThanOrEqual(1);
     // the card is symmetric: from and to are the same control, and
     // planning-from-abroad pre-fills pickup to the airport (§3.8)
     const pickup = screen.getByRole("combobox", { name: "From" });
