@@ -819,8 +819,12 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .pillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(24px,3vw,44px);margin-top:clamp(38px,5vw,60px);}
 .pillar .pmark{display:flex;align-items:center;justify-content:center;width:46px;height:46px;
   border:1px solid var(--line);border-radius:50%;color:var(--silver);margin-bottom:20px;}
+/* Two lines' worth of room whether the title needs it or not. "Fixed &
+   Transparent Prices" wraps at desktop widths and the other three do not,
+   which pushed its paragraph 26px below its neighbours' — four columns
+   that stopped sharing a baseline over one long word. */
 .pillar h3{font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:.01em;
-  margin:0 0 10px;line-height:1.3;color:var(--ink);}
+  margin:0 0 10px;line-height:1.3;min-height:2.6em;color:var(--ink);}
 .pillar p{font-size:13.5px;color:var(--muted);line-height:1.72;margin:0;font-weight:400;}
 @media(max-width:900px){.pillars{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 24px;}}
 /* the phone's form: one open at a time, each row a real button */
