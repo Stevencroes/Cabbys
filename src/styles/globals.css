@@ -76,7 +76,10 @@ h2.sec em{font-style:italic;}
    of scroll, which made the rail an effect; an edge is not something a page
    earns on the way down. No transition on these three properties. */
 .nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
-  height:var(--nav-h);
+  /* the box reaches the physical top of the screen; the padding keeps the
+     contents below the notch. --nav-total is the two added together, and is
+     what everything else measures against. */
+  height:var(--nav-total);padding-top:var(--safe-top);
   background:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-bottom:1px solid var(--nav-rule);}
 
@@ -149,7 +152,7 @@ h2.sec em{font-style:italic;}
   border:none;background:transparent;color:var(--nav-dim);transition:color .15s linear;}
 .nburger:hover,.nburger.on{color:var(--nav-ink);}
 .nav-scrim{position:fixed;inset:0;z-index:var(--z-nav);background:var(--scrim);}
-.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-h-sm) + 10px + env(safe-area-inset-top,0px));left:var(--gutter);right:var(--gutter);
+.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-total-sm) + 10px);left:var(--gutter);right:var(--gutter);
   display:flex;flex-direction:column;padding:10px;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-hard-lg);}
 .nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 18px;
@@ -159,48 +162,26 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
 @media(max-width:1040px){.nlinks{display:none;}.nburger{display:flex;}}
-/* On a phone the rail is opaque and meets the top of the screen.
+/* On a phone the rail is opaque and reaches the physical top edge.
  *
- * Opaque, because the glass is a desktop effect — on a wide bar a little
- * of the page moving behind it reads as depth, on a 60px one it is the
- * page smearing through the thing meant to be the screen's edge. It also
- * has to match: Safari tints the strip around the page with theme-color,
- * which is #020B14, the same as --nav-solid, so bar and strip are one
- * colour and the edge disappears. A translucent bar would put the seam
- * back. Dropping the blur also drops a full-width backdrop-filter from
- * every scroll frame on the devices least able to afford one.
+ * Opaque, because the glass is a desktop effect — on a wide bar a little of
+ * the page behind it reads as depth, on a 60px one it is content smearing
+ * through the thing meant to be the screen's edge. It also has to match the
+ * strip the browser paints around the page, which theme-color sets to
+ * #020B14, the same as --nav-solid. Dropping the blur takes a full-width
+ * backdrop-filter off every scroll frame on the devices least able to
+ * afford one.
  *
- * The inset is 0 wherever the browser keeps the page out of the status
- * bar, and the notch's height wherever viewport-fit=cover lets the page
- * under it. Either way the contents clear it and the background fills it,
- * so the bar meets the physical edge in both regimes. */
+ * Height and padding come from --nav-total-sm so the notch is inside the
+ * bar rather than on top of its contents. Nothing here lifts, offsets or
+ * sticks: earlier attempts moved the box around trying to cover a strip
+ * above it, and a fixed element is clipped to the viewport, so none of it
+ * painted. Owning the viewport (viewport-fit=cover) is what gives the bar
+ * that strip to paint in the first place. */
 @media(max-width:900px){
   .nav{
-    /* Sticky, not fixed — the one structural difference that matters here.
-     *
-     * Safari paints this page edge to edge, under the status bar, while
-     * keeping the LAYOUT viewport below it (?navdebug=1 reported a 402x754
-     * viewport on a 402x874 screen, safe-area-inset-top 0). A fixed element
-     * is clipped to that viewport, so the rail physically cannot reach the
-     * strip above it however far its box is pushed — top:-200px was tried
-     * and painted nothing. The hero photo scrolls through the strip and the
-     * rail stops below it, which is the gap.
-     *
-     * A sticky element is part of the SCROLLING layer, which is the layer
-     * being painted into that strip. Pinned 140px above the scrollport with
-     * matching padding, its background covers the strip while its contents
-     * stay exactly where they were. The negative margin cancels the lift in
-     * flow, so the rail still occupies --nav-h-sm and nothing below moves.
-     *
-     * Mobile only: on desktop the rail is glass over the hero photo, and
-     * taking it out of the overlay would cost that. */
-    --nav-lift:140px;
-    position:sticky;
-    top:calc(var(--nav-lift) * -1);
-    left:auto;right:auto;
-    margin-top:calc(var(--nav-lift) * -1);
-    height:calc(var(--nav-h-sm) + var(--nav-lift));
-    padding-top:var(--nav-lift);
+    height:var(--nav-total-sm);
+    padding-top:var(--safe-top);
     background:var(--nav-solid);
     backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
@@ -470,7 +451,7 @@ h2.sec em{font-style:italic;}
   background-repeat:no-repeat;}
 @media(max-width:760px){.hero-photo{background-position:center,center,64% center,center;}}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
-  padding:var(--nav-h) 0 150px;
+  padding:var(--nav-total) 0 150px;
   border-bottom:1px solid var(--line);}
 /* the right column is sized to the card, not to a share of the row —
    a fr split left ~100px of dead air between the two halves */
@@ -500,10 +481,14 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   padding:clamp(90px,11vh,150px) var(--gutter) clamp(26px,4vh,44px);}
 .hero-copy{max-width:min(560px,58%);}
 @media(max-width:900px){
-  /* no top padding: the sticky rail above takes that space in flow now,
-     and the hero's full-height target loses the same amount so the fold
-     still lands at the bottom of the screen rather than 60px past it */
-  .hero{padding:0 0 22px;min-height:calc(100svh - var(--nav-h-sm));}
+  /* MARGIN, not padding. .hero-photo is position:absolute;inset:0 on this
+     box, so padding insets the words and leaves the photograph sitting
+     behind the bar — which is the desktop intent and the wrong one here,
+     where the bar is opaque and the photo is only ever hidden by it. A
+     margin starts the whole hero, backdrop included, below the bar, so
+     there is nothing under the header to begin with. */
+  .hero{padding:0 0 22px;margin-top:var(--nav-total-sm);
+    min-height:calc(100svh - var(--nav-total-sm));}
 }
 .hero-eyebrow{color:var(--silver);margin-bottom:20px;}
 .hero-eyebrow .eyebrow{font-size:11.5px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}

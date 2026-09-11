@@ -80,13 +80,22 @@
      values read a shade hot through it. */
   --nav-h:70px;
   --nav-h-sm:60px;
-  --nav-clear:calc(var(--nav-h) + 26px);
+  --nav-clear:calc(var(--nav-total) + 26px);
   --nav-ink:#F5F5F3;                              /* wordmark, active link, step number */
   --nav-dim:#A7ADB4;                              /* resting links, step remainder */
   --nav-underline:#D7D9D8;                        /* link underline, progress fill */
   --nav-rule:rgba(215,217,216,.14);               /* the hairline, and the progress track */
   --nav-bg:rgba(2,11,20,.62);                     /* --deep at 55%, behind the blur */
   --nav-solid:#020B14;                            /* the same colour, opaque — the phone rail */
+  /* The rail's REAL height, notch included. Everything that has to clear the
+     header derives from these rather than restating --nav-h and hoping the
+     two stay in step: the hero's top padding, the account sheet's offset and
+     the scroll padding for hash links all read them. env() is 0 wherever the
+     browser keeps the page out of the status bar, so these collapse to the
+     bar's own height on a desktop and on any phone without a notch. */
+  --safe-top:env(safe-area-inset-top,0px);
+  --nav-total:calc(var(--nav-h) + var(--safe-top));
+  --nav-total-sm:calc(var(--nav-h-sm) + var(--safe-top));
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;
