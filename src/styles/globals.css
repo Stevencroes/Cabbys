@@ -1043,7 +1043,16 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   overflow:hidden;text-overflow:ellipsis;min-width:0;}
 /* the numeral is the part that changes, so it is the part that is lit */
 .bstep-n{color:var(--nav-ink);font-weight:400;}
-.bclose{background:none;border:none;padding:0;color:var(--nav-dim);
+/* The way out of a full-screen modal, and it was a 58x11px target — the
+   text's own box, because padding was 0. Eleven pixels on a phone, for the
+   control someone reaches for when they have changed their mind and want
+   out. The box is 44px tall now and the horizontal padding is cancelled by
+   an equal negative margin, so the words have not moved: only what your
+   thumb can hit. Escape and the back gesture already close the overlay —
+   this is the visible way, and it has to be hittable. */
+.bclose{background:none;border:none;color:var(--nav-dim);
+  display:inline-flex;align-items:center;min-height:44px;
+  padding-inline:12px;margin-inline:-12px;
   font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;
   white-space:nowrap;transition:color .15s linear;}
 .bclose:hover{color:var(--nav-ink);}
