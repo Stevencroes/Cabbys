@@ -2,7 +2,7 @@
    CABBY'S — NIGHT SEA DESIGN TOKENS
    Ink navy ground · brushed silver · one teal for live, one clay for wrong.
    Silver is a material, not a flat fill: --sheen and --hairline are the
-   only two gradients in the system. Text on --sheen is always --deep.
+   only two gradients in the system. Text on --sheen is always --on-sheen.
    ========================================================================== */
 :root{
   /* ---------- grounds ----------
@@ -15,39 +15,53 @@
   --surface:#091722;     /* cards, fare panel, job cards */
   --raised:#0D1C29;      /* inputs, segmented strips, elevated rows */
   --line:#23313D;        /* borders, dividers */
-  --soft:#3A506B;        /* disabled, faint icons */
+  --soft:#3A506B;        /* disabled, faint icons — 2.09:1 on --raised, so
+                            never text; see the table below */
 
-  /* ---------- type (contrast quoted against --ground) ---------- */
-  --ink:#F5F5F3;         /* 18.5:1 — headings, prices, primary values */
-  --silver:#A7ADB4;      /*  8.7:1 — labels, eyebrows, small caps, accents */
-  /* §04 gives #6F7882 here. Against a ground this dark that measures 4.4:1,
-     just under the 4.5 floor for body text, so it is lifted. The brief
-     calls its values approximate; failing AA is not the part to reproduce
-     faithfully.
+  /* ---------- type ----------
+     Contrast of every type colour against every ground, to WCAG 2.1.
+     Measured, not estimated. The floor is 4.5:1 for body text, 3:1 for
+     large text (>=24px, or >=18.66px bold).
 
-     Lifted a second time, because the first lift was measured against
-     --ground alone and this colour does not only sit on --ground. The
-     grounds are a ladder and every rung above the page is LIGHTER, so the
-     contrast falls as the surface rises:
+                     ground    deep   surface  raised
+       --ink         18.14   17.30    16.62    15.83
+       --highlight   13.96   13.31    12.79    12.18
+       --silver       8.75    8.34     8.02     7.64
+       --silver-deep  6.87    6.56     6.30     6.00
+       --muted        5.59    5.33     5.12     4.87   <- body copy
+       --soft         2.39    2.28     2.19     2.09   <- fails, by design
+       --signal-ink   9.14    8.71     8.37     7.97
+       --alert-ink    8.69    8.28     7.96     7.58
 
-       on --ground  #020B14   old 4.67:1  pass
-       on --deep    #06121D   old 4.46:1  fail   ← the whole FAQ
-       on --surface #091722   old 4.28:1  fail   ← cards
-       on --raised  #0D1C29   old 4.08:1  fail   ← every input and the
-                                                    booking card's labels
+     Read the table across, not down: contrast FALLS as the surface rises,
+     because the grounds are a ladder and every rung above the page is
+     lighter. A colour checked only against --ground has been checked
+     against the easiest case in the system.
 
-     So most of the body copy on the site was failing: the pillars, the
-     fare lines, the FAQ answers, every field label on the hero card.
-     #808994 is measured against --raised, the lightest rung it is ever
-     used on, and clears AA on all four. */
-  --muted:#808994;       /*  4.87:1 on --raised, 5.59:1 on --ground */
-  --placeholder:#808994; /*  placeholder text is text, and held to the same */
+     --muted is the one with no margin. §04 gives #6F7882, which measured
+     4.4:1 on --ground alone and was lifted once to #737C86 — still only
+     checked against --ground, and so still failing on the other three:
+     the whole FAQ, every card, every input and the booking card's field
+     labels. #808994 is measured against --raised, the lightest rung it is
+     ever used on, and clears 4.5 on all four. Anything that lands in body
+     copy has to clear the --raised column, not the --ground one.
+
+     --soft fails everywhere and is meant to. It is scoped to disabled
+     states and faint icons — things that are deliberately receded and
+     carry no information on their own. It is not a text colour, and the
+     table is here so nobody reaches for it as one. */
+  --ink:#F5F5F3;         /* headings, prices, primary values */
+  --silver:#A7ADB4;      /* labels, eyebrows, small caps, accents */
+  --muted:#808994;       /* body copy, secondary text */
+  --placeholder:#808994; /* placeholder text is text, held to the same floor */
   --silver-deep:#8A9AAB; /* pressed states, borders on silver elements */
   --highlight:#D7D9D8;   /* subtle highlight (§04) */
 
   /* ---------- silver as material — the only two gradients ---------- */
   --sheen:linear-gradient(180deg,#EFEDE9 0%,#E5E3DE 100%);
   --hairline:linear-gradient(90deg,transparent,#A7ADB4 22%,#D7D9D8 50%,#A7ADB4 78%,transparent);
+  /* the ink for anything sitting ON --sheen — buttons, the selected time,
+     the primary CTA. Never --ink, which vanishes on it. */
   --on-sheen:#080C10;
 
   /* ---------- functional — never decorative ----------
