@@ -89,6 +89,23 @@ const UNDO: Partial<Record<string, { to: RideStatus; label: string }>> = {
 const MAP_HEIGHT = 170;
 
 /**
+ * What the booking was told, as separate facts.
+ *
+ * Step3Details joins these with " · " into one column, which is a fine way
+ * to store them and a terrible way to read them from a car mount: the
+ * child seats' AGES, the flight's landing time and the typed address
+ * behind a custom pickup all arrive in the middle of one grey sentence.
+ * Splitting it back out is the whole treatment — same words, one per line.
+ *
+ * A guest's own free text can of course contain a middot, in which case
+ * it becomes two lines. That is the entire downside, and it is smaller
+ * than the paragraph.
+ */
+function noteLines(notes: string | null): string[] {
+  return (notes ?? "").split(" · ").map((part) => part.trim()).filter(Boolean);
+}
+
+/**
  * Where the pickup is, and how sure we are.
  *
  * "exact" is a coordinate the guest themselves dropped. "approximate" is
@@ -257,6 +274,19 @@ export default function RideDetail() {
             </span>
           )}
         </div>
+
+        {/* Said at booking, and until now shown to nobody. It sits under
+            the guest rather than above the map because it is context, not
+            the landmark that closes the last 20 metres — that is the amber
+            card, and it stays up there alone. */}
+        {noteLines(ride.bookingNotes).length > 0 && (
+          <div className="drv-told">
+            <div className="tk">What the guest told us</div>
+            <ul>
+              {noteLines(ride.bookingNotes).map((line) => <li key={line}>{line}</li>)}
+            </ul>
+          </div>
+        )}
 
         <div className="drv-rowset">
           {ride.flightNumber && (

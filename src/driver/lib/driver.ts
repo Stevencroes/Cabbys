@@ -58,6 +58,21 @@ export interface AssignedJob extends OpenJob {
   pickupLat: number | null;
   pickupLng: number | null;
   pickupNote: string | null;
+  /**
+   * Everything the booking was told, as one " · "-joined string.
+   *
+   * Written by Step3Details.ensureRide() and, until now, read by nothing.
+   * It carries the typed address behind a custom pickup and the guest's
+   * own note about it, the child seats WITH their ages, the flight's
+   * landing or departure time, and the return leg — none of which the
+   * driver had any other way to see. A villa pickup's entire usable
+   * detail was sitting in this column being ignored.
+   *
+   * Assigned-only on purpose: open_rides omits it, because "Pickup
+   * address: Villa Sunrise 14 (blue gate)" is exactly the kind of thing
+   * the pool is designed not to hand out before a job is claimed.
+   */
+  bookingNotes: string | null;
   /** set only by loadCompleted — when the money was actually earned */
   completedAt?: string | null;
 }
@@ -107,6 +122,7 @@ function toAssigned(r: Row): AssignedJob {
     pickupLat: nNum(r.pickup_lat),
     pickupLng: nNum(r.pickup_lng),
     pickupNote: nStr(r.pickup_note),
+    bookingNotes: nStr(r.notes),
   };
 }
 

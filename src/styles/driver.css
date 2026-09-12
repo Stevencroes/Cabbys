@@ -711,6 +711,17 @@
   text-decoration-color:var(--line);transition:color .25s var(--ease);}
 .drv-wayout:hover{color:var(--silver);}
 
+
+/* what the booking was told — facts, one per line, not a paragraph */
+.drv-told{border:1px solid var(--line);border-radius:var(--d-r-md);padding:14px 16px;margin-bottom:16px;}
+.drv-told .tk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--silver);margin-bottom:9px;}
+.drv-told ul{list-style:none;margin:0;padding:0;}
+.drv-told li{position:relative;padding-left:15px;font-size:13.5px;line-height:1.5;color:var(--ink);}
+.drv-told li + li{margin-top:7px;}
+.drv-told li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--silver-deep);}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;

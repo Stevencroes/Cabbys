@@ -32,6 +32,7 @@ const ride = (over: Record<string, unknown> = {}) => ({
   fareAwg: 104, payoutUsd: (104 / 1.79) * 0.75, bookingRef: "CBY-4417",
   contactName: "Steven Croes", contactPhone: "+2975607336", flightNumber: "KL767",
   pickupLat: 12.55, pickupLng: -70.05, pickupNote: "Blue umbrella, left of the pier",
+  bookingNotes: null,
   ...over,
 });
 
@@ -153,6 +154,31 @@ describe("Ride detail", () => {
     renderDetail();
     expect(await screen.findByRole("button", { name: /i've arrived/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /undo/i })).toBeNull();
+  });
+
+  // Step3Details has always written this column and nothing has ever read
+  // it. A villa pickup's entire usable detail — the typed address, the
+  // guest's own note about it, the child seats' ages, the flight's landing
+  // time — was sitting in `rides.notes` being ignored.
+  it("shows what the booking was told, as facts rather than a paragraph", async () => {
+    state.ride = ride({
+      bookingNotes:
+        "Pickup address: Villa Sunrise 14 (blue gate, past the second speed bump) · area Palm Beach"
+        + " · Child seats: 1 (ages 3) · Flight lands 2:35 PM AST · We have a surfboard",
+    });
+    renderDetail();
+    expect(await screen.findByText(/blue gate, past the second speed bump/)).toBeInTheDocument();
+    expect(screen.getByText("Child seats: 1 (ages 3)")).toBeInTheDocument();
+    expect(screen.getByText("We have a surfboard")).toBeInTheDocument();
+    // one per line, not one grey sentence
+    expect(document.querySelectorAll(".drv-told li")).toHaveLength(5);
+  });
+
+  it("says nothing at all when the booking said nothing", async () => {
+    state.ride = ride({ bookingNotes: null });
+    renderDetail();
+    await screen.findByText("Steven Croes");
+    expect(document.querySelector(".drv-told")).toBeNull();
   });
 
   // The money rows are the other half of the pool's fix: the driver's
