@@ -1631,51 +1631,6 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-driver-info b{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:500;}
 .tp-driver-info span{font-size:12px;color:var(--muted);font-weight:400;margin-top:2px;}
 .tp-driver-wa{margin-left:auto;flex-shrink:0;}
-/* ── the pickup pin ──────────────────────────────────────────────────
-   Offered on a trip that is still ahead of you, and only where it would
-   change something: the airport has one arrivals hall, so it is never
-   offered there. Closed, it is one row. Open, it is two optional fields
-   and no map — see components/trips/PickupPin.tsx for why there is no
-   map. */
-.tp-pinopen{display:block;width:100%;text-align:left;margin-top:16px;padding:13px 15px;
-  background:var(--raised);border:1px solid var(--line);border-radius:var(--r-xs);
-  color:inherit;cursor:pointer;transition:border-color .25s var(--ease);}
-.tp-pinopen:hover{border-color:var(--silver-deep);}
-/* the one case worth a nudge: a typed address, where the driver currently
-   has a street name and a hope */
-.tp-pinopen.urge{border-color:var(--signal-line);background:var(--signal-tint);}
-.tp-pinopen .pk{display:block;font-weight:600;font-size:9.5px;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--silver);}
-.tp-pinopen.urge .pk{color:var(--signal-ink);}
-.tp-pinopen .pv{display:block;font-size:13px;line-height:1.5;color:var(--muted);margin-top:4px;font-weight:400;}
-
-.tp-pin{margin-top:16px;padding:16px;background:var(--raised);
-  border:1px solid var(--line);border-radius:var(--r-xs);}
-.tp-pin .pin-h{display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.tp-pin .pin-h b{font-family:var(--serif);font-size:19px;font-weight:500;color:var(--ink);}
-.tp-pin .pin-h button{background:none;border:none;color:var(--muted);font-size:14px;
-  min-width:var(--tap);min-height:var(--tap);cursor:pointer;margin:calc(var(--tap) / -4) -8px;}
-.tp-pin .pin-sub{font-size:12.5px;line-height:1.6;color:var(--muted);margin:6px 0 14px;font-weight:400;}
-.tp-pin .pin-l{display:block;font-weight:600;font-size:9px;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
-.tp-pin textarea{width:100%;background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--r-xs);color:var(--ink);font-family:var(--sans);font-size:14px;
-  font-weight:400;padding:11px 13px;resize:vertical;}
-.tp-pin textarea::placeholder{color:var(--placeholder);}
-.tp-pin textarea:focus{outline:none;border-color:var(--silver-deep);}
-.tp-pin textarea:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
-.tp-pin .pin-or{display:flex;align-items:center;gap:10px;margin:16px 0 12px;}
-.tp-pin .pin-or::before,.tp-pin .pin-or::after{content:"";flex:1;height:1px;background:var(--line);}
-.tp-pin .pin-or span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);font-weight:600;}
-.tp-pin .pin-loc{width:100%;justify-content:center;}
-.tp-pin .pin-got,.tp-pin .pin-ok,.tp-pin .pin-err{font-size:12px;line-height:1.5;
-  margin:10px 0 0;font-weight:400;}
-.tp-pin .pin-got{color:var(--muted);}
-.tp-pin .pin-ok{color:var(--signal-ink);}
-.tp-pin .pin-err{color:var(--alert-ink);}
-.tp-pin .pin-save{width:100%;justify-content:center;margin-top:16px;}
-
 .tp-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;}
 .tp-actions:empty{display:none;}
 .btn-ghost{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);padding:0 18px;min-height:var(--tap);display:inline-flex;align-items:center;border:1px solid var(--silver-deep);transition:.3s var(--ease);background:transparent;}

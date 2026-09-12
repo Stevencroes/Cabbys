@@ -5,8 +5,6 @@ import { useBookingOptional } from "../booking/BookingContext";
 import { useStartBooking } from "../booking/useStartBooking";
 import { supabase } from "../lib/supabase";
 import { cancelRide } from "../lib/rides";
-import PickupPin from "../components/trips/PickupPin";
-import { pinWorthAsking } from "../lib/pickupPin";
 import { claimGuestRides } from "../lib/claimRides";
 import { refFromRideId } from "../lib/bookingRef";
 import { cancellationInfo, scheduledDate } from "../lib/policy";
@@ -37,10 +35,6 @@ interface Ride {
   driver_phone?: string;
   driver_vehicle?: string;
   driver_plate?: string;
-  /** the pickup pin, once the guest has set one (docs/pickup-pin.sql) */
-  pickup_lat?: number | null;
-  pickup_lng?: number | null;
-  pickup_note?: string | null;
 }
 
 // The journey a ride moves through — synonyms collapse onto these stations.
@@ -147,12 +141,6 @@ function TripCard({
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // the pin the guest just set, so the card answers immediately rather
-  // than waiting for a refetch that may never come
-  const [pinned, setPinned] = useState<{ hasPin: boolean; note: string | null }>({
-    hasPin: ride.pickup_lat != null && ride.pickup_lng != null,
-    note: ride.pickup_note ?? null,
-  });
 
   const c = canonicalStatus(ride.status);
   const cancelled = c === "cancelled" || c === "canceled";
@@ -204,23 +192,6 @@ function TripCard({
       </div>
 
       {upcoming && !cancelled && <TripTimeline status={ride.status} />}
-
-      {/* Only where it changes something: the airport has one arrivals
-          hall, and a pin there says nothing the flight number didn't. */}
-      {upcoming && !cancelled && pinWorthAsking(ride.pickup_location ?? "") && (
-        <PickupPin
-          rideId={ride.id}
-          pickup={ride.pickup_location ?? ""}
-          hasPin={pinned.hasPin}
-          note={pinned.note}
-          onSaved={(pin, note) =>
-            setPinned((prev) => ({
-              hasPin: prev.hasPin || pin != null,
-              note: note || prev.note,
-            }))
-          }
-        />
-      )}
 
       {unclosed && (
         <p className="tp-unclosed">

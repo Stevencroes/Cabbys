@@ -453,11 +453,11 @@ function PinMap({ fix, place }: { fix: Fix; place: string }) {
         </svg>
       )}
 
-      {/* "Guest pinned" is reserved for a pin a guest actually dropped.
-          Anything derived from the pickup's name says so, because a driver
-          who reads an area centre as a door stands in the wrong car park. */}
+      {/* Where this point came from, said plainly. A driver who reads an
+          area centre as a door stands in the wrong car park, so only a
+          coordinate somebody actually dropped gets called a pin. */}
       <span className={`drv-pinbadge${fix?.exact ? "" : " wait"}`}>
-        {fix?.exact ? "Guest pinned" : fix ? "Approximate — no pin dropped" : "No pin yet"}
+        {fix?.exact ? "Guest pinned" : fix ? "Approximate — from the address" : "No location"}
       </span>
 
       {debug ? (

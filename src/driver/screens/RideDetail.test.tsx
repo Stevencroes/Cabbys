@@ -77,7 +77,7 @@ describe("Ride detail", () => {
     // where an area centre would send the driver to the middle of a beach
     expect(maps.getAttribute("href")).toContain("Queen%20Beatrix");
     // and the badge never claims a pin nobody dropped
-    expect(await screen.findByText(/approximate — no pin dropped/i)).toBeInTheDocument();
+    expect(await screen.findByText(/approximate — from the address/i)).toBeInTheDocument();
     expect(screen.queryByText(/guest pinned/i)).toBeNull();
   });
 
@@ -86,7 +86,7 @@ describe("Ride detail", () => {
       pickup: "A villa with no name", pickupLat: null, pickupLng: null, pickupNote: null,
     });
     renderDetail();
-    expect(await screen.findByText(/no pin yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no location/i)).toBeInTheDocument();
   });
 
   // "Guest pinned" is a claim about provenance, not about having a map.
