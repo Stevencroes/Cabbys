@@ -64,12 +64,34 @@ describe("Ride detail", () => {
     expect(maps).toHaveAttribute("href", "https://maps.google.com/?daddr=12.55,-70.05");
   });
 
-  it("falls back to the place name when no pin was dropped", async () => {
+  // rides.pickup_lat/lng are columns nothing in this app has ever written
+  // — the guest-drops-a-pin flow was specified and never built — so this
+  // is not the edge case, it is every ride. The pickup's own name is the
+  // best location we hold, and the catalog knows where its places are.
+  it("maps the place it was told to collect from when no pin was dropped", async () => {
     state.ride = ride({ pickupLat: null, pickupLng: null, pickupNote: null });
     renderDetail();
     const maps = await screen.findByRole("link", { name: /open in maps/i });
+    // the NAME still wins the deep link: Google resolves it to the door,
+    // where an area centre would send the driver to the middle of a beach
     expect(maps.getAttribute("href")).toContain("Queen%20Beatrix");
+    // and the badge never claims a pin nobody dropped
+    expect(await screen.findByText(/approximate — no pin dropped/i)).toBeInTheDocument();
+    expect(screen.queryByText(/guest pinned/i)).toBeNull();
+  });
+
+  it("says so plainly when it has no idea where the pickup is", async () => {
+    state.ride = ride({
+      pickup: "A villa with no name", pickupLat: null, pickupLng: null, pickupNote: null,
+    });
+    renderDetail();
     expect(await screen.findByText(/no pin yet/i)).toBeInTheDocument();
+  });
+
+  // "Guest pinned" is a claim about provenance, not about having a map.
+  it("reserves the pinned badge for a pin a guest actually dropped", async () => {
+    renderDetail();
+    expect(await screen.findByText(/guest pinned/i)).toBeInTheDocument();
   });
 
   it("walks the status forward one step per tap", async () => {

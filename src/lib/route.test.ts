@@ -12,7 +12,7 @@ const google = vi.hoisted(() => ({
 }));
 vi.mock("./googleMaps", () => google);
 
-import { AIRPORT_COORD, coordOf, drivingRoute, islandPath, project, staticMapUrl } from "./route";
+import { AIRPORT_COORD, coordOf, drivingRoute, islandPath, pinMapUrl, project, staticMapUrl } from "./route";
 import { AIRPORT, areaByName, placeById, selFromCustom, selFromGeo, selFromPlace } from "../data/places";
 
 const sel = (id: string) => selFromPlace(placeById(id)!);
@@ -164,6 +164,43 @@ describe("drivingRoute", () => {
     vi.stubGlobal("fetch", fetchMock);
     expect(await drivingRoute(AIRPORT_COORD, { lat: 12.578, lon: -70.043 })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+    google.googleMapsEnabled = true;
+  });
+});
+
+// ── the driver's pickup map ──
+// Built here rather than asserted through the ride screen, because that
+// component only asks for an image once it has MEASURED itself and jsdom
+// measures everything as zero — a test driving it through the DOM would
+// prove the fallback and nothing else.
+describe("pinMapUrl", () => {
+  const at = { lat: 12.5014, lon: -70.0152 };
+
+  it("centres on the point and says how close to look", () => {
+    const url = pinMapUrl(at, { width: 416, height: 170, retina: true, zoom: 15 }) ?? "";
+    const q = new URLSearchParams(url.split("?")[1] ?? "");
+    expect(url.startsWith("https://maps.googleapis.com/maps/api/staticmap?")).toBe(true);
+    expect(q.get("center")).toBe("12.5014,-70.0152");
+    expect(q.get("zoom")).toBe("15");
+    expect(q.get("size")).toBe("416x170");
+    expect(q.get("scale")).toBe("2");
+    expect(q.getAll("markers")).toEqual(["size:mid|color:0xf2f5f8|12.5014,-70.0152"]);
+    // the dark style the rest of the site's maps wear, not a default map
+    expect(q.getAll("style").length).toBeGreaterThan(1);
+  });
+
+  // Door level for a point somebody stood on; wider for one derived from a
+  // place name, because pretending to that accuracy is the lie this file
+  // exists to avoid.
+  it("defaults to door level, and takes a wider frame when asked", () => {
+    const near = new URLSearchParams((pinMapUrl(at, { width: 400, height: 170 }) ?? "").split("?")[1]);
+    expect(near.get("zoom")).toBe("17");
+    expect(near.get("scale")).toBeNull();
+  });
+
+  it("asks for nothing at all without a key, so the sketch stands", () => {
+    google.googleMapsEnabled = false;
+    expect(pinMapUrl(at, { width: 400, height: 170 })).toBeNull();
     google.googleMapsEnabled = true;
   });
 });

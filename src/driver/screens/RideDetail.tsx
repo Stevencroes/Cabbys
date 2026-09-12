@@ -25,16 +25,34 @@
 //    early left the driver stuck in a state they hadn't reached.
 //  · The map was an invented one. A pin plotted onto a hand-drawn
 //    rectangle is not a location — it is a picture of a location. With a
-//    Maps key there is now a real map at door-level zoom, and without one
-//    the fallback is the same island sketch the passenger site draws,
-//    from the real coastline, labelled as a sketch.
+//    Maps key there is now a real map, and without one the fallback is the
+//    same island sketch the passenger site draws, from the real coastline,
+//    labelled as a sketch.
+//
+// About that map, and the thing it is honest about now: rides.pickup_lat,
+// pickup_lng and pickup_note are columns docs/driver-schema.sql creates
+// and NOTHING IN THIS APP EVER WRITES. The guest-drops-a-pin flow the
+// header above describes was specified and never built — buildRidePayload
+// sets none of the three, and no other writer exists. So every ride
+// reached this screen with no pin, and the map had nothing to centre on
+// but an island.
+//
+// Until that flow exists, the pickup's own NAME is the best location we
+// hold, and it is a good one: the catalog knows where its places are, and
+// resolvePin sharpens a hotel from its area centre to its actual door.
+// The map is drawn from that, and the badge says which of the two it is
+// looking at — "Guest pinned" only ever means a real dropped pin. An
+// approximate map of the right resort beats an accurate map of nowhere.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { jobDate, jobTime, relativeWhen, shortPlace } from "../JobCard";
 import { loadRide, setRideStatus, type AssignedJob, type RideStatus } from "../lib/driver";
 import { awgToUsd, COMMISSION_RATE } from "../../lib/quote";
-import { islandPath, pinMapUrl, project, type Coord } from "../../lib/route";
-import { googleMapsEnabled, reportGoogleMapsFailure } from "../../lib/googleMaps";
+import { coordOf, islandPath, pinMapUrl, project, type Coord } from "../../lib/route";
+import { buildLine, googleMapsEnabled, lastMapFailure, onMapFailure, reportGoogleMapsFailure } from "../../lib/googleMaps";
+import { mapDebugOn } from "../../lib/mapDebug";
+import { findPlaceByName, selFromPlace } from "../../data/places";
+import { resolvePin } from "../../lib/placePins";
 import { formatFlightNumber } from "../../lib/flight";
 import { normalizePhone } from "../../lib/contact";
 
@@ -69,6 +87,27 @@ const UNDO: Partial<Record<string, { to: RideStatus; label: string }>> = {
 };
 
 const MAP_HEIGHT = 170;
+
+/**
+ * Where the pickup is, and how sure we are.
+ *
+ * "exact" is a coordinate the guest themselves dropped. "approximate" is
+ * the catalog's answer for the place they named — the resort's own point
+ * once resolvePin has sharpened it, the area centre until then. The
+ * distinction is the badge, and it is not cosmetic: a driver who trusts
+ * an approximate point as a door will stand in the wrong car park.
+ */
+type Fix = { at: Coord; exact: boolean } | null;
+
+function fixFor(ride: AssignedJob): Fix {
+  if (ride.pickupLat != null && ride.pickupLng != null) {
+    return { at: { lat: ride.pickupLat, lon: ride.pickupLng }, exact: true };
+  }
+  const place = findPlaceByName(ride.pickup);
+  if (!place) return null;
+  const at = coordOf(selFromPlace(place));
+  return at ? { at, exact: false } : null;
+}
 /* The sketch keeps the island's own proportions and letterboxes inside the
    frame. Projecting it into the frame's ratio instead stretched Aruba into
    a sliver — and moved the pin with it. */
@@ -139,12 +178,13 @@ export default function RideDetail() {
   const step = FLOW.find((s) => s.from === ride.status);
   const undo = UNDO[ride.status];
   const stageIndex = STAGES.findIndex((s) => s.status === ride.status);
-  const pin: Coord | null =
-    ride.pickupLat != null && ride.pickupLng != null
-      ? { lat: ride.pickupLat, lon: ride.pickupLng }
-      : null;
-  const mapsHref = pin
-    ? `https://maps.google.com/?daddr=${pin.lat},${pin.lon}`
+  const fix = fixFor(ride);
+  // The deep link still prefers the NAME over an approximate point:
+  // Google resolves "Bucuti & Tara Beach Resort" to its door, and an area
+  // centre would send the driver to the middle of Eagle Beach instead.
+  // Only a pin the guest actually dropped beats the name.
+  const mapsHref = fix?.exact
+    ? `https://maps.google.com/?daddr=${fix.at.lat},${fix.at.lon}`
     : `https://maps.google.com/?daddr=${encodeURIComponent(ride.pickup)}`;
   const initial = (ride.contactName || "?").trim().charAt(0).toUpperCase();
   const phone = ride.contactPhone ? normalizePhone(ride.contactPhone) : null;
@@ -192,7 +232,7 @@ export default function RideDetail() {
         </div>
       )}
 
-      <PinMap at={pin} />
+      <PinMap fix={fix} place={ride.pickup} />
 
       <div className="drv-pad" style={{ paddingTop: 16, paddingBottom: 24 }}>
         <div className="drv-pax">
@@ -293,7 +333,7 @@ function RideBar({ onBack, away }: { onBack: () => void; away?: string }) {
 }
 
 /**
- * The pickup, at door level.
+ * The pickup, on a map.
  *
  * Sized in CSS pixels, so it has to know how wide it drew before it can
  * ask for an image — the same measure-then-fetch the passenger route map
@@ -301,17 +341,26 @@ function RideBar({ onBack, away }: { onBack: () => void; away?: string }) {
  * real one buys two static maps for every job opened.
  *
  * Every failure ends at the sketch: no key, a rejected key, a dead network
- * or a ride with no pin on it yet.
+ * or a pickup this app has never heard of. Which of those it was is the
+ * kind of question that costs an afternoon from the outside, so
+ * ?mapdebug=1 puts the answer in the caption — the same flag, and the same
+ * channel, the passenger route map already answers on.
  */
-function PinMap({ at }: { at: Coord | null }) {
+function PinMap({ fix, place }: { fix: Fix; place: string }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [failed, setFailed] = useState(false);
+  const debug = mapDebugOn();
+  const [why, setWhy] = useState(() => (debug ? lastMapFailure() : ""));
 
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const measure = (w: number) => setWidth((prev) => (w > 0 && w !== prev ? Math.ceil(w / 32) * 32 : prev));
+    const measure = (raw: number) => {
+      if (raw <= 0) return;
+      const bucketed = Math.ceil(raw / 32) * 32;
+      setWidth((prev) => (bucketed === prev ? prev : bucketed));
+    };
     measure(el.getBoundingClientRect().width);
     if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(([entry]) => measure(entry.contentRect.width));
@@ -319,18 +368,44 @@ function PinMap({ at }: { at: Coord | null }) {
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (!debug) return;
+    setWhy(lastMapFailure());
+    return onMapFailure(setWhy);
+  }, [debug]);
+
+  // Sharpen a named pickup from its area centre to the building itself.
+  // Fails soft in every direction: no key, no match, or an answer too far
+  // from the area to be about this place all leave the centre standing.
+  useEffect(() => {
+    if (!fix || fix.exact) return;
+    const p = findPlaceByName(place);
+    if (p) void resolvePin(selFromPlace(p));
+  }, [fix, place]);
+
   const url =
-    at && !failed && width > 0 && googleMapsEnabled
-      ? pinMapUrl(at, { width, height: MAP_HEIGHT, retina: true })
+    fix && !failed && width > 0
+      ? pinMapUrl(fix.at, { width, height: MAP_HEIGHT, retina: true, zoom: fix.exact ? 17 : 15 })
       : null;
-  const p = at ? project(at, SKETCH_W, SKETCH_H) : null;
+  const p = fix ? project(fix.at, SKETCH_W, SKETCH_H) : null;
+
+  /** Why this is a drawing, said in the words of whoever has to fix it. */
+  const reason = !fix
+    ? `no coordinates for "${place}" — and no guest pin on this ride`
+    : !googleMapsEnabled
+    ? lastMapFailure()
+    : width <= 0
+    ? "the map frame measured 0px wide"
+    : failed
+    ? why || "the static image did not load"
+    : "";
 
   return (
     <div className="drv-pinmap" ref={box} style={{ height: MAP_HEIGHT }}>
       {url ? (
         <img
           src={url}
-          alt="Map of the pickup pin"
+          alt={`Map of the pickup at ${place}`}
           width={width}
           height={MAP_HEIGHT}
           onError={() => { reportGoogleMapsFailure("driver pin map"); setFailed(true); }}
@@ -347,11 +422,21 @@ function PinMap({ at }: { at: Coord | null }) {
           )}
         </svg>
       )}
-      <span className={`drv-pinbadge${at ? "" : " wait"}`}>
-        {at ? "Guest pinned" : "No pin yet"}
+
+      {/* "Guest pinned" is reserved for a pin a guest actually dropped.
+          Anything derived from the pickup's name says so, because a driver
+          who reads an area centre as a door stands in the wrong car park. */}
+      <span className={`drv-pinbadge${fix?.exact ? "" : " wait"}`}>
+        {fix?.exact ? "Guest pinned" : fix ? "Approximate — no pin dropped" : "No pin yet"}
       </span>
-      {at && !url && <span className="drv-pinnote">Sketch — not to scale</span>}
-      {url && <span className="drv-pinnote">© Google</span>}
+
+      {debug ? (
+        <span className="drv-pinnote dbg">{[reason || "map drawn", buildLine()].join(" · ")}</span>
+      ) : url ? (
+        <span className="drv-pinnote">© Google</span>
+      ) : fix ? (
+        <span className="drv-pinnote">Sketch — not to scale</span>
+      ) : null}
     </div>
   );
 }

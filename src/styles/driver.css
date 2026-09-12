@@ -161,7 +161,7 @@
 .drv-pinmap svg{width:100%;height:100%;display:block;}
 .drv-pinbadge{position:absolute;left:14px;bottom:12px;background:var(--silver);color:var(--deep);
   border-radius:var(--d-r-pill);padding:7px 13px;font-size:9.5px;font-weight:600;
-  letter-spacing:.12em;text-transform:uppercase;}
+  letter-spacing:.12em;text-transform:uppercase;max-width:calc(100% - 28px);}
 .drv-pinbadge.wait{background:var(--raised);color:var(--muted);border:1px solid var(--line);}
 
 /* the note beats the pin — coordinates get you within 20 metres, the
@@ -574,6 +574,12 @@
 .drv-pinnote{position:absolute;right:12px;bottom:12px;font-size:9px;letter-spacing:.1em;
   text-transform:uppercase;font-weight:600;color:var(--muted);
   background:var(--ground);border-radius:var(--d-r-pill);padding:4px 9px;}
+/* ?mapdebug=1 — the reason, in full, for whoever is fixing it. Not
+   uppercase and not truncated: this one is meant to be read. */
+.drv-pinnote.dbg{left:12px;right:12px;bottom:8px;text-transform:none;letter-spacing:0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:400;
+  line-height:1.4;border-radius:var(--d-r-sm);padding:7px 9px;background:var(--scrim-heavy);
+  color:var(--silver);}
 
 /* Call and Chat: labelled, because two unlabelled glyphs beside a name
    were a guess at 60km/h. Both keep a 46px target. */
