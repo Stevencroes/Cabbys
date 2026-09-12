@@ -25,13 +25,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import JobCard, { jobTime, minutesUntil, statusChip, type ChipTone } from "../JobCard";
+import WeekBar from "../WeekBar";
 import {
   loadAssigned, loadCompleted,
   type AssignedJob, type DriverProfile,
 } from "../lib/driver";
 import {
   todayInAruba, addDays, arubaDayOf, dayOfMonth, monthShort, weekDays,
-  weekStart, weekRangeLabel, weekdayLong, weekdayShort, ARUBA_OFFSET_MINUTES,
+  weekStart, weekdayLong, weekdayShort, ARUBA_OFFSET_MINUTES,
 } from "../../lib/datetime";
 
 type View = "week" | "day";
@@ -274,24 +275,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
         </div>
 
         {/* ── the week: walk it, then pick a day out of it ── */}
-        <div className="drv-weekbar">
-          <button
-            type="button"
-            className="wnav"
-            aria-label="Previous week"
-            onClick={() => go(addDays(cursor, -7))}
-          >‹</button>
-          <div className="wlab">
-            <span className="wr">{weekRangeLabel(cursor)}</span>
-            <span className="wm">{onThisWeek ? "This week" : days[0] < thisWeek ? "Past week" : "Ahead"}</span>
-          </div>
-          <button
-            type="button"
-            className="wnav"
-            aria-label="Next week"
-            onClick={() => go(addDays(cursor, 7))}
-          >›</button>
-        </div>
+        <WeekBar cursor={cursor} onChange={(d) => go(d)} />
 
         <div className="drv-week" role="group" aria-label="Days of the week">
           {days.map((d) => {

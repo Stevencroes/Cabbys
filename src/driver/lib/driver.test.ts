@@ -6,6 +6,8 @@ let rpcError: unknown = null;
 let singleResult: unknown = null;
 let orderResult: unknown[] = [];
 let orderError: { message: string } | null = null;
+let updateError: { message: string } | null = null;
+const updates: Record<string, unknown>[] = [];
 
 vi.mock("../../lib/supabase", () => {
   const builder = (table: string) => {
@@ -18,7 +20,10 @@ vi.mock("../../lib/supabase", () => {
       in: chain,
       order: () => Promise.resolve({ data: orderError ? null : orderResult, error: orderError }),
       maybeSingle: () => Promise.resolve({ data: singleResult, error: null }),
-      update: () => ({ eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return Promise.resolve({ data: null, error: null }); } }),
+      update: (patch: Record<string, unknown>) => {
+        updates.push(patch);
+        return { eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return Promise.resolve({ data: null, error: updateError }); } };
+      },
     });
     return b;
   };
@@ -38,13 +43,14 @@ vi.mock("../../lib/supabase", () => {
 
 import {
   loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline,
-  isImminent, IMMINENT_MINUTES,
+  saveDriverPhone, isImminent, IMMINENT_MINUTES,
 } from "./driver";
 
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.eq = [];
   rpcResult = { ok: true, ride_id: "r1" }; rpcError = null;
   singleResult = null; orderResult = []; orderError = null;
+  updateError = null; updates.length = 0;
 });
 
 describe("driver data layer", () => {
@@ -171,8 +177,33 @@ describe("driver data layer", () => {
   });
 
   it("updates online status by user_id too", async () => {
-    await setOnline(true);
+    expect(await setOnline(true)).toBe(true);
     expect(calls.eq).toContainEqual(["user_id", "d1"]);
+  });
+
+  // The shell flips the switch before the write lands, so it needs to be
+  // told when the write didn't. Reporting success either way is how a
+  // driver sits out a shift reading "Online" over a row that says
+  // otherwise.
+  it("says when going online did not actually land", async () => {
+    updateError = { message: "network" };
+    expect(await setOnline(true)).toBe(false);
+  });
+
+  // The one profile field a driver owns. The policy in
+  // docs/driver-schema.sql admits an update to their own row and blocks
+  // only a change to status — so this writes phone and nothing else.
+  it("saves the driver's own phone, and touches nothing else on the row", async () => {
+    expect(await saveDriverPhone("+2975607336")).toEqual({ ok: true });
+    expect(updates).toEqual([{ phone: "+2975607336" }]);
+    expect(calls.eq).toContainEqual(["user_id", "d1"]);
+  });
+
+  it("carries the database's words back when the phone won't save", async () => {
+    updateError = { message: "new row violates row-level security policy" };
+    expect(await saveDriverPhone("+2975607336")).toEqual({
+      ok: false, detail: "new row violates row-level security policy",
+    });
   });
 
   // Regression: these are the real rides columns, copied from

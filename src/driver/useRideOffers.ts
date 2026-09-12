@@ -7,11 +7,26 @@
 //
 // Polls rather than subscribing to Realtime, because Realtime needs the
 // rides table added to a publication and this must work on a database
-// nobody has configured for it.
+// nobody has configured for it. It stands down while the portal is
+// behind another app — see BACKGROUND_GRACE_MS.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { claimRide, loadOpen, type OpenJob } from "./lib/driver";
 
 const POLL_MS = 12_000;
+/**
+ * How long a backgrounded portal keeps polling before it stops.
+ *
+ * This ran every twelve seconds for as long as a driver was online — a
+ * phone in a mount for a ten-hour shift, asking three thousand times, most
+ * of them while the screen was off or WhatsApp was in front. An offer is
+ * an interruption, and there is nobody to interrupt behind another app.
+ *
+ * Not stopped the instant the tab hides, because switching to Maps for
+ * twenty seconds mid-job is the most normal thing a driver does and
+ * dropping the watch for it would be worse than the battery. Two minutes
+ * is long enough to cover that and short enough to stop a pocket.
+ */
+const BACKGROUND_GRACE_MS = 120_000;
 /**
  * After the 20-second offer lapses, the job stays reachable in a slim bar
  * for another minute and a half. Twenty seconds is the right length for a
@@ -47,8 +62,25 @@ export function useRideOffers(online: boolean): OfferState {
 
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
+    /** when the portal last had someone in front of it */
+    let seenAt = Date.now();
+
+    const wake = () => {
+      if (document.visibilityState !== "visible") return;
+      seenAt = Date.now();
+      // back in front, and possibly after a long sleep — catch up now
+      // rather than at the end of whatever timer is still pending
+      clearTimeout(timer);
+      void tick();
+    };
+    document.addEventListener("visibilitychange", wake);
 
     async function tick() {
+      if (stopped) return;
+      if (document.visibilityState === "visible") seenAt = Date.now();
+      // asleep in a pocket: stand down until something looks at us again
+      if (Date.now() - seenAt > BACKGROUND_GRACE_MS) return;
+
       const { jobs } = await loadOpen();
       if (stopped) return;
 
@@ -65,7 +97,11 @@ export function useRideOffers(online: boolean): OfferState {
     }
 
     void tick();
-    return () => { stopped = true; clearTimeout(timer); };
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", wake);
+    };
   }, [online]);
 
   // Dismissing hands the job to the grace bar rather than dropping it.

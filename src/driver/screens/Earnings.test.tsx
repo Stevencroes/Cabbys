@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const state: { completed: unknown[] } = { completed: [] };
@@ -64,7 +65,7 @@ beforeEach(() => {
  * element instead — which is also closer to what a driver sees.
  */
 function mount() {
-  const view = render(<Earnings driver={driver} />);
+  const view = render(<MemoryRouter><Earnings driver={driver} /></MemoryRouter>);
   const text = (sel: string) => view.container.querySelector(sel)?.textContent?.trim() ?? "";
   return { ...view, total: () => text(".drv-etot .ev"), caption: () => text(".drv-etot .ed") };
 }
@@ -125,8 +126,12 @@ describe("Earnings", () => {
     await waitFor(() => expect(v.total()).toBe("$128"));
     expect(screen.queryByText(/next payout/i)).toBeNull();
     expect(screen.queryByText(/· Monday/)).toBeNull();
-    expect(screen.getByText(/Earned this week/i)).toBeInTheDocument();
+    // The block states what is known — the commission and the Mon–Sun
+    // span — and names no day. The week's figure is the headline above
+    // it, and printing it twice on one screen is not a second fact.
+    expect(v.container.querySelector(".drv-payout .pk")?.textContent).toMatch(/Your payout/i);
     expect(screen.getByText(/confirms your payout schedule/i)).toBeInTheDocument();
+    expect(v.container.querySelector(".drv-payout .pv")).toBeNull();
   });
 
   it("says what was taken out, on the figure itself", async () => {

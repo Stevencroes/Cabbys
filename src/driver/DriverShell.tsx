@@ -1,7 +1,7 @@
 // The shell: the mark and the online switch never move, because whether
 // you are taking work is the one thing that must be true at a glance from
 // a car mount. Everything else scrolls beneath.
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { isImminent, setOnline, type DriverProfile, type OpenJob } from "./lib/driver";
 import { jobDateShort, jobTime } from "./JobCard";
@@ -42,15 +42,38 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
   const navigate = useNavigate();
   const [online, setOnlineState] = useState(driver.isOnline);
   const [booked, setBooked] = useState<OpenJob | null>(null);
+  /** the last on/off tap didn't reach the database */
+  const [offFailed, setOffFailed] = useState(false);
   const offers = useRideOffers(online);
 
-  const toggle = useCallback(() => {
+  // A claim confirmed is a word, not a state to dismiss. It clears itself
+  // so a driver who put the phone down doesn't come back to a bar sitting
+  // over the nav.
+  useEffect(() => {
+    if (!booked) return;
+    const t = setTimeout(() => setBooked(null), 6000);
+    return () => clearTimeout(t);
+  }, [booked]);
+
+  /**
+   * The switch stays optimistic — one that waits for a round trip in a
+   * car park with one bar feels broken — but it no longer lies. If the
+   * write doesn't land, the switch goes back to where it was and says so:
+   * a portal reading "Online" over a row that says otherwise is a driver
+   * sitting out a whole shift wondering where the work went.
+   */
+  const toggle = useCallback(async () => {
     const next = !online;
-    setOnlineState(next);   // optimistic — the switch must feel instant
+    setOnlineState(next);
+    setOffFailed(false);
     // the one deliberate tap before work can arrive: use it to unlock
     // audio, so the first offer is allowed to chime
     if (next) primeAudio();
-    void setOnline(next);
+    const ok = await setOnline(next);
+    if (!ok) {
+      setOnlineState(!next);
+      setOffFailed(true);
+    }
   }, [online]);
 
   /**
@@ -83,12 +106,19 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
             <button
               type="button"
               className={`drv-tgl${online ? " on" : ""}`}
-              onClick={toggle}
+              onClick={() => void toggle()}
               role="switch"
               aria-checked={online}
               aria-label={online ? "Go offline" : "Go online"}
             />
           </div>
+        </div>
+      )}
+
+      {offFailed && !bare && (
+        <div className="drv-offline" role="alert">
+          <span>Couldn't reach Cabby's — you're still {online ? "online" : "offline"}. Check your signal and try again.</span>
+          <button type="button" onClick={() => setOffFailed(false)} aria-label="Dismiss">✕</button>
         </div>
       )}
 

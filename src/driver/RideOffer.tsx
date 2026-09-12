@@ -9,7 +9,7 @@
 // Letting it lapse is not a refusal: the ride stays in the pool for
 // whoever wants it, and this driver simply isn't asked about it again.
 import { useEffect, useRef, useState } from "react";
-import { jobTime } from "./JobCard";
+import { jobDateShort, jobTime, relativeWhen } from "./JobCard";
 import { chime } from "./lib/chime";
 import type { OpenJob } from "./lib/driver";
 
@@ -85,8 +85,18 @@ export default function RideOffer({ job, onAccept, onDismiss, busy, refused }: R
           )}
         </div>
 
+        {/* Named, the way the pool names it. A bare figure the size of
+            this one, on a screen that has taken over the phone, is the
+            easiest number in the app to read as the fare. */}
+        <div className="ok" style={{ marginBottom: 4 }}>You earn</div>
         <div className="ofare">{job.payoutUsd != null ? `$${Math.round(job.payoutUsd)}` : "—"}</div>
-        <div className="owhen">{jobTime(job.scheduledAt)}</div>
+        {/* The day, not just the clock. "7:10 AM" with no date is how a
+            driver accepts tomorrow's airport run believing it is this
+            morning's. */}
+        <div className="owhen">
+          {[jobDateShort(job.scheduledAt), jobTime(job.scheduledAt), relativeWhen(job.scheduledAt)]
+            .filter(Boolean).join(" · ")}
+        </div>
 
         <div className="olegs">
           <div className="drv-leg">

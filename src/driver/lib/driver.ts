@@ -12,6 +12,10 @@ import { arubaInstant } from "../../lib/datetime";
 
 export type DriverStatus = "pending" | "approved" | "suspended";
 
+/** Did a write land, and if not, in whose words. Shared by every driver
+    action that can be refused server-side. */
+export type StatusResult = { ok: true } | { ok: false; detail: string };
+
 export interface DriverProfile {
   id: string;
   fullName: string;
@@ -161,11 +165,41 @@ export async function loadDriverById(uid: string): Promise<DriverProfile | null>
   };
 }
 
-export async function setOnline(isOnline: boolean): Promise<void> {
+/**
+ * Going on or off duty.
+ *
+ * Reports whether it landed. The shell flips the switch optimistically —
+ * it has to, a toggle that waits for a round trip feels broken — but a
+ * write that then fails leaves the portal saying "Online" over a database
+ * row that says otherwise, and a driver sitting out a shift wondering why
+ * no work is coming. Silence was the wrong answer to that.
+ */
+export async function setOnline(isOnline: boolean): Promise<boolean> {
   const { data: session } = await supabase.auth.getSession();
   const uid = session.session?.user?.id;
-  if (!uid) return;
-  await supabase.from("drivers").update({ is_online: isOnline }).eq("user_id", uid);
+  if (!uid) return false;
+  const { error } = await supabase.from("drivers").update({ is_online: isOnline }).eq("user_id", uid);
+  return !error;
+}
+
+/**
+ * The driver's own phone number.
+ *
+ * The one field on the profile they are allowed to change, and the portal
+ * used to say otherwise — "Message us to change them" sat under all three
+ * rows, including this one. The database has always permitted it: see the
+ * "drivers: update own" policy in docs/driver-schema.sql, which admits an
+ * update to their own row and blocks only a change to `status`. Vehicle
+ * and plate are Cabby's to set, and still say so; a number a guest has to
+ * reach them on is theirs.
+ */
+export async function saveDriverPhone(phone: string): Promise<StatusResult> {
+  const { data: session } = await supabase.auth.getSession();
+  const uid = session.session?.user?.id;
+  if (!uid) return { ok: false, detail: "You're not signed in any more." };
+  const { error } = await supabase.from("drivers").update({ phone }).eq("user_id", uid);
+  if (error) return { ok: false, detail: error.message || "The change didn't save." };
+  return { ok: true };
 }
 
 /** Today's assigned work, soonest first. */
@@ -295,8 +329,6 @@ export type RideStatus = "en_route" | "arrived" | "in_progress" | "completed";
  * reassigned under them, the other that their account has been
  * suspended mid-shift.
  */
-export type StatusResult = { ok: true } | { ok: false; detail: string };
-
 const STATUS_REASONS: Record<string, string> = {
   not_yours: "This job isn't yours any more — it may have been reassigned.",
   not_approved: "Your account isn't approved to take jobs right now.",

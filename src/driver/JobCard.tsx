@@ -62,6 +62,20 @@ export function shortPlace(name: string): string {
   return place ? place.area : name;
 }
 
+/**
+ * A place as a driver would say it in a receipt: everywhere exactly as it
+ * was booked, and the one name that is the same on every row shortened.
+ *
+ * Not shortPlace, which answers with the AREA — "Bucuti & Tara Beach
+ * Resort" becomes "Eagle Beach". That is right for a headline and wrong
+ * for a history a driver is arguing a payment out of, where the exact
+ * property is the evidence. The airport is the exception: there is one,
+ * it is 34 characters long, and it opens most rows on the screen.
+ */
+export function shortAirport(name: string): string {
+  return name === AIRPORT.name ? "Airport" : name;
+}
+
 /** Minutes from now until pickup; negative once it's passed. */
 export function minutesUntil(iso: string | null, now = Date.now()): number | null {
   if (!iso) return null;
