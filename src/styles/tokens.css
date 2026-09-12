@@ -202,3 +202,55 @@
   --c-on-dark-2:var(--silver);
   --c-sea:var(--surface);
 }
+
+/* ==========================================================================
+   USAGE SNAPSHOT — 12 September 2026
+   How many times each colour token is read across src/ (.css/.tsx/.ts,
+   tests excluded). Counted with, and refreshable by:
+
+     grep -rhoE "var\(--[a-z0-9-]+" src --include=*.css --include=*.tsx \
+       --include=*.ts | sed 's/var(//' | sort | uniq -c | sort -rn
+
+   The -E form matters: a fallback like var(--mist, #F2F5F8) is a real
+   reference, and grepping for the literal "var(--mist)" misses it.
+
+   A count in a comment goes stale — this one is dated so you can see how
+   far. Treat it as a map of where weight sits, not as a live figure.
+
+   GROUNDS          TYPE                 MATERIAL
+     --line     108    --silver     110    --sheen         18
+     --raised    41    --muted      109    --on-sheen      17
+     --surface   36    --ink        101    --hairline       2
+     --deep      17    --silver-deep 18    --on-sheen-wash  2
+     --soft      17    --placeholder  5
+     --ground    15    --highlight    1
+
+   FUNCTIONAL       NAV                  DEPTH / SCRIM
+     --signal      14   --nav-ink     8    --shadow-hard    12
+     --alert-ink   13   --nav-dim     6    --shadow-hard-lg  8
+     --signal-ink  10   --nav-rule    4    --scrim           2
+     --signal-line 10   --nav-underln 3    --scrim-heavy     2
+     --alert-line   8   --nav-bg      1    --line-soft       2
+     --signal-tint  6   --nav-solid   1    --grain           1
+     --alert-tint   5   --nav-deep    1
+     --signal-glow  3
+     --alert         3
+     --signal-knob   1
+     --signal-halo   1
+
+   THE LEGACY ALIASES ARE ALL BUT GONE. That block's own comment says
+   "older components still read these names". Three of them do:
+
+     --accent      Diamond.tsx
+     --silver-dim  Diamond.tsx
+     --mist        AuthCallback.tsx   (via a fallback)
+
+   The other 43 — --bg, --card, --border, --danger, --success, --white,
+   the whole --c-vanilla / --c-cocoa / --c-lacquer / --c-palm set from an
+   earlier palette — are read by nothing in src/. They are ~45 lines of a
+   204-line file describing a design system that no longer exists. Left in
+   place rather than deleted, because a token nothing references still
+   costs nothing at runtime and something outside src/ may yet want one;
+   but nothing new should reach for them, and retiring the block is a
+   small, safe piece of work whenever someone wants the file shorter.
+   ========================================================================== */
