@@ -148,28 +148,6 @@
   /* ---------- filmic grain ---------- */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
-  /* ---------- the last three aliases ----------
-     What is left of a legacy block that held 49 names. Two components
-     were never moved onto the role tokens and still read these three;
-     they resolve to Night Sea roles so those files render correctly.
-
-       --accent      Diamond.tsx
-       --silver-dim  Diamond.tsx
-       --mist        AuthCallback.tsx, through a fallback
-
-     The other 46 were aliases to a design system that had already been
-     replaced — --bg, --card, --border, --danger, --success, --white,
-     --focus-glow, four shadow aliases and the whole --c-vanilla /
-     --c-cocoa / --c-lacquer / --c-palm set. Nothing in src/ read any of
-     them; nine were named only in the superseded plans under
-     docs/superpowers/, which are a record of that design rather than a
-     consumer of it. Removed 12 September 2026.
-
-     Point those two components at --silver, --silver-deep and --ink and
-     this block goes too. */
-  --accent:var(--silver);
-  --silver-dim:var(--silver-deep);
-  --mist:var(--ink);
 }
 
 /* ==========================================================================
@@ -180,8 +158,10 @@
      grep -rhoE "var\(--[a-z0-9-]+" src --include=*.css --include=*.tsx \
        --include=*.ts | sed 's/var(//' | sort | uniq -c | sort -rn
 
-   The -E form matters: a fallback like var(--mist, #F2F5F8) is a real
-   reference, and grepping for the literal "var(--mist)" misses it.
+   The -E form matters: a fallback like var(--muted, #808994) is a real
+   reference, and grepping for the literal "var(--muted)" misses it. That
+   is not hypothetical — it is how --mist was once scored as unused while
+   AuthCallback.tsx was reading it.
 
    A count in a comment goes stale — this one is dated so you can see how
    far. Treat it as a map of where weight sits, not as a live figure.
@@ -207,11 +187,13 @@
      --signal-knob   1
      --signal-halo   1
 
-   THE LEGACY ALIASES ARE GONE, bar three. The block declared 49 names
-   and its own comment claimed older components still read them. Three
-   did — --accent and --silver-dim in Diamond.tsx, --mist in
-   AuthCallback.tsx — and those three remain. The other 46 were removed
-   on 12 September 2026. Nine of them were named only in the superseded
-   plans under docs/superpowers/, which record that design rather than
-   consume it, so those references are now dangling by design.
+   THE LEGACY ALIASES ARE GONE. The block declared 49 names aliasing a
+   design system that had already been replaced. Three were still read —
+   --accent and --silver-dim in Diamond.tsx, --mist in AuthCallback.tsx —
+   so those two components were pointed at --silver, --silver-deep and
+   --ink, and the block went with the rest on 12 September 2026. Nine of
+   the 49 were named only in the superseded plans under docs/superpowers/,
+   which record that design rather than consume it.
+
+   Every token below this line is read by something.
    ========================================================================== */
