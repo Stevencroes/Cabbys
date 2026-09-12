@@ -188,12 +188,16 @@
      --signal-halo   1
 
    THE LEGACY ALIASES ARE GONE. The block declared 49 names aliasing a
-   design system that had already been replaced. Three were still read —
-   --accent and --silver-dim in Diamond.tsx, --mist in AuthCallback.tsx —
-   so those two components were pointed at --silver, --silver-deep and
-   --ink, and the block went with the rest on 12 September 2026. Nine of
-   the 49 were named only in the superseded plans under docs/superpowers/,
-   which record that design rather than consume it.
+   design system that had already been replaced, and was removed on
+   12 September 2026.
 
-   Every token below this line is read by something.
+   Three of the 49 were still being read. --mist, by AuthCallback.tsx,
+   through a fallback — that one now reads --ink. --accent and
+   --silver-dim, by Diamond.tsx, which turned out to be imported by
+   nothing: a dead component was the only reason two of these survived an
+   earlier cut. It was deleted rather than rewired. Nine more of the 49
+   were named only in the superseded plans under docs/superpowers/, which
+   record that design rather than consume it.
+
+   Every token below this line is read by something that renders.
    ========================================================================== */
