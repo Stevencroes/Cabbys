@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 
-// jsdom has no IntersectionObserver; Framer Motion's whileInView/useInView need it.
+// jsdom has no IntersectionObserver; the reveal system needs it — both the
+// page sweep (useRevealObserver) and the footer's own (useRevealOnce). Note
+// observe() never fires, so nothing gains `.in` under test: a test that
+// cares about a revealed state has to add the class itself.
 class IntersectionObserverStub {
   observe() {}
   unobserve() {}
