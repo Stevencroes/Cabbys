@@ -5,13 +5,12 @@ import Fleet from "../components/Fleet";
 import Reviews from "../components/Reviews";
 import Faq from "../components/Faq";
 import Footer from "../components/Footer";
-import { useRevealObserver, useParallax } from "../components/motion";
+import { useRevealObserver } from "../components/motion";
 import { useAuthModal } from "../components/auth/AuthModal";
 
 export default function Landing() {
   const { openAuth } = useAuthModal();
   useRevealObserver();
-  useParallax();
   return (
     <>
       <Nav onSignIn={openAuth} />

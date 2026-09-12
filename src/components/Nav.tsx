@@ -24,6 +24,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   const { account, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [tight, setTight] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -39,6 +40,29 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
     setMenu(false);
     avatarRef.current?.focus();
   }
+
+  // Over the hero the rail is a bar on a photograph; past it, a bar on
+  // moving text — which is the point at which it needs a line under it and
+  // a little less height (see .nav.tight). The threshold is the hero's own
+  // bottom edge where there is a hero, and the first flick of scroll where
+  // there is not: the account pages mount this same nav with no header
+  // above them, and waiting a viewport there would mean it never tightens.
+  useEffect(() => {
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      const hero = document.getElementById("top");
+      const past = hero ? hero.offsetTop + hero.offsetHeight - 80 : 24;
+      setTight(window.scrollY > Math.max(24, past));
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(read); };
+    read();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   // body lock + focus management while the sheet is open
   useEffect(() => {
@@ -104,7 +128,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   }
 
   return (
-    <nav className="nav">
+    <nav className={`nav${tight ? " tight" : ""}`}>
       {/* The bar is full bleed so the hairline reaches both edges; its
           contents take the hero's own container, or the wordmark lands
           160px left of the headline on a wide screen. */}

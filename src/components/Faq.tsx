@@ -29,6 +29,8 @@ const ITEMS = [
 ];
 
 export default function Faq() {
+  // One at a time: opening a question closes whichever was open, so the
+  // section never grows into a wall of prose. -1 is "all closed".
   const [open, setOpen] = useState(0);
   return (
     <section id="about">
@@ -40,20 +42,33 @@ export default function Faq() {
             parts={[{ text: "What you're " }, { text: "actually", em: true }, { text: " worried about." }]}
           />
           <div className="flist stagger">
-            {ITEMS.map((item, i) => (
-              <div className={`fitem${open === i ? " open" : ""}`} key={item.q}>
-                <button
-                  type="button"
-                  className="fq"
-                  aria-expanded={open === i}
-                  onClick={() => setOpen(open === i ? -1 : i)}
-                >
-                  <span className="qt">{item.q}</span>
-                  <span className="qi" aria-hidden="true">+</span>
-                </button>
-                <div className="fa"><p>{item.a}</p></div>
-              </div>
-            ))}
+            {ITEMS.map((item, i) => {
+              const isOpen = open === i;
+              const id = `faq-a-${i}`;
+              return (
+                <div className={`fitem${isOpen ? " open" : ""}`} key={item.q}>
+                  <button
+                    type="button"
+                    className="fq"
+                    aria-expanded={isOpen}
+                    aria-controls={id}
+                    onClick={() => setOpen(isOpen ? -1 : i)}
+                  >
+                    <span className="qt">{item.q}</span>
+                    <span className="qi" aria-hidden="true">+</span>
+                  </button>
+                  {/* Three boxes, not one, because the open/close is animated
+                      on grid-template-rows: .fa is the 0fr -> 1fr track,
+                      .fa-in is the clip that the track squeezes, and the <p>
+                      keeps its own margin inside the clip. Collapsing these
+                      into one element gives the margin nothing to be inside
+                      of, and a closed item keeps 22px of height. */}
+                  <div className="fa" id={id} role="region" aria-hidden={!isOpen}>
+                    <div className="fa-in"><p>{item.a}</p></div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

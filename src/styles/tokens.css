@@ -100,6 +100,32 @@
   --maxw:1120px;
   --gutter:clamp(18px,4vw,48px);
   --ease:cubic-bezier(.22,.68,.24,1);
+
+  /* ---------- motion ----------
+     Two curves, and only two. A reveal and a hover are different events and
+     want different shapes: something arriving decelerates hard and settles
+     (--ease-reveal, a long tail), something responding to the pointer moves
+     evenly and stops (--ease-ui). Neither overshoots. There is no spring,
+     bounce or elastic anywhere in this system, because an overshoot reads as
+     a toy — the brand is a car arriving on time, not a notification.
+
+     --ease is the older curve, still carried by the driver portal and the
+     booking overlay. New work on the marketing site takes one of the two
+     below; the three coexist rather than one being renamed under the other's
+     callers.
+
+     Durations are a scale, not a free number. Anything under the pointer
+     answers inside 250ms or it feels laggy; anything arriving on scroll
+     takes 500-700ms or it feels twitchy. --stagger is the gap between
+     siblings in a group: below ~60ms a row reads as popping in at once,
+     above ~100ms the last card is late enough to be noticed waiting. */
+  --ease-reveal:cubic-bezier(.16,1,.3,1);   /* entrances, reveals, accordion */
+  --ease-ui:cubic-bezier(.4,0,.2,1);        /* hover, focus, press, tabs */
+  --dur-press:150ms;
+  --dur-ui:220ms;
+  --dur-slow-ui:300ms;                      /* card lift + image zoom */
+  --dur-reveal:620ms;
+  --stagger:80ms;
   --tap:46px;                                     /* minimum touch target */
   /* ---------- the nav rail ----------
      --nav-h is the rail itself; --nav-clear is the rail plus air, and is
@@ -110,6 +136,11 @@
      values read a shade hot through it. */
   --nav-h:70px;
   --nav-h-sm:60px;
+  /* The rail tightens once the hero is behind you — 8px on a desktop, 6 on a
+     phone. Small enough that nobody catches it moving, large enough that the
+     bar over a scrolling page is visibly not the bar over the photograph. */
+  --nav-h-tight:62px;
+  --nav-h-tight-sm:54px;
   --nav-clear:calc(var(--nav-total) + 26px);
   --nav-ink:#F5F5F3;                              /* wordmark, active link, step number */
   --nav-dim:#A7ADB4;                              /* resting links, step remainder */
@@ -126,6 +157,8 @@
   --safe-top:env(safe-area-inset-top,0px);
   --nav-total:calc(var(--nav-h) + var(--safe-top));
   --nav-total-sm:calc(var(--nav-h-sm) + var(--safe-top));
+  --nav-total-tight:calc(var(--nav-h-tight) + var(--safe-top));
+  --nav-total-tight-sm:calc(var(--nav-h-tight-sm) + var(--safe-top));
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;

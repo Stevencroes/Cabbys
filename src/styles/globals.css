@@ -51,26 +51,91 @@ h2.sec em{font-style:italic;}
 .wsplit .w{display:inline-block;overflow:hidden;vertical-align:bottom;
   padding-bottom:.16em;margin-bottom:-.16em;}
 .wsplit .w i{display:inline-block;font-style:inherit;transform:translateY(105%);opacity:0;
-  transition:transform 1s var(--ease),opacity 1s var(--ease);}
+  transition:transform 560ms var(--ease-reveal),opacity 560ms var(--ease-reveal);}
 .wsplit.in .w i{transform:translateY(0);opacity:1;}
-.rise{opacity:0;transform:translateY(26px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+/* 20px and 16px, not the 26-38px this carried. A reveal is a thing settling
+   into place, and past about 20px it stops reading as settling and starts
+   reading as sliding in from somewhere — which is the register the brief
+   rules out. Durations land in the 500-700ms band for the same reason the
+   old 1s and 1.1s did not: at a second, a quick scroll always catches the
+   page mid-fade, so the reveal is something you watch rather than something
+   that has happened by the time you look. */
+.rise{opacity:0;transform:translateY(20px);
+  transition:opacity var(--dur-reveal) var(--ease-reveal),transform var(--dur-reveal) var(--ease-reveal);}
 .rise.in{opacity:1;transform:none;}
-.stagger > *{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
-.stagger.in > *{opacity:1;transform:none;}
-.flow{opacity:0;transform:translateY(38px) scale(.985);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);}
+/* ── staggered groups ─────────────────────────────────────────────────
+   An ANIMATION, not a transition, and the reason is `.fcard`. A vehicle
+   card declares `transition:transform .4s,border-color .4s` for its hover,
+   that rule is one class deep exactly as `.stagger > *` is, and it sits
+   later in this file — so it won. The cards were revealing with no opacity
+   transition at all (a snap to full brightness) and with the stagger delay
+   flattened to zero, which is the second half of what the vehicle section
+   was doing wrong. Raising specificity here would only move the collision:
+   both the reveal and the hover lift want `transform` on the same box.
+
+   An animation is a separate pipeline, so the two stop competing. The fill
+   is `backwards` and NOT `forwards`: during the delay the child holds the
+   from-state, and the moment the animation ends the element drops back to
+   its declared values — which is what leaves `transform` free for the hover
+   lift afterwards. `forwards` would pin transform:none permanently and the
+   card would never move again.
+
+   --i is written once, when the group is first observed and before anything
+   has been asked to move. Writing a delay onto a transition already in
+   flight cancels and restarts it, which is what the mid-fade stall was. */
+.stagger > *{opacity:0;}
+.stagger.in > *{opacity:1;
+  animation:stage-rise var(--dur-reveal) var(--ease-reveal) backwards;
+  animation-delay:calc(var(--i,0) * var(--stagger));}
+.flow{opacity:0;transform:translateY(20px);
+  transition:opacity 680ms var(--ease-reveal),transform 680ms var(--ease-reveal);}
 .flow.in{opacity:1;transform:none;}
-.par{will-change:transform;}
-/* Phase 3A — the hero headline and console are content, not decoration:
-   they land inside the first ~600ms. Section headings keep the slower,
-   more deliberate entrance further down the page. */
-.hero .wsplit .w i{transition-duration:.4s;}
-.hero .rise,.hero .stagger > *{transition-duration:.5s;}
-.hero .flow{transition-duration:.55s;}
+
+/* ---- the hero stages itself ----------------------------------------
+   Everything below the fold waits for an IntersectionObserver, which waits
+   for a React commit, which waits for the bundle. The hero cannot: it is on
+   screen at first paint and its headline is the LCP element. So its
+   entrance is a plain CSS animation, which starts the instant the box
+   exists — no class to flip, no observer to register, nothing that can be
+   late. The observer skips anything inside .hero for the same reason.
+
+   The order is the reading order: eyebrow, headline, subtext, the three
+   marks, then the card. The headline starts 120ms in and its words are
+   45ms apart, so the line is complete inside ~600ms — first, and fast. */
+@keyframes stage-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+@keyframes stage-word{from{opacity:0;transform:translateY(105%);}to{opacity:1;transform:none;}}
+.hero .rise,.hero .stagger > *{transition:none;animation:stage-rise 560ms var(--ease-reveal) both;}
+.hero .wsplit .w i{transition:none;animation:stage-word 560ms var(--ease-reveal) both;}
+/* Each of these has to outrank `.hero .rise` above, which sets
+   animation-delay to 0 as part of its shorthand. A bare .hero-eyebrow is
+   one class against two and silently loses its place in the queue. */
+.hero .hero-eyebrow{animation-delay:40ms;}
+/* the words carry their own inline animation-delay from SplitHeading */
+.hero .hero-sub{animation-delay:400ms;}
+.hero .hero-trust > *{animation-delay:calc(470ms + var(--i,0) * 70ms);}
+.hero .quote{animation-delay:560ms;}
+
+/* ---- the photograph is alive, not moving ---------------------------
+   One background move, not two: a slow scale and no parallax. The parallax
+   that used to live here drove `.par`, and `.par` had not been on an
+   element in this page for some time — it was a scroll listener doing
+   arithmetic for nobody.
+
+   linear, deliberately. Every other curve in the system decelerates, which
+   is right for something arriving in 600ms and wrong for something drifting
+   for 20 seconds: an eased drift has a fast middle, and a fast middle is
+   the part you notice. A constant 0.2%/second is under the threshold where
+   the eye reads it as motion at all, which is the whole intent — the frame
+   should feel like it is breathing, not panning.
+
+   It runs once and stops. Nothing on this page loops. */
+@keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.045);}}
+.hero-photo{transform-origin:64% 44%;animation:kenburns 20s linear both;}
 
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
-  .par{transform:none !important;}
+  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo{animation:none !important;}
   .tp-skeleton{animation:none !important;}
 }
 
@@ -79,16 +144,33 @@ h2.sec em{font-style:italic;}
    no pill element any more: the hairline does the containing, so the bar
    reads as the top edge of the page rather than an object floating on it.
 
-   The ground and the hairline are permanent. They used to fade in past 24px
-   of scroll, which made the rail an effect; an edge is not something a page
-   earns on the way down. No transition on these three properties. */
+   The ground is permanent: the rail is always a surface, never something
+   that materialises 24px down.
+
+   The hairline used to fade in past 24px of scroll, which made the rail an
+   effect; an edge is not something a page earns on the way down. That is
+   why it was made permanent, and it is worth knowing before anyone reaches
+   for a scroll listener here again.
+
+   It is back, deliberately and on a different rule. The old one keyed off a
+   fixed 24px, which is nothing in particular — it fired over the hero, where
+   the bar floats on a photograph that needs no line drawn under it. This one
+   keys off the hero's own bottom edge, past which the bar sits on scrolling
+   text and does need to be held off it. So .tight (set in Nav.tsx) fades the
+   hairline in and takes 8px off the height in one 300ms move. Height on a
+   fixed box reflows nothing but the bar itself, so this is not the layout
+   animation the rest of the system forbids. */
 .nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
   /* the box reaches the physical top of the screen; the padding keeps the
      contents below the notch. --nav-total is the two added together, and is
      what everything else measures against. */
   height:var(--nav-total);padding-top:var(--safe-top);
   background:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--nav-rule);}
+  border-bottom:1px solid transparent;
+  transition:height var(--dur-slow-ui) var(--ease-ui),
+             border-bottom-color var(--dur-slow-ui) var(--ease-ui);}
+.nav.tight{height:var(--nav-total-tight);border-bottom-color:var(--nav-rule);}
+@media(prefers-reduced-motion:reduce){.nav{transition:none;}}
 
 /* --maxw and --gutter are exactly what .hero-grid uses, so the wordmark
    sits over the headline and the CTA over the fare card. Alignment is the
@@ -103,19 +185,30 @@ h2.sec em{font-style:italic;}
   padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;}
 .brand .ap{color:var(--silver);}
 .nlinks{display:flex;gap:30px;align-items:center;}
-.nlinks a{font-family:var(--sans);font-weight:300;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
-  text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color .15s linear;}
-.nlinks a:hover,.nlinks a:focus-visible{color:var(--nav-ink);
-  text-decoration:underline;text-decoration-color:var(--nav-underline);
-  text-decoration-thickness:1px;text-underline-offset:3px;}
+/* The underline is drawn, not switched on. text-decoration has no
+   transformable box, so it can only appear — and an underline that appears
+   is a state change where the eye expects a gesture. A pseudo-element
+   scaling from transform-origin:left is the same mark, arriving the way a
+   pen would draw it. See .fcol a, which takes the identical treatment. */
+.nlinks a{position:relative;font-family:var(--sans);font-weight:300;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color var(--dur-ui) var(--ease-ui);}
+.nlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
+  background:var(--nav-underline);transform:scaleX(0);transform-origin:left center;
+  transition:transform var(--dur-ui) var(--ease-ui);}
+.nlinks a:hover,.nlinks a:focus-visible{color:var(--nav-ink);}
+.nlinks a:hover::after,.nlinks a:focus-visible::after{transform:scaleX(1);}
+@media(prefers-reduced-motion:reduce){.nlinks a::after{transition:none;}}
 .nright{display:flex;align-items:center;gap:24px;}
 .nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:12px 24px;
   font-weight:500;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
-  white-space:nowrap;border-radius:3px;transition:.2s var(--ease);}
-.nbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);}
+  white-space:nowrap;border-radius:3px;
+  transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
+             filter var(--dur-ui) var(--ease-ui);}
+.nbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
+.nbtn:active{transform:translateY(0);transition-duration:var(--dur-press);}
 .nsign{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--nav-dim);
   text-decoration:none;display:inline-flex;align-items:center;background:none;border:none;
-  transition:color .15s linear;}
+  transition:color var(--dur-ui) var(--ease-ui);}
 .nsign:hover{color:var(--nav-ink);}
 /* signed in: a mark, not an address. The bar says "you"; the menu below
    says which account, because the email is a detail and not a name.
@@ -191,6 +284,11 @@ h2.sec em{font-style:italic;}
     padding-top:var(--safe-top);
     background:var(--nav-solid);
     backdrop-filter:none;-webkit-backdrop-filter:none;}
+  /* .nav.tight outranks .nav on specificity whatever the source order, so
+     the phone's tight height cannot live in the base block — it has to be
+     restated here, at equal weight and later, or the desktop 62px wins on
+     a 375px screen. */
+  .nav.tight{height:var(--nav-total-tight-sm);}
 }
 
 /* ── phones: the two composited layers that ride over the scroller ─────
@@ -563,13 +661,21 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .quote::before{content:"";position:absolute;top:0;left:var(--r-md);right:var(--r-md);height:1px;background:var(--hairline);}
 
 /* one way / round trip — an underline, not a segmented pill */
-.qtabs{display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid var(--line);}
+.qtabs{position:relative;display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid var(--line);}
 .qtabs button{appearance:none;background:none;border:none;color:var(--muted);
   padding:16px 18px 14px;font-size:13.5px;font-weight:500;letter-spacing:.01em;
-  position:relative;transition:color .25s var(--ease);}
+  position:relative;transition:color var(--dur-ui) var(--ease-ui);}
 .qtabs button:hover{color:var(--silver);}
 .qtabs button.on{color:var(--ink);}
-.qtabs button.on::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:2px;background:var(--ink);}
+/* The mark used to be a ::after on whichever button was .on, which cannot
+   travel — it disappeared from under one word and appeared under the other.
+   One bar for both tabs, placed by QuoteCard from the active button's own
+   box. 1px wide and scaled, rather than sized, so the move is a transform
+   and stays off the layout. */
+.qtab-ink{position:absolute;left:0;bottom:-1px;width:1px;height:2px;background:var(--ink);
+  transform-origin:left center;opacity:0;
+  transition:transform var(--dur-slow-ui) var(--ease-ui);}
+@media(prefers-reduced-motion:reduce){.qtab-ink{transition:none;}}
 
 /* the five answers. Dividers rather than boxes: one field, read across. */
 /* Widths follow what the cells actually hold. The date trigger renders
@@ -579,6 +685,20 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .qrow{display:grid;grid-template-columns:1.3fr 1.3fr .8fr .78fr .82fr;align-items:stretch;}
 .qcell{position:relative;padding:14px 16px 16px;min-width:0;}
 .qcell + .qcell::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--line);}
+/* Focus is a rule drawn under the cell you are in, growing from the left in
+   the same 220ms as every other underline on the site. It is an ADDITION to
+   the global :focus-visible ring, never a replacement: the ring is what a
+   keyboard user navigates by and this is only the card acknowledging which
+   of five answers is being given. */
+.qcell::after{content:"";position:absolute;left:16px;right:16px;bottom:0;height:1px;
+  background:var(--silver);transform:scaleX(0);transform-origin:left center;
+  transition:transform var(--dur-ui) var(--ease-ui);}
+.qcell:focus-within::after{transform:scaleX(1);}
+.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l,.qcell .dtf-label{
+  transition:color var(--dur-ui) var(--ease-ui);}
+.qcell:focus-within .combo .cfield label,.qcell:focus-within .qfld label,
+.qcell:focus-within .qpax-l,.qcell:focus-within .dtf-label{color:var(--silver);}
+@media(prefers-reduced-motion:reduce){.qcell::after{transition:none;}}
 /* the trigger must never be the thing that wraps — the cell is sized for it */
 .qcell .dtf-trigger,.qcell .qpax select{min-width:0;}
 /* the card's own fields shed the standalone control chrome — no rules
@@ -629,12 +749,42 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .qgo{display:flex;justify-content:flex-end;padding:0 20px 20px;}
 .qbtn{width:auto;min-width:232px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
   background:var(--sheen);color:var(--on-sheen);border:none;padding:15px 26px;min-height:var(--tap);
-  font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
-  transition:transform .3s var(--ease),box-shadow .3s var(--ease),filter .3s var(--ease);}
-.qbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
+  font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;}
+/* ── the two silver buttons ────────────────────────────────────────────
+   "Get your fixed price" in the hero and "Book your transfer" in the
+   closing band are the same decision asked twice, so they are one rule and
+   not two that happen to match today. Scale, not translateY: a button that
+   rises is a card lifting off a surface, a button that grows is the button
+   answering you. 1.025 is the whole move — at 1.05 the type visibly
+   resamples on a non-retina screen. */
+.qbtn,.closer .cbtn{
+  transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
+             filter var(--dur-ui) var(--ease-ui);}
+.qbtn:hover,.closer .cbtn:hover{transform:scale(1.025);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
+.qbtn:active,.closer .cbtn:active{transform:scale(.995);transition-duration:var(--dur-press);}
+/* the arrow leads — it moves further than the button does, which is what
+   makes the pair read as "forward" rather than "bigger" */
+.qbtn svg{transition:transform var(--dur-ui) var(--ease-ui);}
+.qbtn:hover svg{transform:translateX(4px);}
+/* Departed. The press opens the flow immediately — this state is not a
+   wait, it is what the button looks like behind the overlay it opened, and
+   it lasts exactly as long as that overlay does. Deliberately not a
+   spinner: nothing on this page loops. The label recedes and the arrow
+   leaves to the right — the same vocabulary as the hover, one step on. */
+.qbtn-l{transition:opacity var(--dur-ui) var(--ease-ui);}
+.qbtn.busy{transform:scale(.995);cursor:default;}
+.qbtn.busy .qbtn-l{opacity:.5;}
+.qbtn.busy svg{transform:translateX(10px);opacity:0;}
+.qbtn svg{transition:transform var(--dur-ui) var(--ease-ui),opacity var(--dur-ui) var(--ease-ui);}
+@media(prefers-reduced-motion:reduce){
+  .qbtn,.closer .cbtn,.qbtn svg{transition:none;}
+  .qbtn:hover,.closer .cbtn:hover{transform:none;}
+  .qbtn:hover svg{transform:none;}
+}
 .qloc{display:inline-flex;align-items:center;min-height:32px;padding:0 20px;margin:0 0 4px;
   border:none;background:none;color:var(--silver);font-size:12.5px;font-weight:500;text-decoration:underline;
   text-underline-offset:3px;text-decoration-color:var(--soft);}
+.qloc{transition:color var(--dur-ui) var(--ease-ui),text-decoration-color var(--dur-ui) var(--ease-ui);}
 .qloc:hover{color:var(--ink);text-decoration-color:var(--silver);}
 .qhint{font-size:13px;color:var(--silver);margin:0;padding:0 20px 10px;font-weight:500;}
 
@@ -819,7 +969,23 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    than a line to read. */
 .pillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(24px,3vw,44px);margin-top:clamp(38px,5vw,60px);}
 .pillar .pmark{display:flex;align-items:center;justify-content:center;width:46px;height:46px;
-  border:1px solid var(--line);border-radius:50%;color:var(--silver);margin-bottom:20px;}
+  border:1px solid var(--line);border-radius:50%;color:var(--silver);margin-bottom:20px;
+  transition:border-color var(--dur-slow-ui) var(--ease-ui),
+             background-color var(--dur-slow-ui) var(--ease-ui),
+             color var(--dur-slow-ui) var(--ease-ui);}
+.pillar:hover .pmark{border-color:var(--silver-deep);background-color:var(--raised);color:var(--ink);}
+/* The circle settles a beat behind its own card — 140ms after the card
+   starts, so it reads as part of the card arriving rather than as a second
+   thing happening. --i is inherited from the .pillar the observer indexed.
+   Scale only: the card is already carrying the fade, and two fades stacked
+   on one element just make it slower. It runs once. */
+@keyframes mark-in{from{transform:scale(.86);}to{transform:none;}}
+.pillars.in .pmark{animation:mark-in 520ms var(--ease-reveal) backwards;
+  animation-delay:calc(var(--i,0) * var(--stagger) + 140ms);}
+@media(prefers-reduced-motion:reduce){
+  .pillar .pmark{transition:none;}
+  .pillars.in .pmark{animation:none;}
+}
 /* Two lines' worth of room whether the title needs it or not. "Fixed &
    Transparent Prices" wraps at desktop widths and the other three do not,
    which pushed its paragraph 26px below its neighbours' — four columns
@@ -849,10 +1015,19 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:clamp(34px,4.4vw,52px);}
 /* the photograph is the card; the name and the fare ride a band across its
    foot, the way an automotive product card carries its plate */
+/* The lift is 2px, not 4. A product card is a heavy object photographed on
+   a dark ground; 4px is a card jumping at the cursor, 2px with a shadow
+   under it is the same card being picked up. The shadow does most of the
+   work — the travel is almost subliminal and is meant to be.
+   transform is free here only because the reveal uses an animation with
+   `backwards` fill (see .stagger.in > *) and hands it back when it ends. */
 .fcard{position:relative;display:block;width:100%;text-align:left;padding:0;overflow:hidden;
   border:1px solid var(--line);background:var(--surface);color:var(--ink);
-  transition:transform .4s var(--ease),border-color .4s var(--ease);}
-.fcard:hover{transform:translateY(-4px);border-color:var(--silver-deep);}
+  transition:transform var(--dur-slow-ui) var(--ease-ui),
+             border-color var(--dur-slow-ui) var(--ease-ui),
+             box-shadow var(--dur-slow-ui) var(--ease-ui);}
+.fcard:hover{transform:translateY(-2px);border-color:var(--silver-deep);box-shadow:var(--shadow-hard);}
+.fcard:active{transform:translateY(0);transition-duration:var(--dur-press);}
 .fshot{display:block;aspect-ratio:4/3;background:
   radial-gradient(120% 90% at 50% 38%,#14293A 0%,#0A1927 52%,var(--surface) 88%);
   padding:9% 10%;}
@@ -861,8 +1036,14 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    card wide. Cover crops the empty bands and the car fills its frame the way
    an automotive card should. */
 .fshot img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;
-  filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));transition:transform .5s var(--ease);}
-.fcard:hover .fshot img{transform:scale(1.045);}
+  filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));
+  transition:transform var(--dur-slow-ui) var(--ease-ui);}
+.fcard:hover .fshot img{transform:scale(1.04);}
+@media(prefers-reduced-motion:reduce){
+  .fcard,.fshot img{transition:none;}
+  .fcard:hover{transform:none;}
+  .fcard:hover .fshot img{transform:none;}
+}
 .fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);}
 .fname{display:block;font-size:14.5px;font-weight:600;letter-spacing:.01em;color:var(--ink);}
 /* The price is absolutely positioned bottom-right, so the line beside it
@@ -934,7 +1115,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 
 /* the stars and the number are one claim, so they sit on one line */
 .proof-rate{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;}
-.proof-rate .ps-stars{display:flex;gap:3px;color:var(--highlight);}
+.proof-rate .ps-stars{display:flex;gap:3px;color:var(--highlight);
+  /* tighter than the section default: five marks 80ms apart take 320ms to
+     land, which is long enough that the fifth star reads as late */
+  --stagger:70ms;}
+/* Fill, not rise. The generic staggered child arrives from 16px below,
+   which is right for a card and wrong for a 15px star — it would read as
+   five things falling in. These grow into place instead. Same specificity
+   as `.stagger.in > *`, later in the file, so the name and duration win
+   and the delay arithmetic is inherited unchanged. */
+@keyframes star-in{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:none;}}
+.ps-stars.in > *{animation-name:star-in;animation-duration:380ms;}
+@media(prefers-reduced-motion:reduce){.ps-stars.in > *{animation:none;}}
 .proof-rate .ps-c{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
   font-weight:500;color:var(--muted);}
 .proof-rate .ps-c strong{font-weight:600;color:var(--silver);}
@@ -950,7 +1142,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    serif stranded in the middle of a 1440px screen. A pull-quote wants a
    shorter measure than body copy, not a fifth of one. Below ~700px the
    container takes over and it settles to four lines on a phone. */
-.proof-quote{margin:clamp(22px,3vh,32px) 0 0;}
+/* the voice lands after the score it belongs to, not beside it */
+.proof-quote{margin:clamp(22px,3vh,32px) 0 0;transition-delay:140ms;}
+@media(prefers-reduced-motion:reduce){.proof-quote{transition-delay:0ms;}}
 .proof-quote p{margin:0 auto;max-width:23em;font-family:var(--serif);font-weight:300;
   font-size:clamp(21px,2.5vw,32px);line-height:1.28;letter-spacing:-.012em;color:var(--ink);}
 .proof-quote cite{display:block;margin-top:clamp(14px,2vh,20px);font-style:normal;
@@ -966,7 +1160,14 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    scopes it to "disabled, faint icons" for exactly that reason. This is
    real text, so it takes the 4.67:1 colour and clears AA. */
 .proof-on .po-l{letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--muted);}
-.proof-on .po-n{letter-spacing:.02em;}
+/* These are credibility marks, not a place for flair, so the whole
+   interaction is one step of opacity. .85 measures 6.5:1 on --ground — the
+   row is still body text and still has to clear 4.5 at rest, which is why
+   this dims by a sixth and not by a third. */
+.proof-on .po-n{letter-spacing:.02em;opacity:.85;
+  transition:opacity var(--dur-ui) var(--ease-ui);}
+.proof-on .po-n:hover{opacity:1;}
+@media(prefers-reduced-motion:reduce){.proof-on .po-n{transition:none;}}
 /* A middot between the names only, never after the label or the last one.
    It may stay --soft: the names are whitespace-separated without it, so it
    carries no meaning and the contrast floor does not apply to it. */
@@ -982,11 +1183,40 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fq{width:100%;background:none;border:none;color:var(--ink);text-align:left;padding:22px 0;min-height:var(--tap);
   display:flex;justify-content:space-between;align-items:center;gap:20px;}
 .fq .qt{font-family:var(--serif);font-size:clamp(16.5px,1.4vw,19px);font-weight:400;line-height:1.3;}
-.fq .qi{font-size:22px;color:var(--silver);flex:none;transition:transform .4s var(--ease);width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;}
+.fq .qi{font-size:22px;color:var(--silver);flex:none;
+  transition:transform var(--dur-slow-ui) var(--ease-ui),color var(--dur-ui) var(--ease-ui);
+  width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;}
+.fq:hover .qi{color:var(--ink);}
 .fitem.open .qi{transform:rotate(45deg);}
-.fa{max-height:0;overflow:hidden;transition:max-height .5s var(--ease);}
-.fitem.open .fa{max-height:320px;}
-.fa p{margin:0 0 22px;font-size:14.5px;line-height:1.75;color:var(--muted);max-width:64ch;font-weight:400;}
+.fq .qt{transition:color var(--dur-ui) var(--ease-ui);}
+/* ── the open/close ────────────────────────────────────────────────────
+   This was max-height:0 -> 320px. Two things are wrong with a clamp. It is
+   a guess: the longest answer here runs past 320px on a phone and was
+   silently cut off at the bottom. And the easing is a lie even when the
+   guess holds — the browser interpolates to 320 whatever the real height
+   is, so a 140px answer spends more than half the transition already open
+   and not moving, which is exactly the stall it looks like.
+
+   0fr -> 1fr on a grid track animates to the CONTENT's height, whatever
+   that turns out to be, with no measurement and no JS. The clip lives on
+   the child (a grid item in a 0-height track still paints outside it), and
+   min-height:0 is what stops the item refusing to go below its own content
+   height, which is the default for a grid item and would hold the row open. */
+.fa{display:grid;grid-template-rows:0fr;
+  transition:grid-template-rows 420ms var(--ease-reveal);}
+.fitem.open .fa{grid-template-rows:1fr;}
+.fa-in{overflow:hidden;min-height:0;}
+/* the words follow the box rather than riding it open — the height starts
+   moving, then 50ms later the answer fades up into the room it made */
+.fa p{margin:0 0 22px;font-size:14.5px;line-height:1.75;color:var(--muted);max-width:64ch;font-weight:400;
+  opacity:0;transform:translateY(4px);
+  transition:opacity 240ms var(--ease-ui),transform 240ms var(--ease-ui);}
+.fitem.open .fa p{opacity:1;transform:none;transition-delay:50ms;}
+@media(prefers-reduced-motion:reduce){
+  .fa{transition:none;}
+  .fq .qi{transition:none;}
+  .fa p{transition:none;opacity:1;transform:none;}
+}
 
 /* ============ CLOSER — the head of the footer ============ */
 /* No ground of its own: it sits inside .site-foot and shares it, so the
@@ -998,15 +1228,39 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   letter-spacing:-.02em;margin:0;position:relative;z-index:var(--z-content);}
 .closer h2 em{font-style:italic;color:var(--silver);}
 .closer .ctag{margin-top:16px;font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);position:relative;z-index:var(--z-content);}
+/* ── the closing band arrives in the hero's order ──────────────────────
+   Headline, then the mark under it, then the button. The three are
+   separate `.rise` elements so the observer reaches each on its own, but
+   they sit inside ~200px of one another and therefore intersect within a
+   frame or two — the delays are what actually sequences them, not the
+   observer. The offsets clear the headline's last word (5 words at 45ms
+   plus the 560ms reveal) rather than landing under it. */
+.closer .ctag{transition-delay:300ms;}
+.closer .cbtn{transition-delay:380ms;}
+@media(prefers-reduced-motion:reduce){
+  .closer .ctag,.closer .cbtn{transition-delay:0ms;}
+}
 .closer .cbtn{margin-top:30px;background:var(--sheen);color:var(--on-sheen);border:none;padding:18px 42px;min-height:var(--tap);
-  font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;position:relative;z-index:var(--z-content);transition:.3s;}
-.closer .cbtn:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
+  font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;position:relative;z-index:var(--z-content);}
+/* Transition, hover and active all live with .qbtn further up — the two
+   CTAs are deliberately one rule. Nothing here may set `transition`: this
+   selector is the same weight as the shared one and later in the file, so
+   a shorthand here silently takes the pair back apart. */
 
 /* ============ FOOTER — one closing band ============ */
 /* Scoped to the site footer on purpose: a bare `footer{}` selector also
    paints every <footer> inside a card (trip actions), which turned them
    into solid blocks. */
 .site-foot{background:var(--deep);color:var(--muted);padding:56px 0 30px;}
+/* Its own class rather than `.rise`, because this reveal is driven by the
+   footer's own observer (useRevealOnce) and not by the page sweep — the
+   footer renders on three pages that never run the sweep, and a `.rise`
+   there would be a footer that never appears. One fade for the whole
+   sitemap: the links inside it are a reference, not a sequence to watch. */
+.frev{opacity:0;transform:translateY(20px);
+  transition:opacity var(--dur-reveal) var(--ease-reveal),transform var(--dur-reveal) var(--ease-reveal);}
+.frev.in{opacity:1;transform:none;}
+@media(prefers-reduced-motion:reduce){.frev{opacity:1;transform:none;transition:none;}}
 /* The landing's closing band: the closer and the proof row ride in here
    too, so the footer drops to the closer's ground and lets the closer set
    the top padding. One colour from the CTA to the copyright line; the only
@@ -1019,9 +1273,17 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .ftop p{margin:14px 0 0;font-size:13px;max-width:30ch;line-height:1.6;font-weight:300;}
 .fcols{display:flex;gap:50px;flex-wrap:wrap;}
 .fcol h4{font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);margin:0 0 13px;}
-.fcol a{display:flex;align-items:center;min-height:44px;font-size:13px;color:var(--muted);
-  text-decoration:none;font-weight:300;transition:color .2s var(--ease);}
-.fcol a:hover{color:var(--ink);}
+/* the nav's mark, repeated: a rule that grows from the left rather than a
+   colour that changes. align-self keeps the box the width of the words and
+   not the width of the column, so the underline ends where the text does. */
+.fcol a{position:relative;display:flex;align-self:flex-start;align-items:center;min-height:44px;font-size:13px;color:var(--muted);
+  text-decoration:none;font-weight:300;transition:color var(--dur-ui) var(--ease-ui);}
+.fcol a::after{content:"";position:absolute;left:0;right:0;bottom:11px;height:1px;
+  background:var(--silver-deep);transform:scaleX(0);transform-origin:left center;
+  transition:transform var(--dur-ui) var(--ease-ui);}
+.fcol a:hover,.fcol a:focus-visible{color:var(--ink);}
+.fcol a:hover::after,.fcol a:focus-visible::after{transform:scaleX(1);}
+@media(prefers-reduced-motion:reduce){.fcol a::after{transition:none;}}
 /* 44px is a thumb target. A mouse is precise, so fine pointers get a
    denser footer — keyed on the pointer, not the width, so a touch laptop
    at 1440px still gets the full 44. */
