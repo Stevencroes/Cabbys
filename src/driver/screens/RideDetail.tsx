@@ -54,6 +54,8 @@ import { mapDebugOn } from "../../lib/mapDebug";
 import { findPlaceByName, selFromPlace } from "../../data/places";
 import { resolvePin } from "../../lib/placePins";
 import { formatFlightNumber } from "../../lib/flight";
+import { meetingPointFor } from "../../data/meetingPoints";
+import { whatsappLink } from "../../lib/whatsapp";
 import { normalizePhone } from "../../lib/contact";
 
 /** The walk: each status names the action that leaves it. */
@@ -116,11 +118,13 @@ function noteLines(notes: string | null): string[] {
  */
 type Fix = { at: Coord; exact: boolean } | null;
 
-function fixFor(ride: AssignedJob): Fix {
-  if (ride.pickupLat != null && ride.pickupLng != null) {
+function fixFor(ride: AssignedJob, aboard: boolean): Fix {
+  // A guest only ever pins where they are standing, so an exact point
+  // belongs to the pickup and never to the drop-off.
+  if (!aboard && ride.pickupLat != null && ride.pickupLng != null) {
     return { at: { lat: ride.pickupLat, lon: ride.pickupLng }, exact: true };
   }
-  const place = findPlaceByName(ride.pickup);
+  const place = findPlaceByName(aboard ? ride.dropoff : ride.pickup);
   if (!place) return null;
   const at = coordOf(selFromPlace(place));
   return at ? { at, exact: false } : null;
@@ -137,6 +141,8 @@ export default function RideDetail() {
   const [ride, setRide] = useState<AssignedJob | null | "missing">(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  /** completing is the one step with nothing behind it — it asks first */
+  const [confirming, setConfirming] = useState(false);
 
   /**
    * Claiming and opening are one gesture, and the read can beat the write
@@ -195,17 +201,54 @@ export default function RideDetail() {
   const step = FLOW.find((s) => s.from === ride.status);
   const undo = UNDO[ride.status];
   const stageIndex = STAGES.findIndex((s) => s.status === ride.status);
-  const fix = fixFor(ride);
-  // The deep link still prefers the NAME over an approximate point:
-  // Google resolves "Bucuti & Tara Beach Resort" to its door, and an area
-  // centre would send the driver to the middle of Eagle Beach instead.
-  // Only a pin the guest actually dropped beats the name.
-  const mapsHref = fix?.exact
+
+  /**
+   * Which end of the journey this screen is about.
+   *
+   * Until the guest is in the car, everything here is about finding them:
+   * the map, the meeting point, the note, the Navigate button. The moment
+   * they are aboard, all of that is history and the only place that
+   * matters is where they are going. The screen used to keep leading with
+   * the pickup for the whole ride, so a driver with a guest in the back
+   * was reading directions to where they had just been.
+   */
+  const aboard = ride.status === "in_progress" || ride.status === "completed";
+  const target = aboard ? ride.dropoff : ride.pickup;
+  // The map follows the leg too. Blanking it once the guest was aboard
+  // left a driver mid-ride looking at an empty island.
+  const fix = fixFor(ride, aboard);
+  const meet = meetingPointFor(target);
+
+  // The deep link prefers a coordinate the GUEST dropped, and otherwise
+  // the NAME: Google resolves "Bucuti & Tara Beach Resort" to its door,
+  // where an area centre would send the driver to the middle of Eagle
+  // Beach. An approximate point is good enough to draw and not good
+  // enough to navigate by.
+  const navHref = fix?.exact
     ? `https://maps.google.com/?daddr=${fix.at.lat},${fix.at.lon}`
-    : `https://maps.google.com/?daddr=${encodeURIComponent(ride.pickup)}`;
+    : `https://maps.google.com/?daddr=${encodeURIComponent(target)}`;
   const initial = (ride.contactName || "?").trim().charAt(0).toUpperCase();
   const phone = ride.contactPhone ? normalizePhone(ride.contactPhone) : null;
   const away = relativeWhen(ride.scheduledAt);
+  const help = whatsappLink(
+    `Hello Cabby's — I need a hand with booking ${ride.bookingRef ?? ride.id}.`,
+  );
+
+  /**
+   * Three sentences a driver sends more than any other, pre-written.
+   *
+   * Not a messaging platform — WhatsApp already is one, the guest is
+   * already on it, and this is a deep link with the text filled in. What
+   * it saves is the typing, which is the whole reason a driver phones
+   * instead and interrupts somebody in a shower.
+   */
+  const quick = phone
+    ? [
+        ["I'm outside", `Hello${ride.contactName ? ` ${ride.contactName.split(" ")[0]}` : ""}, this is your Cabby's driver — I'm outside at ${meet?.at ?? ride.pickup}.`],
+        ["On my way", `Hello${ride.contactName ? ` ${ride.contactName.split(" ")[0]}` : ""}, this is your Cabby's driver — on my way to you now.`],
+        ["Where are you?", `Hello${ride.contactName ? ` ${ride.contactName.split(" ")[0]}` : ""}, this is your Cabby's driver — I'm at the pickup. Whereabouts are you?`],
+      ].map(([label, text]) => [label, `https://wa.me/${phone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(text)}`])
+    : [];
 
   const party = [
     ride.passengers != null ? `${ride.passengers} guest${ride.passengers === 1 ? "" : "s"}` : null,
@@ -249,9 +292,23 @@ export default function RideDetail() {
         </div>
       )}
 
-      <PinMap fix={fix} place={ride.pickup} />
+      <PinMap fix={fix} place={target} />
 
       <div className="drv-pad" style={{ paddingTop: 16, paddingBottom: 24 }}>
+        {/* The one thing the driver is trying to do right now, with the
+            last hundred metres spelled out and one button that goes
+            there. An address gets you to the property; "main lobby
+            entrance" is what stops you circling it. */}
+        <div className="drv-where">
+          <div className="wk">{aboard ? "Destination" : "Pick up"}</div>
+          <div className="wn">{target || "—"}</div>
+          {meet && <div className="wp">{meet.at}</div>}
+          {meet?.how && <div className="wh">{meet.how}</div>}
+          <a className="drv-cta green drv-navcta" href={navHref} target="_blank" rel="noreferrer">
+            Navigate ↗
+          </a>
+        </div>
+
         <div className="drv-pax">
           <span className="av">{initial}</span>
           <span className="pi">
@@ -288,15 +345,35 @@ export default function RideDetail() {
           </div>
         )}
 
+        {/* Three sentences, pre-written, for the moment a driver would
+            otherwise ring a guest who is in the shower. */}
+        {quick.length > 0 && !aboard && (
+          <div className="drv-quick">
+            {quick.map(([label, href]) => (
+              <a key={label} href={href} target="_blank" rel="noreferrer">{label}</a>
+            ))}
+          </div>
+        )}
+
         <div className="drv-rowset">
+          {/* It said "tracked", and nothing tracks it — there is no flight
+              feed in this app. The number is what the guest gave us, and
+              saying only that is the difference between a driver checking
+              the board themselves and one who thinks we will tell them. */}
           {ride.flightNumber && (
             <div className="drv-r">
               <span className="rl">Flight</span>
-              <span className="rv">{formatFlightNumber(ride.flightNumber)} — tracked</span>
+              <span className="rv">{formatFlightNumber(ride.flightNumber)}</span>
             </div>
           )}
           <div className="drv-r"><span className="rl">Pick up</span><span className="rv">{ride.pickup}</span></div>
           <div className="drv-r"><span className="rl">Drop off</span><span className="rv">{ride.dropoff}</span></div>
+          {ride.arrivedAt && (
+            <div className="drv-r">
+              <span className="rl">You arrived</span>
+              <span className="rv">{jobTime(ride.arrivedAt)}</span>
+            </div>
+          )}
           {ride.vehicle && <div className="drv-r"><span className="rl">Vehicle</span><span className="rv">{ride.vehicle}</span></div>}
           {/* The driver's money leads. The guest's total is shown under it
               rather than hidden — a driver who can see both trusts the
@@ -314,7 +391,12 @@ export default function RideDetail() {
           </div>
         </div>
 
-        <a className="drv-cta ghost" href={mapsHref} target="_blank" rel="noreferrer">Open in Maps ↗</a>
+        {/* Always reachable, and never mistakable for the ride's own
+            action: Cabby's is who you call when the job itself goes
+            wrong, and that is not a thing to go hunting for on Profile. */}
+        {help && (
+          <a className="drv-help" href={help} target="_blank" rel="noreferrer">Something wrong? Message Cabby's ↗</a>
+        )}
       </div>
 
       <div className="drv-actionbar">
@@ -327,8 +409,28 @@ export default function RideDetail() {
               <p>{problem}</p>
             </div>
           )}
-          {step ? (
-            <button type="button" className={`drv-cta ${step.tone}`} onClick={() => void move(step.next, step.next === "completed")} disabled={busy}>
+          {/* Every other step has an undo. This one ends the job, closes
+              the money and drops the driver back to the roster, so it is
+              the only one that asks. Two taps, not five. */}
+          {confirming && step?.next === "completed" ? (
+            <div className="drv-confirm" role="group" aria-label="Confirm the ride is finished">
+              <p>Complete this ride? The guest is dropped off and the job closes.</p>
+              <div className="row">
+                <button type="button" className="drv-cta ghost" onClick={() => setConfirming(false)} disabled={busy}>
+                  Not yet
+                </button>
+                <button type="button" className="drv-cta red" onClick={() => void move("completed", true)} disabled={busy}>
+                  {busy ? "…" : "Complete"}
+                </button>
+              </div>
+            </div>
+          ) : step ? (
+            <button
+              type="button"
+              className={`drv-cta ${step.tone}`}
+              onClick={() => (step.next === "completed" ? setConfirming(true) : void move(step.next, false))}
+              disabled={busy}
+            >
               {busy ? "…" : step.label}
             </button>
           ) : (

@@ -75,6 +75,9 @@ export interface AssignedJob extends OpenJob {
   bookingNotes: string | null;
   /** set only by loadCompleted — when the money was actually earned */
   completedAt?: string | null;
+  /** when the driver reported reaching the pickup, and pulling away */
+  arrivedAt: string | null;
+  startedAt: string | null;
 }
 
 type Row = Record<string, unknown>;
@@ -123,6 +126,8 @@ function toAssigned(r: Row): AssignedJob {
     pickupLng: nNum(r.pickup_lng),
     pickupNote: nStr(r.pickup_note),
     bookingNotes: nStr(r.notes),
+    arrivedAt: nStr(r.arrived_at),
+    startedAt: nStr(r.started_at),
   };
 }
 

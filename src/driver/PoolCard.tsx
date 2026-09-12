@@ -18,6 +18,7 @@
 // visible, neither able to be mistaken for the other.
 import { JobLegs, jobDateShort, jobFacts, jobTime, relativeWhen } from "./JobCard";
 import { awgToUsd, COMMISSION_RATE } from "../lib/quote";
+import { meetingPointFor } from "../data/meetingPoints";
 import type { OpenJob } from "./lib/driver";
 
 interface PoolCardProps {
@@ -42,7 +43,7 @@ export default function PoolCard({ job, onAccept, busy, leaving, disabled }: Poo
       </div>
 
       <div className="pc-body">
-        <JobLegs job={job} />
+        <JobLegs job={job} meet={meetingPointFor(job.pickup)?.at} />
         <ul className="pc-facts">
           {jobFacts(job).map((f) => <li key={f}>{f}</li>)}
         </ul>

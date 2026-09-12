@@ -571,7 +571,7 @@
 .drv-pinmap img{width:100%;height:100%;object-fit:cover;display:block;}
 /* the licence, or the honest word that this is a drawing. On its own
    ground because the coastline runs right under it. */
-.drv-pinnote{position:absolute;right:12px;bottom:12px;font-size:9px;letter-spacing:.1em;
+.drv-pinnote{position:absolute;right:12px;top:12px;font-size:9px;letter-spacing:.1em;
   text-transform:uppercase;font-weight:600;color:var(--muted);
   background:var(--ground);border-radius:var(--d-r-pill);padding:4px 9px;}
 /* ?mapdebug=1 — the reason, in full, for whoever is fixing it. Not
@@ -722,9 +722,76 @@
 .drv-told li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
   border-radius:50%;background:var(--silver-deep);}
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE LEG IN HAND — where the driver is going, and one button that goes
+   Typography and one accent do the hierarchy here; this is the block a
+   driver reads in two seconds from a mount, so nothing on it is a card
+   competing with the thing next to it.
+   ══════════════════════════════════════════════════════════════════════ */
+.drv-where{margin-bottom:18px;}
+.drv-where .wk{font-weight:600;font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--silver);}
+.drv-where .wn{font-family:var(--serif);font-size:25px;font-weight:500;line-height:1.15;
+  color:var(--ink);margin-top:6px;letter-spacing:-.01em;}
+/* the last hundred metres, and the only line on the screen allowed to
+   wear signal as text — it is the one fact that stops a driver circling */
+.drv-where .wp{font-size:15px;font-weight:500;color:var(--signal-ink);margin-top:7px;letter-spacing:-.005em;}
+.drv-where .wh{font-size:13px;line-height:1.55;color:var(--muted);margin-top:6px;font-weight:400;}
+/* NOT .drv-nav — that is the fixed tab bar at the foot of the portal,
+   and a Navigate link wearing it inherited position:fixed and floated
+   over the middle of the screen. */
+.drv-navcta{margin-top:14px;text-decoration:none;}
+
+/* three sentences, pre-written */
+.drv-quick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.drv-quick a{flex:1 1 auto;text-align:center;min-height:var(--tap);display:inline-flex;
+  align-items:center;justify-content:center;padding:0 14px;border-radius:var(--d-r-pill);
+  border:1px solid var(--line);background:var(--raised);color:var(--silver);
+  text-decoration:none;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  transition:color .25s var(--ease),border-color .25s var(--ease);}
+.drv-quick a:hover{color:var(--ink);border-color:var(--silver-deep);}
+
+/* the way to a human, never dressed as the ride's own action */
+.drv-help{display:block;text-align:center;margin-top:4px;min-height:var(--tap);
+  line-height:var(--tap);color:var(--muted);font-size:11.5px;font-weight:500;
+  text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line);
+  transition:color .25s var(--ease);}
+.drv-help:hover{color:var(--silver);}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE JOB IN FLIGHT — reachable from anywhere in the portal
+   A driver who checked their earnings mid-ride, or whose phone reloaded
+   at a red light, had no way back to the job except hunting the roster.
+   ══════════════════════════════════════════════════════════════════════ */
+.drv-live{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  z-index:86;display:flex;align-items:center;gap:12px;max-width:528px;margin:0 auto;
+  padding:11px 14px;text-align:left;cursor:pointer;
+  background:var(--surface);border:1px solid var(--signal-line);border-radius:var(--d-r-md);
+  box-shadow:0 0 0 1px var(--signal-glow),var(--shadow-hard);
+  animation:drvfade .3s var(--ease);}
+.drv-live .lp{width:8px;height:8px;border-radius:50%;background:var(--signal);flex:none;
+  box-shadow:0 0 0 4px var(--signal-glow);animation:drvpulse 2s var(--ease) infinite;}
+@keyframes drvpulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.drv-live .li{flex:1;min-width:0;}
+.drv-live .lk{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--signal-ink);}
+.drv-live .lv{display:block;font-family:var(--serif);font-size:17px;font-weight:500;margin-top:2px;
+  color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.drv-live .lg{flex:none;font-weight:600;font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--silver);}
+
+/* the confirm before the one step with nothing behind it */
+.drv-actionbar .drv-confirm{border:1px solid var(--alert-line);background:var(--alert-tint);
+  border-radius:var(--d-r-md);padding:14px;}
+.drv-actionbar .drv-confirm p{margin:0 0 12px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:400;}
+.drv-actionbar .drv-confirm .row{display:flex;gap:10px;}
+.drv-actionbar .drv-confirm .row .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;
   }
   .drv-job:hover,.drv-cta:hover,.drv-pool:hover{transform:none !important;}
+  .drv-live .lp{animation:none !important;}
 }

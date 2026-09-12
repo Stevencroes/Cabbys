@@ -2,9 +2,12 @@
 // you are taking work is the one thing that must be true at a glance from
 // a car mount. Everything else scrolls beneath.
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { isImminent, setOnline, type DriverProfile, type OpenJob } from "./lib/driver";
-import { jobDateShort, jobTime } from "./JobCard";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  isImminent, loadAssigned, setOnline,
+  type AssignedJob, type DriverProfile, type OpenJob,
+} from "./lib/driver";
+import { jobDateShort, jobTime, shortPlace, statusChip } from "./JobCard";
 import RideOffer from "./RideOffer";
 import { useRideOffers } from "./useRideOffers";
 import { primeAudio } from "./lib/chime";
@@ -38,13 +41,43 @@ interface ShellProps {
   bare?: boolean;
 }
 
+/** The statuses that mean a job is happening right now, not later. */
+const RUNNING = new Set(["en_route", "arrived", "in_progress"]);
+
 export default function DriverShell({ driver, children, bare }: ShellProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [online, setOnlineState] = useState(driver.isOnline);
   const [booked, setBooked] = useState<OpenJob | null>(null);
   /** the last on/off tap didn't reach the database */
   const [offFailed, setOffFailed] = useState(false);
+  /** the job the driver is in the middle of, if there is one */
+  const [live, setLive] = useState<AssignedJob | null>(null);
   const offers = useRideOffers(online);
+
+  /**
+   * A job in flight outranks whatever screen is open.
+   *
+   * A driver who checked their earnings mid-ride, or whose phone reloaded
+   * the page at a red light, had no way back to the job except finding it
+   * in the roster — on the one screen where losing thirty seconds matters
+   * most. The bar is the way back, and it is also the answer to "is the
+   * ride actually running?", which was previously only visible from
+   * inside the ride.
+   */
+  useEffect(() => {
+    let stop = false;
+    async function check() {
+      const { jobs } = await loadAssigned(driver.id);
+      if (stop) return;
+      setLive(jobs.find((j) => RUNNING.has(j.status)) ?? null);
+    }
+    void check();
+    // cheap, and only while a driver is looking: the bar has to survive a
+    // reload, which means reading it back rather than holding it in state
+    const t = setInterval(() => void check(), 45_000);
+    return () => { stop = true; clearInterval(t); };
+  }, [driver.id, pathname]);
 
   // A claim confirmed is a word, not a state to dismiss. It clears itself
   // so a driver who put the phone down doesn't come back to a bar sitting
@@ -123,6 +156,19 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
       )}
 
       <div className="drv-screen">{children}</div>
+
+      {/* A job in flight, from anywhere in the portal. Not shown on the
+          ride screen itself, which IS the job. */}
+      {live && !bare && (
+        <button type="button" className="drv-live" onClick={() => navigate(`/drive/ride/${live.id}`)}>
+          <span className="lp" aria-hidden="true" />
+          <span className="li">
+            <span className="lk">{statusChip(live.status).label}</span>
+            <span className="lv">{shortPlace(live.pickup)} → {shortPlace(live.dropoff)}</span>
+          </span>
+          <span className="lg">Open</span>
+        </button>
+      )}
 
       {/* the job is yours, but it isn't now — say so and leave them in the diary */}
       {booked && (

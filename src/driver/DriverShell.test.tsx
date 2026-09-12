@@ -2,12 +2,18 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-const state: { online: boolean } = { online: true };
+const state: { online: boolean; assigned: unknown[] } = { online: true, assigned: [] };
 const calls: boolean[] = [];
+const navigate = vi.fn();
 
 vi.mock("./lib/driver", async (orig) => ({
   ...(await orig<typeof import("./lib/driver")>()),
   setOnline: (next: boolean) => { calls.push(next); return Promise.resolve(state.online); },
+  loadAssigned: () => Promise.resolve({ jobs: state.assigned, error: null }),
+}));
+vi.mock("react-router-dom", async (orig) => ({
+  ...(await orig<typeof import("react-router-dom")>()),
+  useNavigate: () => navigate,
 }));
 vi.mock("./useRideOffers", () => ({
   useRideOffers: () => ({
@@ -27,7 +33,22 @@ const driver = {
 const renderShell = () =>
   render(<MemoryRouter><DriverShell driver={driver}><p>screen</p></DriverShell></MemoryRouter>);
 
-beforeEach(() => { state.online = true; calls.length = 0; });
+const job = (status: string) => ({
+  id: "r9", status, scheduledAt: new Date().toISOString(),
+  pickup: "Queen Beatrix International Airport", dropoff: "Bucuti & Tara Beach Resort",
+  vehicle: "The Scout", passengers: 2, luggage: 1, childSeats: 0,
+  fareAwg: 128, payoutUsd: 53, bookingRef: "CBY-1",
+  contactName: null, contactPhone: null, flightNumber: null,
+  pickupLat: null, pickupLng: null, pickupNote: null, bookingNotes: null,
+  arrivedAt: null, startedAt: null,
+});
+
+beforeEach(() => {
+  state.online = true;
+  state.assigned = [];
+  calls.length = 0;
+  navigate.mockClear();
+});
 
 describe("The driver shell", () => {
   it("flips the switch before the write lands, because a switch that waits feels broken", async () => {
@@ -52,5 +73,22 @@ describe("The driver shell", () => {
   it("names the first tab for what it now shows", () => {
     renderShell();
     expect(screen.getByRole("link", { name: /schedule/i })).toHaveAttribute("href", "/drive");
+  });
+
+  // A driver who checked their earnings mid-ride, or whose phone reloaded
+  // at a red light, had no way back to the job except hunting the roster —
+  // on the one screen where thirty seconds costs the most.
+  it("keeps a job in flight one tap away from anywhere", async () => {
+    state.assigned = [job("en_route")];
+    renderShell();
+    const bar = await screen.findByRole("button", { name: /on my way/i });
+    fireEvent.click(bar);
+    expect(navigate).toHaveBeenCalledWith("/drive/ride/r9");
+  });
+
+  it("says nothing when the next job is still hours off", async () => {
+    state.assigned = [job("driver_assigned")];
+    renderShell();
+    await waitFor(() => expect(screen.queryByText(/assigned/i)).toBeNull());
   });
 });

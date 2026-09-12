@@ -123,10 +123,16 @@ function legSub(name: string, opts: { arriving?: boolean; flight?: string | null
   return place ? place.area : "";
 }
 
-/** Pickup over dropoff, each with the line that makes it a real place. */
-export function JobLegs({ job }: { job: OpenJob | AssignedJob }) {
+/**
+ * Pickup over dropoff, each with the line that makes it a real place.
+ *
+ * `meet` is where the car actually stops — "Main lobby entrance". It
+ * joins the area rather than replacing it, because "Eagle Beach" answers
+ * a different question from "which door".
+ */
+export function JobLegs({ job, meet }: { job: OpenJob | AssignedJob; meet?: string }) {
   const flight = "flightNumber" in job ? job.flightNumber : null;
-  const fromSub = legSub(job.pickup, { arriving: true, flight });
+  const fromSub = [meet, legSub(job.pickup, { arriving: true, flight })].filter(Boolean).join(" · ");
   const toSub = legSub(job.dropoff, { arriving: false, flight });
   return (
     <>

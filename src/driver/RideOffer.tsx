@@ -9,7 +9,8 @@
 // Letting it lapse is not a refusal: the ride stays in the pool for
 // whoever wants it, and this driver simply isn't asked about it again.
 import { useEffect, useRef, useState } from "react";
-import { jobDateShort, jobTime, relativeWhen } from "./JobCard";
+import { jobDateShort, jobFacts, jobTime, relativeWhen } from "./JobCard";
+import { meetingPointFor } from "../data/meetingPoints";
 import { chime } from "./lib/chime";
 import type { OpenJob } from "./lib/driver";
 
@@ -58,11 +59,12 @@ export default function RideOffer({ job, onAccept, onDismiss, busy, refused }: R
   const R = 26;
   const C = 2 * Math.PI * R;
 
-  const meta = [
-    job.vehicle,
-    job.passengers != null ? `${job.passengers} pax` : null,
-    job.luggage ? `${job.luggage} bags` : null,
-  ].filter(Boolean).join(" · ");
+  const meta = jobFacts(job).join(" · ");
+  // Where the car actually stops, decided before accepting rather than
+  // discovered on arrival. The offer is the one screen a driver reads
+  // under a twenty-second clock, so anything they would otherwise have to
+  // open a second screen for has to be on it.
+  const meet = meetingPointFor(job.pickup);
 
   return (
     <div className="drv-offer" role="dialog" aria-modal="true" aria-label="New ride offer">
@@ -101,7 +103,10 @@ export default function RideOffer({ job, onAccept, onDismiss, busy, refused }: R
         <div className="olegs">
           <div className="drv-leg">
             <span className="ic a" aria-hidden="true" />
-            <div><div className="lp">{job.pickup || "—"}</div></div>
+            <div>
+              <div className="lp">{job.pickup || "—"}</div>
+              {meet && <div className="ls">{meet.at}</div>}
+            </div>
           </div>
           <div className="drv-leg">
             <span className="ic b" aria-hidden="true" />

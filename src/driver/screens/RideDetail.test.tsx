@@ -32,7 +32,7 @@ const ride = (over: Record<string, unknown> = {}) => ({
   fareAwg: 104, payoutUsd: (104 / 1.79) * 0.75, bookingRef: "CBY-4417",
   contactName: "Steven Croes", contactPhone: "+2975607336", flightNumber: "KL767",
   pickupLat: 12.55, pickupLng: -70.05, pickupNote: "Blue umbrella, left of the pier",
-  bookingNotes: null,
+  bookingNotes: null, arrivedAt: null, startedAt: null,
   ...over,
 });
 
@@ -61,7 +61,7 @@ describe("Ride detail", () => {
 
   it("deep-links Maps to the guest's pin, not the place name", async () => {
     renderDetail();
-    const maps = await screen.findByRole("link", { name: /open in maps/i });
+    const maps = await screen.findByRole("link", { name: /navigate/i });
     expect(maps).toHaveAttribute("href", "https://maps.google.com/?daddr=12.55,-70.05");
   });
 
@@ -72,7 +72,7 @@ describe("Ride detail", () => {
   it("maps the place it was told to collect from when no pin was dropped", async () => {
     state.ride = ride({ pickupLat: null, pickupLng: null, pickupNote: null });
     renderDetail();
-    const maps = await screen.findByRole("link", { name: /open in maps/i });
+    const maps = await screen.findByRole("link", { name: /navigate/i });
     // the NAME still wins the deep link: Google resolves it to the door,
     // where an area centre would send the driver to the middle of a beach
     expect(maps.getAttribute("href")).toContain("Queen%20Beatrix");
@@ -93,6 +93,19 @@ describe("Ride detail", () => {
   it("reserves the pinned badge for a pin a guest actually dropped", async () => {
     renderDetail();
     expect(await screen.findByText(/guest pinned/i)).toBeInTheDocument();
+  });
+
+  // One primary action per screen, and every step but the last is a tap.
+  // The last one ends the job, closes the money and drops the driver back
+  // to the roster, so it is the only one that asks first.
+  it("asks before completing, and not before anything else", async () => {
+    state.ride = ride({ status: "in_progress" });
+    renderDetail();
+    fireEvent.click(await screen.findByRole("button", { name: /complete trip/i }));
+    expect(statusCalls).toEqual([]);
+    expect(screen.getByText(/complete this ride\?/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^complete$/i }));
+    await waitFor(() => expect(statusCalls).toEqual([["r1", "completed"]]));
   });
 
   it("walks the status forward one step per tap", async () => {
@@ -179,6 +192,48 @@ describe("Ride detail", () => {
     renderDetail();
     await screen.findByText("Steven Croes");
     expect(document.querySelector(".drv-told")).toBeNull();
+  });
+
+  // §6/§8 — the driver must not be left to interpret an address. This is
+  // Cabby's knowledge, not something a guest was asked to type.
+  it("spells out where the car actually stops", async () => {
+    state.ride = ride({ pickup: "Queen Beatrix International Airport" });
+    renderDetail();
+    expect(await screen.findByText(/arrivals — transfer pickup area/i)).toBeInTheDocument();
+    expect(screen.getByText(/not the taxi rank/i)).toBeInTheDocument();
+  });
+
+  // §11 — the moment the guest is aboard, the pickup is history. A driver
+  // with somebody in the back was being shown directions to where they
+  // had just been.
+  it("turns to face the destination once the guest is aboard", async () => {
+    state.ride = ride({ status: "in_progress" });
+    renderDetail();
+    expect(await screen.findByText("Destination")).toBeInTheDocument();
+    // the rowset below still lists both ends for reference — it is the
+    // LEAD that turns around
+    expect(document.querySelector(".drv-where .wk")?.textContent).toBe("Destination");
+    // and Navigate goes to where they are going, not where they were
+    expect(screen.getByRole("link", { name: /navigate/i }).getAttribute("href"))
+      .toContain(encodeURIComponent("Bucuti & Tara"));
+  });
+
+  // §18 — nothing in this app tracks a flight. Saying "tracked" is the
+  // difference between a driver checking the board and one who believes
+  // we will tell them.
+  it("does not claim to be tracking a flight it cannot see", async () => {
+    renderDetail();
+    expect(await screen.findByText("KL767")).toBeInTheDocument();
+    expect(screen.queryByText(/tracked/i)).toBeNull();
+  });
+
+  // §10 — "the driver says they waited twenty minutes" and "the guest says
+  // the car was late" are two claims with nothing between them.
+  it("shows the arrival it recorded, so the wait is a fact and not a claim", async () => {
+    state.ride = ride({ status: "arrived", arrivedAt: "2026-09-01T18:31:00.000Z" });
+    renderDetail();
+    expect(await screen.findByText("You arrived")).toBeInTheDocument();
+    expect(screen.getByText("2:31 PM")).toBeInTheDocument();
   });
 
   // The money rows are the other half of the pool's fix: the driver's

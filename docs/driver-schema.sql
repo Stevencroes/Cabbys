@@ -59,6 +59,12 @@ alter table public.rides add column if not exists pickup_lng   double precision;
 alter table public.rides add column if not exists pickup_note  text;
 alter table public.rides add column if not exists assigned_at  timestamptz;
 alter table public.rides add column if not exists completed_at timestamptz;
+-- v5 — the two stamps in the middle. assigned_at and completed_at bracket
+-- a job; without these, "the driver says they waited twenty minutes" and
+-- "the guest says the car came late" are two claims with nothing between
+-- them. set_ride_status() writes them, once each, below.
+alter table public.rides add column if not exists arrived_at   timestamptz;
+alter table public.rides add column if not exists started_at   timestamptz;
 
 create index if not exists rides_driver_id_idx on public.rides (driver_id);
 create index if not exists rides_status_idx    on public.rides (status);
@@ -188,9 +194,14 @@ begin
     return json_build_object('ok', false, 'error', 'not_approved');
   end if;
 
+  -- Each stamp is written once and never overwritten: coalesce keeps the
+  -- FIRST arrival, so a driver stepping back with the undo and forward
+  -- again does not quietly move the time they got there.
   update public.rides
      set status       = p_status,
-         completed_at = case when p_status = 'completed' then now() else completed_at end
+         arrived_at   = case when p_status = 'arrived'     then coalesce(arrived_at, now())   else arrived_at   end,
+         started_at   = case when p_status = 'in_progress' then coalesce(started_at, now())   else started_at   end,
+         completed_at = case when p_status = 'completed'   then now()                          else completed_at end
    where id = p_ride_id
      and driver_id = auth.uid();
 
