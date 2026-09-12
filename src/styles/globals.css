@@ -51,26 +51,91 @@ h2.sec em{font-style:italic;}
 .wsplit .w{display:inline-block;overflow:hidden;vertical-align:bottom;
   padding-bottom:.16em;margin-bottom:-.16em;}
 .wsplit .w i{display:inline-block;font-style:inherit;transform:translateY(105%);opacity:0;
-  transition:transform 1s var(--ease),opacity 1s var(--ease);}
+  transition:transform 560ms var(--ease-reveal),opacity 560ms var(--ease-reveal);}
 .wsplit.in .w i{transform:translateY(0);opacity:1;}
-.rise{opacity:0;transform:translateY(26px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+/* 20px and 16px, not the 26-38px this carried. A reveal is a thing settling
+   into place, and past about 20px it stops reading as settling and starts
+   reading as sliding in from somewhere — which is the register the brief
+   rules out. Durations land in the 500-700ms band for the same reason the
+   old 1s and 1.1s did not: at a second, a quick scroll always catches the
+   page mid-fade, so the reveal is something you watch rather than something
+   that has happened by the time you look. */
+.rise{opacity:0;transform:translateY(20px);
+  transition:opacity var(--dur-reveal) var(--ease-reveal),transform var(--dur-reveal) var(--ease-reveal);}
 .rise.in{opacity:1;transform:none;}
-.stagger > *{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
-.stagger.in > *{opacity:1;transform:none;}
-.flow{opacity:0;transform:translateY(38px) scale(.985);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease);}
+/* ── staggered groups ─────────────────────────────────────────────────
+   An ANIMATION, not a transition, and the reason is `.fcard`. A vehicle
+   card declares `transition:transform .4s,border-color .4s` for its hover,
+   that rule is one class deep exactly as `.stagger > *` is, and it sits
+   later in this file — so it won. The cards were revealing with no opacity
+   transition at all (a snap to full brightness) and with the stagger delay
+   flattened to zero, which is the second half of what the vehicle section
+   was doing wrong. Raising specificity here would only move the collision:
+   both the reveal and the hover lift want `transform` on the same box.
+
+   An animation is a separate pipeline, so the two stop competing. The fill
+   is `backwards` and NOT `forwards`: during the delay the child holds the
+   from-state, and the moment the animation ends the element drops back to
+   its declared values — which is what leaves `transform` free for the hover
+   lift afterwards. `forwards` would pin transform:none permanently and the
+   card would never move again.
+
+   --i is written once, when the group is first observed and before anything
+   has been asked to move. Writing a delay onto a transition already in
+   flight cancels and restarts it, which is what the mid-fade stall was. */
+.stagger > *{opacity:0;}
+.stagger.in > *{opacity:1;
+  animation:stage-rise var(--dur-reveal) var(--ease-reveal) backwards;
+  animation-delay:calc(var(--i,0) * var(--stagger));}
+.flow{opacity:0;transform:translateY(20px);
+  transition:opacity 680ms var(--ease-reveal),transform 680ms var(--ease-reveal);}
 .flow.in{opacity:1;transform:none;}
-.par{will-change:transform;}
-/* Phase 3A — the hero headline and console are content, not decoration:
-   they land inside the first ~600ms. Section headings keep the slower,
-   more deliberate entrance further down the page. */
-.hero .wsplit .w i{transition-duration:.4s;}
-.hero .rise,.hero .stagger > *{transition-duration:.5s;}
-.hero .flow{transition-duration:.55s;}
+
+/* ---- the hero stages itself ----------------------------------------
+   Everything below the fold waits for an IntersectionObserver, which waits
+   for a React commit, which waits for the bundle. The hero cannot: it is on
+   screen at first paint and its headline is the LCP element. So its
+   entrance is a plain CSS animation, which starts the instant the box
+   exists — no class to flip, no observer to register, nothing that can be
+   late. The observer skips anything inside .hero for the same reason.
+
+   The order is the reading order: eyebrow, headline, subtext, the three
+   marks, then the card. The headline starts 120ms in and its words are
+   45ms apart, so the line is complete inside ~600ms — first, and fast. */
+@keyframes stage-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+@keyframes stage-word{from{opacity:0;transform:translateY(105%);}to{opacity:1;transform:none;}}
+.hero .rise,.hero .stagger > *{transition:none;animation:stage-rise 560ms var(--ease-reveal) both;}
+.hero .wsplit .w i{transition:none;animation:stage-word 560ms var(--ease-reveal) both;}
+/* Each of these has to outrank `.hero .rise` above, which sets
+   animation-delay to 0 as part of its shorthand. A bare .hero-eyebrow is
+   one class against two and silently loses its place in the queue. */
+.hero .hero-eyebrow{animation-delay:40ms;}
+/* the words carry their own inline animation-delay from SplitHeading */
+.hero .hero-sub{animation-delay:400ms;}
+.hero .hero-trust > *{animation-delay:calc(470ms + var(--i,0) * 70ms);}
+.hero .quote{animation-delay:560ms;}
+
+/* ---- the photograph is alive, not moving ---------------------------
+   One background move, not two: a slow scale and no parallax. The parallax
+   that used to live here drove `.par`, and `.par` had not been on an
+   element in this page for some time — it was a scroll listener doing
+   arithmetic for nobody.
+
+   linear, deliberately. Every other curve in the system decelerates, which
+   is right for something arriving in 600ms and wrong for something drifting
+   for 20 seconds: an eased drift has a fast middle, and a fast middle is
+   the part you notice. A constant 0.2%/second is under the threshold where
+   the eye reads it as motion at all, which is the whole intent — the frame
+   should feel like it is breathing, not panning.
+
+   It runs once and stops. Nothing on this page loops. */
+@keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.045);}}
+.hero-photo{transform-origin:64% 44%;animation:kenburns 20s linear both;}
 
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
-  .par{transform:none !important;}
+  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo{animation:none !important;}
   .tp-skeleton{animation:none !important;}
 }
 
@@ -1072,6 +1137,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   letter-spacing:-.02em;margin:0;position:relative;z-index:var(--z-content);}
 .closer h2 em{font-style:italic;color:var(--silver);}
 .closer .ctag{margin-top:16px;font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);position:relative;z-index:var(--z-content);}
+/* ── the closing band arrives in the hero's order ──────────────────────
+   Headline, then the mark under it, then the button. The three are
+   separate `.rise` elements so the observer reaches each on its own, but
+   they sit inside ~200px of one another and therefore intersect within a
+   frame or two — the delays are what actually sequences them, not the
+   observer. The offsets clear the headline's last word (5 words at 45ms
+   plus the 560ms reveal) rather than landing under it. */
+.closer .ctag{transition-delay:300ms;}
+.closer .cbtn{transition-delay:380ms;}
+@media(prefers-reduced-motion:reduce){
+  .closer .ctag,.closer .cbtn{transition-delay:0ms;}
+}
 .closer .cbtn{margin-top:30px;background:var(--sheen);color:var(--on-sheen);border:none;padding:18px 42px;min-height:var(--tap);
   font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;position:relative;z-index:var(--z-content);}
 /* Transition, hover and active all live with .qbtn further up — the two
