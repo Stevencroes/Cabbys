@@ -144,14 +144,22 @@ h2.sec em{font-style:italic;}
    no pill element any more: the hairline does the containing, so the bar
    reads as the top edge of the page rather than an object floating on it.
 
-   The ground is permanent — the rail is always a surface, never something
-   that materialises 24px down. What IS earned is the SEPARATION: over the
-   hero the bar floats on a photograph that needs no line drawn under it,
-   and over the page below it has to sit off scrolling content. So the
-   hairline fades in and the bar tightens by 8px once the hero is behind
-   you (.tight, set in Nav.tsx), in one 300ms move. Height on a fixed box
-   reflows nothing but the bar itself, so this is not the layout animation
-   the rest of the system forbids. */
+   The ground is permanent: the rail is always a surface, never something
+   that materialises 24px down.
+
+   The hairline used to fade in past 24px of scroll, which made the rail an
+   effect; an edge is not something a page earns on the way down. That is
+   why it was made permanent, and it is worth knowing before anyone reaches
+   for a scroll listener here again.
+
+   It is back, deliberately and on a different rule. The old one keyed off a
+   fixed 24px, which is nothing in particular — it fired over the hero, where
+   the bar floats on a photograph that needs no line drawn under it. This one
+   keys off the hero's own bottom edge, past which the bar sits on scrolling
+   text and does need to be held off it. So .tight (set in Nav.tsx) fades the
+   hairline in and takes 8px off the height in one 300ms move. Height on a
+   fixed box reflows nothing but the bar itself, so this is not the layout
+   animation the rest of the system forbids. */
 .nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
   /* the box reaches the physical top of the screen; the padding keeps the
      contents below the notch. --nav-total is the two added together, and is
