@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import DriverGuard from "./DriverGuard";
 import DriverShell from "./DriverShell";
-import Today from "./screens/Today";
+import Schedule from "./screens/Schedule";
 import Pool from "./screens/Pool";
 import RideDetail from "./screens/RideDetail";
 import Earnings from "./screens/Earnings";
@@ -29,7 +29,7 @@ export default function DriverPortal() {
       {(driver) => (
         <DriverShell driver={driver} bare={bare}>
           <Routes>
-            <Route index element={<Today driver={driver} />} />
+            <Route index element={<Schedule driver={driver} />} />
             <Route path="pool" element={<Pool />} />
             <Route path="ride/:id" element={<RideDetail />} />
             <Route path="earnings" element={<Earnings driver={driver} />} />

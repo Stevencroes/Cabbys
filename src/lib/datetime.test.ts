@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   formatDate, formatTime, formatDateTime, todayInAruba, arubaInstant,
   to12Hour, to24Hour, addDays, addMonths, monthGrid, monthLabel, isHhmm,
+  weekStart, weekDays, weekRangeLabel, weekdayShort, weekdayLong,
 } from "./datetime";
 
 describe("dates and times (Phase 1)", () => {
@@ -68,5 +69,31 @@ describe("dates and times (Phase 1)", () => {
     expect(grid).toContain("2026-08-01");
     expect(grid).toContain("2026-08-31");
     expect(new Date(`${grid[0]}T12:00:00Z`).getUTCDay()).toBe(0); // Sunday-first
+  });
+
+  // The roster is read Monday to Sunday, and getUTCDay() counts Sunday as
+  // 0 — take that at face value and every weekend is split across two
+  // columns, with Sunday sitting at the head of the week it ended.
+  it("starts a week on Monday, not on Sunday", () => {
+    expect(weekStart("2026-09-12")).toBe("2026-09-07");  // a Saturday
+    expect(weekStart("2026-09-13")).toBe("2026-09-07");  // the Sunday that closes it
+    expect(weekStart("2026-09-14")).toBe("2026-09-14");  // the Monday that opens the next
+    expect(weekdayLong("2026-09-07")).toBe("Monday");
+    expect(weekdayShort("2026-09-13")).toBe("Sun");
+  });
+
+  it("lays out seven consecutive days from that Monday", () => {
+    const days = weekDays("2026-09-13");
+    expect(days).toHaveLength(7);
+    expect(days[0]).toBe("2026-09-07");
+    expect(days[6]).toBe("2026-09-13");
+    // any day of the week describes the same week
+    expect(weekDays("2026-09-09")).toEqual(days);
+  });
+
+  it("names a week's span as short as it can be said", () => {
+    expect(weekRangeLabel("2026-09-09")).toBe("7 – 13 Sep");        // one month
+    expect(weekRangeLabel("2026-10-01")).toBe("28 Sep – 4 Oct");    // two months
+    expect(weekRangeLabel("2026-12-31")).toBe("28 Dec 2026 – 3 Jan 2027");
   });
 });

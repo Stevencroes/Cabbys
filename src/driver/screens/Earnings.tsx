@@ -18,19 +18,14 @@
 // booked Friday and driven Saturday is Saturday's.
 import { useEffect, useMemo, useState } from "react";
 import { loadCompleted, type AssignedJob, type DriverProfile } from "../lib/driver";
-import { ARUBA_OFFSET_MINUTES, todayInAruba, formatTime } from "../../lib/datetime";
+// weekDays is the roster's week too (lib/datetime): one Monday-first
+// definition, so the chart here and the schedule there can never
+// disagree about which seven days "this week" means.
+import { ARUBA_OFFSET_MINUTES, arubaDayOf, todayInAruba, formatTime, weekDays } from "../../lib/datetime";
 import { COMMISSION_RATE } from "../../lib/quote";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-/** Aruba's calendar day for a stored instant. */
-function arubaDay(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const t = new Date(iso).getTime();
-  if (isNaN(t)) return "";
-  return new Date(t + ARUBA_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
-}
 
 /** Aruba's wall-clock time for a stored instant. */
 function arubaTime(iso: string | null | undefined): string {
@@ -38,15 +33,6 @@ function arubaTime(iso: string | null | undefined): string {
   const t = new Date(iso).getTime();
   if (isNaN(t)) return "";
   return formatTime(new Date(t + ARUBA_OFFSET_MINUTES * 60_000).toISOString().slice(11, 16));
-}
-
-/** The seven ISO dates of the current Aruba week, Monday first. */
-function weekDays(today: string): string[] {
-  const noon = new Date(`${today}T12:00:00Z`);
-  const dow = (noon.getUTCDay() + 6) % 7; // Monday = 0
-  const monday = new Date(noon.getTime() - dow * 86_400_000);
-  return Array.from({ length: 7 }, (_, i) =>
-    new Date(monday.getTime() + i * 86_400_000).toISOString().slice(0, 10));
 }
 
 export default function Earnings({ driver }: { driver: DriverProfile }) {
@@ -67,7 +53,7 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
   const byDay = useMemo(() => {
     const m = new Map<string, AssignedJob[]>();
     for (const r of rides ?? []) {
-      const d = arubaDay(r.completedAt ?? r.scheduledAt);
+      const d = arubaDayOf(r.completedAt ?? r.scheduledAt);
       if (!d) continue;
       const list = m.get(d);
       if (list) list.push(r); else m.set(d, [r]);

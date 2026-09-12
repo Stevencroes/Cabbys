@@ -119,7 +119,7 @@ describe("driver data layer", () => {
 
   it("moves status only through set_ride_status", async () => {
     rpcResult = { ok: true };
-    expect(await setRideStatus("r1", "en_route")).toBe(true);
+    expect(await setRideStatus("r1", "en_route")).toEqual({ ok: true });
     expect(calls.rpc[0]).toEqual(["set_ride_status", { p_ride_id: "r1", p_status: "en_route" }]);
   });
 

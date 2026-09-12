@@ -285,13 +285,34 @@ export async function claimRide(rideId: string): Promise<ClaimResult> {
 
 export type RideStatus = "en_route" | "arrived" | "in_progress" | "completed";
 
-export async function setRideStatus(rideId: string, status: RideStatus): Promise<boolean> {
+/**
+ * Same shape as ClaimResult, and for the same reason. This returned a
+ * bare boolean, so the ride screen had nothing to say when a step
+ * refused: the driver tapped "I've arrived", the button un-pressed
+ * itself, and the ride stayed where it was with no word anywhere about
+ * why. `not_yours` and `not_approved` are the two the database actually
+ * answers with, and both are worth reading — one means the job was
+ * reassigned under them, the other that their account has been
+ * suspended mid-shift.
+ */
+export type StatusResult = { ok: true } | { ok: false; detail: string };
+
+const STATUS_REASONS: Record<string, string> = {
+  not_yours: "This job isn't yours any more — it may have been reassigned.",
+  not_approved: "Your account isn't approved to take jobs right now.",
+  bad_status: "That step isn't allowed from where this ride is.",
+};
+
+export async function setRideStatus(rideId: string, status: RideStatus): Promise<StatusResult> {
   const { data, error } = await supabase.rpc("set_ride_status", {
     p_ride_id: rideId,
     p_status: status,
   });
-  if (error) return false;
-  return ((data ?? {}) as Row).ok === true;
+  if (error) return { ok: false, detail: error.message || "The update didn't reach the server." };
+  const r = (data ?? {}) as Row;
+  if (r.ok === true) return { ok: true };
+  const why = str(r.error);
+  return { ok: false, detail: STATUS_REASONS[why] ?? why ?? "The update was refused." };
 }
 
 /** One ride the driver already holds. */

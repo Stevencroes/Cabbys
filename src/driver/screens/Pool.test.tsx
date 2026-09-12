@@ -53,6 +53,16 @@ describe("Open pool", () => {
     expect(screen.getByText(/no guest names or numbers shown until a job is yours/i)).toBeInTheDocument();
   });
 
+  // Showing the right number is half of it; a bare "$38" beside a route
+  // is still a number a driver has to guess the owner of. The label and
+  // the guest's total under it are what make it unmistakable.
+  it("names whose money the big figure is, and what the guest paid", async () => {
+    renderPool();
+    expect(await screen.findByText("You earn")).toBeInTheDocument();
+    expect(screen.getByText(/Guest pays \$50 · less 25% Cabby's/)).toBeInTheDocument();
+    expect(screen.getByText(/every figure below is your payout, not the guest's fare/i)).toBeInTheDocument();
+  });
+
   it("opens the live screen when the job is about to happen", async () => {
     state.open = [{ ...job("r1"), scheduledAt: new Date(Date.now() + 20 * 60_000).toISOString() }];
     renderPool();

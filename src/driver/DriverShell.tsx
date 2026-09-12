@@ -8,18 +8,23 @@ import { jobDateShort, jobTime } from "./JobCard";
 import RideOffer from "./RideOffer";
 import { useRideOffers } from "./useRideOffers";
 import { primeAudio } from "./lib/chime";
+import { arubaDayOf, todayInAruba } from "../lib/datetime";
 import "../styles/driver.css";
 
-/** Which agenda segment a newly claimed job will appear under. */
-function spanFor(job: OpenJob): string {
-  const mins = job.scheduledAt ? (new Date(job.scheduledAt).getTime() - Date.now()) / 60_000 : 0;
-  if (mins < 60 * 24) return "today";
-  if (mins < 60 * 48) return "tomorrow";
-  return "later";
+/**
+ * The day of the roster a newly claimed job lands on.
+ *
+ * This used to answer "today", "tomorrow" or "later", which was the shape
+ * of the old three-segment agenda. The roster is a real calendar now, so
+ * the answer is a real date — including for a job three weeks out, which
+ * "later" could only shrug at.
+ */
+function dayOf(job: OpenJob): string {
+  return arubaDayOf(job.scheduledAt) || todayInAruba();
 }
 
 const TABS = [
-  { to: "/drive", label: "Today", end: true },
+  { to: "/drive", label: "Schedule", end: true },
   { to: "/drive/pool", label: "Pool", end: false },
   { to: "/drive/earnings", label: "Earnings", end: false },
   { to: "/drive/history", label: "History", end: false },
@@ -50,7 +55,7 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
 
   /**
    * Where a claim lands. A job starting in twenty minutes should open the
-   * live screen; one on Friday should go into the diary with a word that
+   * live screen; one on Friday should go into the roster with a word that
    * it's booked. Dropping a driver onto "I'm on my way" for a ride three
    * days out is just wrong.
    */
@@ -61,7 +66,7 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
       navigate(`/drive/ride/${claimed.id}`);
     } else {
       setBooked(claimed);
-      navigate("/drive?span=" + spanFor(claimed));
+      navigate(`/drive?day=${dayOf(claimed)}&view=day`);
     }
   }
 

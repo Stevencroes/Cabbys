@@ -16,6 +16,9 @@ export const ARUBA_OFFSET_MINUTES = -240; // UTC−4, year-round
 export const ARUBA_TZ_LABEL = "Aruba time (AST)";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const WEEKDAYS_LONG = [
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+] as const;
 export const WEEKDAY_INITIALS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 export const MONTHS_LONG = [
@@ -154,4 +157,74 @@ export function dayOfMonth(iso: string): number {
 export function arubaInstant(date: string, time: string): string {
   const t = isHhmm(time) ? time : "00:00";
   return new Date(`${date}T${t}:00-04:00`).toISOString();
+}
+
+/**
+ * Aruba's calendar day for a stored instant, or "" when there isn't one.
+ *
+ * Four driver screens had written this out for themselves — the roster,
+ * the pool, the earnings chart and the shell — which is four chances to
+ * forget the offset and file a 9pm Saturday job under Sunday.
+ */
+export function arubaDayOf(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return "";
+  return new Date(t + ARUBA_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
+}
+
+// ── weeks ──
+// A driver's work is a roster, not a feed: it is read a week at a time,
+// Monday to Sunday, because that is the shape a shift pattern actually
+// has. Three screens now need the same week — the schedule, the earnings
+// chart and the day a claim lands on — so the arithmetic lives here once
+// rather than being re-derived in each of them with its own off-by-one.
+//
+// Monday-first is deliberate and is NOT what getUTCDay() gives you: that
+// counts Sunday as 0, which would put Sunday at the head of the week and
+// split every weekend across two columns.
+
+/** Monday of the week `iso` falls in. */
+export function weekStart(iso: string): string {
+  const d = dateParts(iso);
+  const dow = (d.getUTCDay() + 6) % 7; // Monday = 0
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The seven ISO dates of the week `iso` falls in, Monday first. */
+export function weekDays(iso: string): string[] {
+  const monday = weekStart(iso);
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+}
+
+/** "Mon" — the weekday of an ISO date, in fixed English. */
+export function weekdayShort(iso: string): string {
+  return isIsoDate(iso) ? WEEKDAYS[dateParts(iso).getUTCDay()] : "";
+}
+
+/** "Monday" — the same day, said in full. */
+export function weekdayLong(iso: string): string {
+  return isIsoDate(iso) ? WEEKDAYS_LONG[dateParts(iso).getUTCDay()] : "";
+}
+
+/** "Aug" — the month of an ISO date. */
+export function monthShort(iso: string): string {
+  return isIsoDate(iso) ? MONTHS[dateParts(iso).getUTCMonth()] : "";
+}
+
+/**
+ * The span of a week, written as short as it can be said without losing
+ * anything: "6 – 12 Oct" inside one month, "29 Sep – 5 Oct" across two,
+ * and the year only when the week straddles one.
+ */
+export function weekRangeLabel(iso: string): string {
+  const days = weekDays(iso);
+  const a = days[0];
+  const b = days[6];
+  const sameMonth = a.slice(0, 7) === b.slice(0, 7);
+  const sameYear = a.slice(0, 4) === b.slice(0, 4);
+  const left = sameMonth ? `${dayOfMonth(a)}` : `${dayOfMonth(a)} ${monthShort(a)}`;
+  const right = `${dayOfMonth(b)} ${monthShort(b)}`;
+  return sameYear ? `${left} – ${right}` : `${left} ${a.slice(0, 4)} – ${right} ${b.slice(0, 4)}`;
 }

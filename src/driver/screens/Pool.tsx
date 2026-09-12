@@ -8,10 +8,30 @@
 // same second cannot both win: the loser gets 'already_taken' and their
 // card simply leaves. That is a normal outcome, not a failure, so it never
 // raises a dialog.
-import { useCallback, useEffect, useState } from "react";
+//
+// Two orders, because there are two ways a driver picks work and the screen
+// used to allow only one. Soonest is the diary question — what can I fit
+// before the school run. Best paid is the earnings question — what is the
+// best hour I can buy today. Neither is the "right" default; soonest is
+// simply the one that matches how the jobs are grouped.
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import JobCard, { jobDate, jobTime } from "../JobCard";
+import PoolCard from "../PoolCard";
+import { jobDate, jobDateShort, jobTime } from "../JobCard";
 import { claimRide, isImminent, loadOpen, type OpenJob } from "../lib/driver";
+import { todayInAruba, addDays, arubaDayOf } from "../../lib/datetime";
+
+type Order = "soonest" | "paid";
+
+/** "Today", "Tomorrow", else "Fri 12 Sep". Unscheduled work says so. */
+function groupLabel(iso: string | null): string {
+  const day = arubaDayOf(iso);
+  if (!day) return "No date set";
+  const today = todayInAruba();
+  if (day === today) return "Today";
+  if (day === addDays(today, 1)) return "Tomorrow";
+  return jobDateShort(iso) || jobDate(iso);
+}
 
 export default function Pool() {
   const navigate = useNavigate();
@@ -21,6 +41,7 @@ export default function Pool() {
   const [leaving, setLeaving] = useState<string[]>([]);
   const [refused, setRefused] = useState<string | null>(null);
   const [booked, setBooked] = useState<OpenJob | null>(null);
+  const [order, setOrder] = useState<Order>("soonest");
 
   const refresh = useCallback(async () => {
     const { jobs: rows, error } = await loadOpen();
@@ -39,7 +60,7 @@ export default function Pool() {
 
     if (res.ok) {
       // A job days out is scheduling, not dispatch: it belongs in the
-      // agenda, not on the "I'm on my way" screen.
+      // roster, not on the "I'm on my way" screen.
       if (isImminent(job)) navigate(`/drive/ride/${res.rideId}`);
       else { setBooked(job); void refresh(); }
       return;
@@ -65,20 +86,37 @@ export default function Pool() {
     void refresh();
   }
 
-  const groups = new Map<string, OpenJob[]>();
-  for (const j of jobs ?? []) {
-    const key = jobDate(j.scheduledAt) || "Unscheduled";
-    const list = groups.get(key) ?? [];
-    list.push(j);
-    groups.set(key, list);
-  }
+  /**
+   * Soonest keeps the day grouping, because the days are the point.
+   * Best paid throws the grouping away on purpose: a list sorted by money
+   * and then chopped into date headings is sorted by neither.
+   */
+  const groups = useMemo(() => {
+    const list = jobs ?? [];
+    if (order === "paid") {
+      const sorted = [...list].sort((a, b) => (b.payoutUsd ?? 0) - (a.payoutUsd ?? 0));
+      return [["Best paid first", sorted] as const];
+    }
+    const m = new Map<string, OpenJob[]>();
+    for (const j of list) {
+      const key = groupLabel(j.scheduledAt);
+      const bucket = m.get(key);
+      if (bucket) bucket.push(j); else m.set(key, [j]);
+    }
+    return [...m.entries()].map(([k, v]) => [k, v] as const);
+  }, [jobs, order]);
+
+  const count = jobs?.length ?? 0;
+  const best = Math.max(0, ...(jobs ?? []).map((j) => j.payoutUsd ?? 0));
 
   return (
     <div className="drv-view">
       <div className="drv-pad">
         <div className="kick">Open pool · unassigned</div>
         <h1 className="big">Free to <em>claim.</em></h1>
-        <p className="sub" style={{ marginTop: 8 }}>First to accept gets the job.</p>
+        <p className="sub" style={{ marginTop: 8 }}>
+          First to accept gets the job. Every figure below is your payout, not the guest's fare.
+        </p>
 
         {booked && (
           <div className="drv-refused ok" role="status">
@@ -98,6 +136,34 @@ export default function Pool() {
             <div className="rk">Couldn't take that job</div>
             <p>{refused}</p>
           </div>
+        )}
+
+        {count > 0 && (
+          <>
+            <div className="drv-stats">
+              <div className="drv-srow">
+                <div className="drv-scell">
+                  <div className="drv-sk">Jobs open</div>
+                  <div className="drv-sv">{count}</div>
+                </div>
+                <div className="drv-scell">
+                  <div className="drv-sk">Best pays</div>
+                  <div className="drv-sv"><small>$</small>{Math.round(best)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="drv-seg drv-span" role="group" aria-label="Order the pool">
+              <button
+                type="button" className={order === "soonest" ? "on" : ""}
+                aria-pressed={order === "soonest"} onClick={() => setOrder("soonest")}
+              >Soonest</button>
+              <button
+                type="button" className={order === "paid" ? "on" : ""}
+                aria-pressed={order === "paid"} onClick={() => setOrder("paid")}
+              >Best paid</button>
+            </div>
+          </>
         )}
 
         {jobs === null ? (
@@ -124,21 +190,20 @@ export default function Pool() {
           </div>
         ) : (
           <>
-            {[...groups.entries()].map(([day, list]) => (
+            {groups.map(([day, list]) => (
               <div key={day}>
-                <div className="kick" style={{ margin: "20px 0 12px" }}>{day}</div>
+                <div className="drv-poolday">
+                  <span className="pd-k">{day}</span>
+                  <span className="pd-n">{list.length}</span>
+                </div>
                 {list.map((j) => (
-                  <JobCard
+                  <PoolCard
                     key={j.id}
                     job={j}
-                    chip={{ tone: "", label: jobTime(j.scheduledAt) }}
-                    headline={j.payoutUsd != null ? `$${Math.round(j.payoutUsd)}` : "—"}
+                    busy={busy === j.id}
+                    disabled={busy !== null}
                     leaving={leaving.includes(j.id)}
-                    action={{
-                      label: busy === j.id ? "…" : "Accept",
-                      onClick: () => void accept(j),
-                      disabled: busy !== null,
-                    }}
+                    onAccept={() => void accept(j)}
                   />
                 ))}
               </div>

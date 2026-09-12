@@ -162,6 +162,29 @@ export function staticMapUrl(
   return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 }
 
+/**
+ * One point, close in — the guest's dropped pin on the driver's screen.
+ *
+ * The route map answers "where does this ride go"; this answers "which
+ * gate of which resort", which is a different zoom and a different frame.
+ * Zoom is fixed at 17 rather than inferred, because a lone marker gives
+ * Google nothing to fit a viewport to, and a pin floating over the whole
+ * island is exactly the map that made drivers phone the guest anyway.
+ */
+export function pinMapUrl(at: Coord, opts: StaticMapOptions): string | null {
+  if (!googleMapsEnabled) return null;
+  const params = new URLSearchParams();
+  params.set("size", `${Math.round(opts.width)}x${Math.round(opts.height)}`);
+  if (opts.retina) params.set("scale", "2");
+  params.set("maptype", "roadmap");
+  params.set("center", `${at.lat},${at.lon}`);
+  params.set("zoom", "17");
+  for (const st of staticStyleParams()) params.append("style", st);
+  params.append("markers", `size:mid|color:0x${INK}|${at.lat},${at.lon}`);
+  params.set("key", GOOGLE_MAPS_KEY);
+  return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
+}
+
 // ── the no-token fallback ────────────────────────────────────────────
 // A schematic Aruba, drawn from its coastline, so the card still shows
 // where the ride goes before anyone buys a map subscription. Labelled as

@@ -93,6 +93,8 @@
 .drv-sk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}
 .drv-sv{font-family:var(--serif);font-size:27px;font-weight:500;margin-top:5px;line-height:1;color:var(--ink);}
 .drv-sv small{font-size:14px;color:var(--muted);}
+/* a value that is words rather than a figure — "Fri 6:35 PM" */
+.drv-sv.sm{font-size:19px;letter-spacing:-.01em;}
 
 /* ── job card ──────────────────────────────────────────────────────── */
 .drv-job{display:block;width:100%;text-align:left;background:var(--surface);
@@ -121,12 +123,17 @@
 .drv-leg .ic{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;}
 .drv-leg .ic.a{background:var(--signal);}
 .drv-leg .ic.b{background:none;border:1.5px solid var(--silver);}
-.drv-leg .lp{font-size:14px;font-weight:400;line-height:1.25;color:var(--ink);}
-.drv-leg .ls{font-size:10px;color:var(--muted);letter-spacing:.06em;margin-top:2px;}
+/* Both lines went up a step. A place name read from a mount in daylight
+   was 14px at 400 weight, and its qualifier — the half that tells Eagle
+   Beach's 2km of sand apart — was 10px of --muted, the lowest-contrast
+   text colour the system allows. The qualifier now sits on --silver:
+   8.02:1 on --surface against --muted's 5.12. */
+.drv-leg .lp{font-size:15px;font-weight:400;line-height:1.3;color:var(--ink);letter-spacing:-.01em;}
+.drv-leg .ls{font-size:11.5px;color:var(--silver);letter-spacing:.04em;margin-top:3px;}
 
 .drv-jfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;
   margin-top:13px;padding-top:12px;border-top:1px dashed var(--line);}
-.drv-jfoot .meta{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-jfoot .meta{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--silver);font-weight:600;}
 .drv-jfoot .fare{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);}
 
 /* a claim button sits inline in the foot, not full width */
@@ -373,9 +380,215 @@
 .drv-refused.ok{border-color:var(--signal-line);background:var(--signal-tint);}
 .drv-refused.ok .rk{color:var(--signal-ink);}
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE ROSTER — a week, Monday to Sunday
+   The old agenda was three soft buckets and the type to match. A week is
+   a grid, so it is drawn as one: seven equal columns, each carrying its
+   own count, and a day that opens onto its own clock.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── walking the weeks ── */
+.drv-weekbar{display:flex;align-items:center;gap:10px;margin:22px 0 10px;}
+.drv-weekbar .wnav{flex:none;width:42px;height:42px;border-radius:50%;
+  border:1px solid var(--line);background:var(--surface);color:var(--silver);
+  font-size:20px;line-height:1;cursor:pointer;
+  transition:border-color .25s var(--ease),color .25s var(--ease),background .25s var(--ease);}
+.drv-weekbar .wnav:hover{border-color:var(--silver-deep);color:var(--ink);background:var(--raised);}
+.drv-weekbar .wlab{flex:1;text-align:center;min-width:0;}
+.drv-weekbar .wr{display:block;font-family:var(--serif);font-size:20px;font-weight:600;
+  color:var(--ink);line-height:1.1;}
+.drv-weekbar .wm{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--silver);margin-top:4px;}
+
+/* ── the seven columns ── */
+.drv-week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:18px;}
+.drv-week .wday{display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:9px 0 8px;min-height:64px;border-radius:var(--d-r-sm);
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  cursor:pointer;font-family:var(--sans);
+  transition:background .25s var(--ease),border-color .25s var(--ease),color .25s var(--ease);}
+.drv-week .wl{font-weight:600;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);}
+.drv-week .wn{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1;}
+/* the count keeps its box whether or not it has a number in it, so seven
+   columns stay one height and the row never jitters as the week changes */
+.drv-week .wc{min-height:16px;min-width:16px;display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;font-weight:600;line-height:1;border-radius:var(--d-r-pill);
+  background:var(--signal-tint);color:var(--signal-ink);padding:0 5px;}
+.drv-week .wday.idle .wc{background:none;color:transparent;}
+.drv-week .wday.idle .wn{color:var(--muted);font-weight:500;}
+/* today is ringed wherever it falls; the selected day is filled. Both at
+   once is legible because one is a border and the other is a ground. */
+.drv-week .wday.now{border-color:var(--signal-line);box-shadow:0 0 0 1px var(--signal-glow);}
+.drv-week .wday.now .wl{color:var(--signal-ink);}
+.drv-week .wday.on{background:var(--sheen);border-color:transparent;color:var(--on-sheen);}
+.drv-week .wday.on .wl{color:var(--on-sheen);opacity:.7;}
+.drv-week .wday.on .wn{color:var(--on-sheen);}
+.drv-week .wday.on .wc{background:var(--on-sheen-wash);color:var(--on-sheen);}
+.drv-week .wday:hover:not(.on){border-color:var(--silver-deep);background:var(--raised);}
+
+/* ── a day, opened ── */
+.drv-dayhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+  padding:0 0 12px;border-bottom:1px solid var(--line);margin-bottom:18px;}
+.drv-dayhead .dn{font-family:var(--serif);font-size:26px;font-weight:500;line-height:1;color:var(--ink);}
+.drv-dayhead .dd{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--silver);margin-top:6px;}
+.drv-dayhead .dp{text-align:right;flex:none;}
+.drv-dayhead .dk{display:block;font-weight:600;font-size:9px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);}
+.drv-dayhead .dv{display:block;font-family:var(--serif);font-size:20px;font-weight:600;
+  color:var(--ink);margin-top:3px;}
+
+/* ── the day's own clock ── */
+/* The time stands in a rail beside the card rather than inside it: read
+   down the left edge, a day is a shape — two jobs in the morning and a
+   gap until six reads as exactly that, which is what a driver is
+   actually planning around. */
+.drv-slot{display:flex;gap:12px;align-items:flex-start;}
+.drv-clock{flex:none;width:70px;padding-top:14px;text-align:right;}
+.drv-clock .ct{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--silver);
+  line-height:1.1;display:block;white-space:nowrap;}
+.drv-slotbody{flex:1;min-width:0;}
+/* the rail keeps running through the gap: a dashed line down the clock
+   column, with the distance named beside it */
+.drv-gap{position:relative;display:flex;align-items:center;gap:10px;margin:0 0 12px;padding-left:82px;}
+.drv-gap span{font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);}
+.drv-gap::before{content:"";position:absolute;left:35px;top:-8px;bottom:-4px;width:1px;
+  background:repeating-linear-gradient(var(--line) 0 3px,transparent 3px 7px);}
+
+/* an empty day is information, so it is drawn rather than left blank */
+.drv-free{display:flex;align-items:baseline;gap:10px;padding:14px 16px;margin-bottom:12px;
+  border:1px dashed var(--line);border-radius:var(--d-r-md);background:none;}
+.drv-free .fk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
+.drv-free .fv{font-size:12.5px;color:var(--muted);}
+
+/* ── the week, listed ── */
+.drv-daysec{margin-bottom:6px;}
+.drv-dayrow{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;
+  background:none;border:none;border-top:1px solid var(--line);
+  padding:16px 2px 12px;cursor:pointer;text-align:left;color:inherit;min-height:52px;
+  transition:opacity .25s var(--ease);}
+.drv-dayrow:hover{opacity:.72;}
+.drv-dayrow .dl{display:flex;align-items:baseline;gap:9px;min-width:0;}
+.drv-dayrow .dw{font-family:var(--serif);font-size:19px;font-weight:500;color:var(--ink);}
+.drv-dayrow .dm{font-weight:600;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
+.drv-dayrow .dr{display:flex;align-items:center;gap:10px;flex:none;}
+.drv-dayrow .dpay{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--silver);}
+.drv-dayrow .dcount{min-width:24px;text-align:center;font-weight:600;font-size:9.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink);
+  background:var(--raised);border:1px solid var(--line);border-radius:var(--d-r-pill);padding:5px 9px;}
+/* today's band is the one the eye should land on in a list of seven */
+.drv-daysec.now .drv-dayrow{border-top-color:var(--signal-line);}
+.drv-daysec.now .dw{color:var(--ink);}
+.drv-daysec.now .dcount{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
+.drv-daysec.idle .dw,.drv-daysec.idle .dcount{color:var(--muted);}
+.drv-daysec.idle .dcount{background:none;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE POOL CARD — read in daylight, at arm's length, against four others
+   ══════════════════════════════════════════════════════════════════════ */
+.drv-pool{display:block;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--d-r-lg);overflow:hidden;margin-bottom:14px;
+  transition:border-color .3s var(--ease),transform .3s var(--ease);}
+.drv-pool:hover{border-color:var(--silver-deep);transform:translateY(-2px);}
+.drv-pool.going{transition:opacity .5s var(--ease),transform .5s var(--ease);
+  opacity:0;transform:translateX(-16px);}
+
+/* when — a band, so the eye finds it before it finds anything else */
+.drv-pool .pc-when{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  padding:13px 17px;background:var(--raised);border-bottom:1px solid var(--line);}
+.drv-pool .pw-day{font-weight:600;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
+.drv-pool .pw-time{font-family:var(--serif);font-size:21px;font-weight:600;color:var(--ink);line-height:1;}
+.drv-pool .pw-rel{margin-left:auto;font-weight:600;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);}
+
+/* where */
+.drv-pool .pc-body{padding:16px 17px 14px;}
+.drv-pool .pc-facts{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:15px 0 0;padding:0;}
+/* Each fact is its own object. Joined with middots they were one grey
+   string, and "1 child seat" — the fact a driver has to act on before
+   leaving the house — was the easiest part of it to skim past. */
+.drv-pool .pc-facts li{font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--silver);background:var(--raised);border:1px solid var(--line);
+  border-radius:var(--d-r-pill);padding:6px 11px;}
+
+/* what it pays — the driver's money, and never the guest's by accident */
+.drv-pool .pc-money{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
+  padding:14px 17px 16px;border-top:1px solid var(--line);background:var(--raised);}
+.drv-pool .pm-fig{min-width:0;}
+.drv-pool .pm-k{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--silver);}
+.drv-pool .pm-v{display:block;font-family:var(--serif);font-size:40px;font-weight:600;
+  line-height:1;color:var(--ink);margin:2px 0 4px;}
+.drv-pool .pm-s{display:block;font-size:11px;color:var(--muted);line-height:1.4;}
+.drv-pool .pc-accept{width:auto;flex:none;padding:14px 26px;min-height:48px;}
+
+/* the day headings between groups of cards */
+.drv-poolday{display:flex;align-items:center;gap:10px;margin:24px 0 12px;}
+.drv-poolday .pd-k{font-weight:600;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);}
+.drv-poolday .pd-n{font-weight:600;font-size:9px;letter-spacing:.1em;color:var(--muted);
+  border:1px solid var(--line);border-radius:var(--d-r-pill);padding:3px 8px;}
+/* the rule runs out to the edge, so the groups read as bands not as a list */
+.drv-poolday::after{content:"";flex:1;height:1px;background:var(--line);}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE RIDE SCREEN
+   ══════════════════════════════════════════════════════════════════════ */
+/* the way out of a bare route */
+.drv-dbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  max-width:560px;width:100%;margin:0 auto;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;}
+.drv-dbar button{display:inline-flex;align-items:center;gap:5px;background:none;border:none;
+  color:var(--silver);font-family:var(--sans);font-weight:600;font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+  min-height:44px;padding:0 8px;transition:color .25s var(--ease);}
+.drv-dbar button:hover{color:var(--ink);}
+.drv-dbar button span{font-size:18px;line-height:1;}
+.drv-dbar .dbr{font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);padding-right:8px;}
+
+/* where the job stands */
+.drv-rail{display:flex;list-style:none;gap:0;padding:16px 20px 14px;
+  max-width:560px;width:100%;margin:0 auto;}
+.drv-rail li{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
+  position:relative;min-width:0;}
+/* the connector belongs to the step on its right, so the first has none */
+.drv-rail li + li::before{content:"";position:absolute;left:calc(-50% + 5px);right:calc(50% + 5px);
+  top:4px;height:1px;background:var(--line);}
+.drv-rail li.done + li::before,.drv-rail li.now::before{background:var(--signal-line);}
+.drv-rail .rd{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;}
+.drv-rail .rt{font-weight:600;font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);text-align:center;line-height:1.3;}
+.drv-rail li.done .rd{background:var(--signal);}
+.drv-rail li.done .rt{color:var(--silver);}
+.drv-rail li.now .rd{background:var(--signal);box-shadow:0 0 0 4px var(--signal-glow);}
+.drv-rail li.now .rt{color:var(--ink);}
+
+.drv-pinmap img{width:100%;height:100%;object-fit:cover;display:block;}
+/* the licence, or the honest word that this is a drawing. On its own
+   ground because the coastline runs right under it. */
+.drv-pinnote{position:absolute;right:12px;bottom:12px;font-size:9px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:600;color:var(--muted);
+  background:var(--ground);border-radius:var(--d-r-pill);padding:4px 9px;}
+
+/* Call and Chat: labelled, because two unlabelled glyphs beside a name
+   were a guess at 60km/h. Both keep a 46px target. */
+.drv-pax .pc a{width:auto;min-width:var(--tap);height:var(--tap);border-radius:var(--d-r-pill);
+  gap:6px;padding:0 14px;font-weight:600;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;}
+.drv-pax .pc a svg{width:15px;height:15px;flex:none;}
+
+/* an undo is a quiet control: findable, never competing with the step */
+.drv-undo{display:block;width:100%;margin-top:10px;background:none;border:none;
+  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;cursor:pointer;min-height:44px;
+  transition:color .25s var(--ease);}
+.drv-undo:hover:not(:disabled){color:var(--silver);}
+.drv-undo:disabled{opacity:.5;cursor:wait;}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;
   }
-  .drv-job:hover,.drv-cta:hover{transform:none !important;}
+  .drv-job:hover,.drv-cta:hover,.drv-pool:hover{transform:none !important;}
 }
