@@ -129,9 +129,11 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
 }
 
 /**
- * The drivers row for a given auth uid, or null when none exists — either
- * because docs/driver-schema.sql hasn't been run, or the row's status
- * check found nothing (see below).
+ * The drivers row for a given auth uid.
+ *
+ * Answers in two parts on purpose: a missing ROW and an unreadable TABLE
+ * are different problems with different fixes, and the gate has to say
+ * which one it hit. See the note inside.
  *
  * Matches on `user_id`, not `id`: this project's drivers table has its own
  * primary key separate from the account it belongs to, with `user_id` as
@@ -141,27 +143,43 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
  * downstream (loading a driver's assigned rides, claiming, status
  * changes) needs the auth id, not the drivers row's internal one.
  */
-export async function loadDriverById(uid: string): Promise<DriverProfile | null> {
+export interface DriverLookup {
+  /** null when this account genuinely has no drivers row */
+  driver: DriverProfile | null;
+  /** non-null when the table could not be read at all */
+  error: string | null;
+}
+
+export async function loadDriverById(uid: string): Promise<DriverLookup> {
   const { data, error } = await supabase
     .from("drivers")
     .select("*")
     .eq("user_id", uid)
     .maybeSingle();
-  if (error || !data) return null;
+  // The distinction this function exists to make. `error` is a table that
+  // could not be read — no migration, an RLS policy that admits nobody, a
+  // dead connection. `!data` is a table that was read fine and has no row
+  // for this account. Collapsing both to null is why a driver on a bad
+  // hotel wifi was told their account does not exist.
+  if (error) return { driver: null, error: error.message || "The drivers table could not be read." };
+  if (!data) return { driver: null, error: null };
 
   const r = data as Row;
   const status = str(r.status);
   const splitName = [str(r.first_name), str(r.last_name)].filter(Boolean).join(" ").trim();
   return {
-    id: uid,
-    fullName: splitName || str(r.full_name),
-    phone: nStr(r.phone),
-    vehicle: nStr(r.vehicle),
-    plate: nStr(r.plate),
-    status: (status === "approved" || status === "suspended" ? status : "pending") as DriverStatus,
-    rating: nNum(r.rating),
-    tripsCount: nNum(r.trips_count) ?? 0,
-    isOnline: r.is_online === true,
+    driver: {
+      id: uid,
+      fullName: splitName || str(r.full_name),
+      phone: nStr(r.phone),
+      vehicle: nStr(r.vehicle),
+      plate: nStr(r.plate),
+      status: (status === "approved" || status === "suspended" ? status : "pending") as DriverStatus,
+      rating: nNum(r.rating),
+      tripsCount: nNum(r.trips_count) ?? 0,
+      isOnline: r.is_online === true,
+    },
+    error: null,
   };
 }
 

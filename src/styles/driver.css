@@ -278,7 +278,10 @@
   text-align:center;padding:30px 26px;gap:0;}
 .drv-gate .gi{width:70px;height:70px;border-radius:50%;border:1.5px solid var(--silver);
   display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--silver);
-  margin-bottom:22px;}
+  margin-bottom:22px;flex:none;}
+/* the marks are drawn now — an hourglass emoji is the one thing in a
+   monochrome system guaranteed to arrive in somebody else's colours */
+.drv-gate .gi svg{width:30px;height:30px;}
 .drv-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
 .drv-gate .gi.mark{border-color:var(--line);color:var(--ink);font-family:var(--serif);}
 .drv-gate h1{font-family:var(--serif);font-weight:300;font-size:28px;margin:0 0 10px;line-height:1.1;}
@@ -663,6 +666,44 @@
 .drv-offline span{flex:1;font-size:12px;line-height:1.5;color:var(--ink);font-weight:400;}
 .drv-offline button{flex:none;background:none;border:none;color:var(--muted);
   font-size:13px;min-width:40px;min-height:40px;cursor:pointer;}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE GATES — every screen a driver sees from outside the portal
+   One mark, one sentence, and a way forward that isn't "sign out".
+   ══════════════════════════════════════════════════════════════════════ */
+/* the wordmark stands in for the mark circle where the screen is ours
+   rather than a state: the hold, and the sign-in */
+.drv-mark.gate{font-size:19px;margin-bottom:26px;text-align:center;}
+.drv-mark.gate small{font-size:8px;letter-spacing:.38em;margin-top:5px;}
+
+/* The first thing seen on every cold open, and it was a grey line on a
+   black screen. Still brief, still quiet — but ours. */
+.drv-hold{animation:drvbreathe 2.4s var(--ease) infinite;}
+@keyframes drvbreathe{0%,100%{opacity:.45;}50%{opacity:1;}}
+
+/* the database's own words, for whoever has to fix it */
+.drv-gate .drv-why{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;line-height:1.5;color:var(--muted);margin-top:14px;
+  max-width:34ch;word-break:break-word;opacity:.8;}
+
+.drv-gateacts{width:100%;max-width:320px;margin-top:24px;}
+.drv-gateacts .drv-cta{margin-top:0;}
+.drv-gateacts .drv-cta + .drv-cta{margin-top:10px;}
+/* Sign out stops being a button the size of the way forward. It is still
+   reachable, and still a 46px target — it just no longer reads as the
+   suggested move on a screen whose actual answer is "wait" or "ask us". */
+.drv-quiet{display:block;width:100%;margin-top:18px;background:none;border:none;
+  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:10px;
+  letter-spacing:.16em;text-transform:uppercase;cursor:pointer;min-height:var(--tap);
+  transition:color .25s var(--ease);}
+.drv-quiet:hover{color:var(--silver);}
+
+/* a guest who landed here by accident: the back button is where they came from */
+.drv-wayout{display:inline-block;margin-top:26px;color:var(--muted);font-size:12px;
+  font-weight:400;text-decoration:underline;text-underline-offset:4px;
+  text-decoration-color:var(--line);transition:color .25s var(--ease);}
+.drv-wayout:hover{color:var(--silver);}
 
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{

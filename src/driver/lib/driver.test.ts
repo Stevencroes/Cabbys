@@ -4,6 +4,7 @@ const calls: { from: string[]; rpc: [string, unknown][]; eq: [string, unknown][]
 let rpcResult: unknown = { ok: true, ride_id: "r1" };
 let rpcError: unknown = null;
 let singleResult: unknown = null;
+let singleError: { message: string } | null = null;
 let orderResult: unknown[] = [];
 let orderError: { message: string } | null = null;
 let updateError: { message: string } | null = null;
@@ -19,7 +20,7 @@ vi.mock("../../lib/supabase", () => {
       eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return b; },
       in: chain,
       order: () => Promise.resolve({ data: orderError ? null : orderResult, error: orderError }),
-      maybeSingle: () => Promise.resolve({ data: singleResult, error: null }),
+      maybeSingle: () => Promise.resolve({ data: singleError ? null : singleResult, error: singleError }),
       update: (patch: Record<string, unknown>) => {
         updates.push(patch);
         return { eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return Promise.resolve({ data: null, error: updateError }); } };
@@ -49,7 +50,7 @@ import {
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.eq = [];
   rpcResult = { ok: true, ride_id: "r1" }; rpcError = null;
-  singleResult = null; orderResult = []; orderError = null;
+  singleResult = null; singleError = null; orderResult = []; orderError = null;
   updateError = null; updates.length = 0;
 });
 
@@ -166,14 +167,28 @@ describe("driver data layer", () => {
     // the row's internal id instead, loadAssigned(driver.id) downstream
     // would silently query the wrong column and find nothing
     singleResult = { id: "internal-row-pk", user_id: "d1", first_name: "Ana", status: "approved" };
-    const driver = await loadDriverById("d1");
+    const { driver } = await loadDriverById("d1");
     expect(driver?.id).toBe("d1");
   });
 
   it("combines first_name and last_name when there is no full_name column", async () => {
     singleResult = { user_id: "d1", first_name: "Ana", last_name: "Croes", status: "approved" };
-    const driver = await loadDriverById("d1");
+    const { driver } = await loadDriverById("d1");
     expect(driver?.fullName).toBe("Ana Croes");
+  });
+
+  // The gate told a driver on bad hotel wifi that their account did not
+  // exist, because an unreadable table and an absent row both came back
+  // as null. They are different problems with different fixes.
+  it("tells an unreadable drivers table apart from an account with no row", async () => {
+    singleError = { message: "permission denied for table drivers" };
+    expect(await loadDriverById("d1")).toEqual({
+      driver: null, error: "permission denied for table drivers",
+    });
+
+    singleError = null;
+    singleResult = null;
+    expect(await loadDriverById("d1")).toEqual({ driver: null, error: null });
   });
 
   it("updates online status by user_id too", async () => {

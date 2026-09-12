@@ -12,6 +12,16 @@ interface AuthFormProps {
   compact?: boolean;
   /** Where Google OAuth should return to. Omit for the default (passenger "/"). */
   oauthNext?: string;
+  /**
+   * Whether this form may also create an account. Default true.
+   *
+   * False on the driver gate, where it is worse than useless: driver
+   * accounts are made by Cabby's, the screen says so a line above, and a
+   * driver who takes the offer lands in "No driver profile for this
+   * account" — a support ticket manufactured by the button that caused
+   * it. Signing in and resetting a password still work.
+   */
+  allowSignUp?: boolean;
 }
 
 /** Deliberately permissive — the server is the authority on deliverability. */
@@ -32,7 +42,7 @@ const HEADINGS: Record<Mode, string> = {
  * control, everything else sits above the button in one alert. Nothing here
  * fails silently, and the button is inert while a request is in flight.
  */
-export default function AuthForm({ onSuccess, heading, compact, oauthNext }: AuthFormProps) {
+export default function AuthForm({ onSuccess, heading, compact, oauthNext, allowSignUp = true }: AuthFormProps) {
   const { signInWithProvider, signInWithPassword, signUpWithPassword, resetPassword } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -235,13 +245,17 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext }: Aut
         </button>
       )}
 
-      <button
-        className="auth-toggle"
-        type="button"
-        onClick={() => go(mode === "signin" ? "signup" : "signin")}
-      >
-        {mode === "signin" ? "New here? Create an account" : mode === "signup" ? "Already have an account? Sign in" : "Back to sign in"}
-      </button>
+      {/* "Back to sign in" still has to exist after a password reset, so
+          only the offer to sign UP is withheld. */}
+      {(allowSignUp || mode !== "signin") && (
+        <button
+          className="auth-toggle"
+          type="button"
+          onClick={() => go(mode === "signin" ? "signup" : "signin")}
+        >
+          {mode === "signin" ? "New here? Create an account" : mode === "signup" ? "Already have an account? Sign in" : "Back to sign in"}
+        </button>
+      )}
     </div>
   );
 }
