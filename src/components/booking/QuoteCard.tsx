@@ -55,14 +55,17 @@ export default function QuoteCard() {
   }, [state.journey]);
 
   // ── the button's departure state ────────────────────────────────────
-  // A short beat between the press and the overlay, so the press is
-  // acknowledged by the control rather than only by the screen changing
-  // underneath it. Not a spinner: nothing on this page loops. The label
-  // dims and the arrow leaves to the right, which says "going" in the
-  // same vocabulary the hover already uses.
-  const [busy, setBusy] = useState(false);
-  const leaving = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(leaving.current), []);
+  // The press opens the flow immediately — there is no beat held here, and
+  // nothing waits on an animation. The button simply carries a departed
+  // state for as long as the overlay it opened is up: label receded, arrow
+  // gone to the right. Not a spinner; nothing on this page loops.
+  //
+  // Read from the flow's own state rather than tracked beside it. A second
+  // copy of "is the overlay open" is a copy that can be wrong — it would
+  // have to be cleared on close, on unmount, and on every other route into
+  // the flow (the nav's Book now opens it too), and any one of those missed
+  // leaves the card's button stuck.
+  const busy = state.open;
 
   // §3.8 — planning from abroad: pickup pre-fills to the airport; guests
   // already on the island get an empty form (they know where they are).
@@ -101,7 +104,7 @@ export default function QuoteCard() {
     // control the moment it is pressed drops focus to the body, so a
     // keyboard user is left nowhere while the overlay mounts; aria-busy
     // says the same thing to a screen reader and costs nobody their place.
-    if (busy) return;
+    if (busy) return; // the flow is already open — this press is a repeat
     if (!state.from) {
       setHint("Tell us where to pick you up first.");
       fromInput.current?.focus();
@@ -125,11 +128,7 @@ export default function QuoteCard() {
       return;
     }
     setHint("");
-    setBusy(true);
-    leaving.current = window.setTimeout(() => {
-      setBusy(false);
-      open(); // everything already lives in context — nothing is asked twice
-    }, 220);
+    open(); // everything already lives in context — nothing is asked twice
   }
 
   const Pin = (

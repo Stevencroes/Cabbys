@@ -758,10 +758,11 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    makes the pair read as "forward" rather than "bigger" */
 .qbtn svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .qbtn:hover svg{transform:translateX(4px);}
-/* Pressed and going. Deliberately not a spinner — nothing on this page
-   loops, and a spinner for a beat this short is a flash of noise. The label
-   recedes and the arrow leaves to the right: the same vocabulary as the
-   hover, carried one step further. */
+/* Departed. The press opens the flow immediately — this state is not a
+   wait, it is what the button looks like behind the overlay it opened, and
+   it lasts exactly as long as that overlay does. Deliberately not a
+   spinner: nothing on this page loops. The label recedes and the arrow
+   leaves to the right — the same vocabulary as the hover, one step on. */
 .qbtn-l{transition:opacity var(--dur-ui) var(--ease-ui);}
 .qbtn.busy{transform:scale(.995);cursor:default;}
 .qbtn.busy .qbtn-l{opacity:.5;}
