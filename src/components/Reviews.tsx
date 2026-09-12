@@ -39,8 +39,13 @@ export default function Reviews() {
             than five hidden SVGs and a "5.0" a screen reader has to infer
             is a rating at all. */}
         <div className="proof-rate rise">
+          {/* `stagger` puts the five under the reveal observer, which indexes
+              them and lets CSS fill them 70ms apart. They are one role="img"
+              with the whole claim in its label, so the sequence is decoration
+              over a mark that has already been announced as "rated 5 of 5" —
+              a screen reader never waits for an animation to learn the score. */}
           <span
-            className="ps-stars"
+            className="ps-stars stagger"
             role="img"
             aria-label={`Rated ${RATING} out of 5, from more than 300 reviews`}
           >

@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import Closer from "./Closer";
+import { useRevealOnce } from "./motion";
 
 // `closing` makes this the landing page's whole closing band: the CTA and
 // the sitemap used to be two stacked sections in two different grounds,
@@ -14,10 +16,19 @@ import Closer from "./Closer";
 // The account pages (trips, profile, reset) take the plain footer: nothing
 // there is asking for a booking, so nothing there closes.
 export default function Footer({ closing = false }: { closing?: boolean }) {
+  // The sitemap fades in once, the first time it is scrolled to. Only the
+  // sitemap: the closing band above it stages itself word by word and does
+  // not want a second opinion about its opacity.
+  //
+  // Its own observer, not a `.rise` and the page sweep, because this footer
+  // also renders on /trips, /profile and /reset — none of which run the
+  // page hook, all of which would have ended up with an invisible footer.
+  const sitemap = useRef<HTMLDivElement>(null);
+  useRevealOnce(sitemap);
   return (
     <footer id="contact" className={`site-foot${closing ? " closing" : ""}`}>
       {closing && <Closer />}
-      <div className="wrap">
+      <div className="wrap frev" ref={sitemap}>
         <div className="ftop">
           <div>
             <div className="fbrand">Cabby<span className="ap">'</span>s</div>

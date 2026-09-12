@@ -2,7 +2,7 @@
 // and the way on. It no longer quotes: the mockup asks for availability
 // first and shows money once the route is real, so the rate card is loaded
 // by the flow that spends it rather than by the card that opens it.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import PlaceCombobox from "./PlaceCombobox";
 import DateField from "./DateField";
@@ -20,6 +20,49 @@ export default function QuoteCard() {
   const onIsland = useMemo(() => isOnIsland(), []);
   const fromInput = useRef<HTMLInputElement | null>(null);
   const toInput = useRef<HTMLInputElement | null>(null);
+
+  // ── the underline that slides between the two tabs ──────────────────
+  // It was a ::after on whichever button was .on, which cannot move: the
+  // mark vanished from one word and appeared under the other. One bar,
+  // measured onto the active tab, is the same mark travelling.
+  //
+  // Geometry has to be read rather than assumed — the two labels are
+  // different widths, and "One Way" is a different width again once
+  // Inter has loaded and the fallback stops standing in for it. So this
+  // re-measures on the tab change, on resize, and whenever the strip's
+  // own box changes, which is what catches the font swap.
+  const tabs = useRef<HTMLDivElement>(null);
+  const [ink, setInk] = useState<{ x: number; w: number } | null>(null);
+  useLayoutEffect(() => {
+    const strip = tabs.current;
+    if (!strip) return;
+    const measure = () => {
+      const on = strip.querySelector<HTMLElement>("button.on");
+      if (!on) return;
+      // inset by the button's own padding so the bar is the width of the
+      // words, not of the hit area — read from the element so the number
+      // lives in one place, the stylesheet
+      const box = getComputedStyle(on);
+      const l = parseFloat(box.paddingLeft) || 0;
+      const r = parseFloat(box.paddingRight) || 0;
+      const w = on.offsetWidth - l - r;
+      if (w > 0) setInk({ x: on.offsetLeft + l, w });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(strip);
+    return () => ro.disconnect();
+  }, [state.journey]);
+
+  // ── the button's departure state ────────────────────────────────────
+  // A short beat between the press and the overlay, so the press is
+  // acknowledged by the control rather than only by the screen changing
+  // underneath it. Not a spinner: nothing on this page loops. The label
+  // dims and the arrow leaves to the right, which says "going" in the
+  // same vocabulary the hover already uses.
+  const [busy, setBusy] = useState(false);
+  const leaving = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(leaving.current), []);
 
   // §3.8 — planning from abroad: pickup pre-fills to the airport; guests
   // already on the island get an empty form (they know where they are).
@@ -54,6 +97,11 @@ export default function QuoteCard() {
 
   // Continue is never disabled — an empty field gets focus and a reason.
   function handleContinue() {
+    // The re-entry guard, rather than `disabled` on the button. Disabling a
+    // control the moment it is pressed drops focus to the body, so a
+    // keyboard user is left nowhere while the overlay mounts; aria-busy
+    // says the same thing to a screen reader and costs nobody their place.
+    if (busy) return;
     if (!state.from) {
       setHint("Tell us where to pick you up first.");
       fromInput.current?.focus();
@@ -77,7 +125,11 @@ export default function QuoteCard() {
       return;
     }
     setHint("");
-    open(); // everything already lives in context — nothing is asked twice
+    setBusy(true);
+    leaving.current = window.setTimeout(() => {
+      setBusy(false);
+      open(); // everything already lives in context — nothing is asked twice
+    }, 220);
   }
 
   const Pin = (
@@ -94,13 +146,18 @@ export default function QuoteCard() {
       {/* §08 — one way or return, then the five answers in a row, then the
           way on. The card carries no fare: the mockup asks for availability
           first and shows the money once the route is real. */}
-      <div className="qtabs" role="tablist" aria-label="Trip type">
+      <div className="qtabs" role="tablist" aria-label="Trip type" ref={tabs}>
         <button type="button" role="tab" aria-selected={state.journey === "one"}
           className={state.journey === "one" ? "on" : ""}
           onClick={() => setField("journey", "one")}>One Way</button>
         <button type="button" role="tab" aria-selected={state.journey === "return"}
           className={state.journey === "return" ? "on" : ""}
           onClick={() => setField("journey", "return")}>Round Trip</button>
+        {/* scaleX on a 1px bar, not a width — the slide stays on the
+            compositor. Held at opacity 0 until it has been measured, or it
+            flashes at x=0 on the first paint. */}
+        <span className="qtab-ink" aria-hidden="true"
+          style={ink ? { opacity: 1, transform: `translateX(${ink.x}px) scaleX(${ink.w})` } : undefined} />
       </div>
 
       <div className="qrow">
@@ -168,8 +225,9 @@ export default function QuoteCard() {
       {hint && <div className="qhint" role="alert">{hint}</div>}
 
       <div className="qgo">
-        <button type="button" className="qbtn" onClick={handleContinue}>
-          Get your fixed price
+        <button type="button" className={`qbtn${busy ? " busy" : ""}`}
+          aria-busy={busy} onClick={handleContinue}>
+          <span className="qbtn-l">Get your fixed price</span>
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
             strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3 10h13M11 5l5 5-5 5" />

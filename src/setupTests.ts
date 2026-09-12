@@ -11,6 +11,16 @@ class IntersectionObserverStub {
 }
 globalThis.IntersectionObserver = IntersectionObserverStub as unknown as typeof IntersectionObserver;
 
+// jsdom has no ResizeObserver either. The booking card's tab underline is
+// placed from the active tab's measured box and re-measures when the strip
+// resizes — which is how it survives the web font landing after first paint.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+
 // jsdom has no matchMedia; the motion system uses it. Note `matches` is
 // always false — a test that needs a phone must say so itself.
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {

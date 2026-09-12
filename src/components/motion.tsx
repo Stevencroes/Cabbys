@@ -1,7 +1,7 @@
 // Reveal-on-scroll and word splits. CSS owns the animation (globals.css);
 // this file only decides WHEN an element is allowed to move, and honours
 // prefers-reduced-motion by never letting anything move at all.
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 
 const reduced = () =>
   typeof window !== "undefined" &&
@@ -9,6 +9,18 @@ const reduced = () =>
   window.matchMedia("(prefers-reduced-motion:reduce)").matches;
 
 const SELECTOR = ".rise,.flow,.stagger,.wsplit";
+
+/** Fire on the top edge crossing a line near the bottom of the viewport.
+    A ratio threshold asks for a share of the ELEMENT, which means a tall
+    section triggers on a sliver and a short one on half of itself; this
+    asks the same question of both. */
+const WHEN = { threshold: 0, rootMargin: "0px 0px -12% 0px" } as const;
+
+/** True once the element has entered, OR once it has already gone past the
+    top — a fast flick can coalesce into a single non-intersecting entry,
+    and without this that element would stay hidden for good. */
+const arrived = (e: IntersectionObserverEntry) =>
+  e.isIntersecting || e.boundingClientRect.top < 0;
 
 /** Give a staggered group its per-child offset. CSS does the arithmetic
     (`calc(var(--i) * var(--stagger))`) so the gap stays a design token and
@@ -69,15 +81,43 @@ export function useRevealObserver(): void {
     const io = new IntersectionObserver(
       (entries) =>
         entries.forEach((e) => {
-          if (!e.isIntersecting && e.boundingClientRect.top >= 0) return;
+          if (!arrived(e)) return;
           e.target.classList.add("in");
           io.unobserve(e.target);
         }),
-      { threshold: 0, rootMargin: "0px 0px -12% 0px" },
+      WHEN,
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
+}
+
+/**
+ * The same one-shot reveal, for a component that has to carry its own.
+ *
+ * useRevealObserver is a PAGE hook — it sweeps the document once and only
+ * Landing calls it. Anything relying on it is invisible on a page that does
+ * not, which is not a hypothetical: the footer renders on /trips, /profile
+ * and /reset as well, and giving it a `.rise` would have left three pages
+ * with a footer that never appears. A component that cannot know which page
+ * it is on takes this instead and answers for itself.
+ */
+export function useRevealOnce(ref: RefObject<HTMLElement>): void {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (reduced()) {
+      el.classList.add("in");
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some(arrived)) return;
+      el.classList.add("in");
+      io.disconnect();
+    }, WHEN);
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref]);
 }
 
 interface SplitPart {
