@@ -148,59 +148,28 @@
   /* ---------- filmic grain ---------- */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
-  /* ---------- legacy aliases ----------
-     Older components (auth modal, trips, inline SVGs) still read these
-     names; keep them resolving to Night Sea roles. New code uses the
-     role tokens above. */
-  --disp:var(--serif);
-  --ui:var(--sans);
-  --bg:var(--ground);
-  --surface-hi:var(--raised);
-  --ink-soft:var(--muted);
+  /* ---------- the last three aliases ----------
+     What is left of a legacy block that held 49 names. Two components
+     were never moved onto the role tokens and still read these three;
+     they resolve to Night Sea roles so those files render correctly.
+
+       --accent      Diamond.tsx
+       --silver-dim  Diamond.tsx
+       --mist        AuthCallback.tsx, through a fallback
+
+     The other 46 were aliases to a design system that had already been
+     replaced — --bg, --card, --border, --danger, --success, --white,
+     --focus-glow, four shadow aliases and the whole --c-vanilla /
+     --c-cocoa / --c-lacquer / --c-palm set. Nothing in src/ read any of
+     them; nine were named only in the superseded plans under
+     docs/superpowers/, which are a record of that design rather than a
+     consumer of it. Removed 12 September 2026.
+
+     Point those two components at --silver, --silver-deep and --ink and
+     this block goes too. */
   --accent:var(--silver);
-  --accent-press:var(--silver-deep);
-  --secondary:var(--silver);
-  --success:var(--signal);
-  --on-accent:var(--deep);
-  --midnight:var(--deep);
-  --ocean:var(--ground);
-  --steel:var(--soft);
   --silver-dim:var(--silver-deep);
   --mist:var(--ink);
-  --white:#FFFFFF;
-  --accent-soft:var(--raised);
-  --accent-line:rgba(185,198,212,.45);
-  --silver-hi:var(--ink);
-  --silver-focus:var(--silver);
-  --silver-wash:var(--surface);
-  --danger:var(--alert-ink);
-  --focus-glow:0 0 0 2px rgba(185,198,212,.30);
-  --card:var(--surface);
-  --card-hi:var(--raised);
-  --border:var(--line);
-  --border-hi:var(--soft);
-  --shadow-sticker:var(--shadow-hard);
-  --shadow-sticker-sm:var(--shadow-hard);
-  --shadow-soft:var(--shadow-hard);
-  --shadow-card:var(--shadow-hard);
-  --c-vanilla:var(--ink);
-  --c-vanilla-2:var(--silver);
-  --c-vanilla-3:var(--muted);
-  --c-cocoa:var(--ground);
-  --c-cocoa-2:var(--surface);
-  --c-cocoa-3:var(--deep);
-  --c-cocoa-soft:var(--soft);
-  --c-cocoa-line:var(--line);
-  --c-lacquer:var(--silver);
-  --c-lacquer-dark:var(--silver-deep);
-  --c-lacquer-deep:var(--silver-deep);
-  --c-camel:var(--silver);
-  --c-palm:var(--signal);
-  --c-palm-2:var(--signal);
-  --c-muted:var(--muted);
-  --c-on-dark:var(--muted);
-  --c-on-dark-2:var(--silver);
-  --c-sea:var(--surface);
 }
 
 /* ==========================================================================
@@ -238,19 +207,11 @@
      --signal-knob   1
      --signal-halo   1
 
-   THE LEGACY ALIASES ARE ALL BUT GONE. That block's own comment says
-   "older components still read these names". Three of them do:
-
-     --accent      Diamond.tsx
-     --silver-dim  Diamond.tsx
-     --mist        AuthCallback.tsx   (via a fallback)
-
-   The other 43 — --bg, --card, --border, --danger, --success, --white,
-   the whole --c-vanilla / --c-cocoa / --c-lacquer / --c-palm set from an
-   earlier palette — are read by nothing in src/. They are ~45 lines of a
-   204-line file describing a design system that no longer exists. Left in
-   place rather than deleted, because a token nothing references still
-   costs nothing at runtime and something outside src/ may yet want one;
-   but nothing new should reach for them, and retiring the block is a
-   small, safe piece of work whenever someone wants the file shorter.
+   THE LEGACY ALIASES ARE GONE, bar three. The block declared 49 names
+   and its own comment claimed older components still read them. Three
+   did — --accent and --silver-dim in Diamond.tsx, --mist in
+   AuthCallback.tsx — and those three remain. The other 46 were removed
+   on 12 September 2026. Nine of them were named only in the superseded
+   plans under docs/superpowers/, which record that design rather than
+   consume it, so those references are now dangling by design.
    ========================================================================== */
