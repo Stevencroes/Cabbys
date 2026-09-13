@@ -318,14 +318,33 @@ as $$
 declare
   v_updated integer;
   v_when    timestamptz;
+  v_mine    boolean;
 begin
-  select coalesce(scheduled_at, (scheduled_date || ' ' || coalesce(scheduled_time, '00:00'))::timestamp at time zone 'America/Aruba')
-    into v_when
+  -- v8. Ownership and the clock are two questions, and this used to ask
+  -- them as one: a single select whose null result was reported as
+  -- 'not_yours'. A ride with no time on it — scheduled_at null and
+  -- scheduled_date null, which is every row written before those columns
+  -- were filled in — made v_when null on a ride the driver very much
+  -- did own, and the portal told them "This job isn't yours any more"
+  -- over a job sitting on their own roster. Wrong, and unfixable by the
+  -- person reading it.
+  select true,
+         coalesce(scheduled_at,
+                  (scheduled_date || ' ' || coalesce(scheduled_time, '00:00'))::timestamp
+                    at time zone 'America/Aruba')
+    into v_mine, v_when
     from public.rides
    where id = p_ride_id and driver_id = auth.uid();
 
-  if v_when is null then
+  if v_mine is not true then
     return json_build_object('ok', false, 'error', 'not_yours');
+  end if;
+
+  -- Theirs, but we cannot tell how close the pickup is, so we cannot tell
+  -- whether handing it back is scheduling or a no-show. Said plainly
+  -- instead of guessed at.
+  if v_when is null then
+    return json_build_object('ok', false, 'error', 'no_time');
   end if;
 
   -- Two hours. Past that, another driver has to be found and briefed,

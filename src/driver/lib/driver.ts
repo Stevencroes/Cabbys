@@ -502,6 +502,11 @@ const RELEASE_REASONS: Record<string, string> = {
     "It's too close to the pickup to hand back here. Message Cabby's — somebody has to be found and briefed, and that's a phone call.",
   already_started: "This job is already running, so it can't be handed back.",
   not_yours: "This job isn't yours any more.",
+  // v8. This case used to arrive as not_yours — a flat lie to a driver
+  // looking at the job on their own roster. A ride with no pickup time is
+  // one we cannot measure the handback window against.
+  no_time:
+    "This job has no pickup time on it, so we can't tell how close it is. Message Cabby's and we'll sort it.",
 };
 
 export async function releaseRide(rideId: string, reason: string): Promise<StatusResult> {
