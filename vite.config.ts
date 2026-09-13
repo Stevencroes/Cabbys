@@ -24,7 +24,37 @@ function buildId(): string {
   return sha ? sha.slice(0, 7) : "local";
 }
 
+/**
+ * Where this build believes it lives.
+ *
+ * index.html carries four absolute URLs — the canonical link, og:url and
+ * two image URLs — and they are absolute because they have to be: a
+ * crawler resolving og:image itself is a preview nobody can rely on, and
+ * WhatsApp link previews are how half this island shares anything.
+ *
+ * They were hard-coded to cabbys.aw with a TODO asking whoever ships the
+ * site to remember. Nobody remembers. Now it is one variable, set on the
+ * host, and the fallback is the value that was already there — so a build
+ * with nothing set behaves exactly as it did before.
+ *
+ * Set VITE_SITE_URL in Vercel to the real domain the day it is bought,
+ * with no trailing slash.
+ */
+function siteUrl(): string {
+  return (process.env.VITE_SITE_URL || "https://cabbys.aw").replace(/\/+$/, "");
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: "cabbys-site-url",
+      // NOT %SITE_URL%, which is what this was first written as: Vite's
+      // own build-html plugin runs decodeURI over every href and src, and
+      // "%SI" is not a valid percent-escape, so the build died with "URI
+      // malformed" before this transform was ever reached.
+      transformIndexHtml: (html: string) => html.split("__SITE_URL__").join(siteUrl()),
+    },
+  ],
   define: { __BUILD_ID__: JSON.stringify(buildId()) },
 });
