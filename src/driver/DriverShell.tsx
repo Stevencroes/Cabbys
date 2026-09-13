@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  isImminent, loadAssigned, setOnline,
+  identifiable, isImminent, loadAssigned, setOnline,
   type AssignedJob, type DriverProfile, type OpenJob,
 } from "./lib/driver";
 import { jobDateShort, jobTime, shortPlace, statusChip } from "./JobCard";
@@ -156,6 +156,22 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
       )}
 
       <div className="drv-screen">{children}</div>
+
+      {/* An unfilled car is the fault the whole stamp chain was built to
+          fix, reproduced one driver at a time: claim_ride writes what the
+          drivers row holds, and if it holds nothing the guest is back to
+          watching an empty kerb. Said here rather than left to be
+          discovered by somebody standing outside arrivals — and it yields
+          to a job in flight, which is always the more urgent thing. */}
+      {!live && !bare && !identifiable(driver) && (
+        <button type="button" className="drv-nocar" onClick={() => navigate("/drive/profile")}>
+          <span className="ck">Your guests can't spot you</span>
+          <span className="cv">
+            No car on record, so your bookings show no plate to look for. Add it —
+            it takes a minute.
+          </span>
+        </button>
+      )}
 
       {/* A job in flight, from anywhere in the portal. Not shown on the
           ride screen itself, which IS the job. */}

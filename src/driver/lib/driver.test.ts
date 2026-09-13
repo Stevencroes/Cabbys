@@ -44,7 +44,8 @@ vi.mock("../../lib/supabase", () => {
 
 import {
   loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline,
-  saveDriverPhone, releaseRide, canRelease, isImminent, IMMINENT_MINUTES,
+  saveDriverPhone, releaseRide, canRelease, vehicleLabel, identifiable,
+  isImminent, IMMINENT_MINUTES, type DriverProfile,
 } from "./driver";
 
 beforeEach(() => {
@@ -256,6 +257,41 @@ describe("driver data layer", () => {
       rpcResult = { ok: false, error: "too_late" };
       const res = await releaseRide("r1", "x");
       expect(res).toEqual({ ok: false, detail: expect.stringMatching(/message cabby's/i) });
+    });
+  });
+
+  // What a guest reads at a kerb, and whether there is anything to read.
+  describe("the car a guest looks for", () => {
+    const d = (over: Partial<DriverProfile> = {}): DriverProfile => ({
+      id: "d1", fullName: "Ana Croes", email: null, phone: null,
+      vehicle: null, plate: "A-42871",
+      make: "Mercedes", model: "V-Class", colour: "Black", year: 2023,
+      seats: 7, bags: 6, photoUrl: null,
+      status: "approved", rating: null, tripsCount: 0, isOnline: false, ...over,
+    });
+
+    // Colour first: somebody scanning a kerb sees a colour before a badge.
+    it("leads with the colour", () => {
+      expect(vehicleLabel(d())).toBe("Black Mercedes V-Class");
+    });
+
+    // Nobody loses what they already had: rows that predate the
+    // structured columns have one free-text line and it still answers.
+    it("falls back to the single line an older row has", () => {
+      expect(vehicleLabel(d({ make: null, model: null, colour: null, vehicle: "Toyota Hiace" })))
+        .toBe("Toyota Hiace");
+      expect(vehicleLabel(d({ make: null, model: null, colour: null, vehicle: null }))).toBe("");
+    });
+
+    // claim_ride writes what the drivers row holds. If it holds nothing,
+    // the guest is back to watching an empty kerb — so the portal has to
+    // know the difference before anybody is standing there.
+    it("knows when there is nothing for a guest to look for", () => {
+      expect(identifiable(d())).toBe(true);
+      expect(identifiable(d({ plate: null }))).toBe(false);
+      expect(identifiable(d({ plate: "   " }))).toBe(false);
+      expect(identifiable(d({ make: null, model: null, colour: null, vehicle: null }))).toBe(false);
+      expect(identifiable(d({ fullName: "" }))).toBe(false);
     });
   });
 

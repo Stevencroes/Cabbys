@@ -496,6 +496,24 @@ export function vehicleLabel(d: Pick<DriverProfile, "colour" | "make" | "model" 
   return built || d.vehicle || "";
 }
 
+/**
+ * Can a guest identify this driver at a kerb?
+ *
+ * The whole stamp chain — claim_ride writing the car onto the ride, My
+ * Trips reading it back — does nothing at all for a driver who has not
+ * said what they drive. An unfilled profile reproduces exactly the fault
+ * the chain was built to fix, silently, one driver at a time. So this is
+ * asked out loud in the portal rather than left to be discovered by a
+ * guest standing outside arrivals.
+ *
+ * A plate and something to call the car. A name too, because "your
+ * driver" beside a plate is worse than a name beside a plate and the
+ * drivers row may have neither first_name nor full_name.
+ */
+export function identifiable(d: DriverProfile): boolean {
+  return Boolean(d.plate?.trim()) && Boolean(vehicleLabel(d)) && Boolean(d.fullName.trim());
+}
+
 export interface VehicleDetails {
   make: string;
   model: string;

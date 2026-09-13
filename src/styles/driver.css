@@ -930,6 +930,20 @@
 .drv-car .car-acts .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
 .drv-car .car-note{margin:14px 0 0;font-size:11.5px;line-height:1.55;color:var(--muted);font-weight:400;}
 
+
+/* No car on record. Sits where the live-ride bar sits and yields to it,
+   because a job in flight always outranks a thing to go and fix. Not
+   dismissable: it is true until it is not, and dismissing it would hide
+   the one fact a guest at a kerb depends on. */
+.drv-nocar{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  z-index:85;display:flex;flex-direction:column;gap:3px;max-width:528px;margin:0 auto;
+  padding:12px 15px;text-align:left;cursor:pointer;
+  background:var(--surface);border:1px solid var(--alert-line);border-radius:var(--d-r-md);
+  box-shadow:var(--shadow-hard);animation:drvfade .3s var(--ease);}
+.drv-nocar .ck{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--alert-ink);}
+.drv-nocar .cv{font-size:12.5px;line-height:1.5;color:var(--ink);font-weight:400;}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;

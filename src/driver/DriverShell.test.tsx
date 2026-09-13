@@ -25,9 +25,16 @@ vi.mock("./lib/chime", () => ({ primeAudio: () => {}, chime: () => Promise.resol
 
 import DriverShell from "./DriverShell";
 
+const carless = (over: Record<string, unknown> = {}) =>
+  ({ ...driver, plate: null, vehicle: null, make: null, model: null, colour: null, ...over });
+
 const driver = {
-  id: "d1", fullName: "Steven Croes", email: "ana@example.com", phone: null, vehicle: null, plate: null, make: null, model: null, colour: null, year: null,
-    seats: null, bags: null, photoUrl: null,
+  id: "d1", fullName: "Steven Croes", email: "ana@example.com", phone: null,
+  // a car on record, which is the ordinary case — carless() below is the
+  // exception, and it is the exception the shell has to speak up about
+  vehicle: null, plate: "A-42871",
+  make: "Mercedes", model: "V-Class", colour: "Black", year: 2023,
+  seats: 7, bags: 6, photoUrl: null,
   status: "approved" as const, rating: 4.9, tripsCount: 12, isOnline: false,
 };
 
@@ -85,6 +92,37 @@ describe("The driver shell", () => {
     const bar = await screen.findByRole("button", { name: /on my way/i });
     fireEvent.click(bar);
     expect(navigate).toHaveBeenCalledWith("/drive/ride/r9");
+  });
+
+  // claim_ride writes what the drivers row holds, and if it holds nothing
+  // the guest is back to watching an empty kerb — the exact fault the
+  // stamp chain was built to fix, reproduced one driver at a time.
+  it("tells a driver with no car on record that guests can't spot them", async () => {
+    render(
+      <MemoryRouter>
+        <DriverShell driver={carless()}><p>screen</p></DriverShell>
+      </MemoryRouter>,
+    );
+    const nag = await screen.findByRole("button", { name: /can't spot you/i });
+    fireEvent.click(nag);
+    expect(navigate).toHaveBeenCalledWith("/drive/profile");
+  });
+
+  it("says nothing to a driver whose car is on record", async () => {
+    renderShell();
+    await waitFor(() => expect(screen.queryByText(/can't spot you/i)).toBeNull());
+  });
+
+  // A job in flight always outranks a thing to go and fix.
+  it("yields to a running job", async () => {
+    state.assigned = [job("en_route")];
+    render(
+      <MemoryRouter>
+        <DriverShell driver={carless()}><p>screen</p></DriverShell>
+      </MemoryRouter>,
+    );
+    await screen.findByRole("button", { name: /on my way/i });
+    expect(screen.queryByText(/can't spot you/i)).toBeNull();
   });
 
   it("says nothing when the next job is still hours off", async () => {
