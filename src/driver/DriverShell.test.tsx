@@ -113,6 +113,31 @@ describe("The driver shell", () => {
     await waitFor(() => expect(screen.queryByText(/can't spot you/i)).toBeNull());
   });
 
+  // v8. The band said "no car on record" whichever of the four was
+  // missing. A driver with a colour, a plate and a photo on file was sent
+  // to a profile screen showing a complete car and told to add one — the
+  // thing actually absent was their name, which no screen could set.
+  it("names the piece that is actually missing", async () => {
+    render(
+      <MemoryRouter>
+        <DriverShell driver={{ ...driver, fullName: "" }}><p>screen</p></DriverShell>
+      </MemoryRouter>,
+    );
+    const nag = await screen.findByRole("button", { name: /can't spot you/i });
+    expect(nag).toHaveTextContent(/missing your name/i);
+    expect(nag).not.toHaveTextContent(/your car/i);
+  });
+
+  it("lists every missing piece in one sentence", async () => {
+    render(
+      <MemoryRouter>
+        <DriverShell driver={carless({ fullName: "" })}><p>screen</p></DriverShell>
+      </MemoryRouter>,
+    );
+    const nag = await screen.findByRole("button", { name: /can't spot you/i });
+    expect(nag).toHaveTextContent(/your name, your car, your plate and a photo of yourself/i);
+  });
+
   // A job in flight always outranks a thing to go and fix.
   it("yields to a running job", async () => {
     state.assigned = [job("en_route")];

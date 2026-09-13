@@ -278,6 +278,36 @@ export async function saveDriverPhone(phone: string): Promise<StatusResult> {
   return { ok: true };
 }
 
+/**
+ * The driver's own name.
+ *
+ * v8 — identifiable() has required a name since the stamp chain was
+ * built, and nothing in the portal could ever set one. A driver whose
+ * drivers row has a blank full_name could fill in colour, make, model,
+ * plate and photo, watch the car save, and still be told "your guests
+ * can't spot you" with no control anywhere to fix it — a dead end, and
+ * the screen gave no hint which of the four pieces was missing.
+ *
+ * It matters beyond the nag: claim_ride stamps rides.driver_name from
+ * this column, so a blank one puts a guest at arrivals looking for a
+ * plate with nobody's name against it.
+ *
+ * Written straight, like the phone: the "drivers: update own" policy
+ * admits an update to their own row and blocks only a change to
+ * `status`. Trimmed, because " " would satisfy the column and fail
+ * every reader of it.
+ */
+export async function saveDriverName(name: string): Promise<StatusResult> {
+  const clean = name.trim();
+  if (!clean) return { ok: false, detail: "Tell us your name — it goes on the booking your guest is holding." };
+  const { data: session } = await supabase.auth.getSession();
+  const uid = session.session?.user?.id;
+  if (!uid) return { ok: false, detail: "You're not signed in any more." };
+  const { error } = await supabase.from("drivers").update({ full_name: clean }).eq("user_id", uid);
+  if (error) return { ok: false, detail: error.message || "The change didn't save." };
+  return { ok: true };
+}
+
 /** Today's assigned work, soonest first. */
 export interface JobList {
   jobs: AssignedJob[];
@@ -531,10 +561,28 @@ export function vehicleLabel(d: Pick<DriverProfile, "colour" | "make" | "model" 
  * whether to get in with the person holding the door.
  */
 export function identifiable(d: DriverProfile): boolean {
-  return Boolean(d.plate?.trim())
-    && Boolean(vehicleLabel(d))
-    && Boolean(d.fullName.trim())
-    && Boolean(d.photoUrl?.trim());
+  return missingIdentity(d).length === 0;
+}
+
+/**
+ * Which of the four is missing, in the words the driver has to act on.
+ *
+ * v8 — identifiable() answered yes or no, and the band it fed said "no
+ * car on record" whichever piece was absent. A driver with a photo, a
+ * colour and a plate on file was told to add a car; the thing actually
+ * missing was their name, which no screen offered to set. Naming the gap
+ * is the difference between a nag and an instruction.
+ *
+ * Ordered the way the profile screen is, so "add your name and your
+ * plate" reads top to bottom against the form.
+ */
+export function missingIdentity(d: DriverProfile): string[] {
+  const gaps: string[] = [];
+  if (!d.fullName.trim()) gaps.push("your name");
+  if (!vehicleLabel(d)) gaps.push("your car");
+  if (!d.plate?.trim()) gaps.push("your plate");
+  if (!d.photoUrl?.trim()) gaps.push("a photo of yourself");
+  return gaps;
 }
 
 export interface VehicleDetails {

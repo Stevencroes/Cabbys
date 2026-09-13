@@ -1,18 +1,21 @@
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const state: { save: unknown; car: unknown; photo: unknown } = {
+const state: { save: unknown; car: unknown; photo: unknown; name: unknown } = {
   save: { ok: true },
   car: { ok: true },
   photo: { ok: true, url: "https://cdn.example/face.jpg" },
+  name: { ok: true },
 };
 const saved: string[] = [];
+const names: string[] = [];
 const cars: unknown[] = [];
 const signOut = vi.fn();
 
 vi.mock("../lib/driver", async (orig) => ({
   ...(await orig<typeof import("../lib/driver")>()),
   saveDriverPhone: (phone: string) => { saved.push(phone); return Promise.resolve(state.save); },
+  saveDriverName: (name: string) => { names.push(name); return Promise.resolve(state.name); },
   saveVehicle: (v: unknown) => { cars.push(v); return Promise.resolve(state.car); },
   uploadDriverPhoto: () => Promise.resolve(state.photo),
 }));
@@ -35,7 +38,9 @@ beforeEach(() => {
   state.save = { ok: true };
   state.car = { ok: true };
   state.photo = { ok: true, url: "https://cdn.example/face.jpg" };
+  state.name = { ok: true };
   saved.length = 0;
+  names.length = 0;
   cars.length = 0;
   signOut.mockClear();
 });
@@ -172,5 +177,41 @@ describe("Profile", () => {
     fireEvent.click(screen.getByRole("button", { name: /sign out/i }));
     fireEvent.click(screen.getAllByRole("button", { name: /^sign out$/i }).pop()!);
     expect(signOut).toHaveBeenCalled();
+  });
+
+  // v8. identifiable() has required a name since the stamp chain was
+  // built and no screen could set one, so a driver whose row had a blank
+  // full_name was told their guests couldn't spot them and handed a form
+  // with no field for the thing that was missing.
+  it("lets a driver without a name put one on record", async () => {
+    const onSaved = vi.fn();
+    const nameless = { ...driver, fullName: "" };
+    render(<Profile driver={nameless} onSaved={onSaved} />);
+
+    const row = within(document.querySelectorAll(".drv-r")[0] as HTMLElement);
+    fireEvent.click(row.getByRole("button", { name: /add/i }));
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "  Steven Croes  " } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]);
+
+    // trimmed, because " " satisfies the column and fails every reader
+    await waitFor(() => expect(names).toEqual(["  Steven Croes  "]));
+    // and the shell is holding the row from before the save
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Steven Croes"));
+  });
+
+  it("says so when the name doesn't save", async () => {
+    state.name = { ok: false, detail: "The change didn't save." };
+    render(<Profile driver={{ ...driver, fullName: "" }} />);
+
+    const row = within(document.querySelectorAll(".drv-r")[0] as HTMLElement);
+    fireEvent.click(row.getByRole("button", { name: /add/i }));
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "Steven" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]);
+
+    expect(await screen.findByText(/the change didn't save/i)).toBeInTheDocument();
+    // still open, so the typing is not lost
+    expect(screen.getByLabelText(/name/i)).toHaveValue("Steven");
   });
 });

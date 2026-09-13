@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  identifiable, isImminent, loadAssigned, setOnline,
+  isImminent, loadAssigned, missingIdentity, setOnline,
   type AssignedJob, type DriverProfile, type OpenJob,
 } from "./lib/driver";
 import { jobDateShort, jobTime, shortPlace, statusChip } from "./JobCard";
@@ -44,6 +44,12 @@ interface ShellProps {
 /** The statuses that mean a job is happening right now, not later. */
 const RUNNING = new Set(["en_route", "arrived", "in_progress"]);
 
+/** "your name and your plate", not "your name, your plate". */
+function listGaps(gaps: string[]): string {
+  if (gaps.length <= 1) return gaps[0] ?? "";
+  return `${gaps.slice(0, -1).join(", ")} and ${gaps[gaps.length - 1]}`;
+}
+
 export default function DriverShell({ driver, children, bare }: ShellProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -54,6 +60,7 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
   /** the job the driver is in the middle of, if there is one */
   const [live, setLive] = useState<AssignedJob | null>(null);
   const offers = useRideOffers(online);
+  const gaps = missingIdentity(driver);
 
   /**
    * A job in flight outranks whatever screen is open.
@@ -163,12 +170,12 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
           watching an empty kerb. Said here rather than left to be
           discovered by somebody standing outside arrivals — and it yields
           to a job in flight, which is always the more urgent thing. */}
-      {!live && !bare && !identifiable(driver) && (
+      {!live && !bare && gaps.length > 0 && (
         <button type="button" className="drv-nocar" onClick={() => navigate("/drive/profile")}>
           <span className="ck">Your guests can't spot you</span>
           <span className="cv">
-            No car on record, so your bookings show no plate to look for. Add it —
-            it takes a minute.
+            Your bookings are missing {listGaps(gaps)}, so there's nothing for a
+            guest to look for. Add {gaps.length === 1 ? "it" : "them"} — it takes a minute.
           </span>
         </button>
       )}

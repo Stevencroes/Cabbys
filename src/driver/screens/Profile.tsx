@@ -35,7 +35,7 @@
 import { useRef, useState } from "react";
 import { useAuth } from "../../booking/useAuth";
 import {
-  saveDriverPhone, saveVehicle, uploadDriverPhoto, vehicleLabel,
+  saveDriverName, saveDriverPhone, saveVehicle, uploadDriverPhoto, vehicleLabel,
   type DriverProfile,
 } from "../lib/driver";
 import { isValidPhone, normalizePhone } from "../../lib/contact";
@@ -52,6 +52,14 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
   const { signOut } = useAuth();
   const [phone, setPhone] = useState(driver.phone ?? "");
   const [draft, setDraft] = useState<string | null>(null);
+  // v8. The name was printed as a heading and nowhere else — read-only by
+  // omission rather than by decision, and identifiable() has required one
+  // all along. A driver with a blank full_name was told their guests
+  // couldn't spot them and given no field to fix it with.
+  const [name, setName] = useState(driver.fullName ?? "");
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [nameBusy, setNameBusy] = useState(false);
+  const [nameProblem, setNameProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -83,6 +91,19 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
     if (!res.ok) { setCarProblem(res.detail); return; }
     setPhoto(res.url);
     setCarSaved(false);
+  }
+
+  async function saveName() {
+    setNameBusy(true);
+    setNameProblem(null);
+    const res = await saveDriverName(nameDraft ?? "");
+    setNameBusy(false);
+    if (!res.ok) { setNameProblem(res.detail); return; }
+    setName((nameDraft ?? "").trim());
+    setNameDraft(null);
+    // the shell is holding the row from before this save, and it is the
+    // thing counting what a guest still cannot see
+    onSaved?.();
   }
 
   const num = (v: string) => {
@@ -144,7 +165,7 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
     <div className="drv-view">
       <div className="drv-pad">
         <div className="kick">Profile</div>
-        <h1 className="big">{driver.fullName || "Driver"}</h1>
+        <h1 className="big">{name || "Driver"}</h1>
         <p className="sub" style={{ marginTop: 8 }}>
           {driver.rating != null ? `${driver.rating.toFixed(1)} ★ · ` : ""}
           {driver.tripsCount} trip{driver.tripsCount === 1 ? "" : "s"} completed
@@ -155,6 +176,48 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
         </div>
 
         <div className="drv-rowset" style={{ marginTop: 22 }}>
+          {nameDraft === null ? (
+            <div className="drv-r">
+              <span className="rl">Name</span>
+              <span className="rv">
+                {name || "—"}
+                <button
+                  type="button"
+                  className="drv-inline"
+                  onClick={() => { setNameDraft(name); setNameProblem(null); }}
+                >
+                  {name ? "Change" : "Add"}
+                </button>
+              </span>
+            </div>
+          ) : (
+            <div className="drv-r edit">
+              <label className="rl" htmlFor="drv-name">Name</label>
+              <input
+                id="drv-name"
+                type="text"
+                value={nameDraft}
+                autoFocus
+                autoComplete="name"
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder="The name your guests should ask for"
+              />
+              <span className="acts">
+                <button type="button" className="drv-inline" onClick={() => setNameDraft(null)} disabled={nameBusy}>
+                  Cancel
+                </button>
+                <button type="button" className="drv-inline go" onClick={() => void saveName()} disabled={nameBusy}>
+                  {nameBusy ? "…" : "Save"}
+                </button>
+              </span>
+            </div>
+          )}
+          {nameProblem && (
+            <div className="drv-refused" role="alert" style={{ marginTop: 12, marginBottom: 0 }}>
+              <div className="rk">Couldn't save your name</div>
+              <p>{nameProblem}</p>
+            </div>
+          )}
           {draft === null ? (
             <div className="drv-r">
               <span className="rl">Phone</span>
