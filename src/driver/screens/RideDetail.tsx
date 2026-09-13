@@ -110,6 +110,32 @@ function noteLines(notes: string | null): string[] {
   return (notes ?? "").split(" · ").map((part) => part.trim()).filter(Boolean);
 }
 
+/** How release_ride() marks its own additions to the same column. */
+const HANDBACK = "Returned to pool:";
+
+/**
+ * Two writers, one column, and only one of them is the guest.
+ *
+ * release_ride() appends its reason to rides.notes, which is the same
+ * column Step3Details wrote the booking into — so the next driver to
+ * claim a handed-back ride was reading the LAST driver's excuse under a
+ * heading that said "What the guest told us". Attributing "Car won't
+ * start" to a guest is worse than not showing it.
+ *
+ * Split rather than suppressed, because the reason is worth reading: a
+ * job handed back because nobody was at the address is a job to arrive
+ * at differently.
+ */
+function splitNotes(notes: string | null): { guest: string[]; handbacks: string[] } {
+  const guest: string[] = [];
+  const handbacks: string[] = [];
+  for (const line of noteLines(notes)) {
+    if (line.startsWith(HANDBACK)) handbacks.push(line.slice(HANDBACK.length).trim());
+    else guest.push(line);
+  }
+  return { guest, handbacks };
+}
+
 /**
  * Where the pickup is, and how sure we are.
  *
@@ -215,8 +241,9 @@ export default function RideDetail() {
     );
   }
 
-  const step = FLOW.find((s) => s.from === ride.status);
-  const undo = UNDO[ride.status];
+  const closed = ride.status === "cancelled";
+  const step = closed ? undefined : FLOW.find((s) => s.from === ride.status);
+  const undo = closed ? undefined : UNDO[ride.status];
   const stageIndex = STAGES.findIndex((s) => s.status === ride.status);
 
   /**
@@ -267,6 +294,8 @@ export default function RideDetail() {
       ].map(([label, text]) => [label, `https://wa.me/${phone.replace(/[^\d]/g, "")}?text=${encodeURIComponent(text)}`])
     : [];
 
+  const told = splitNotes(ride.bookingNotes);
+
   const party = [
     ride.passengers != null ? `${ride.passengers} guest${ride.passengers === 1 ? "" : "s"}` : null,
     ride.luggage ? `${ride.luggage} bags` : null,
@@ -285,8 +314,18 @@ export default function RideDetail() {
         </div>
       </div>
 
+      {/* A cancelled ride reached from the roster used to render as a
+          normal job with a quiet Back button. It has to say what it is
+          before anything else on the screen does. */}
+      {closed && (
+        <div className="drv-closed" role="status">
+          <span className="ck">Cancelled</span>
+          <span className="cv">This ride was called off. Don't drive to it.</span>
+        </div>
+      )}
+
       {/* Where the job stands, not just what to press next. */}
-      <ol className="drv-rail" aria-label="Ride progress">
+      <ol className={`drv-rail${closed ? " off" : ""}`} aria-label="Ride progress">
         {STAGES.map((s, i) => (
           <li
             key={s.status}
@@ -353,11 +392,24 @@ export default function RideDetail() {
             the guest rather than above the map because it is context, not
             the landmark that closes the last 20 metres — that is the amber
             card, and it stays up there alone. */}
-        {noteLines(ride.bookingNotes).length > 0 && (
+        {told.guest.length > 0 && (
           <div className="drv-told">
             <div className="tk">What the guest told us</div>
             <ul>
-              {noteLines(ride.bookingNotes).map((line) => <li key={line}>{line}</li>)}
+              {told.guest.map((line) => <li key={line}>{line}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {/* A job that has been handed back before is a job to arrive at
+            differently — and it is emphatically not the guest talking. */}
+        {told.handbacks.length > 0 && (
+          <div className="drv-told back">
+            <div className="tk">
+              {told.handbacks.length === 1 ? "Handed back once" : `Handed back ${told.handbacks.length} times`}
+            </div>
+            <ul>
+              {told.handbacks.map((line) => <li key={line}>{line}</li>)}
             </ul>
           </div>
         )}

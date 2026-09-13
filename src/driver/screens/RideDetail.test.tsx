@@ -196,11 +196,58 @@ describe("Ride detail", () => {
     expect(document.querySelectorAll(".drv-told li")).toHaveLength(5);
   });
 
+  // release_ride() appends its reason to rides.notes — the same column
+  // the booking was written into — so the next driver to claim a handed
+  // back ride was reading the LAST driver's excuse under a heading that
+  // said "What the guest told us". Attributing "Car won't start" to a
+  // guest is worse than not showing it at all.
+  it("does not put a previous driver's words in the guest's mouth", async () => {
+    state.ride = ride({
+      bookingNotes: "Flight departs 9:15 AM AST · Returned to pool: Car won't start",
+    });
+    renderDetail();
+
+    const guest = (await screen.findByText(/what the guest told us/i)).closest(".drv-told")!;
+    expect(guest.textContent).toContain("Flight departs 9:15 AM AST");
+    expect(guest.textContent).not.toContain("Car won't start");
+
+    // shown, not suppressed: a job handed back once is a job to arrive at
+    // differently, and the reason is worth reading
+    const back = screen.getByText(/handed back once/i).closest(".drv-told")!;
+    expect(back.textContent).toContain("Car won't start");
+    expect(back).toHaveClass("back");
+  });
+
+  it("counts the handbacks when a job has bounced more than once", async () => {
+    state.ride = ride({
+      bookingNotes: "Returned to pool: Car won't start · Returned to pool: Nobody at the address",
+    });
+    renderDetail();
+    expect(await screen.findByText(/handed back 2 times/i)).toBeInTheDocument();
+    // and with nothing left, the guest's block does not draw an empty card
+    expect(screen.queryByText(/what the guest told us/i)).toBeNull();
+  });
+
   it("says nothing at all when the booking said nothing", async () => {
     state.ride = ride({ bookingNotes: null });
     renderDetail();
     await screen.findByText("Steven Croes");
     expect(document.querySelector(".drv-told")).toBeNull();
+  });
+
+  // A cancelled ride is reachable from the roster now, and it used to
+  // render as a normal job with a quiet Back button — every control still
+  // there, nothing saying it had been called off.
+  it("says a called-off ride is called off, before anything else", async () => {
+    state.ride = ride({ status: "cancelled" });
+    renderDetail();
+    expect(await screen.findByText(/this ride was called off/i)).toBeInTheDocument();
+    // and offers none of the walk: no step, no undo, no handback
+    expect(screen.queryByRole("button", { name: /i'm on my way/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /undo/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /can't do this job/i })).toBeNull();
+    // the top bar and the action bar both offer the way out
+    expect(screen.getAllByRole("button", { name: /back to the schedule/i }).length).toBeGreaterThan(0);
   });
 
   // §6/§8 — the driver must not be left to interpret an address. This is

@@ -64,8 +64,14 @@ export default function DriverGuard({ children }: GateProps) {
     if (!live.current) return;
     if (error) { setState({ phase: "unreachable", user, detail: error }); return; }
     if (!driver) { setState({ phase: "no-driver", user }); return; }
-    if (driver.status !== "approved") { setState({ phase: "blocked", driver, user }); return; }
-    setState({ phase: "ready", driver });
+    // The address a driver signs in with lives in auth, not in the
+    // drivers row — the gate is the only place that holds both, so it is
+    // the only place that can put them together. Profile shows it so a
+    // driver asking support "which account am I?" has the answer where
+    // they are already looking.
+    const withEmail = { ...driver, email: user.email ?? driver.email };
+    if (driver.status !== "approved") { setState({ phase: "blocked", driver: withEmail, user }); return; }
+    setState({ phase: "ready", driver: withEmail });
   }, []);
 
   /** the same read, with a word that it is happening */

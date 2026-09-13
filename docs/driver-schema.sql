@@ -197,17 +197,32 @@ begin
   -- Each stamp is written once and never overwritten: coalesce keeps the
   -- FIRST arrival, so a driver stepping back with the undo and forward
   -- again does not quietly move the time they got there.
+  -- v6 — a terminal ride stays terminal. This matched on ownership alone,
+  -- so a driver holding a screen that was opened before a guest cancelled
+  -- could tap "I'm on my way" and resurrect the ride: status back to
+  -- en_route, with a passenger who had already been refunded. The portal
+  -- will not offer that button, but the portal is not the authority.
   update public.rides
      set status       = p_status,
          arrived_at   = case when p_status = 'arrived'     then coalesce(arrived_at, now())   else arrived_at   end,
          started_at   = case when p_status = 'in_progress' then coalesce(started_at, now())   else started_at   end,
          completed_at = case when p_status = 'completed'   then now()                          else completed_at end
    where id = p_ride_id
-     and driver_id = auth.uid();
+     and driver_id = auth.uid()
+     and status not in ('cancelled', 'completed');
 
   get diagnostics v_updated = row_count;
 
   if v_updated = 0 then
+    -- Tell the two apart: "not yours" sends a driver to support, and
+    -- "this was called off" sends them back to the roster.
+    if exists (
+      select 1 from public.rides
+       where id = p_ride_id and driver_id = auth.uid()
+         and status in ('cancelled', 'completed')
+    ) then
+      return json_build_object('ok', false, 'error', 'ride_closed');
+    end if;
     return json_build_object('ok', false, 'error', 'not_yours');
   end if;
 

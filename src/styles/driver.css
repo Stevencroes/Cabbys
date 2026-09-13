@@ -873,6 +873,17 @@
 .drv-chart.dense .bfill{border-radius:2px 2px 0 0;}
 .drv-chart.dense .bl{font-size:8px;letter-spacing:0;}
 
+
+/* a ride that was called off, said before anything else on the screen */
+.drv-closed{display:flex;flex-direction:column;gap:4px;max-width:560px;width:100%;
+  margin:0 auto;padding:13px 20px;background:var(--alert-tint);
+  border-top:1px solid var(--alert-line);border-bottom:1px solid var(--alert-line);}
+.drv-closed .ck{font-weight:600;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--alert-ink);}
+.drv-closed .cv{font-size:13.5px;line-height:1.5;color:var(--ink);font-weight:400;}
+/* the walk is over, so it stops looking like a thing in progress */
+.drv-rail.off{opacity:.4;}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;

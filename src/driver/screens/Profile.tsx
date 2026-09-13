@@ -101,6 +101,12 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
               </span>
             </div>
           )}
+          {/* Read-only, and not for want of a form: the address is the
+              account itself, so changing it is an auth operation with a
+              confirmation mail attached, not a profile edit. It is here
+              because a driver asking support which account they are on
+              should not have to go and find out. */}
+          <div className="drv-r"><span className="rl">Email</span><span className="rv">{driver.email || "—"}</span></div>
           <div className="drv-r"><span className="rl">Vehicle</span><span className="rv">{driver.vehicle || "—"}</span></div>
           <div className="drv-r"><span className="rl">Plate</span><span className="rv">{driver.plate || "—"}</span></div>
         </div>
@@ -119,7 +125,8 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
         )}
 
         <p className="sub" style={{ fontSize: "11.5px", marginBottom: 20 }}>
-          Vehicle and plate are set by Cabby's — message us to change those.
+          Vehicle and plate are set by Cabby's — message us to change those, or to move
+          your account to a different email.
         </p>
 
         {help && (

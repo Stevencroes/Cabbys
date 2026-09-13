@@ -19,6 +19,8 @@ export type StatusResult = { ok: true } | { ok: false; detail: string };
 export interface DriverProfile {
   id: string;
   fullName: string;
+  /** the signed-in address — filled by the gate from auth, not the row */
+  email: string | null;
   phone: string | null;
   vehicle: string | null;
   plate: string | null;
@@ -192,6 +194,7 @@ export async function loadDriverById(uid: string): Promise<DriverLookup> {
     driver: {
       id: uid,
       fullName: splitName || str(r.full_name),
+      email: nStr(r.email),
       phone: nStr(r.phone),
       vehicle: nStr(r.vehicle),
       plate: nStr(r.plate),
@@ -401,6 +404,7 @@ const STATUS_REASONS: Record<string, string> = {
   not_yours: "This job isn't yours any more — it may have been reassigned.",
   not_approved: "Your account isn't approved to take jobs right now.",
   bad_status: "That step isn't allowed from where this ride is.",
+  ride_closed: "This ride has been called off. Don't drive to it.",
 };
 
 export async function setRideStatus(rideId: string, status: RideStatus): Promise<StatusResult> {

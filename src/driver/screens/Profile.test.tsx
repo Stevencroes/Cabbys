@@ -14,7 +14,7 @@ vi.mock("../../booking/useAuth", () => ({ useAuth: () => ({ signOut }) }));
 import Profile from "./Profile";
 
 const driver = {
-  id: "d1", fullName: "Steven Croes", phone: "+2975607336",
+  id: "d1", fullName: "Steven Croes", email: "ana@example.com", phone: "+2975607336",
   vehicle: "Mercedes V-Class", plate: "A-42871",
   status: "approved" as const, rating: 4.9, tripsCount: 214, isOnline: true,
 };
@@ -54,6 +54,18 @@ describe("Profile", () => {
     fireEvent.change(screen.getByLabelText(/phone/i), { target: { value: "+2975941122" } });
     fireEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(await screen.findByText(/row-level security/i)).toBeInTheDocument();
+  });
+
+  // The address lives in auth, not in the drivers row, so only the gate
+  // can put the two together. Read-only and not for want of a form: the
+  // address IS the account, so changing it is an auth operation with a
+  // confirmation mail attached.
+  it("names the account a driver is signed in on", () => {
+    render(<Profile driver={driver} />);
+    expect(screen.getByText("Email")).toBeInTheDocument();
+    expect(screen.getByText("ana@example.com")).toBeInTheDocument();
+    // one editable field on the screen, and it is not this one
+    expect(screen.getAllByRole("button", { name: /change|add/i })).toHaveLength(1);
   });
 
   // Vehicle and plate are Cabby's to set, and the database agrees.

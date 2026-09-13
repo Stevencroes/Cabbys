@@ -26,7 +26,7 @@ vi.mock("./lib/chime", () => ({ primeAudio: () => {}, chime: () => Promise.resol
 import DriverShell from "./DriverShell";
 
 const driver = {
-  id: "d1", fullName: "Steven Croes", phone: null, vehicle: null, plate: null,
+  id: "d1", fullName: "Steven Croes", email: "ana@example.com", phone: null, vehicle: null, plate: null,
   status: "approved" as const, rating: 4.9, tripsCount: 12, isOnline: false,
 };
 
