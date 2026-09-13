@@ -71,7 +71,21 @@ describe("Ride detail", () => {
   it("deep-links Maps to the guest's pin, not the place name", async () => {
     renderDetail();
     const maps = await screen.findByRole("link", { name: /navigate/i });
-    expect(maps).toHaveAttribute("href", "https://maps.google.com/?daddr=12.55,-70.05");
+    expect(maps).toHaveAttribute(
+      "href", "https://www.google.com/maps/dir/?api=1&destination=12.55%2C-70.05");
+  });
+
+  // v8. This was maps.google.com/?daddr=, Google's pre-2017 link — fine
+  // in a desktop browser and unreliable on the device the button exists
+  // for: a web redirect instead of the Maps app on iOS, and from a portal
+  // added to the home screen a blank standalone tab with no address bar.
+  // /maps/dir/?api=1 is the documented cross-platform form.
+  it("uses the URL form Google supports on a phone", async () => {
+    renderDetail();
+    const maps = await screen.findByRole("link", { name: /navigate/i });
+    const href = maps.getAttribute("href")!;
+    expect(href.startsWith("https://www.google.com/maps/dir/?api=1&destination=")).toBe(true);
+    expect(href).not.toContain("daddr");
   });
 
   // rides.pickup_lat/lng are columns nothing in this app has ever written

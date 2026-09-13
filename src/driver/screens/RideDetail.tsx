@@ -268,9 +268,21 @@ export default function RideDetail() {
   // where an area centre would send the driver to the middle of Eagle
   // Beach. An approximate point is good enough to draw and not good
   // enough to navigate by.
-  const navHref = fix?.exact
-    ? `https://maps.google.com/?daddr=${fix.at.lat},${fix.at.lon}`
-    : `https://maps.google.com/?daddr=${encodeURIComponent(target)}`;
+  //
+  // v8 — the form matters as much as the destination. This was
+  // `maps.google.com/?daddr=`, which is Google's pre-2017 link: it still
+  // resolves on a desktop browser and is unreliable on exactly the device
+  // this button is for. On iOS it lands on a web redirect rather than the
+  // Maps app, and from a portal added to the home screen it can open a
+  // blank standalone tab with no address bar to escape from — a driver
+  // holding a phone with no directions and no way back.
+  //
+  // `google.com/maps/dir/?api=1` is the documented cross-platform form:
+  // Android and iOS both hand it to the installed Maps app, and a browser
+  // gets directions. It is the one URL Google promises not to break.
+  const navHref = `https://www.google.com/maps/dir/?api=1&destination=${
+    encodeURIComponent(fix?.exact ? `${fix.at.lat},${fix.at.lon}` : target)
+  }`;
   const initial = (ride.contactName || "?").trim().charAt(0).toUpperCase();
   const phone = ride.contactPhone ? normalizePhone(ride.contactPhone) : null;
   const away = relativeWhen(ride.scheduledAt);
