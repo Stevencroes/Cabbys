@@ -217,6 +217,71 @@ $$;
 
 grant execute on function public.set_ride_status(uuid, text) to authenticated;
 
+-- ── 5b. release_ride — handing a job back ───────────────────────────
+-- The inverse of claim_ride, and the gap that made claiming feel
+-- one-way. A driver whose car will not start has to be able to give a
+-- job back, or the ride sits assigned to somebody who cannot drive it
+-- while the pool shows nothing and dispatch knows nothing.
+--
+-- Deliberately narrow. It releases only a job that has not STARTED —
+-- status still 'driver_assigned' — and only outside the window where a
+-- handback stops being scheduling and becomes a no-show. Inside that
+-- window the answer is a person, not a button, and the portal says so
+-- rather than offering a control that would be refused.
+--
+-- The ride returns to 'confirmed' with driver_id cleared, which is
+-- exactly the shape open_rides selects on, so it reappears in the pool
+-- for whoever can take it. No new status, no new column.
+drop function if exists public.release_ride(uuid, text);
+create function public.release_ride(p_ride_id uuid, p_reason text default null)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_updated integer;
+  v_when    timestamptz;
+begin
+  select coalesce(scheduled_at, (scheduled_date || ' ' || coalesce(scheduled_time, '00:00'))::timestamp at time zone 'America/Aruba')
+    into v_when
+    from public.rides
+   where id = p_ride_id and driver_id = auth.uid();
+
+  if v_when is null then
+    return json_build_object('ok', false, 'error', 'not_yours');
+  end if;
+
+  -- Two hours. Past that, another driver has to be found and briefed,
+  -- and that is a phone call rather than a row update.
+  if v_when < now() + interval '2 hours' then
+    return json_build_object('ok', false, 'error', 'too_late');
+  end if;
+
+  update public.rides
+     set driver_id   = null,
+         status      = 'confirmed',
+         assigned_at = null,
+         notes       = case
+                         when coalesce(btrim(p_reason), '') = '' then notes
+                         else coalesce(notes || ' · ', '') || 'Returned to pool: ' || btrim(p_reason)
+                       end
+   where id = p_ride_id
+     and driver_id = auth.uid()
+     and status = 'driver_assigned';
+
+  get diagnostics v_updated = row_count;
+
+  if v_updated = 0 then
+    return json_build_object('ok', false, 'error', 'already_started');
+  end if;
+
+  return json_build_object('ok', true, 'ride_id', p_ride_id);
+end;
+$$;
+
+grant execute on function public.release_ride(uuid, text) to authenticated;
+
 -- ── 6. Row-level security ───────────────────────────────────────────
 alter table public.drivers enable row level security;
 

@@ -13,6 +13,13 @@
 //  · They want to see the RIDE, not a summary of it — the guest, the
 //    fare, the commission that came off it. Every row opens.
 //
+// Two drawers, not four. The brief asks for upcoming / active / completed
+// / cancelled; the first two already have a home — upcoming IS the roster
+// and active is the bar pinned above the tabs from anywhere in the portal
+// — and rebuilding them here would be the second version of a screen this
+// portal already has. What has no other home is work that is FINISHED,
+// and that comes in two kinds: driven, and called off.
+//
 // The list is also finite and says so. It used to ask for 60 rides and
 // render them with nothing to say whether that was all of them, which for
 // a driver two months into a busy season is the difference between "I was
@@ -20,7 +27,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import RideRow from "../RideRow";
-import { loadCompleted, type AssignedJob, type DriverProfile } from "../lib/driver";
+import { loadCancelled, loadCompleted, type AssignedJob, type DriverProfile } from "../lib/driver";
 import {
   formatDate, formatTime, arubaDayOf, ARUBA_OFFSET_MINUTES, todayInAruba, addDays,
   MONTHS_LONG,
@@ -71,8 +78,11 @@ function matches(job: AssignedJob, query: string): boolean {
     .some((v) => (v ?? "").toLowerCase().includes(q));
 }
 
+type Drawer = "completed" | "cancelled";
+
 export default function History({ driver }: { driver: DriverProfile }) {
   const navigate = useNavigate();
+  const [drawer, setDrawer] = useState<Drawer>("completed");
   const [rides, setRides] = useState<AssignedJob[] | null>(null);
   const [limit, setLimit] = useState(PAGE);
   /** true while a "show more" is in flight, so the button can say so */
@@ -81,16 +91,20 @@ export default function History({ driver }: { driver: DriverProfile }) {
 
   const load = useCallback(
     async (want: number) => {
-      const { jobs } = await loadCompleted(driver.id, want);
+      const { jobs } = drawer === "completed"
+        ? await loadCompleted(driver.id, want)
+        : await loadCancelled(driver.id, want);
       return jobs;
     },
-    [driver.id],
+    [driver.id, drawer],
   );
 
   useEffect(() => {
-    let cancelled = false;
-    void load(PAGE).then((jobs) => { if (!cancelled) setRides(jobs); });
-    return () => { cancelled = true; };
+    let stale = false;
+    setRides(null);
+    setLimit(PAGE);
+    void load(PAGE).then((jobs) => { if (!stale) setRides(jobs); });
+    return () => { stale = true; };
   }, [load]);
 
   /** There may be more behind this page — ask for the next one. */
@@ -110,12 +124,12 @@ export default function History({ driver }: { driver: DriverProfile }) {
   const months = useMemo(() => {
     const m = new Map<string, AssignedJob[]>();
     for (const r of found) {
-      const key = monthOf(r.completedAt ?? r.scheduledAt);
+      const key = monthOf(drawer === "completed" ? r.completedAt ?? r.scheduledAt : r.scheduledAt);
       const band = m.get(key);
       if (band) band.push(r); else m.set(key, [r]);
     }
     return [...m.entries()];
-  }, [found]);
+  }, [found, drawer]);
 
   const total = found.reduce((s, r) => s + (r.payoutUsd ?? 0), 0);
   /** a short page means the database had nothing more to give */
@@ -125,7 +139,20 @@ export default function History({ driver }: { driver: DriverProfile }) {
     <div className="drv-view">
       <div className="drv-pad">
         <div className="kick">History</div>
-        <h1 className="big" style={{ fontSize: 30 }}>Completed.</h1>
+        <h1 className="big" style={{ fontSize: 30 }}>
+          {drawer === "completed" ? "Completed." : "Called off."}
+        </h1>
+
+        <div className="drv-seg drv-span" role="group" aria-label="Which history">
+          <button
+            type="button" className={drawer === "completed" ? "on" : ""}
+            aria-pressed={drawer === "completed"} onClick={() => setDrawer("completed")}
+          >Completed</button>
+          <button
+            type="button" className={drawer === "cancelled" ? "on" : ""}
+            aria-pressed={drawer === "cancelled"} onClick={() => setDrawer("cancelled")}
+          >Cancelled</button>
+        </div>
 
         {rides !== null && rides.length > 0 && (
           <>
@@ -136,7 +163,10 @@ export default function History({ driver }: { driver: DriverProfile }) {
                   <div className="drv-sv">{found.length}</div>
                 </div>
                 <div className="drv-scell">
-                  <div className="drv-sk">Paid for them</div>
+                  {/* A cancelled ride paid nothing, and a column headed
+                      "Paid for them" reading $0 invites the question it
+                      was supposed to answer. */}
+                  <div className="drv-sk">{drawer === "completed" ? "Paid for them" : "Would have paid"}</div>
                   <div className="drv-sv"><small>$</small>{Math.round(total).toLocaleString("en-US")}</div>
                 </div>
               </div>
@@ -161,8 +191,12 @@ export default function History({ driver }: { driver: DriverProfile }) {
           <div className="drv-empty"><p className="et">Loading your trips.</p></div>
         ) : rides.length === 0 ? (
           <div className="drv-empty">
-            <div className="es">No trips yet.</div>
-            <p className="et">Every completed job lands here with its fare, as your own record.</p>
+            <div className="es">{drawer === "completed" ? "No trips yet." : "Nothing cancelled."}</div>
+            <p className="et">
+              {drawer === "completed"
+                ? "Every completed job lands here with its fare, as your own record."
+                : "No ride of yours has been called off. They land here when one is."}
+            </p>
           </div>
         ) : found.length === 0 ? (
           // Not "no trips" — the drawer is full, this search just missed.
@@ -186,7 +220,11 @@ export default function History({ driver }: { driver: DriverProfile }) {
                     key={r.id}
                     job={r}
                     mark={(r.contactName || "·").trim().charAt(0).toUpperCase()}
-                    meta={[whenLabel(r.completedAt ?? r.scheduledAt), r.vehicle].filter(Boolean).join(" · ")}
+                    meta={[
+                      whenLabel(drawer === "completed" ? r.completedAt ?? r.scheduledAt : r.scheduledAt),
+                      r.vehicle,
+                      drawer === "cancelled" ? "Cancelled" : null,
+                    ].filter(Boolean).join(" · ")}
                     onOpen={() => navigate(`/drive/ride/${r.id}`)}
                   />
                 ))}
@@ -197,7 +235,9 @@ export default function History({ driver }: { driver: DriverProfile }) {
                 driver has to guess the end of. */}
             {exhausted ? (
               <p className="sub" style={{ marginTop: 20, fontSize: "11.5px" }}>
-                That's every trip you've completed.
+                {drawer === "completed"
+                  ? "That's every trip you've completed."
+                  : "That's every ride that was called off."}
               </p>
             ) : (
               <button

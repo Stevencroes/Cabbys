@@ -261,6 +261,35 @@ export async function loadAssigned(driverId: string): Promise<JobList> {
 }
 
 /**
+ * Work that was taken away.
+ *
+ * A ride cancelled under a driver used to leave their world without a
+ * word: loadAssigned filters it out, loadCompleted never held it, and
+ * nothing else asks. The job simply stopped being on the roster — which
+ * on the morning of a 6am airport run is indistinguishable from the
+ * roster being wrong, and a driver who trusts the roster drives to the
+ * airport for a ride that was called off the night before.
+ *
+ * Read separately rather than folded into loadAssigned, because "the
+ * work I have" and "the work I had" answer different questions: the
+ * live-ride bar, the next-job figure and the jobs-left count all mean
+ * the first, and quietly widening that query would have put a cancelled
+ * ride in every one of them.
+ */
+export async function loadCancelled(driverId: string, limit = 40): Promise<JobList> {
+  const { data, error } = await supabase
+    .from("rides")
+    .select("*")
+    .eq("driver_id", driverId)
+    .eq("status", "cancelled")
+    .order("scheduled_at", { ascending: false })
+    .limit(limit);
+  if (error) return { jobs: [], error: error.message };
+  if (!Array.isArray(data)) return { jobs: [], error: null };
+  return { jobs: (data as Row[]).map(toAssigned), error: null };
+}
+
+/**
  * Finished work, most recent first. Ordered and dated by completed_at,
  * not scheduled_at: a job booked Friday and driven Saturday belongs to
  * Saturday's money.
@@ -384,6 +413,54 @@ export async function setRideStatus(rideId: string, status: RideStatus): Promise
   if (r.ok === true) return { ok: true };
   const why = str(r.error);
   return { ok: false, detail: STATUS_REASONS[why] ?? why ?? "The update was refused." };
+}
+
+/**
+ * Hand a job back to the pool.
+ *
+ * The inverse of claimRide, and the gap that made claiming feel one-way.
+ * A driver whose car will not start has to be able to give a job back, or
+ * the ride stays assigned to somebody who cannot drive it while the pool
+ * shows nothing and dispatch knows nothing.
+ *
+ * Narrow on purpose, and the database is the one enforcing it: only a job
+ * that has not started, and only outside the two-hour window where a
+ * handback stops being scheduling and becomes a no-show. Inside it, the
+ * answer is a phone call, and the screen says so instead of offering a
+ * button that would be refused.
+ */
+const RELEASE_REASONS: Record<string, string> = {
+  too_late:
+    "It's too close to the pickup to hand back here. Message Cabby's — somebody has to be found and briefed, and that's a phone call.",
+  already_started: "This job is already running, so it can't be handed back.",
+  not_yours: "This job isn't yours any more.",
+};
+
+export async function releaseRide(rideId: string, reason: string): Promise<StatusResult> {
+  const { data, error } = await supabase.rpc("release_ride", {
+    p_ride_id: rideId,
+    p_reason: reason,
+  });
+  if (error) return { ok: false, detail: error.message || "The handback didn't reach the server." };
+  const r = (data ?? {}) as Row;
+  if (r.ok === true) return { ok: true };
+  const why = str(r.error);
+  return { ok: false, detail: RELEASE_REASONS[why] ?? why ?? "The handback was refused." };
+}
+
+/**
+ * Is a handback even on the table for this job?
+ *
+ * Mirrors what release_ride() will allow, so the portal never shows a
+ * control the database is going to refuse. The server is still the
+ * authority — this only decides whether to offer it.
+ */
+export const RELEASE_MINUTES = 120;
+
+export function canRelease(job: Pick<AssignedJob, "status" | "scheduledAt">, now = Date.now()): boolean {
+  if (job.status !== "driver_assigned") return false;
+  const mins = minutesUntilPickup(job, now);
+  return mins != null && mins > RELEASE_MINUTES;
 }
 
 /** One ride the driver already holds. */

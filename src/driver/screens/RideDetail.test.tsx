@@ -2,18 +2,25 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-const state: { ride: unknown; status: unknown } = {
+const state: { ride: unknown; status: unknown; release: unknown } = {
   ride: null,
   status: { ok: true },
+  release: { ok: true },
 };
 const statusCalls: [string, string][] = [];
+const released: [string, string][] = [];
 const navigate = vi.fn();
 
-vi.mock("../lib/driver", () => ({
+vi.mock("../lib/driver", async (orig) => ({
+  ...(await orig<typeof import("../lib/driver")>()),
   loadRide: () => Promise.resolve(state.ride),
   setRideStatus: (id: string, s: string) => {
     statusCalls.push([id, s]);
     return Promise.resolve(state.status);
+  },
+  releaseRide: (id: string, why: string) => {
+    released.push([id, why]);
+    return Promise.resolve(state.release);
   },
 }));
 vi.mock("react-router-dom", async (orig) => ({
@@ -41,7 +48,9 @@ const renderDetail = () => render(<MemoryRouter><RideDetail /></MemoryRouter>);
 beforeEach(() => {
   state.ride = ride();
   state.status = { ok: true };
+  state.release = { ok: true };
   statusCalls.length = 0;
+  released.length = 0;
   navigate.mockClear();
 });
 
@@ -234,6 +243,39 @@ describe("Ride detail", () => {
     renderDetail();
     expect(await screen.findByText("You arrived")).toBeInTheDocument();
     expect(screen.getByText("2:31 PM")).toBeInTheDocument();
+  });
+
+  // Claiming was one-way: a driver whose car wouldn't start held a job
+  // nobody else could see, while the pool showed nothing and dispatch
+  // knew nothing.
+  it("can hand a job back, with a reason dispatch can read", async () => {
+    state.ride = ride({ scheduledAt: new Date(Date.now() + 6 * 3600_000).toISOString() });
+    renderDetail();
+    fireEvent.click(await screen.findByRole("button", { name: /can't do this job/i }));
+    fireEvent.change(screen.getByLabelText(/why you can't do it/i), {
+      target: { value: "Car won't start" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /hand it back/i }));
+    await waitFor(() => expect(released).toEqual([["r1", "Car won't start"]]));
+    expect(navigate).toHaveBeenCalledWith("/drive/pool");
+  });
+
+  // Inside the two-hour window a handback stops being scheduling and
+  // becomes a no-show — that needs a person, so the button is not there
+  // to be refused.
+  it("does not offer a handback the database would refuse", async () => {
+    state.ride = ride({ scheduledAt: new Date(Date.now() + 30 * 60_000).toISOString() });
+    renderDetail();
+    await screen.findByText("Steven Croes");
+    expect(screen.queryByRole("button", { name: /can't do this job/i })).toBeNull();
+  });
+
+  it("won't hand back on a blank reason", async () => {
+    state.ride = ride({ scheduledAt: new Date(Date.now() + 6 * 3600_000).toISOString() });
+    renderDetail();
+    fireEvent.click(await screen.findByRole("button", { name: /can't do this job/i }));
+    expect(screen.getByRole("button", { name: /hand it back/i })).toBeDisabled();
+    expect(released).toEqual([]);
   });
 
   // The money rows are the other half of the pool's fix: the driver's

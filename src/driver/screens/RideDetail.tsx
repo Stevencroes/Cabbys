@@ -46,7 +46,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { jobDate, jobTime, relativeWhen, shortPlace } from "../JobCard";
-import { loadRide, setRideStatus, type AssignedJob, type RideStatus } from "../lib/driver";
+import {
+  canRelease, loadRide, releaseRide, setRideStatus,
+  type AssignedJob, type RideStatus,
+} from "../lib/driver";
 import { awgToUsd, COMMISSION_RATE } from "../../lib/quote";
 import { coordOf, islandPath, pinMapUrl, project, type Coord } from "../../lib/route";
 import { buildLine, googleMapsEnabled, lastMapFailure, onMapFailure, reportGoogleMapsFailure } from "../../lib/googleMaps";
@@ -143,6 +146,8 @@ export default function RideDetail() {
   const [problem, setProblem] = useState<string | null>(null);
   /** completing is the one step with nothing behind it — it asks first */
   const [confirming, setConfirming] = useState(false);
+  /** handing the job back: null when closed, else the reason being typed */
+  const [handback, setHandback] = useState<string | null>(null);
 
   /**
    * Claiming and opening are one gesture, and the read can beat the write
@@ -161,6 +166,18 @@ export default function RideDetail() {
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
+
+  const giveBack = useCallback(
+    async (reason: string) => {
+      setBusy(true);
+      setProblem(null);
+      const res = await releaseRide(id, reason);
+      setBusy(false);
+      if (!res.ok) { setProblem(res.detail); return; }
+      navigate("/drive/pool");
+    },
+    [id, navigate],
+  );
 
   const move = useCallback(
     async (to: RideStatus, leaveAfter: boolean) => {
@@ -390,6 +407,48 @@ export default function RideDetail() {
             </span>
           </div>
         </div>
+
+        {/* Claiming was one-way until now: a driver whose car won't start
+            held a job nobody else could see. Offered only where the
+            database will actually allow it, so the portal never shows a
+            control that is going to be refused. */}
+        {canRelease(ride) && (
+          handback === null ? (
+            <button type="button" className="drv-handback" onClick={() => setHandback("")}>
+              Can't do this job?
+            </button>
+          ) : (
+            <div className="drv-give">
+              <div className="gk">Hand this job back</div>
+              <p>
+                It returns to the pool for another driver. Tell us why, so dispatch isn't
+                guessing.
+              </p>
+              <label className="sr-only" htmlFor="giveback">Why you can't do it</label>
+              <input
+                id="giveback"
+                type="text"
+                value={handback}
+                autoFocus
+                placeholder="Car won't start"
+                onChange={(e) => setHandback(e.target.value)}
+              />
+              <div className="row">
+                <button type="button" className="drv-cta ghost" onClick={() => setHandback(null)} disabled={busy}>
+                  Keep it
+                </button>
+                <button
+                  type="button"
+                  className="drv-cta red"
+                  onClick={() => void giveBack(handback)}
+                  disabled={busy || handback.trim().length < 3}
+                >
+                  {busy ? "…" : "Hand it back"}
+                </button>
+              </div>
+            </div>
+          )
+        )}
 
         {/* Always reachable, and never mistakable for the ride's own
             action: Cabby's is who you call when the job itself goes

@@ -44,7 +44,7 @@ vi.mock("../../lib/supabase", () => {
 
 import {
   loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline,
-  saveDriverPhone, isImminent, IMMINENT_MINUTES,
+  saveDriverPhone, releaseRide, canRelease, isImminent, IMMINENT_MINUTES,
 } from "./driver";
 
 beforeEach(() => {
@@ -218,6 +218,44 @@ describe("driver data layer", () => {
     updateError = { message: "new row violates row-level security policy" };
     expect(await saveDriverPhone("+2975607336")).toEqual({
       ok: false, detail: "new row violates row-level security policy",
+    });
+  });
+
+  // The inverse of claimRide. Narrow on purpose, and the database is the
+  // authority: this only decides whether to OFFER the control, so the
+  // portal never shows a button that is going to be refused.
+  describe("handing a job back", () => {
+    const job = (over: Record<string, unknown> = {}) => ({
+      status: "driver_assigned",
+      scheduledAt: new Date(Date.now() + 6 * 3600_000).toISOString(),
+      ...over,
+    });
+
+    it("offers it on a job that hasn't started and isn't imminent", () => {
+      expect(canRelease(job())).toBe(true);
+    });
+
+    // Inside two hours a handback stops being scheduling and becomes a
+    // no-show: another driver has to be found and briefed, which is a
+    // phone call rather than a row update.
+    it("does not offer it close to the pickup", () => {
+      expect(canRelease(job({ scheduledAt: new Date(Date.now() + 30 * 60_000).toISOString() }))).toBe(false);
+    });
+
+    it("does not offer it once the job is running", () => {
+      expect(canRelease(job({ status: "en_route" }))).toBe(false);
+      expect(canRelease(job({ status: "arrived" }))).toBe(false);
+    });
+
+    it("sends the reason through, so dispatch isn't guessing", async () => {
+      expect(await releaseRide("r1", "Car won't start")).toEqual({ ok: true });
+      expect(calls.rpc[0]).toEqual(["release_ride", { p_ride_id: "r1", p_reason: "Car won't start" }]);
+    });
+
+    it("turns the database's refusal into something a driver can act on", async () => {
+      rpcResult = { ok: false, error: "too_late" };
+      const res = await releaseRide("r1", "x");
+      expect(res).toEqual({ ok: false, detail: expect.stringMatching(/message cabby's/i) });
     });
   });
 

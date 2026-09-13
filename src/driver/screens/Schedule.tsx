@@ -27,7 +27,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import JobCard, { jobTime, minutesUntil, statusChip, type ChipTone } from "../JobCard";
 import WeekBar from "../WeekBar";
 import {
-  loadAssigned, loadCompleted,
+  loadAssigned, loadCancelled, loadCompleted, minutesUntilPickup,
   type AssignedJob, type DriverProfile,
 } from "../lib/driver";
 import {
@@ -146,17 +146,21 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
   // loadAssigned excludes completed rides, and that's where the money is —
   // a week's total has to come from the completed query or it reads $0
   const [done, setDone] = useState<AssignedJob[]>([]);
+  // work that was taken away — on the roster, not silently absent from it
+  const [gone, setGone] = useState<AssignedJob[]>([]);
 
   const refresh = useCallback(async () => {
-    const [assigned, completed] = await Promise.all([
+    const [assigned, completed, cancelled] = await Promise.all([
       loadAssigned(driver.id),
       // 120 covers roughly two months of a busy driver's completed work,
       // which is as far back as the ‹ arrow is worth walking
       loadCompleted(driver.id, 120),
+      loadCancelled(driver.id),
     ]);
     setFailed(assigned.error);
     setJobs(assigned.jobs);
     setDone(completed.jobs);
+    setGone(cancelled.jobs);
   }, [driver.id]);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -189,7 +193,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
    */
   const byDay = useMemo(() => {
     const m = new Map<string, AssignedJob[]>();
-    for (const j of [...(jobs ?? []), ...done]) {
+    for (const j of [...(jobs ?? []), ...done, ...gone]) {
       const d = arubaDayOf(j.scheduledAt) || arubaDayOf(j.completedAt);
       if (!d) continue;
       const list = m.get(d);
@@ -199,7 +203,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
       list.sort((a, b) => String(a.scheduledAt ?? "").localeCompare(String(b.scheduledAt ?? "")));
     }
     return m;
-  }, [jobs, done]);
+  }, [jobs, done, gone]);
 
   /** what was actually earned on a day — completed work only */
   const paidOn = useCallback(
@@ -211,7 +215,10 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
   );
 
   const jobsOn = (d: string) => byDay.get(d) ?? [];
-  const weekJobs = days.reduce((n, d) => n + jobsOn(d).length, 0);
+  /** what a day still ASKS of a driver — a cancelled ride is on the
+      roster to be seen, not to be counted as work */
+  const liveOn = (d: string) => jobsOn(d).filter((j) => j.status !== "cancelled");
+  const weekJobs = days.reduce((n, d) => n + liveOn(d).length, 0);
   const weekPaid = days.reduce((s, d) => s + paidOn(d), 0);
   const leftToday = jobsOn(today).filter((j) => j.status !== "completed" && j.status !== "cancelled").length;
 
@@ -225,6 +232,21 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
   );
   const next = upcoming[0] ?? null;
 
+  /**
+   * Cancellations a driver has not driven past yet.
+   *
+   * The ones behind them are history and sit quietly on the roster. The
+   * ones ahead are the whole point: a 6am airport run called off last
+   * night is the single most expensive thing this screen can fail to
+   * mention.
+   */
+  const calledOff = useMemo(
+    () => gone
+      .filter((j) => (minutesUntilPickup(j) ?? -1) > 0)
+      .sort((a, b) => String(a.scheduledAt ?? "").localeCompare(String(b.scheduledAt ?? ""))),
+    [gone],
+  );
+
   const firstName = (driver.fullName || "Driver").split(" ")[0];
   const thisWeek = weekStart(today);
   const onThisWeek = days[0] === thisWeek;
@@ -232,6 +254,8 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
   const openRide = (id: string) => navigate(`/drive/ride/${id}`);
 
   function chipFor(job: AssignedJob): { tone: ChipTone; label: string } {
+    // statusChip already knows "cancelled" is an alert — the roster's own
+    // Next/Overdue reasoning only ever applied to work still standing.
     if (job.status !== "driver_assigned") return statusChip(job.status);
     const mins = minutesUntil(job.scheduledAt);
     if (mins != null && mins < 0) return { tone: "alert", label: "Overdue" };
@@ -246,6 +270,20 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
       <div className="drv-pad">
         <div className="kick">{weekdayLong(today)} {dayOfMonth(today)} · Aruba</div>
         <h1 className="big">{greeting(arubaHourNow())}<br /><em>{firstName}.</em></h1>
+
+        {calledOff.length > 0 && (
+          <div className="drv-called" role="alert">
+            <div className="ck">{calledOff.length === 1 ? "A ride was cancelled" : `${calledOff.length} rides were cancelled`}</div>
+            <ul>
+              {calledOff.slice(0, 3).map((j) => (
+                <li key={j.id}>
+                  {dayName(arubaDayOf(j.scheduledAt), today)} {jobTime(j.scheduledAt)} · {j.pickup} → {j.dropoff}
+                </li>
+              ))}
+            </ul>
+            <p>Don't drive to {calledOff.length === 1 ? "it" : "them"}. They stay on the roster below, marked cancelled.</p>
+          </div>
+        )}
 
         <div className="drv-stats">
           <div className="drv-srow">
@@ -279,7 +317,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
 
         <div className="drv-week" role="group" aria-label="Days of the week">
           {days.map((d) => {
-            const n = jobsOn(d).length;
+            const n = liveOn(d).length;
             const selected = view === "day" && d === cursor;
             const cls = [
               "wday",
@@ -333,7 +371,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
                 <div className="dd">{daySub(cursor, today)}</div>
               </div>
               <div className="dp">
-                <span className="dk">{jobsOn(cursor).length} job{jobsOn(cursor).length === 1 ? "" : "s"}</span>
+                <span className="dk">{liveOn(cursor).length} job{liveOn(cursor).length === 1 ? "" : "s"}</span>
                 {paidOn(cursor) > 0 && <span className="dv">${Math.round(paidOn(cursor))}</span>}
               </div>
             </div>

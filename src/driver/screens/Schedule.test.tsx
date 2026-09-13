@@ -3,14 +3,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { todayInAruba, weekDays, weekdayLong, addDays, arubaInstant } from "../../lib/datetime";
 
-const state: { assigned: unknown[]; completed: unknown[]; error: string | null } =
-  { assigned: [], completed: [], error: null };
+const state: { assigned: unknown[]; completed: unknown[]; cancelled: unknown[]; error: string | null } =
+  { assigned: [], completed: [], cancelled: [], error: null };
 const navigate = vi.fn();
 
 vi.mock("../lib/driver", async (orig) => ({
   ...(await orig<typeof import("../lib/driver")>()),
   loadAssigned: () => Promise.resolve({ jobs: state.assigned, error: state.error }),
   loadCompleted: () => Promise.resolve({ jobs: state.completed, error: null }),
+  loadCancelled: () => Promise.resolve({ jobs: state.cancelled, error: null }),
 }));
 vi.mock("react-router-dom", async (orig) => ({
   ...(await orig<typeof import("react-router-dom")>()),
@@ -39,6 +40,7 @@ const renderSchedule = () => render(<MemoryRouter><Schedule driver={driver} /></
 beforeEach(() => {
   state.assigned = [];
   state.completed = [];
+  state.cancelled = [];
   state.error = null;
   navigate.mockClear();
 });
@@ -110,6 +112,38 @@ describe("The weekly roster", () => {
     const strip = await screen.findByRole("group", { name: /days of the week/i });
     fireEvent.click(strip.querySelectorAll("button")[3]);
     expect(await screen.findByText(/the day is clear|nothing was driven/i)).toBeInTheDocument();
+  });
+
+  // A ride cancelled under a driver used to leave their world without a
+  // word — loadAssigned filtered it out and nothing else asked. On the
+  // morning of a 6am airport run that is indistinguishable from the
+  // roster being wrong, and a driver who trusts the roster drives to the
+  // airport for a ride called off the night before.
+  it("says out loud when a ride still ahead has been cancelled", async () => {
+    state.cancelled = [
+      { ...job("x", week[5], "06:00", "Queen Beatrix International Airport"), status: "cancelled",
+        scheduledAt: new Date(Date.now() + 2 * 86_400_000).toISOString() },
+    ];
+    renderSchedule();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/a ride was cancelled/i);
+    expect(screen.getByText(/don't drive to it/i)).toBeInTheDocument();
+  });
+
+  // Behind them it is history, not an alarm — but it still has to be on
+  // the roster rather than absent from it, or the day reads as a gap
+  // nobody can explain.
+  it("keeps a cancelled ride on the day, and out of the day's count", async () => {
+    state.assigned = [job("a", week[2], "08:00", "Queen Beatrix International Airport")];
+    state.cancelled = [
+      { ...job("b", week[2], "14:30", "Bucuti & Tara Beach Resort"), status: "cancelled" },
+    ];
+    renderSchedule();
+    expect(await screen.findByText("Bucuti & Tara Beach Resort")).toBeInTheDocument();
+    expect(screen.getAllByText(/cancelled/i).length).toBeGreaterThan(0);
+
+    const strip = screen.getByRole("group", { name: /days of the week/i });
+    // one job that day, not two: a cancelled ride is shown, never counted
+    expect(strip.querySelectorAll("button")[2].getAttribute("aria-label")).toMatch(/1 job$/);
   });
 
   it("does not call an unreadable schedule an empty one", async () => {
