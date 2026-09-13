@@ -38,7 +38,13 @@ import { whatsappLink } from "../lib/whatsapp";
 import "../styles/driver.css";
 
 interface GateProps {
-  children: (driver: DriverProfile) => ReactNode;
+  /**
+   * `reload` re-reads the drivers row. Profile needs it: saving a car
+   * updates the database but not the copy the shell is holding, so the
+   * "your guests can't spot you" band would sit there over a driver who
+   * had just fixed exactly that, until they reloaded the page.
+   */
+  children: (driver: DriverProfile, reload: () => void) => ReactNode;
 }
 
 type State =
@@ -94,7 +100,7 @@ export default function DriverGuard({ children }: GateProps) {
     };
   }, [refresh]);
 
-  if (state.phase === "ready") return <>{children(state.driver)}</>;
+  if (state.phase === "ready") return <>{children(state.driver, refresh)}</>;
 
   // The hold. Short, but it is the first thing a driver sees on every cold
   // open, and it was an unstyled grey line on a black screen.

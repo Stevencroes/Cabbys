@@ -26,7 +26,7 @@ vi.mock("./lib/chime", () => ({ primeAudio: () => {}, chime: () => Promise.resol
 import DriverShell from "./DriverShell";
 
 const carless = (over: Record<string, unknown> = {}) =>
-  ({ ...driver, plate: null, vehicle: null, make: null, model: null, colour: null, ...over });
+  ({ ...driver, plate: null, vehicle: null, make: null, model: null, colour: null, photoUrl: null, ...over });
 
 const driver = {
   id: "d1", fullName: "Steven Croes", email: "ana@example.com", phone: null,
@@ -34,7 +34,7 @@ const driver = {
   // exception, and it is the exception the shell has to speak up about
   vehicle: null, plate: "A-42871",
   make: "Mercedes", model: "V-Class", colour: "Black", year: 2023,
-  seats: 7, bags: 6, photoUrl: null,
+  seats: 7, bags: 6, photoUrl: "https://cdn.example/face.jpg",
   status: "approved" as const, rating: 4.9, tripsCount: 12, isOnline: false,
 };
 

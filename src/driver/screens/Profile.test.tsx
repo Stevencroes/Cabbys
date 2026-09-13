@@ -23,7 +23,7 @@ import Profile from "./Profile";
 const driver = {
   id: "d1", fullName: "Steven Croes", email: "ana@example.com", phone: "+2975607336",
   vehicle: "Mercedes V-Class", plate: "A-42871", make: null, model: null, colour: null, year: null,
-    seats: null, bags: null, photoUrl: null,
+    seats: null, bags: null, photoUrl: "https://cdn.example/face.jpg",
   status: "approved" as const, rating: 4.9, tripsCount: 214, isOnline: true,
 };
 
@@ -99,8 +99,12 @@ describe("Profile", () => {
   // The colour leads, because somebody scanning a kerb outside arrivals
   // sees a colour before they see a badge.
   it("saves the car a guest will be scanning for", async () => {
-    render(<Profile driver={{ ...driver, vehicle: null, plate: null }} />);
+    render(<Profile driver={{ ...driver, vehicle: null, plate: null, photoUrl: null }} />);
     fireEvent.click(carEdit());
+    fireEvent.change(document.querySelector<HTMLInputElement>("input[type=file]")!, {
+      target: { files: [new File(["x"], "face.jpg", { type: "image/jpeg" })] },
+    });
+    await screen.findByRole("button", { name: /change your photo/i });
     fireEvent.change(screen.getByLabelText("Colour"), { target: { value: "Black" } });
     fireEvent.change(screen.getByLabelText("Make"), { target: { value: "Mercedes" } });
     fireEvent.change(screen.getByLabelText("Model"), { target: { value: "V-Class" } });
@@ -116,12 +120,22 @@ describe("Profile", () => {
     expect(await screen.findByText(/guests will be looking for black mercedes v-class/i)).toBeInTheDocument();
   });
 
-  // A plate is the one thing a guest can check from across a car park.
+  // Both, and named separately, because "fill in the car" is not an
+  // instruction anybody can act on. The plate identifies the car; the
+  // photo identifies the person holding the door.
   it("won't save a car with no plate", async () => {
     render(<Profile driver={{ ...driver, plate: null }} />);
     fireEvent.click(carEdit());
     fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/plate is the one thing/i);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/add your plate/i);
+    expect(cars).toEqual([]);
+  });
+
+  it("won't save a car with no photo of the driver", async () => {
+    render(<Profile driver={{ ...driver, photoUrl: null }} />);
+    fireEvent.click(carEdit());
+    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/add a photo of yourself/i);
     expect(cars).toEqual([]);
   });
 
@@ -131,6 +145,17 @@ describe("Profile", () => {
     fireEvent.click(carEdit());
     fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
     expect(await screen.findByText(/can't find a driver record/i)).toBeInTheDocument();
+  });
+
+  // The shell holds a copy of the drivers row from before the save, and
+  // it is the thing showing "your guests can't spot you" — so without
+  // this, a driver who had just fixed exactly that kept being told to.
+  it("tells the portal to re-read the row after a save", async () => {
+    const onSaved = vi.fn();
+    render(<Profile driver={driver} onSaved={onSaved} />);
+    fireEvent.click(carEdit());
+    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
 
   // One tap from a tab bar used all shift, and the way back in is a

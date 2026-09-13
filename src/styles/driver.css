@@ -909,6 +909,9 @@
   background:var(--raised);border:1px solid var(--silver-deep);border-radius:var(--d-r-sm);
   padding:4px 9px;font-variant-numeric:tabular-nums;}
 
+/* the half that is missing, said where the guest's view is drawn */
+.drv-car .cw{display:inline-block;margin-left:8px;font-weight:600;font-size:9px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--alert-ink);}
 .drv-car .car-spec{display:flex;gap:26px;margin:14px 0 0;}
 .drv-car .car-spec dt{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--muted);font-weight:600;margin:0;}

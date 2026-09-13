@@ -41,7 +41,14 @@ import {
 import { isValidPhone, normalizePhone } from "../../lib/contact";
 import { whatsappLink } from "../../lib/whatsapp";
 
-export default function Profile({ driver }: { driver: DriverProfile }) {
+interface ProfileProps {
+  driver: DriverProfile;
+  /** re-read the drivers row, so the shell stops nagging about a car
+      that has just been put on record */
+  onSaved?: () => void;
+}
+
+export default function Profile({ driver, onSaved }: ProfileProps) {
   const { signOut } = useAuth();
   const [phone, setPhone] = useState(driver.phone ?? "");
   const [draft, setDraft] = useState<string | null>(null);
@@ -84,8 +91,16 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
   };
 
   async function saveCar() {
+    // Both, and named separately, because "fill in the car" is not an
+    // instruction anybody can act on. The plate identifies the CAR; the
+    // photo is how a guest decides whether to get in with the person
+    // holding the door. One without the other still leaves them guessing.
     if (!car.plate.trim()) {
-      setCarProblem("The plate is the one thing a guest can check from across a car park.");
+      setCarProblem("Add your plate — it's the one thing a guest can check from across a car park.");
+      return;
+    }
+    if (!photo) {
+      setCarProblem("Add a photo of yourself. Your guests are looking for a person as well as a car.");
       return;
     }
     setCarBusy(true);
@@ -100,6 +115,9 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
     if (!res.ok) { setCarProblem(res.detail); return; }
     setEditingCar(false);
     setCarSaved(true);
+    // the shell is holding a copy of the drivers row from before this
+    // save, and it is the thing showing "your guests can't spot you"
+    onSaved?.();
   }
 
   const help = whatsappLink(
@@ -200,6 +218,7 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
             <span className="car-id">
               <span className="cn">{shown || "No car on record"}</span>
               <span className="cp">{car.plate || "No plate"}</span>
+              {!photo && <span className="cw">No photo yet</span>}
             </span>
           </div>
 
@@ -237,8 +256,13 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
                 className="sr-only"
                 onChange={(e) => void choosePhoto(e.target.files?.[0])}
               />
-              <button type="button" className="drv-cta ghost car-photo" onClick={() => pick.current?.click()} disabled={carBusy}>
-                {photo ? "Change your photo" : "Add your photo"}
+              <button
+                type="button"
+                className={`drv-cta ${photo ? "ghost" : "green"} car-photo`}
+                onClick={() => pick.current?.click()}
+                disabled={carBusy}
+              >
+                {carBusy ? "…" : photo ? "Change your photo" : "Add your photo"}
               </button>
 
               <div className="car-acts">
@@ -272,9 +296,10 @@ export default function Profile({ driver }: { driver: DriverProfile }) {
           )}
 
           <p className="car-note">
-            This is what your guests see in their booking, and what they look for at the kerb.
-            It's stamped onto every ride you take — change it here and your upcoming rides
-            change with it.
+            Your photo and your plate are both needed: the plate identifies the car, and the
+            photo identifies you. This is what your guests see in their booking and what they
+            look for at the kerb — it's stamped onto every ride you take, so changing it here
+            changes your upcoming rides too.
           </p>
         </div>
 

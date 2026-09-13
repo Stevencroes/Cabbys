@@ -266,7 +266,7 @@ describe("driver data layer", () => {
       id: "d1", fullName: "Ana Croes", email: null, phone: null,
       vehicle: null, plate: "A-42871",
       make: "Mercedes", model: "V-Class", colour: "Black", year: 2023,
-      seats: 7, bags: 6, photoUrl: null,
+      seats: 7, bags: 6, photoUrl: "https://cdn.example/face.jpg",
       status: "approved", rating: null, tripsCount: 0, isOnline: false, ...over,
     });
 
@@ -286,12 +286,17 @@ describe("driver data layer", () => {
     // claim_ride writes what the drivers row holds. If it holds nothing,
     // the guest is back to watching an empty kerb — so the portal has to
     // know the difference before anybody is standing there.
+    // All four, because each answers a different question a guest asks at
+    // a kerb: who is this, what am I looking for, is that the right car,
+    // and is that the right person.
     it("knows when there is nothing for a guest to look for", () => {
       expect(identifiable(d())).toBe(true);
       expect(identifiable(d({ plate: null }))).toBe(false);
       expect(identifiable(d({ plate: "   " }))).toBe(false);
       expect(identifiable(d({ make: null, model: null, colour: null, vehicle: null }))).toBe(false);
       expect(identifiable(d({ fullName: "" }))).toBe(false);
+      // a plate identifies the car; the face identifies the person
+      expect(identifiable(d({ photoUrl: null }))).toBe(false);
     });
   });
 

@@ -506,12 +506,17 @@ export function vehicleLabel(d: Pick<DriverProfile, "colour" | "make" | "model" 
  * asked out loud in the portal rather than left to be discovered by a
  * guest standing outside arrivals.
  *
- * A plate and something to call the car. A name too, because "your
+ * All four: a name, a car, a plate and a face. A name too, because "your
  * driver" beside a plate is worse than a name beside a plate and the
- * drivers row may have neither first_name nor full_name.
+ * drivers row may have neither first_name nor full_name — and a face,
+ * because a plate identifies the CAR and a guest is also deciding
+ * whether to get in with the person holding the door.
  */
 export function identifiable(d: DriverProfile): boolean {
-  return Boolean(d.plate?.trim()) && Boolean(vehicleLabel(d)) && Boolean(d.fullName.trim());
+  return Boolean(d.plate?.trim())
+    && Boolean(vehicleLabel(d))
+    && Boolean(d.fullName.trim())
+    && Boolean(d.photoUrl?.trim());
 }
 
 export interface VehicleDetails {

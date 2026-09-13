@@ -26,7 +26,7 @@ export default function DriverPortal() {
 
   return (
     <DriverGuard>
-      {(driver) => (
+      {(driver, reload) => (
         <DriverShell driver={driver} bare={bare}>
           <Routes>
             <Route index element={<Schedule driver={driver} />} />
@@ -34,7 +34,7 @@ export default function DriverPortal() {
             <Route path="ride/:id" element={<RideDetail />} />
             <Route path="earnings" element={<Earnings driver={driver} />} />
             <Route path="history" element={<History driver={driver} />} />
-            <Route path="profile" element={<Profile driver={driver} />} />
+            <Route path="profile" element={<Profile driver={driver} onSaved={reload} />} />
             <Route path="*" element={<Navigate to="/drive" replace />} />
           </Routes>
         </DriverShell>
