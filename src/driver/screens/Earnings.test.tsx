@@ -14,7 +14,8 @@ import { driverPayoutUsd, usdToAwg } from "../../lib/quote";
 import { todayInAruba } from "../../lib/datetime";
 
 const driver = {
-  id: "d1", fullName: "Ana Croes", email: "ana@example.com", phone: null, vehicle: null, plate: null,
+  id: "d1", fullName: "Ana Croes", email: "ana@example.com", phone: null, vehicle: null, plate: null, make: null, model: null, colour: null, year: null,
+    seats: null, bags: null, photoUrl: null,
   status: "approved", isOnline: true, rating: 4.9, tripsCount: 210,
 } as unknown as import("../lib/driver").DriverProfile;
 

@@ -22,7 +22,8 @@ vi.mock("react-router-dom", async (orig) => ({
 import History from "./History";
 
 const driver = {
-  id: "d1", fullName: "Ana Croes", email: "ana@example.com", phone: null, vehicle: null, plate: null,
+  id: "d1", fullName: "Ana Croes", email: "ana@example.com", phone: null, vehicle: null, plate: null, make: null, model: null, colour: null, year: null,
+    seats: null, bags: null, photoUrl: null,
   status: "approved" as const, rating: 4.9, tripsCount: 210, isOnline: false,
 };
 

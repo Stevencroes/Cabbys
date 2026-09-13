@@ -22,8 +22,17 @@ export interface DriverProfile {
   /** the signed-in address — filled by the gate from auth, not the row */
   email: string | null;
   phone: string | null;
+  /** the single free-text line older rows have, kept as a fallback */
   vehicle: string | null;
   plate: string | null;
+  make: string | null;
+  model: string | null;
+  colour: string | null;
+  year: number | null;
+  /** capacity of the car, not the party on any one ride */
+  seats: number | null;
+  bags: number | null;
+  photoUrl: string | null;
   status: DriverStatus;
   rating: number | null;
   tripsCount: number;
@@ -198,6 +207,13 @@ export async function loadDriverById(uid: string): Promise<DriverLookup> {
       phone: nStr(r.phone),
       vehicle: nStr(r.vehicle),
       plate: nStr(r.plate),
+      make: nStr(r.vehicle_make),
+      model: nStr(r.vehicle_model),
+      colour: nStr(r.vehicle_colour),
+      year: nNum(r.vehicle_year),
+      seats: nNum(r.seats),
+      bags: nNum(r.bags),
+      photoUrl: nStr(r.photo_url),
       status: (status === "approved" || status === "suspended" ? status : "pending") as DriverStatus,
       rating: nNum(r.rating),
       tripsCount: nNum(r.trips_count) ?? 0,
@@ -465,6 +481,98 @@ export function canRelease(job: Pick<AssignedJob, "status" | "scheduledAt">, now
   if (job.status !== "driver_assigned") return false;
   const mins = minutesUntilPickup(job, now);
   return mins != null && mins > RELEASE_MINUTES;
+}
+
+/**
+ * The car, in the words a guest identifies it by.
+ *
+ * Colour first, because somebody scanning a kerb outside arrivals sees a
+ * colour before they see a badge. Falls back to the single free-text
+ * `vehicle` line for a driver whose row predates the structured fields,
+ * so nobody loses what they already had.
+ */
+export function vehicleLabel(d: Pick<DriverProfile, "colour" | "make" | "model" | "vehicle">): string {
+  const built = [d.colour, d.make, d.model].filter(Boolean).join(" ").trim();
+  return built || d.vehicle || "";
+}
+
+export interface VehicleDetails {
+  make: string;
+  model: string;
+  colour: string;
+  year: number | null;
+  plate: string;
+  seats: number | null;
+  bags: number | null;
+  /** a newly uploaded photo's public URL, or null to keep the stored one */
+  photoUrl?: string | null;
+}
+
+/**
+ * Save the car — and re-stamp every ride of theirs that has not happened.
+ *
+ * The stamp on a ride is what a guest reads, and it is denormalised on
+ * purpose: a passenger cannot read the drivers table at all, and the
+ * stamp is the honest record of who drove on the day. The cost is that a
+ * driver who changes cars on Tuesday leaves Monday's stamp on
+ * Wednesday's booking, so the database updates both in one call. Rides
+ * already driven keep the car that drove them.
+ */
+export async function saveVehicle(v: VehicleDetails): Promise<StatusResult> {
+  const { data, error } = await supabase.rpc("save_driver_vehicle", {
+    p_make: v.make,
+    p_model: v.model,
+    p_colour: v.colour,
+    p_year: v.year,
+    p_plate: v.plate,
+    p_seats: v.seats,
+    p_bags: v.bags,
+    p_photo: v.photoUrl ?? null,
+  });
+  if (error) return { ok: false, detail: error.message || "The car didn't save." };
+  const r = (data ?? {}) as Row;
+  if (r.ok === true) return { ok: true };
+  return {
+    ok: false,
+    detail: str(r.error) === "no_driver"
+      ? "We can't find a driver record for this account."
+      : str(r.error) || "The car wasn't saved.",
+  };
+}
+
+/** What a photo may be, so a driver learns the limit before the upload. */
+export const PHOTO_MAX_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Put a driver's face in the public bucket and hand back its URL.
+ *
+ * Named by their auth uid, which is what the storage policy keys on — a
+ * driver can only ever overwrite their own. `upsert` because the second
+ * photo has to replace the first rather than pile up beside it.
+ */
+export async function uploadDriverPhoto(file: File): Promise<
+  { ok: true; url: string } | { ok: false; detail: string }
+> {
+  if (!file.type.startsWith("image/")) {
+    return { ok: false, detail: "That isn't an image — a photo from your phone's camera roll works." };
+  }
+  if (file.size > PHOTO_MAX_BYTES) {
+    return { ok: false, detail: "That photo is over 4MB. Most phones can send a smaller copy." };
+  }
+  const { data: session } = await supabase.auth.getSession();
+  const uid = session.session?.user?.id;
+  if (!uid) return { ok: false, detail: "You're not signed in any more." };
+
+  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${uid}/face.${ext}`;
+  const { error } = await supabase.storage
+    .from("driver-photos")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return { ok: false, detail: error.message || "The photo didn't upload." };
+
+  const { data } = supabase.storage.from("driver-photos").getPublicUrl(path);
+  // a cache-buster, or the browser keeps showing the face they replaced
+  return { ok: true, url: `${data.publicUrl}?v=${Date.now()}` };
 }
 
 /** One ride the driver already holds. */

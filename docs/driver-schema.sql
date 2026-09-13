@@ -48,6 +48,25 @@ alter table public.drivers add column if not exists is_online   boolean not null
 
 create unique index if not exists drivers_user_id_key on public.drivers (user_id);
 
+-- ── 1b. The car, in the words a guest identifies it by ──────────────
+-- v7. `vehicle` is one free-text line and stays — older rows have only
+-- that, and loadDriverById still falls back to it. But "Mercedes
+-- V-Class" is not what somebody standing outside arrivals is scanning
+-- for: they are looking for a COLOUR first, then a shape, then a plate.
+-- So the parts are stored as parts and composed for display.
+--
+-- seats and bags are capacity, not the party on any one ride. They are
+-- here because dispatch has nowhere else to keep them, and because a
+-- driver who has changed to a bigger car should be able to say so.
+alter table public.drivers add column if not exists vehicle_make   text;
+alter table public.drivers add column if not exists vehicle_model  text;
+alter table public.drivers add column if not exists vehicle_colour text;
+alter table public.drivers add column if not exists vehicle_year   integer;
+alter table public.drivers add column if not exists seats          integer;
+alter table public.drivers add column if not exists bags           integer;
+-- a face, so the guest knows who is walking towards them
+alter table public.drivers add column if not exists photo_url      text;
+
 -- ── 2. Ride columns the portal needs ────────────────────────────────
 -- References auth.users directly, not public.drivers — rides.driver_id
 -- is set to auth.uid() by claim_ride() below, and auth.uid() matches
@@ -65,6 +84,19 @@ alter table public.rides add column if not exists completed_at timestamptz;
 -- them. set_ride_status() writes them, once each, below.
 alter table public.rides add column if not exists arrived_at   timestamptz;
 alter table public.rides add column if not exists started_at   timestamptz;
+-- v7 — the driver's photo, alongside driver_name / driver_phone /
+-- driver_vehicle / driver_plate, which docs/schema.sql has created since
+-- the beginning and which NOTHING HAS EVER WRITTEN. My Trips renders
+-- them behind `{ride.driver_name && …}`, so the block silently drew
+-- nothing and a guest at arrivals had no idea what car to look for.
+-- claim_ride() stamps all five below.
+--
+-- Denormalised onto the ride on purpose, and not a join: "drivers: read
+-- own" means a passenger cannot read the drivers table at all, and the
+-- stamp is also the honest historical record of who drove a ride on the
+-- day, which a live join would quietly rewrite every time a driver
+-- changed cars.
+alter table public.rides add column if not exists driver_photo text;
 
 create index if not exists rides_driver_id_idx on public.rides (driver_id);
 create index if not exists rides_status_idx    on public.rides (status);
@@ -146,6 +178,11 @@ as $$
 declare
   v_driver_status text;
   v_updated       integer;
+  v_name          text;
+  v_phone         text;
+  v_vehicle       text;
+  v_plate         text;
+  v_photo         text;
 begin
   select status into v_driver_status from public.drivers where user_id = auth.uid();
 
@@ -153,12 +190,36 @@ begin
     return json_build_object('ok', false, 'error', 'not_approved');
   end if;
 
+  -- v7 — stamp the car onto the ride while we are here.
+  --
+  -- driver_name / driver_phone / driver_vehicle / driver_plate have been
+  -- on `rides` since docs/schema.sql and were never written by anything,
+  -- so My Trips drew an empty space where the driver should be and a
+  -- guest at arrivals had nothing to look for. The colour leads, because
+  -- that is what somebody scanning a kerb sees first.
+  select
+      nullif(btrim(coalesce(d.first_name || ' ', '') || coalesce(d.last_name, '')), ''),
+      d.phone,
+      nullif(btrim(concat_ws(' ', d.vehicle_colour, d.vehicle_make, d.vehicle_model)), ''),
+      d.plate,
+      d.photo_url
+    into v_name, v_phone, v_vehicle, v_plate, v_photo
+    from public.drivers d
+   where d.user_id = auth.uid();
+
   -- the where clause is the lock: only an unclaimed ride matches, so two
   -- drivers tapping at once cannot both win
   update public.rides
-     set driver_id   = auth.uid(),
-         status      = 'driver_assigned',
-         assigned_at = now()
+     set driver_id      = auth.uid(),
+         status         = 'driver_assigned',
+         assigned_at    = now(),
+         driver_name    = coalesce(v_name, driver_name),
+         driver_phone   = coalesce(v_phone, driver_phone),
+         -- the one-line `vehicle` column is the fallback for a driver
+         -- whose car predates the structured fields
+         driver_vehicle = coalesce(v_vehicle, (select vehicle from public.drivers where user_id = auth.uid()), driver_vehicle),
+         driver_plate   = coalesce(v_plate, driver_plate),
+         driver_photo   = v_photo
    where id = p_ride_id
      and driver_id is null
      and status in ('confirmed', 'pending');
@@ -273,10 +334,18 @@ begin
     return json_build_object('ok', false, 'error', 'too_late');
   end if;
 
+  -- and the stamp comes off with it: a released ride that still showed
+  -- the old driver's name and plate would have a guest watching for a car
+  -- that is not coming.
   update public.rides
-     set driver_id   = null,
-         status      = 'confirmed',
-         assigned_at = null,
+     set driver_id      = null,
+         status         = 'confirmed',
+         assigned_at    = null,
+         driver_name    = null,
+         driver_phone   = null,
+         driver_vehicle = null,
+         driver_plate   = null,
+         driver_photo   = null,
          notes       = case
                          when coalesce(btrim(p_reason), '') = '' then notes
                          else coalesce(notes || ' · ', '') || 'Returned to pool: ' || btrim(p_reason)
@@ -296,6 +365,108 @@ end;
 $$;
 
 grant execute on function public.release_ride(uuid, text) to authenticated;
+
+-- ── 5c. save_driver_vehicle — the car, and the rides already stamped ─
+-- v7. Denormalising the car onto each ride is right — a passenger cannot
+-- read the drivers table, and the stamp is the historical record of who
+-- actually drove — but it means a driver who changes cars on Tuesday has
+-- Monday's stamp sitting on Wednesday's booking. A guest would stand at
+-- arrivals watching for the wrong car.
+--
+-- So the write does both: the profile, and every ride of theirs still
+-- ahead. Rides already driven keep the car that drove them, which is the
+-- whole point of a stamp.
+--
+-- A function rather than a policy for the same reason set_pickup_pin is:
+-- RLS has no column list, and an update policy loose enough to let a
+-- driver write seven columns is loose enough to let them write `status`.
+drop function if exists public.save_driver_vehicle(text, text, text, integer, text, integer, integer, text);
+create function public.save_driver_vehicle(
+  p_make   text,
+  p_model  text,
+  p_colour text,
+  p_year   integer,
+  p_plate  text,
+  p_seats  integer,
+  p_bags   integer,
+  p_photo  text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_updated integer;
+  v_vehicle text;
+  v_name    text;
+  v_phone   text;
+begin
+  update public.drivers
+     set vehicle_make   = nullif(btrim(coalesce(p_make, '')), ''),
+         vehicle_model  = nullif(btrim(coalesce(p_model, '')), ''),
+         vehicle_colour = nullif(btrim(coalesce(p_colour, '')), ''),
+         vehicle_year   = p_year,
+         plate          = nullif(btrim(coalesce(p_plate, '')), ''),
+         seats          = p_seats,
+         bags           = p_bags,
+         photo_url      = coalesce(nullif(btrim(coalesce(p_photo, '')), ''), photo_url)
+   where user_id = auth.uid();
+
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    return json_build_object('ok', false, 'error', 'no_driver');
+  end if;
+
+  select
+      nullif(btrim(concat_ws(' ', d.vehicle_colour, d.vehicle_make, d.vehicle_model)), ''),
+      nullif(btrim(coalesce(d.first_name || ' ', '') || coalesce(d.last_name, '')), ''),
+      d.phone
+    into v_vehicle, v_name, v_phone
+    from public.drivers d
+   where d.user_id = auth.uid();
+
+  -- every ride of theirs that has not happened yet
+  update public.rides
+     set driver_name    = coalesce(v_name, driver_name),
+         driver_phone   = coalesce(v_phone, driver_phone),
+         driver_vehicle = coalesce(v_vehicle, driver_vehicle),
+         driver_plate   = nullif(btrim(coalesce(p_plate, '')), ''),
+         driver_photo   = (select photo_url from public.drivers where user_id = auth.uid())
+   where driver_id = auth.uid()
+     and status in ('driver_assigned', 'en_route', 'arrived');
+
+  return json_build_object('ok', true);
+end;
+$$;
+
+grant execute on function public.save_driver_vehicle(text, text, text, integer, text, integer, integer, text) to authenticated;
+
+-- ── 5d. Where a driver's photo lives ────────────────────────────────
+-- A public bucket, because the image is shown to a guest who is not
+-- signed in as anybody in particular and may not be signed in at all.
+-- Nothing private goes in it: one headshot per driver, named by their
+-- auth uid so a driver can only ever overwrite their own.
+insert into storage.buckets (id, name, public)
+select 'driver-photos', 'driver-photos', true
+where not exists (select 1 from storage.buckets where id = 'driver-photos');
+
+drop policy if exists "driver photos: public read" on storage.objects;
+create policy "driver photos: public read" on storage.objects
+  for select using (bucket_id = 'driver-photos');
+
+-- Write only under your own uid. storage.foldername() splits the object
+-- name on "/", so an object called "<uid>/face.jpg" is writable only by
+-- that uid — which is what stops one driver replacing another's face.
+drop policy if exists "driver photos: write own" on storage.objects;
+create policy "driver photos: write own" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'driver-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "driver photos: replace own" on storage.objects;
+create policy "driver photos: replace own" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'driver-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ── 6. Row-level security ───────────────────────────────────────────
 alter table public.drivers enable row level security;

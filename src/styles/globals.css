@@ -1631,6 +1631,15 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-driver-info b{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:500;}
 .tp-driver-info span{font-size:12px;color:var(--muted);font-weight:400;margin-top:2px;}
 .tp-driver-wa{margin-left:auto;flex-shrink:0;}
+/* a real face when the driver has uploaded one */
+img.tp-driver-ava{object-fit:cover;}
+/* The plate, set apart from the car it belongs to. Somebody at the kerb
+   is matching characters, not reading a sentence, so it gets the
+   treatment a licence plate has: boxed, spaced and lining. */
+.tp-plate{display:inline-block;align-self:flex-start;margin-top:6px;
+  font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink);background:var(--raised);border:1px solid var(--silver-deep);
+  border-radius:var(--r-xs);padding:4px 9px;font-variant-numeric:tabular-nums;}
 .tp-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;}
 .tp-actions:empty{display:none;}
 .btn-ghost{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);padding:0 18px;min-height:var(--tap);display:inline-flex;align-items:center;border:1px solid var(--silver-deep);transition:.3s var(--ease);background:transparent;}

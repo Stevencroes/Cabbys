@@ -35,6 +35,7 @@ interface Ride {
   driver_phone?: string;
   driver_vehicle?: string;
   driver_plate?: string;
+  driver_photo?: string;
 }
 
 // The journey a ride moves through — synonyms collapse onto these stations.
@@ -202,10 +203,15 @@ function TripCard({
 
       {ride.driver_name && !cancelled && (
         <div className="tp-driver">
-          <div className="tp-driver-ava" aria-hidden="true">{ride.driver_name.charAt(0)}</div>
+          {ride.driver_photo
+            ? <img className="tp-driver-ava" src={ride.driver_photo} alt="" />
+            : <div className="tp-driver-ava" aria-hidden="true">{ride.driver_name.charAt(0)}</div>}
           <div className="tp-driver-info">
             <b>{ride.driver_name}</b>
-            <span>{[ride.driver_vehicle, ride.driver_plate].filter(Boolean).join(" · ") || "Your driver"}</span>
+            {/* The car, then the plate on its own — a plate read out of the
+                middle of a sentence is a plate nobody checks. */}
+            <span>{ride.driver_vehicle || "Your driver"}</span>
+            {ride.driver_plate && <span className="tp-plate">{ride.driver_plate}</span>}
           </div>
           {ride.driver_phone && (
             <a
