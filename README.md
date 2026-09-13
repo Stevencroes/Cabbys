@@ -81,6 +81,7 @@ vercel.json                  # SPA rewrite rules
 Before accepting real bookings:
 
 - [ ] **Schema migration** — run `docs/schema.sql` in the Supabase SQL editor. It adds the booking-flow columns (booking ref, guest contact, flight, payment, driver), relaxes `passenger_id` for guest checkout, and sets the RLS policies.
+- [ ] **Admin portal** — run `docs/admin-schema.sql` (after `docs/driver-schema.sql`). It adds the `admins` table, `is_admin()`, additive read policies for drivers and rides, and the two write functions the board uses. Finish by running the one `insert into public.admins …` at the end of that file with your own auth uid — until you do, `/admin` will tell you the account isn't an admin and hand you the exact statement.
 - [ ] **Anonymous sign-ins** — enable under Authentication → Providers → Anonymous. Guest checkout uses `signInAnonymously()` so every booking still has an `auth.uid()`.
 - [ ] **Supabase Auth providers** — enable Google OAuth under Authentication → Providers. Add the Vercel production URL as an allowed redirect URL.
 - [ ] **Realtime** — add the `rides` table to the `supabase_realtime` publication so My Trips reflects driver assignment live.

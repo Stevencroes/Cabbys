@@ -91,7 +91,9 @@ export interface AssignedJob extends OpenJob {
   startedAt: string | null;
 }
 
-type Row = Record<string, unknown>;
+/** One row as PostgREST hands it back. Exported because the admin portal
+    reads the same two tables and must read them the same way. */
+export type Row = Record<string, unknown>;
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const nStr = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
@@ -103,7 +105,7 @@ const nNum = (v: unknown): number | null => (typeof v === "number" ? v : null);
 // place the driver side does it, so both readers of `rides` (this file's
 // select("*") calls and the open_rides view, which passes every tiered
 // column through raw) land on the same value.
-function effectiveScheduledAt(r: Row): string | null {
+export function effectiveScheduledAt(r: Row): string | null {
   const date = nStr(r.scheduled_date);
   if (date) return arubaInstant(date, nStr(r.scheduled_time) ?? "");
   return nStr(r.scheduled_at);
@@ -195,31 +197,47 @@ export async function loadDriverById(uid: string): Promise<DriverLookup> {
   // hotel wifi was told their account does not exist.
   if (error) return { driver: null, error: error.message || "The drivers table could not be read." };
   if (!data) return { driver: null, error: null };
+  return { driver: toDriverProfile(data as Row, uid), error: null };
+}
 
-  const r = data as Row;
+/**
+ * One drivers row, in the portal's words.
+ *
+ * Split out of loadDriverById and exported so the admin portal — which
+ * reads the whole table rather than one row — maps it identically. A
+ * second mapper would drift: the name is assembled from first_name and
+ * last_name with a full_name fallback, the status is narrowed to the
+ * three the check constraint allows, and an unknown value lands on
+ * 'pending' rather than being trusted. An operator deciding whether to
+ * approve somebody has to be looking at the same row the driver's own
+ * gate is looking at, or the two screens disagree about who is approved.
+ *
+ * `uid` is passed rather than read off the row because callers differ on
+ * where the auth id comes from — the gate already holds it from the
+ * session, the admin list takes it from user_id. Either way it is the
+ * AUTH id, never drivers.id: rides.driver_id and every RPC key on it.
+ */
+export function toDriverProfile(r: Row, uid: string): DriverProfile {
   const status = str(r.status);
   const splitName = [str(r.first_name), str(r.last_name)].filter(Boolean).join(" ").trim();
   return {
-    driver: {
-      id: uid,
-      fullName: splitName || str(r.full_name),
-      email: nStr(r.email),
-      phone: nStr(r.phone),
-      vehicle: nStr(r.vehicle),
-      plate: nStr(r.plate),
-      make: nStr(r.vehicle_make),
-      model: nStr(r.vehicle_model),
-      colour: nStr(r.vehicle_colour),
-      year: nNum(r.vehicle_year),
-      seats: nNum(r.seats),
-      bags: nNum(r.bags),
-      photoUrl: nStr(r.photo_url),
-      status: (status === "approved" || status === "suspended" ? status : "pending") as DriverStatus,
-      rating: nNum(r.rating),
-      tripsCount: nNum(r.trips_count) ?? 0,
-      isOnline: r.is_online === true,
-    },
-    error: null,
+    id: uid,
+    fullName: splitName || str(r.full_name),
+    email: nStr(r.email),
+    phone: nStr(r.phone),
+    vehicle: nStr(r.vehicle),
+    plate: nStr(r.plate),
+    make: nStr(r.vehicle_make),
+    model: nStr(r.vehicle_model),
+    colour: nStr(r.vehicle_colour),
+    year: nNum(r.vehicle_year),
+    seats: nNum(r.seats),
+    bags: nNum(r.bags),
+    photoUrl: nStr(r.photo_url),
+    status: (status === "approved" || status === "suspended" ? status : "pending") as DriverStatus,
+    rating: nNum(r.rating),
+    tripsCount: nNum(r.trips_count) ?? 0,
+    isOnline: r.is_online === true,
   };
 }
 

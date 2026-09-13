@@ -1,0 +1,398 @@
+/* ==========================================================================
+   CABBY'S ADMIN PORTAL
+   Read at a desk, not from a car mount. Same company as the driver
+   portal — same Night Sea grounds, same silver, the same two functional
+   colours — but denser and table-shaped, because the questions here are
+   comparative: which of these drivers is waiting, which of these rides
+   has nobody on it.
+
+   Scoped to .adm so the three worlds (marketing site, driver portal,
+   admin portal) cannot bleed into each other. The driver portal is
+   .drv and none of its rules are reachable from here; where a pattern
+   is genuinely the same one, it is restated at admin density rather
+   than borrowed, because borrowing would tie a desk table's row height
+   to a phone's tap target.
+
+   Rules carried over from driver.css, unchanged:
+     · the only gradients in the system are --sheen (primary actions,
+       the active segment) and --hairline (a rule across a stat block);
+     · Cormorant for every number that matters, Inter for everything you
+       operate;
+     · colour carries state and only two are allowed to — signal = live,
+       alert = wrong. Everything else is ground, silver and ink.
+   ========================================================================== */
+.adm{
+  /* Tighter than the driver portal's radii, which are drawn for cards
+     held at arm's length. A 26px corner on a table row reads as a
+     bubble. */
+  --a-r-sm:8px; --a-r-md:12px; --a-r-lg:16px; --a-r-pill:100px;
+  /* the one width the whole board lines up to */
+  --a-maxw:1180px;
+  /* an operator's pointer target — a mouse, not a thumb, so the 46px
+     floor the driver portal keeps would waste a third of the screen */
+  --a-tap:34px;
+
+  position:relative;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-weight:400;
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.adm *{box-sizing:border-box;}
+.adm :focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
+
+/* ── the bar: who you are, and the way out ─────────────────────────── */
+.adm-top{flex:none;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);background:var(--deep);
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 20px 12px;}
+.adm-top .in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  width:100%;max-width:var(--a-maxw);margin:0 auto;}
+.adm-mark{font-family:var(--serif);font-weight:500;letter-spacing:.3em;text-transform:uppercase;
+  font-size:15px;padding-left:.3em;color:var(--ink);flex:none;}
+.adm-mark .ap{color:var(--silver);}
+.adm-mark small{display:block;font-family:var(--sans);font-size:7.5px;letter-spacing:.34em;
+  color:var(--muted);margin-top:2px;font-weight:500;}
+/* pushed right, and the first thing to drop to its own line on a phone */
+.adm-who{margin-left:auto;display:flex;align-items:center;gap:12px;min-width:0;}
+.adm-who .em{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;max-width:26ch;}
+
+/* ── the tabs ──────────────────────────────────────────────────────── */
+/* At the top, not the foot. The driver portal's rail is thumb-reach
+   furniture on a phone; a dispatch board is scrolled with a wheel and
+   its navigation belongs where the eye starts. */
+.adm-tabs{flex:none;border-bottom:1px solid var(--line);background:var(--deep);}
+.adm-tabs .in{display:flex;gap:2px;width:100%;max-width:var(--a-maxw);margin:0 auto;
+  padding:0 20px;overflow-x:auto;scrollbar-width:none;}
+.adm-tabs .in::-webkit-scrollbar{display:none;}
+.adm-tabs a{position:relative;flex:none;padding:13px 16px;color:var(--muted);
+  text-decoration:none;font-weight:600;font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;white-space:nowrap;
+  transition:color .25s var(--ease);}
+.adm-tabs a:hover{color:var(--silver);}
+.adm-tabs a.on{color:var(--ink);}
+/* the marker is a rule under the tab, the way a table's own headings
+   are underscored — the driver portal's dot would read as decoration here */
+.adm-tabs a.on::after{content:"";position:absolute;left:16px;right:16px;bottom:-1px;height:2px;
+  background:var(--silver);}
+/* ── the page ──────────────────────────────────────────────────────── */
+.adm-screen{flex:1;display:flex;flex-direction:column;min-height:0;}
+.adm-view{flex:1;display:flex;flex-direction:column;animation:admfade .3s var(--ease);}
+@keyframes admfade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.adm-pad{width:100%;max-width:var(--a-maxw);margin:0 auto;
+  padding:22px 20px calc(48px + env(safe-area-inset-bottom,0px));}
+
+.adm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;margin-bottom:18px;}
+.adm .kick{font-weight:600;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
+.adm .big{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.04;
+  margin:6px 0 0;letter-spacing:-.01em;}
+.adm .big em{font-style:italic;color:var(--silver);}
+.adm .sub{color:var(--muted);font-size:12.5px;font-weight:400;line-height:1.6;margin:6px 0 0;max-width:62ch;}
+
+/* ── the filter strip ──────────────────────────────────────────────── */
+.adm-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--a-r-pill);
+  background:var(--surface);overflow:hidden;}
+.adm-seg button{background:none;border:none;padding:8px 14px;min-height:var(--a-tap);
+  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);cursor:pointer;transition:.2s var(--ease);}
+.adm-seg button:hover:not(.on){color:var(--silver);}
+.adm-seg button.on{background:var(--sheen);color:var(--on-sheen);}
+.adm-seg button b{font-weight:600;margin-left:6px;opacity:.7;}
+.adm-seg button.on b{opacity:1;background:var(--on-sheen-wash);color:var(--on-sheen);
+  border-radius:var(--a-r-pill);padding:0 6px;min-width:18px;display:inline-block;text-align:center;}
+
+/* ── the table ─────────────────────────────────────────────────────── */
+/* The whole point of this portal. A table, not a stack of cards: an
+   operator is comparing rows, and a card layout makes the eye travel
+   the long way round to answer "which of these has no driver". */
+.adm-tablewrap{border:1px solid var(--line);border-radius:var(--a-r-md);overflow:hidden;}
+/* Only this box scrolls sideways, and only when it has to. The page
+   itself must never scroll horizontally. */
+.adm-scroll{overflow-x:auto;}
+.adm-table{width:100%;border-collapse:collapse;min-width:720px;}
+.adm-table thead th{position:sticky;top:0;z-index:2;text-align:left;
+  background:var(--raised);border-bottom:1px solid var(--line);
+  padding:9px 12px;font-weight:600;font-size:8.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.adm-table tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.adm-table tbody tr:last-child td{border-bottom:none;}
+.adm-table tbody tr{transition:background .18s var(--ease);}
+.adm-table tbody tr:hover{background:var(--surface);}
+/* the row the operator is acting on stays visible while a confirmation
+   sits under it */
+.adm-table tbody tr.picked{background:var(--surface);box-shadow:inset 2px 0 0 var(--silver);}
+/* a row that needs a human — the reason this screen exists */
+.adm-table tbody tr.wants{box-shadow:inset 2px 0 0 var(--alert);}
+.adm-table .num{font-family:var(--serif);font-weight:600;font-size:15px;color:var(--ink);
+  font-variant-numeric:tabular-nums;}
+.adm-table .right{text-align:right;}
+.adm-table .nowrap{white-space:nowrap;}
+
+/* two lines in one cell: the fact, and what qualifies it */
+.adm-two .a{display:block;color:var(--ink);font-size:13px;line-height:1.3;}
+.adm-two .b{display:block;color:var(--muted);font-size:10.5px;line-height:1.3;margin-top:2px;
+  letter-spacing:.04em;}
+.adm-two .b.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;}
+
+/* who, with a face — a photo is the fastest way to tell two Ana C.s apart */
+.adm-person{display:flex;align-items:center;gap:10px;min-width:0;}
+.adm-person img,.adm-person .ph{width:32px;height:32px;border-radius:50%;flex:none;
+  object-fit:cover;background:var(--raised);border:1px solid var(--line);}
+.adm-person .ph{display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:14px;font-weight:600;color:var(--silver);}
+/* no photo at all is a fact about the booking, not a missing asset */
+.adm-person .ph.gap{border-color:var(--alert-line);color:var(--alert-ink);}
+
+/* the plate, checkable from across a car park — and on this screen,
+   checkable against what the guest was told */
+.adm-plate{display:inline-block;font-weight:600;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink);background:var(--raised);
+  border:1px solid var(--silver-deep);border-radius:var(--a-r-sm);padding:2px 7px;
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+/* ── status chips ──────────────────────────────────────────────────── */
+/* Same tones and the same meanings as the driver portal's .drv-chip, so
+   "Aboard" is the same colour on both sides of the company. The class
+   names match ChipTone in src/driver/JobCard.tsx, which is where the
+   labels come from. */
+.adm-chip{display:inline-block;font-weight:600;font-size:8.5px;letter-spacing:.14em;
+  text-transform:uppercase;padding:4px 9px;border-radius:var(--a-r-pill);white-space:nowrap;
+  background:var(--raised);color:var(--muted);border:1px solid var(--line);}
+.adm-chip.next{color:var(--ink);}
+.adm-chip.live,.adm-chip.aboard,.adm-chip.approved{
+  background:var(--signal-tint);color:var(--signal-ink);border-color:var(--signal-line);}
+.adm-chip.alert,.adm-chip.suspended{
+  background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert-line);}
+.adm-chip.done{background:none;color:var(--muted);}
+.adm-chip.pending{background:none;color:var(--silver);border-color:var(--soft);}
+
+/* ── controls inside a row ─────────────────────────────────────────── */
+.adm-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+.adm-btn{display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--a-r-pill);border:1px solid var(--silver-deep);background:transparent;
+  color:var(--silver);padding:0 13px;min-height:var(--a-tap);cursor:pointer;
+  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;white-space:nowrap;text-decoration:none;
+  transition:background .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease);}
+.adm-btn:hover:not(:disabled){background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
+.adm-btn:disabled{opacity:.45;cursor:wait;}
+/* the affirmative one — approving, assigning */
+.adm-btn.go{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
+.adm-btn.go:hover:not(:disabled){box-shadow:var(--shadow-hard);}
+/* the one that takes something away */
+.adm-btn.stop{border-color:var(--alert-line);color:var(--alert-ink);}
+.adm-btn.stop:hover:not(:disabled){background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert);}
+/* a control the database would refuse is not shown; this is what stands
+   in its place, and it says why rather than sitting there greyed out */
+.adm-why{font-size:10.5px;color:var(--muted);line-height:1.4;text-align:right;max-width:30ch;
+  margin-left:auto;}
+
+/* a plain text control that lives inside a row */
+.adm-quiet{background:none;border:none;padding:0 4px;min-height:var(--a-tap);
+  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);cursor:pointer;
+  transition:color .2s var(--ease);}
+.adm-quiet:hover{color:var(--silver);}
+
+/* ── asking before something lands on somebody ─────────────────────── */
+/* Suspending a driver and putting a name on a 6am airport run are both
+   decisions with a person on the other end. Each opens a row under the
+   one it belongs to rather than a modal, so the row it is about stays
+   on screen and the operator can still read it while deciding. */
+.adm-confirm td{background:var(--raised);border-bottom:1px solid var(--line);padding:14px 12px;}
+.adm-confirm .cbody{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.adm-confirm .ct{flex:1;min-width:min(100%,30ch);}
+.adm-confirm .ck{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--silver);}
+.adm-confirm p{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--ink);}
+.adm-confirm .cacts{display:flex;gap:8px;flex:none;flex-wrap:wrap;}
+.adm-confirm.bad td{background:var(--alert-tint);}
+.adm-confirm.bad .ck{color:var(--alert-ink);}
+
+/* ── banners ───────────────────────────────────────────────────────── */
+/* A write that worked, and a write that was refused. Both say what
+   happened in words rather than by changing colour and nothing else. */
+.adm-note{display:flex;align-items:flex-start;gap:12px;margin:0 0 16px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:var(--a-r-md);background:var(--surface);
+  animation:admfade .25s var(--ease);}
+.adm-note .nk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--silver);}
+.adm-note p{margin:4px 0 0;font-size:12.5px;line-height:1.55;color:var(--ink);}
+.adm-note .nb{flex:1;min-width:0;}
+.adm-note button{flex:none;background:none;border:none;color:var(--muted);font-size:13px;
+  min-width:30px;min-height:30px;cursor:pointer;}
+.adm-note.ok{border-color:var(--signal-line);background:var(--signal-tint);}
+.adm-note.ok .nk{color:var(--signal-ink);}
+.adm-note.bad{border-color:var(--alert-line);background:var(--alert-tint);}
+.adm-note.bad .nk{color:var(--alert-ink);}
+
+/* ── empty, and the other empty ────────────────────────────────────── */
+/* Two states that look identical in a naive list and are nothing alike:
+   a quiet day, and a table this portal could not read. The second one
+   carries the database's own words, because the fix is in Supabase and
+   not on this screen. */
+.adm-empty{padding:44px 24px;text-align:center;color:var(--muted);}
+.adm-empty .es{font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px;}
+.adm-empty .et{font-size:12.5px;line-height:1.65;max-width:52ch;margin:0 auto;}
+.adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  word-break:break-word;opacity:.75;margin-top:10px;}
+.adm-empty .adm-btn{margin-top:16px;}
+
+/* ── the gates ─────────────────────────────────────────────────────── */
+/* Five of them, the same five as DriverGuard: loading, signed out, not
+   an admin, unreachable, ready. The fourth is the one worth having —
+   a failed read reported as "you're not an admin" would send the owner
+   of the company looking for a permission that was never the problem. */
+.adm-gate{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:36px 26px;}
+.adm-gate .gi{width:62px;height:62px;border-radius:50%;border:1.5px solid var(--silver);
+  display:flex;align-items:center;justify-content:center;color:var(--silver);
+  margin-bottom:20px;flex:none;}
+.adm-gate .gi svg{width:27px;height:27px;}
+.adm-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
+.adm-gate h1{font-family:var(--serif);font-weight:300;font-size:27px;margin:0 0 10px;line-height:1.1;}
+.adm-gate p{color:var(--muted);font-size:13px;line-height:1.7;max-width:42ch;margin:0;}
+.adm-mark.gate{font-size:18px;margin-bottom:24px;}
+.adm-mark.gate small{font-size:8px;letter-spacing:.38em;margin-top:5px;}
+/* the first thing seen on every cold open */
+.adm-hold{color:var(--muted);animation:admbreathe 2.4s var(--ease) infinite;}
+@keyframes admbreathe{0%,100%{opacity:.45;}50%{opacity:1;}}
+
+.adm-auth-wrap{width:100%;max-width:320px;margin-top:22px;text-align:left;}
+
+/* Who you are, for whoever has to fix it — and on the not-an-admin gate,
+   the uid is not diagnostics, it is the value that goes in the insert. */
+.adm-diag{width:100%;max-width:460px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--a-r-md);padding:14px 16px;text-align:left;margin-top:20px;}
+.adm-diag .row + .row{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
+.adm-diag .k{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.adm-diag .v{display:block;font-size:13.5px;color:var(--ink);word-break:break-word;}
+.adm-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--silver);}
+
+/* The statement to run, spelled out with their own uid already in it.
+   The whole portal exists to stop people typing SQL at production; the
+   one exception is the bootstrap, which cannot come from the app — so
+   the least this screen can do is make it copy-and-paste rather than
+   fill-in-the-blank. */
+.adm-sql{width:100%;max-width:640px;margin-top:18px;text-align:left;
+  background:var(--deep);border:1px solid var(--line);border-radius:var(--a-r-md);
+  padding:13px 15px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;line-height:1.6;color:var(--silver);
+  white-space:pre-wrap;word-break:break-word;}
+.adm-gate .adm-why{text-align:center;margin:14px auto 0;max-width:46ch;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;opacity:.8;}
+.adm-gateacts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ASSIGN — the manual override, when the pool does not clear
+   Two panes: the rides nobody is driving, and the drivers who could.
+   Side by side on a desk because the decision is a comparison; stacked
+   below 900px because at that width two columns are two narrow columns.
+   ══════════════════════════════════════════════════════════════════════ */
+.adm-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;
+  align-items:start;}
+.adm-pane{border:1px solid var(--line);border-radius:var(--a-r-md);overflow:hidden;
+  background:var(--surface);}
+.adm-pane > h2{margin:0;padding:11px 14px;background:var(--raised);
+  border-bottom:1px solid var(--line);
+  font-family:var(--sans);font-weight:600;font-size:9px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--silver);
+  display:flex;align-items:center;gap:9px;}
+.adm-pane > h2 .n{margin-left:auto;font-size:9px;letter-spacing:.1em;color:var(--muted);
+  border:1px solid var(--line);border-radius:var(--a-r-pill);padding:2px 7px;background:var(--surface);}
+.adm-pane .plist{max-height:min(62vh,620px);overflow-y:auto;}
+
+/* one pickable thing in a pane */
+.adm-pick{display:block;width:100%;text-align:left;background:none;border:none;
+  border-bottom:1px solid var(--line);padding:12px 14px;color:inherit;cursor:pointer;
+  font-family:var(--sans);transition:background .18s var(--ease);}
+.adm-pick:last-child{border-bottom:none;}
+.adm-pick:hover{background:var(--raised);}
+.adm-pick.on{background:var(--raised);box-shadow:inset 2px 0 0 var(--silver);}
+.adm-pick .ptop{display:flex;align-items:baseline;gap:9px;margin-bottom:5px;}
+.adm-pick .pwhen{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink);}
+.adm-pick .pday{font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);}
+.adm-pick .pfare{margin-left:auto;font-family:var(--serif);font-size:15px;font-weight:600;color:var(--silver);}
+.adm-pick .proute{font-size:12.5px;color:var(--ink);line-height:1.35;}
+.adm-pick .pmeta{font-size:10.5px;color:var(--muted);margin-top:4px;letter-spacing:.04em;}
+.adm-pick[disabled]{cursor:default;opacity:.55;}
+
+/* a driver in the right-hand pane */
+.adm-pick .pdrv{display:flex;align-items:center;gap:10px;}
+.adm-pick .pdrv .ph{width:32px;height:32px;border-radius:50%;flex:none;object-fit:cover;
+  background:var(--raised);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:14px;font-weight:600;color:var(--silver);}
+.adm-pick .pdrv .pi{flex:1;min-width:0;}
+.adm-pick .pdrv .pn{display:block;font-size:13px;color:var(--ink);line-height:1.25;}
+.adm-pick .pdrv .pc{display:block;font-size:10.5px;color:var(--muted);margin-top:2px;}
+/* the half that is missing, said where the choice is being made */
+.adm-pick .pgap{display:block;margin-top:6px;font-weight:600;font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--alert-ink);}
+
+/* the foot of the right pane: what is about to happen, and the button */
+.adm-do{border-top:1px solid var(--line);background:var(--raised);padding:14px;}
+.adm-do .dk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
+.adm-do p{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--ink);}
+.adm-do .warn{margin-top:8px;font-size:12px;line-height:1.5;color:var(--alert-ink);}
+.adm-do .adm-btn{width:100%;margin-top:12px;min-height:40px;}
+
+@media(max-width:900px){
+  .adm-split{grid-template-columns:minmax(0,1fr);}
+  .adm-pane .plist{max-height:none;}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   NARROW
+   Desktop-first is the right call for an operations tool, but the owner
+   of a transfer company does check the board from a phone at a kerb, and
+   a page that scrolls sideways is a page they cannot read. Below 700px
+   every table sheds its least load-bearing columns (marked .adm-drop)
+   and the rest stops trying to be a grid. The horizontal scroller on
+   .adm-scroll stays for what is left, and the PAGE never scrolls.
+   ══════════════════════════════════════════════════════════════════════ */
+@media(max-width:700px){
+  .adm-pad{padding:16px 14px calc(40px + env(safe-area-inset-bottom,0px));}
+  .adm-top,.adm-tabs .in{padding-left:14px;padding-right:14px;}
+  .adm .big{font-size:25px;}
+  .adm-drop{display:none;}
+  .adm-table{min-width:0;}
+  .adm-table thead th,.adm-table tbody td{padding:9px 8px;}
+  .adm-acts{justify-content:flex-start;}
+  .adm-who{margin-left:0;width:100%;}
+  .adm-who .em{max-width:100%;}
+}
+
+/* Below 400px the table gives up on columns entirely: every cell
+   becomes its own line with its heading beside it. A three-column grid
+   in 360px is three columns of two characters, which is not a table, it
+   is a puzzle. */
+@media(max-width:440px){
+  .adm-table,.adm-table tbody,.adm-table tr,.adm-table td{display:block;width:100%;}
+  .adm-table thead{display:none;}
+  .adm-table tbody tr{border-bottom:1px solid var(--line);padding:10px 0;}
+  .adm-table tbody tr:last-child{border-bottom:none;}
+  .adm-table tbody td{border-bottom:none;padding:3px 12px;}
+  /* the heading comes back as a label beside its value */
+  .adm-table tbody td[data-h]::before{content:attr(data-h) "  ";
+    font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin-right:8px;}
+  .adm-table .right{text-align:left;}
+  .adm-acts{justify-content:flex-start;padding-top:6px;}
+  .adm-confirm td{padding:12px;}
+  .adm-why{text-align:left;margin-left:0;}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .adm *,.adm *::before,.adm *::after{
+    animation:none !important;transition:none !important;
+  }
+}
