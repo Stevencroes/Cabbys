@@ -146,6 +146,26 @@ describe("The weekly roster", () => {
     expect(strip.querySelectorAll("button")[2].getAttribute("aria-label")).toMatch(/1 job$/);
   });
 
+  // "Overdue" and "Cancelled" share the alert chip, and the struck-through
+  // treatment was keyed on that chip — so a late job, which is the most
+  // urgent work on the roster, was being drawn as dead.
+  it("does not draw a late job as a dead one", async () => {
+    state.assigned = [
+      { ...job("late", week[0], "08:00", "Queen Beatrix International Airport"),
+        scheduledAt: new Date(Date.now() - 90 * 60_000).toISOString() },
+    ];
+    state.cancelled = [
+      { ...job("off", week[0], "14:00", "Bucuti & Tara Beach Resort"), status: "cancelled" },
+    ];
+    renderSchedule();
+    await screen.findByText("Queen Beatrix International Airport");
+
+    const cards = document.querySelectorAll(".drv-job");
+    const struck = [...cards].filter((c) => c.classList.contains("off"));
+    expect(struck).toHaveLength(1);
+    expect(struck[0].textContent).toContain("Bucuti & Tara Beach Resort");
+  });
+
   it("does not call an unreadable schedule an empty one", async () => {
     state.error = "permission denied for table rides";
     renderSchedule();

@@ -24,7 +24,7 @@
 // in it.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import JobCard, { jobTime, minutesUntil, statusChip, type ChipTone } from "../JobCard";
+import JobCard, { jobTime, minutesUntil, shortAirport, statusChip, type ChipTone } from "../JobCard";
 import WeekBar from "../WeekBar";
 import {
   loadAssigned, loadCancelled, loadCompleted, minutesUntilPickup,
@@ -277,7 +277,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
             <ul>
               {calledOff.slice(0, 3).map((j) => (
                 <li key={j.id}>
-                  {dayName(arubaDayOf(j.scheduledAt), today)} {jobTime(j.scheduledAt)} · {j.pickup} → {j.dropoff}
+                  {dayName(arubaDayOf(j.scheduledAt), today)} {jobTime(j.scheduledAt)} · {shortAirport(j.pickup)} → {shortAirport(j.dropoff)}
                 </li>
               ))}
             </ul>

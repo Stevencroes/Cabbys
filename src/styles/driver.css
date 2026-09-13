@@ -801,11 +801,14 @@
 .drv-called li{font-size:13.5px;line-height:1.5;color:var(--ink);font-weight:400;}
 .drv-called li + li{margin-top:5px;}
 .drv-called p{margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;}
-/* a cancelled job is readable, and plainly not work: the card recedes
-   rather than disappearing, which is what it used to do */
-.drv-job:has(.drv-chip.alert) .drv-leg .lp{text-decoration:line-through;
+/* A cancelled job is readable, and plainly not work: the card recedes
+   rather than disappearing, which is what it used to do. Keyed on the
+   ride's own status — an earlier version keyed on .drv-chip.alert, which
+   is also what "Overdue" wears, so a late job (the most urgent thing on
+   the roster) was drawn as dead. */
+.drv-job.off .drv-leg .lp{text-decoration:line-through;
   text-decoration-color:var(--soft);color:var(--silver);}
-.drv-job:has(.drv-chip.alert) .drv-jfoot .fare{color:var(--muted);text-decoration:line-through;}
+.drv-job.off .drv-jfoot .fare{color:var(--muted);text-decoration:line-through;}
 
 
 /* ── handing a job back ──────────────────────────────────────────────
@@ -831,6 +834,18 @@
 .drv-give .row{display:flex;gap:10px;margin-top:12px;}
 .drv-give .row .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
 .drv-give .row .drv-cta:disabled{opacity:.45;cursor:not-allowed;}
+
+
+/* On a 360px phone "The Voyager · 6 guests · 4 bags · 2 child seats" is
+   three lines of tracked uppercase squeezed against the fare. Let the
+   foot stack instead: the party gets the width it needs, and the money —
+   the thing actually being compared between cards — gets its own line
+   rather than a column two characters wide. */
+@media(max-width:380px){
+  .drv-jfoot{flex-wrap:wrap;row-gap:8px;}
+  .drv-jfoot .meta{flex:1 1 100%;}
+  .drv-jfoot .fare,.drv-jfoot .drv-claim{margin-left:auto;}
+}
 
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{

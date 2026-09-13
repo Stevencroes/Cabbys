@@ -111,11 +111,22 @@ export function jobFacts(job: OpenJob | AssignedJob): string[] {
   ].filter((v): v is string => Boolean(v));
 }
 
-/** The second line under a place: the flight if it's the airport, else the area. */
-function legSub(name: string, opts: { arriving?: boolean; flight?: string | null }): string {
+/**
+ * The second line under a place: the flight if it's the airport, else the
+ * area.
+ *
+ * `hall` is dropped when a meeting point is already saying where in the
+ * terminal to be — "Arrivals — transfer pickup area · Arrivals · KL767"
+ * said Arrivals twice, and the second one was the less useful of the two.
+ */
+function legSub(
+  name: string,
+  opts: { arriving?: boolean; flight?: string | null; hall?: boolean },
+): string {
   const isAirport = name === AIRPORT.name;
   if (isAirport) {
     const flight = opts.flight ? formatFlightNumber(opts.flight) : null;
+    if (opts.hall === false) return flight ?? "";
     const hall = opts.arriving ? "Arrivals" : "Departure";
     return flight ? `${hall} · ${flight}` : hall;
   }
@@ -132,7 +143,8 @@ function legSub(name: string, opts: { arriving?: boolean; flight?: string | null
  */
 export function JobLegs({ job, meet }: { job: OpenJob | AssignedJob; meet?: string }) {
   const flight = "flightNumber" in job ? job.flightNumber : null;
-  const fromSub = [meet, legSub(job.pickup, { arriving: true, flight })].filter(Boolean).join(" · ");
+  const fromSub = [meet, legSub(job.pickup, { arriving: true, flight, hall: !meet })]
+    .filter(Boolean).join(" · ");
   const toSub = legSub(job.dropoff, { arriving: false, flight });
   return (
     <>
@@ -208,7 +220,15 @@ export default function JobCard({ job, chip, action, onOpen, showDay, headline, 
     </>
   );
 
-  const cls = `drv-job${leaving ? " going" : ""}`;
+  // Cancellation is a fact about the RIDE, not about the colour of its
+  // chip. Keying the struck-through treatment on `.drv-chip.alert` — the
+  // only hook the markup offered — also caught "Overdue", so a late job,
+  // which is the most urgent work on the roster, was being drawn as dead.
+  const cls = [
+    "drv-job",
+    leaving ? "going" : "",
+    job.status === "cancelled" ? "off" : "",
+  ].filter(Boolean).join(" ");
 
   // Only a card that goes somewhere is a button; a claimable one isn't,
   // because its own Accept button would then be nested inside it.
