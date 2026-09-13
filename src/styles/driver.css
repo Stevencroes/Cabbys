@@ -847,6 +847,32 @@
   .drv-jfoot .fare,.drv-jfoot .drv-claim{margin-left:auto;}
 }
 
+
+/* ── what the figure is made of ──────────────────────────────────────
+   Three lines a driver reconciling a payout is doing in their head
+   anyway. A table, because it is one: label left, money right, and the
+   last row is the one the rest adds up to. */
+.drv-made{margin:0 0 22px;padding:14px 16px;border:1px solid var(--line);
+  border-radius:var(--d-r-md);display:flex;flex-direction:column;gap:9px;}
+.drv-made > div{display:flex;align-items:baseline;justify-content:space-between;gap:14px;}
+.drv-made dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;margin:0;}
+.drv-made dd{margin:0;font-family:var(--serif);font-size:17px;font-weight:600;
+  color:var(--silver);font-variant-numeric:tabular-nums;}
+.drv-made dd.off{color:var(--muted);}
+.drv-made .sum{border-top:1px solid var(--line);padding-top:10px;margin-top:1px;}
+.drv-made .sum dt{color:var(--silver);}
+.drv-made .sum dd{font-size:22px;color:var(--ink);}
+
+/* A month is thirty-one bars in the width a week uses for seven. They
+   stay tappable — the bar is 104px tall, so the target is there — and
+   only every seventh is labelled, because a column four pixels wide
+   cannot carry a letter. */
+.drv-chart.dense{gap:3px;}
+.drv-chart.dense .drv-bar{gap:5px;}
+.drv-chart.dense .bfill{border-radius:2px 2px 0 0;}
+.drv-chart.dense .bl{font-size:8px;letter-spacing:0;}
+
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
     animation:none !important;transition:none !important;

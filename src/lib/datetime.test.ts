@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   formatDate, formatTime, formatDateTime, todayInAruba, arubaInstant,
   to12Hour, to24Hour, addDays, addMonths, monthGrid, monthLabel, isHhmm,
-  weekStart, weekDays, weekRangeLabel, weekdayShort, weekdayLong,
+  weekStart, weekDays, weekRangeLabel, weekdayShort, weekdayLong, monthDays,
 } from "./datetime";
 
 describe("dates and times (Phase 1)", () => {
@@ -95,5 +95,19 @@ describe("dates and times (Phase 1)", () => {
     expect(weekRangeLabel("2026-09-09")).toBe("7 – 13 Sep");        // one month
     expect(weekRangeLabel("2026-10-01")).toBe("28 Sep – 4 Oct");    // two months
     expect(weekRangeLabel("2026-12-31")).toBe("28 Dec 2026 – 3 Jan 2027");
+  });
+
+  // Not monthGrid, which pads to six full weeks with the neighbouring
+  // months' dates. Borrowing four days of August into September's
+  // earnings is the kind of error nobody catches until a driver does.
+  it("gives a month its own days and nobody else's", () => {
+    const sep = monthDays("2026-09-17");
+    expect(sep).toHaveLength(30);
+    expect(sep[0]).toBe("2026-09-01");
+    expect(sep[29]).toBe("2026-09-30");
+
+    expect(monthDays("2026-02-10")).toHaveLength(28);
+    expect(monthDays("2028-02-10")).toHaveLength(29);   // a leap year
+    expect(monthDays("2026-12-31")[30]).toBe("2026-12-31");
   });
 });

@@ -140,6 +140,69 @@ describe("Earnings", () => {
     expect(v.caption()).toMatch(/after 25% Cabby's/);
   });
 
+  // §14 — three questions, and the screen used to answer only one of
+  // them. A driver asking "what did the month come to" had to walk back
+  // four weeks and add it up themselves.
+  it("totals a whole month, not only a week", async () => {
+    // one ride in this week, one earlier in the same month
+    const monthStart = `${todayInAruba().slice(0, 7)}-02`;
+    state.completed = [ride("a", thisWeek(0), "16:00", 48), ride("z", monthStart, "16:00", 100)];
+    const v = mount();
+    await waitFor(() => expect(v.total()).toBe("$36"));   // the week alone
+
+    fireEvent.click(screen.getByRole("button", { name: /^Month$/ }));
+    // 75% of $48 + 75% of $100 = $36 + $75
+    await waitFor(() => expect(v.total()).toBe("$111"));
+    expect(v.caption()).toMatch(/whole month/i);
+    expect(v.caption()).toMatch(/2 jobs/);
+  });
+
+  it("narrows to a single day without leaving the screen", async () => {
+    const v = mount();
+    await waitFor(() => expect(v.total()).toBe("$128"));
+    fireEvent.click(screen.getByRole("button", { name: /^Today$/ }));
+    // the fixtures are Monday and Wednesday; today is whatever it is, so
+    // the only safe assertion is that the scope narrowed to one day
+    await waitFor(() => expect(v.caption()).toMatch(/one day/i));
+    // and a single day has nothing to chart
+    expect(v.container.querySelector(".drv-chart")).toBeNull();
+  });
+
+  // The arithmetic a driver is doing in their head anyway. Derived from
+  // the same two figures as the total, so the lines cannot disagree with
+  // each other or with the headline.
+  it("shows what the figure is made of", async () => {
+    const v = mount();
+    await waitFor(() => expect(v.total()).toBe("$128"));
+    const made = v.container.querySelector(".drv-made")!;
+    expect(made.textContent).toContain("$171");        // the guest fares
+    expect(made.textContent).toContain("−$43");        // Cabby's quarter
+    expect(made.textContent).toContain("$128");        // what is left
+  });
+
+  // A busy month is forty rides, and this screen's job is to make a total
+  // checkable rather than to be a second history — which exists, has
+  // search and month bands, and is one tab away.
+  it("caps the breakdown and says where the rest are", async () => {
+    const month = todayInAruba().slice(0, 7);
+    state.completed = Array.from({ length: 15 }, (_, i) =>
+      ride(`r${i}`, `${month}-${String((i % 27) + 1).padStart(2, "0")}`, "16:00", 48));
+    const v = mount();
+    fireEvent.click(screen.getByRole("button", { name: /^Month$/ }));
+    await waitFor(() => expect(v.caption()).toMatch(/15 jobs/));
+    expect(v.container.querySelectorAll(".drv-breakdown .drv-hrow")).toHaveLength(12);
+    expect(screen.getByText(/3 more in this month/i)).toBeInTheDocument();
+  });
+
+  // Forty rides all reading "12:00 PM · The Scout" tell a driver nothing
+  // about which of them is which.
+  it("dates the rows once the span is wider than a day", async () => {
+    const v = mount();
+    await waitFor(() => expect(v.total()).toBe("$128"));
+    const first = v.container.querySelector(".drv-breakdown .hm")?.textContent ?? "";
+    expect(first).toMatch(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d+ \w+ ·/);
+  });
+
   it("has nothing to reconcile when nothing is earned", async () => {
     state.completed = [];
     const v = mount();

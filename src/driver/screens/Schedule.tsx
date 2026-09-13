@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import JobCard, { jobTime, minutesUntil, shortAirport, statusChip, type ChipTone } from "../JobCard";
-import WeekBar from "../WeekBar";
+import PeriodBar from "../PeriodBar";
 import {
   loadAssigned, loadCancelled, loadCompleted, minutesUntilPickup,
   type AssignedJob, type DriverProfile,
@@ -313,7 +313,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
         </div>
 
         {/* ── the week: walk it, then pick a day out of it ── */}
-        <WeekBar cursor={cursor} onChange={(d) => go(d)} />
+        <PeriodBar cursor={cursor} onChange={(d) => go(d)} />
 
         <div className="drv-week" role="group" aria-label="Days of the week">
           {days.map((d) => {

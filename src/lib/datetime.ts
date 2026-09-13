@@ -184,6 +184,24 @@ export function arubaDayOf(iso: string | null | undefined): string {
 // counts Sunday as 0, which would put Sunday at the head of the week and
 // split every weekend across two columns.
 
+/**
+ * Every ISO date in the month `iso` falls in — that month's own days, and
+ * only those.
+ *
+ * Not monthGrid, which pads to six full weeks with the neighbouring
+ * months' dates so a calendar can draw square rows. A month's earnings
+ * are the month's, and borrowing four days from August into September's
+ * total is the kind of error nobody catches until a driver does.
+ */
+export function monthDays(iso: string): string[] {
+  const d = dateParts(iso);
+  const year = d.getUTCFullYear();
+  const month = d.getUTCMonth();
+  const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const first = `${iso.slice(0, 7)}-01`;
+  return Array.from({ length: last }, (_, i) => addDays(first, i));
+}
+
 /** Monday of the week `iso` falls in. */
 export function weekStart(iso: string): string {
   const d = dateParts(iso);
