@@ -63,16 +63,11 @@ vi.mock("../../lib/supabase", () => {
 import {
   assignRide, checkIsAdmin, clashesFor, loadAllDrivers, loadAllDriverDocuments,
   loadUpcomingRides, needsDriver, reviewDocument, setDriverStatus,
-  signedDocumentUrl, DOCUMENT_LINK_SECONDS, type AdminRide,
+  signedDocumentUrl, DOCUMENT_LINK_SECONDS,
 } from "./admin";
+import { makeRide } from "./fixtures";
 
-const ride = (over: Partial<AdminRide> = {}): AdminRide => ({
-  id: "r1", status: "confirmed", scheduledAt: "2026-09-01T18:35:00.000Z",
-  pickup: "A", dropoff: "B", vehicle: null, passengers: null, luggage: null,
-  childSeats: null, fareAwg: null, bookingRef: null, guestName: null,
-  guestPhone: null, flightNumber: null, driverId: null, driverName: null,
-  driverVehicle: null, driverPlate: null, ...over,
-});
+const ride = makeRide;
 
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.or = []; calls.update = 0; calls.signed = [];
