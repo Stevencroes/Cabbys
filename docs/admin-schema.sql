@@ -487,3 +487,208 @@ end $fn$;
 -- then replace the placeholder below and run it in the SQL editor:
 
 -- insert into public.admins (user_id) values ('00000000-0000-0000-0000-000000000000') on conflict do nothing;
+
+
+-- ── 7. admin_unassign_ride — taking a ride back off a driver ────────
+-- The half of reassignment that was missing, and the reason section 4b
+-- refuses a ride that already has a driver.
+--
+-- That refusal is right and stays. Moving a booking from one driver to
+-- another in a single UPDATE means the first driver's roster changes
+-- under them with nothing said, and the ride keeps carrying a stamp —
+-- driver_name, driver_phone, driver_vehicle, driver_plate — that the
+-- guest is reading in My Trips. A guest watching for a silver Hiace
+-- while a black V-Class is on its way is the failure this project
+-- already spent a session removing from claim_ride().
+--
+-- So reassignment is two deliberate acts: take it off, then put it on.
+-- This is the first. The ride goes back to 'confirmed' with driver_id
+-- null and the stamp cleared, which is exactly the shape open_rides
+-- selects on — so it returns to the pool for any approved driver, and
+-- an operator can still place a specific one with admin_assign_ride.
+--
+-- release_ride() already does this for the DRIVER giving their own job
+-- back. This is not that function with a wider where clause, and the
+-- two differences are the whole point:
+--
+--   · release_ride matches on driver_id = auth.uid(). An operator is
+--     not the driver, so that clause can never be satisfied here.
+--   · release_ride refuses inside two hours of pickup, because a
+--     driver handing a job back at that range is a no-show. An
+--     operator moving a ride at that range is the person who will
+--     make the phone call, and blocking them is how the ride ends up
+--     being moved in the SQL editor instead.
+--
+-- It refuses a ride that has STARTED. Once a driver is en route,
+-- arrived or carrying the guest, "who is driving this" is a question
+-- being answered on a road, and a row update is not the tool.
+--
+-- The reason is appended to notes the same way release_ride appends
+-- its own, with the same prefix, so the next driver to claim the ride
+-- reads it in the place they already read handbacks — and
+-- src/driver/screens/RideDetail.tsx's splitNotes() keeps it out of the
+-- block headed "what the guest told us" for free.
+drop function if exists public.admin_unassign_ride(uuid, text);
+create function public.admin_unassign_ride(p_ride_id uuid, p_reason text default null)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_status  text;
+  v_driver  uuid;
+  v_name    text;
+  v_updated integer;
+begin
+  if not public.is_admin() then
+    return json_build_object('ok', false, 'error', 'not_admin');
+  end if;
+
+  select status, driver_id, driver_name
+    into v_status, v_driver, v_name
+    from public.rides where id = p_ride_id;
+
+  -- Four ways to miss, and they are four different next moves: find the
+  -- right ride, nothing to do, phone the driver, or it is already over.
+  if v_status is null then
+    return json_build_object('ok', false, 'error', 'no_ride');
+  end if;
+  if v_driver is null then
+    return json_build_object('ok', false, 'error', 'not_assigned');
+  end if;
+  if v_status in ('cancelled', 'completed') then
+    return json_build_object('ok', false, 'error', 'ride_closed');
+  end if;
+  if v_status <> 'driver_assigned' then
+    return json_build_object('ok', false, 'error', 'already_started');
+  end if;
+
+  update public.rides
+     set driver_id      = null,
+         status         = 'confirmed',
+         assigned_at    = null,
+         driver_name    = null,
+         driver_phone   = null,
+         driver_vehicle = null,
+         driver_plate   = null,
+         driver_photo   = null,
+         notes       = case
+                         when coalesce(btrim(p_reason), '') = '' then notes
+                         else coalesce(notes || ' · ', '') || 'Returned to pool: ' || btrim(p_reason)
+                       end
+   where id = p_ride_id
+     and driver_id = v_driver
+     and status = 'driver_assigned';
+
+  get diagnostics v_updated = row_count;
+
+  -- The driver claimed, released or finished it between the read above
+  -- and the write. Not an error to swallow: the operator is looking at
+  -- a screen that is now wrong.
+  if v_updated = 0 then
+    return json_build_object('ok', false, 'error', 'moved_on');
+  end if;
+
+  -- Whose morning just changed, by name, so the screen can say "tell
+  -- Ana" rather than "done".
+  return json_build_object('ok', true, 'ride_id', p_ride_id, 'driver_name', v_name);
+end;
+$$;
+
+grant execute on function public.admin_unassign_ride(uuid, text) to authenticated;
+
+
+-- ── 8. admin_cancel_ride — calling a booking off ────────────────────
+-- The one operator action with nothing behind it, and the last thing
+-- on this board that was still a hand-typed UPDATE.
+--
+-- A guest can already cancel their own ride: "rides: cancel own" in
+-- docs/schema.sql admits exactly that transition. An operator could
+-- not, which meant a booking called off by WhatsApp — which is how
+-- most of them are called off on this island — sat on the board as
+-- live work, was offered to drivers in the pool, and counted in every
+-- figure on every screen until somebody opened the Supabase editor.
+--
+-- READ THIS BEFORE WIRING A REFUND TO IT. This function moves a ROW.
+-- It does not touch Stripe. api/create-payment-intent.ts authorizes
+-- with capture_method 'manual' and api/stripe-webhook.ts captures on
+-- assignment; there is no server-side path in this project that voids
+-- an authorization or refunds a capture, and inventing one from the
+-- browser is impossible — it needs the secret key. So a cancelled ride
+-- may still have money held or taken against it, and the portal says
+-- so in as many words rather than implying the cancellation settled
+-- it. payment_status is handed back for exactly that sentence.
+--
+-- It refuses a ride that is already over. A completed ride that could
+-- be cancelled is a completed ride that can be un-earned: the driver's
+-- Earnings screen sums completed work, and rewriting history under it
+-- is the fastest way to lose a driver's trust in the figure.
+--
+-- A reason is required, and the database is where that is enforced —
+-- not the form. The reason is what the next person reading this row
+-- has instead of a memory of the phone call.
+drop function if exists public.admin_cancel_ride(uuid, text);
+create function public.admin_cancel_ride(p_ride_id uuid, p_reason text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_status  text;
+  v_driver  uuid;
+  v_name    text;
+  v_pay     text;
+  v_updated integer;
+begin
+  if not public.is_admin() then
+    return json_build_object('ok', false, 'error', 'not_admin');
+  end if;
+
+  if coalesce(btrim(p_reason), '') = '' then
+    return json_build_object('ok', false, 'error', 'need_reason');
+  end if;
+
+  select status, driver_id, driver_name, payment_status
+    into v_status, v_driver, v_name, v_pay
+    from public.rides where id = p_ride_id;
+
+  if v_status is null then
+    return json_build_object('ok', false, 'error', 'no_ride');
+  end if;
+  if v_status = 'cancelled' then
+    return json_build_object('ok', false, 'error', 'already_cancelled');
+  end if;
+  if v_status = 'completed' then
+    return json_build_object('ok', false, 'error', 'already_driven');
+  end if;
+
+  -- The stamp stays. A cancelled ride is a record of who WAS going to
+  -- drive it, and the guest's own My Trips row is the place that
+  -- record is read from — stripping it would leave a cancellation
+  -- nobody can reconstruct.
+  update public.rides
+     set status = 'cancelled',
+         notes  = coalesce(notes || ' · ', '') || 'Cancelled by Cabby''s: ' || btrim(p_reason)
+   where id = p_ride_id
+     and status not in ('cancelled', 'completed');
+
+  get diagnostics v_updated = row_count;
+
+  if v_updated = 0 then
+    return json_build_object('ok', false, 'error', 'moved_on');
+  end if;
+
+  -- Both facts the screen has to say out loud: whose roster just lost a
+  -- job, and whether money is still sitting against this booking.
+  return json_build_object(
+    'ok', true,
+    'ride_id', p_ride_id,
+    'driver_name', case when v_driver is null then null else v_name end,
+    'payment_status', v_pay
+  );
+end;
+$$;
+
+grant execute on function public.admin_cancel_ride(uuid, text) to authenticated;
