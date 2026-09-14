@@ -21,6 +21,7 @@ import { generateBookingRef } from "../../../lib/bookingRef";
 import { formatFlightNumber } from "../../../lib/flight";
 import { normalizePhone, isValidPhone, isValidEmail } from "../../../lib/contact";
 import { createRide } from "../../../lib/rides";
+import { rememberGuestDetails } from "../../../booking/rememberGuest";
 import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
 import LiveMap from "../LiveMap";
@@ -205,6 +206,19 @@ export default function Step3Details({
       return false;
     }
     rideRef.current = ride;
+    // The return leg of the prefill at the top of this file. That effect
+    // reads the account into blank fields; nothing had ever written the
+    // account, so for most travellers it read an empty one forever and
+    // they retyped their name on every booking.
+    //
+    // NOT awaited, and its result is dropped on the floor. The ride row
+    // exists by this line and the card is next — a booking that stalled,
+    // or failed, because a convenience write to user_metadata was slow
+    // would be the worst trade available here. It fills blanks only, and
+    // it is a no-op for a guest who is not signed in as a real account,
+    // which is most of them: booking stays guest-first and this changes
+    // nothing about that. See src/booking/rememberGuest.ts.
+    void rememberGuestDetails({ name: draft.contactName, phone: draft.contactPhone });
     return true;
   }
 

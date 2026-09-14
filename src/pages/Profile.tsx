@@ -123,9 +123,19 @@ export default function Profile() {
 
               <section className="pf-card">
                 <h2 className="pf-h">Your details</h2>
+                {/* Both directions, said out loud. The booking form has
+                    filled these in from here for a long time; what it did
+                    not do until now was put them BACK, so an account
+                    nobody had opened this page stayed empty and every
+                    booking started from a blank form. It fills blanks
+                    only — a name here is one you chose, and the name on a
+                    booking is often the guest being collected. */}
                 <p className="pf-note">
                   We fill these in when you book, so you are not typing them at an
-                  arrivals gate. Your driver uses the number to say they have landed.
+                  arrivals gate — and if we did not have them, we keep what you typed
+                  the first time. Change them here whenever you like; we will not
+                  overwrite what is already here. Your driver uses the number to say
+                  they have landed.
                 </p>
                 <form className="pf-form" onSubmit={saveDetails} noValidate>
                   <div className="fld">
