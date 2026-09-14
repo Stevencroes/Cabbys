@@ -153,7 +153,17 @@ describe("The weekly roster", () => {
   it("does not draw a late job as a dead one", async () => {
     state.assigned = [
       { ...job("late", week[0], "08:00", "Queen Beatrix International Airport"),
-        scheduledAt: new Date(Date.now() - 90 * 60_000).toISOString() },
+        // v2. This was Date.now() - 90 minutes, which is only "earlier
+        // today" for 22½ hours out of every 24. For the first 90 minutes
+        // of a Monday in Aruba it lands on the SUNDAY BEFORE the week on
+        // screen — the roster cannot draw a card for a day it is not
+        // showing — and the test failed every night between midnight and
+        // 01:30. A test that passes 94% of the day is worse than one that
+        // fails: it teaches you to re-run it instead of read it.
+        //
+        // Midnight today is overdue for the whole of every day and can
+        // never fall outside the week being rendered.
+        scheduledAt: arubaInstant(todayInAruba(), "00:00") },
     ];
     state.cancelled = [
       { ...job("off", week[0], "14:00", "Bucuti & Tara Beach Resort"), status: "cancelled" },
