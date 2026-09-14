@@ -388,7 +388,7 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
           </div>
         )}
 
-        <p className="sub" style={{ fontSize: "11.5px", marginBottom: 20 }}>
+        <p className="sub foot" style={{ marginBottom: 20 }}>
           Message us to move your account to a different email.
         </p>
 

@@ -416,7 +416,7 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
                 </section>
               );
             })}
-            <p className="sub" style={{ marginTop: 18, fontSize: "11.5px" }}>
+            <p className="sub foot" style={{ marginTop: 18 }}>
               Tap any day to open it on its own clock.
             </p>
           </>

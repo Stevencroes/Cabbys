@@ -34,13 +34,13 @@
   max-width:560px;width:100%;margin:0 auto;
   padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;}
 .drv-mark{font-family:var(--serif);font-weight:500;letter-spacing:.3em;text-transform:uppercase;
-  font-size:15px;padding-left:.3em;color:var(--ink);text-decoration:none;}
+  font-size:var(--t-body);padding-left:.3em;color:var(--ink);text-decoration:none;}
 .drv-mark .ap{color:var(--silver);}
-.drv-mark small{display:block;font-family:var(--sans);font-size:7.5px;letter-spacing:.34em;
+.drv-mark small{display:block;font-family:var(--sans);font-size:var(--t-micro);letter-spacing:var(--ls-micro);
   color:var(--muted);margin-top:2px;font-weight:500;}
 
 .drv-onoff{display:flex;align-items:center;gap:9px;}
-.drv-onoff .st{font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--muted);}
+.drv-onoff .st{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;font-weight:600;color:var(--muted);}
 /* online is a live state — the one thing on this bar allowed to wear signal */
 .drv-onoff .st.on{color:var(--signal-ink);}
 /* the switch itself is 28px tall but its hit area is a full 44 */
@@ -61,20 +61,48 @@
   padding:0 20px calc(84px + env(safe-area-inset-bottom,0px));}
 
 /* ── type ──────────────────────────────────────────────────────────── */
-.drv .kick{font-weight:600;font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
+.drv .kick{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 .drv .big{font-family:var(--serif);font-weight:300;font-size:34px;line-height:1.02;
   margin:8px 0 4px;letter-spacing:-.01em;}
 .drv .big em{font-style:italic;color:var(--silver);}
-.drv .sub{color:var(--muted);font-size:13px;font-weight:400;line-height:1.6;}
+.drv .sub{color:var(--muted);font-size:var(--t-body);font-weight:400;line-height:var(--lh-body);}
+/* The closing footnote under a screen — "Tap any day to open it on its own
+   clock", "No guest names or numbers shown until a job is yours". Five
+   screens each carried this as style={{fontSize:"11.5px"}} on a .sub,
+   which is the exact habit the scale exists to stop: a size hardcoded in a
+   component, below every floor, invisible to any audit of the stylesheets.
+   They are quieter than a .sub and they are still sentences, so they sit
+   on --t-meta and the number lives here. */
+.drv .sub.foot{font-size:var(--t-meta);}
 .drv .num{font-family:var(--serif);font-weight:500;}
 
 /* ── bottom nav — thumb reach ──────────────────────────────────────── */
 .drv-nav{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;
   background:var(--nav-deep);backdrop-filter:blur(16px);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom,0px);}
-.drv-nav a{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:4px;color:var(--soft);text-decoration:none;
-  font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+/* flex:1 1 auto, not flex:1. flex:1 sets the basis to 0 and hands every
+   tab an identical fifth of the bar — 72px — which SCHEDULE and EARNINGS
+   do not fit into even at 12px, so the two longest labels spilled over
+   their own cells and the first one was clipped by the screen edge. Sized
+   from content, each tab keeps its word and the slack is shared. */
+.drv-nav a{flex:1 1 auto;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;
+  /* --muted, not --soft. tokens.css carries a contrast table and a note
+     saying in as many words that --soft "is not a text colour" and is
+     scoped to disabled states and faint icons — it measures 2.39:1 on
+     --ground, well under the 4.5 floor. It was the resting colour of the
+     four links that are the ONLY navigation in this portal, at 8.5px, on
+     a bar a driver reads one-handed in sunlight. --muted is 5.59:1 on the
+     same ground and is what the table nominates for exactly this. */
+  justify-content:center;gap:4px;color:var(--muted);text-decoration:none;
+  /* --t-micro, measured rather than chosen. Five labels have to sit across
+     a 360px phone and the longest two are SCHEDULE and EARNINGS: at
+     --t-meta they need 347px of the 360 even with the tracking taken to
+     .01em, so they ran off the right edge and PROFILE was unreachable.
+     12px at .06em needs 318px and keeps visible tracking. This and the
+     ride rail are the only two places in the portal that take the 12px
+     rung, and both take it for the same reason — a fixed number of items
+     that must share one screen width. */
+  font-weight:600;font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;
   transition:color .25s var(--ease);}
 .drv-nav a.on{color:var(--ink);}
 /* the dot is the marker, and it stays silver whatever the label does */
@@ -90,9 +118,9 @@
 .drv-scell{flex:1;padding:16px 15px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);}
 .drv-scell:last-child{border-right:none;}
 .drv-srow:last-child .drv-scell{border-bottom:none;}
-.drv-sk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-sk{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--muted);font-weight:600;}
 .drv-sv{font-family:var(--serif);font-size:27px;font-weight:500;margin-top:5px;line-height:1;color:var(--ink);}
-.drv-sv small{font-size:14px;color:var(--muted);}
+.drv-sv small{font-size:var(--t-body);color:var(--muted);}
 /* a value that is words rather than a figure — "Fri 6:35 PM" */
 .drv-sv.sm{font-size:19px;letter-spacing:-.01em;}
 
@@ -109,7 +137,7 @@
 .drv-jtime{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--silver);line-height:1;}
 
 /* status chip — a tinted fill, never a solid block */
-.drv-chip{font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+.drv-chip{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   padding:5px 10px;border-radius:var(--d-r-pill);white-space:nowrap;
   background:var(--raised);color:var(--muted);border:1px solid var(--line);}
 .drv-chip.next{background:var(--raised);color:var(--ink);border-color:var(--line);}
@@ -128,17 +156,17 @@
    Beach's 2km of sand apart — was 10px of --muted, the lowest-contrast
    text colour the system allows. The qualifier now sits on --silver:
    8.02:1 on --surface against --muted's 5.12. */
-.drv-leg .lp{font-size:15px;font-weight:400;line-height:1.3;color:var(--ink);letter-spacing:-.01em;}
-.drv-leg .ls{font-size:11.5px;color:var(--silver);letter-spacing:.04em;margin-top:3px;}
+.drv-leg .lp{font-size:var(--t-body);font-weight:400;line-height:1.3;color:var(--ink);letter-spacing:-.01em;}
+.drv-leg .ls{font-size:var(--t-meta);color:var(--silver);letter-spacing:.04em;margin-top:3px;}
 
 .drv-jfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;
   margin-top:13px;padding-top:12px;border-top:1px dashed var(--line);}
-.drv-jfoot .meta{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--silver);font-weight:600;}
+.drv-jfoot .meta{font-size:var(--t-meta);letter-spacing:.09em;text-transform:uppercase;color:var(--silver);font-weight:600;}
 .drv-jfoot .fare{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);}
 
 /* a claim button sits inline in the foot, not full width */
 .drv-claim{border:none;border-radius:var(--d-r-pill);background:var(--sheen);color:var(--on-sheen);
-  padding:9px 20px;font-family:var(--sans);font-weight:600;font-size:10px;letter-spacing:.14em;
+  padding:9px 20px;font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;cursor:pointer;transition:box-shadow .3s var(--ease);min-height:38px;}
 .drv-claim:hover:not(:disabled){box-shadow:var(--shadow-hard);}
 .drv-claim:disabled{background:var(--raised);color:var(--soft);cursor:default;}
@@ -148,19 +176,19 @@
 /* ── empty state ───────────────────────────────────────────────────── */
 .drv-empty{padding:50px 24px;text-align:center;color:var(--muted);}
 .drv-empty .es{font-family:var(--serif);font-size:22px;color:var(--ink);margin-bottom:6px;}
-.drv-empty .et{font-size:12.5px;line-height:1.6;}
+.drv-empty .et{font-size:var(--t-body);line-height:1.6;}
 
 /* ── ride detail ───────────────────────────────────────────────────── */
 .drv-dhead{background:var(--surface);border-bottom:1px solid var(--line);padding:20px;flex:none;}
-.drv-dhead .dk{font-weight:600;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--silver);}
+.drv-dhead .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 .drv-dhead h1{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.05;margin:7px 0 0;color:var(--ink);}
-.drv-dhead .ref{font-size:10px;letter-spacing:.14em;color:var(--muted);margin-top:6px;font-weight:500;}
+.drv-dhead .ref{font-size:var(--t-meta);letter-spacing:var(--ls-label);color:var(--muted);margin-top:6px;font-weight:500;}
 
 .drv-pinmap{height:150px;position:relative;overflow:hidden;background:var(--surface);flex:none;
   border-bottom:1px solid var(--line);}
 .drv-pinmap svg{width:100%;height:100%;display:block;}
 .drv-pinbadge{position:absolute;left:14px;bottom:12px;background:var(--silver);color:var(--deep);
-  border-radius:var(--d-r-pill);padding:7px 13px;font-size:9.5px;font-weight:600;
+  border-radius:var(--d-r-pill);padding:7px 13px;font-size:var(--t-meta);font-weight:600;
   letter-spacing:.12em;text-transform:uppercase;max-width:calc(100% - 28px);}
 .drv-pinbadge.wait{background:var(--raised);color:var(--muted);border:1px solid var(--line);}
 
@@ -168,39 +196,46 @@
    landmark closes the last 20. Highest-value string on the screen. */
 .drv-note{position:relative;overflow:hidden;background:var(--raised);color:var(--ink);
   border:1px solid var(--line);border-radius:var(--d-r-sm);padding:13px 15px;margin:16px 0;}
-.drv-note .nk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
+.drv-note .nk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 .drv-note .nv{font-family:var(--serif);font-size:17px;font-weight:500;margin-top:3px;line-height:1.25;}
 
 .drv-rowset{border:1px solid var(--line);border-radius:var(--d-r-md);overflow:hidden;margin-bottom:16px;}
 .drv-r{display:flex;justify-content:space-between;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line);}
 .drv-r:last-child{border-bottom:none;}
-.drv-r .rl{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+.drv-r .rl{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--muted);
   font-weight:600;align-self:center;}
-.drv-r .rv{font-size:13.5px;text-align:right;font-weight:400;color:var(--ink);}
+.drv-r .rv{font-size:var(--t-body);text-align:right;font-weight:400;color:var(--ink);}
 /* the commission note beside the guest's total — present so the driver can
    check the arithmetic themselves, quiet so it never competes with their
    own figure directly above it */
-.drv-r .rsub{font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap;}
+.drv-r .rsub{font-size:var(--t-meta);color:var(--muted);font-weight:400;white-space:nowrap;}
 .drv-r .rv.hl{font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink);}
 
-.drv-pax{display:flex;align-items:center;gap:12px;padding:14px 0;margin-bottom:16px;
+/* wrap, and a real basis on the name column. The avatar, the two 46px
+   contact pills and their gaps claim ~243px of a 360px screen, which left
+   the guest's name and "3 guests - 2 bags" about 117px to share — at the
+   old 10.5px the count just fitted, at 14px it broke across two lines and
+   the row went ragged. Wrapping puts Call and Chat on their own line when
+   that happens instead, which is the right thing to lose: they are still
+   the full width of the card and still 46px tall. */
+.drv-pax{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:14px 0;margin-bottom:16px;
   border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);}
 .drv-pax .av{width:42px;height:42px;border-radius:50%;background:var(--raised);color:var(--silver);
   flex:none;display:flex;align-items:center;justify-content:center;
   font-family:var(--serif);font-size:19px;font-weight:600;}
-.drv-pax .pi{flex:1;min-width:0;}
+.drv-pax .pi{flex:1 1 150px;min-width:0;}
 .drv-pax .pn{display:block;font-family:var(--serif);font-size:18px;font-weight:500;line-height:1;}
-.drv-pax .pm{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.05em;}
-.drv-pax .pc{display:flex;gap:7px;flex:none;}
+.drv-pax .pm{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;letter-spacing:.02em;}
+.drv-pax .pc{display:flex;gap:7px;flex:none;margin-left:auto;}
 .drv-pax .pc a{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
-  background:none;color:var(--silver);font-size:14px;display:flex;align-items:center;
+  background:none;color:var(--silver);font-size:var(--t-meta);display:flex;align-items:center;
   justify-content:center;text-decoration:none;transition:background .25s var(--ease),color .25s var(--ease);}
 .drv-pax .pc a:hover{background:var(--raised);color:var(--ink);}
 
 /* ── buttons ───────────────────────────────────────────────────────── */
 .drv-cta{display:flex;align-items:center;justify-content:center;width:100%;border:none;
   border-radius:var(--d-r-pill);padding:16px;min-height:52px;
-  font-family:var(--sans);font-weight:600;font-size:12.5px;letter-spacing:.14em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;cursor:pointer;text-decoration:none;
   transition:box-shadow .3s var(--ease),transform .3s var(--ease);}
 /* both primaries wear the brushed strip; the label carries the difference */
@@ -222,15 +257,15 @@
 .drv-seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--d-r-pill);
   background:var(--surface);overflow:hidden;margin:12px 0 20px;}
 .drv-seg button{background:none;border:none;padding:11px 17px;min-height:40px;
-  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.14em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);cursor:pointer;transition:.25s var(--ease);}
 .drv-seg button.on{background:var(--sheen);color:var(--on-sheen);}
 
 .drv-etot{text-align:center;margin-bottom:20px;}
-.drv-etot .ek{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-etot .ek{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--muted);font-weight:600;}
 .drv-etot .ev{font-family:var(--serif);font-size:56px;font-weight:600;line-height:1;
   color:var(--ink);margin:6px 0 3px;}
-.drv-etot .ed{font-size:11px;color:var(--muted);letter-spacing:.05em;}
+.drv-etot .ed{font-size:var(--t-meta);color:var(--muted);letter-spacing:.05em;}
 
 .drv-chart{display:flex;align-items:flex-end;gap:7px;height:104px;margin-bottom:22px;}
 .drv-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
@@ -239,7 +274,7 @@
   transition:height .6s var(--ease);}
 .drv-bar.mid .bfill{background:var(--soft);}
 .drv-bar.peak .bfill{background:var(--silver);}
-.drv-bar .bl{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-bar .bl{font-size:var(--t-meta);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
 /* The bars are buttons now, so they need to look touchable and say which
    one is open. Reset the button chrome the shared rules would give them
    and keep the 44px target the rest of the portal uses — a bar is 104px
@@ -251,15 +286,15 @@
 .drv-bar.open .bl{color:var(--ink);}
 .drv-bar:focus-visible{outline:2px solid var(--silver);outline-offset:3px;border-radius:6px;}
 /* the way back out of a single day */
-.drv-allweek{margin:0 0 18px;min-height:40px;font-size:11px;}
+.drv-allweek{margin:0 0 18px;min-height:40px;font-size:var(--t-body);}
 /* the rides behind the figure above — History's row, same fact, different
    reason for looking at it */
 .drv-breakdown{margin:0 0 22px;border-top:1px solid var(--line);}
 
 .drv-payout{border:1px solid var(--line);border-radius:var(--d-r-md);padding:16px;margin-top:6px;}
-.drv-payout .pk{font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+.drv-payout .pk{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--muted);font-weight:600;}
 .drv-payout .pv{font-family:var(--serif);font-size:20px;font-weight:600;margin-top:4px;color:var(--ink);}
-.drv-payout .pd{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
+.drv-payout .pd{font-size:var(--t-meta);color:var(--muted);margin-top:5px;line-height:1.5;}
 
 /* ── history — the receipt drawer ──────────────────────────────────── */
 .drv-hrow{display:flex;align-items:center;gap:12px;padding:14px 0;
@@ -267,10 +302,10 @@
 .drv-hrow:last-child{border-bottom:none;}
 .drv-hav{width:36px;height:36px;border-radius:50%;background:var(--raised);color:var(--silver);
   flex:none;display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:16px;font-weight:600;}
+  font-family:var(--serif);font-size:var(--t-body);font-weight:600;}
 .drv-hmain{flex:1;min-width:0;}
-.drv-hmain .hr{font-family:var(--serif);font-size:16px;font-weight:500;line-height:1.15;}
-.drv-hmain .hm{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.04em;}
+.drv-hmain .hr{font-family:var(--serif);font-size:var(--t-body);font-weight:500;line-height:1.15;}
+.drv-hmain .hm{font-size:var(--t-meta);color:var(--muted);margin-top:3px;letter-spacing:.04em;}
 .drv-hf{font-family:var(--serif);font-size:17px;font-weight:600;flex:none;color:var(--ink);}
 
 /* ── gates: pending, suspended, signed-out ─────────────────────────── */
@@ -285,7 +320,7 @@
 .drv-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
 .drv-gate .gi.mark{border-color:var(--line);color:var(--ink);font-family:var(--serif);}
 .drv-gate h1{font-family:var(--serif);font-weight:300;font-size:28px;margin:0 0 10px;line-height:1.1;}
-.drv-gate p{color:var(--muted);font-size:13px;line-height:1.7;max-width:32ch;font-weight:400;margin:0;}
+.drv-gate p{color:var(--muted);font-size:var(--t-body);line-height:1.7;max-width:32ch;font-weight:400;margin:0;}
 
 /* sign-in reuses the passenger AuthForm. That form is now built on the
    same dark ground, so the local token overrides it used to need are gone. */
@@ -294,15 +329,15 @@
 .drv-diag{width:100%;max-width:320px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--d-r-md);padding:16px 18px;text-align:left;margin-top:22px;}
 .drv-diag .row + .row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
-.drv-diag .k{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.drv-diag .k{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
-.drv-diag .v{display:block;font-size:14px;color:var(--ink);word-break:break-word;}
-.drv-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--muted);}
+.drv-diag .v{display:block;font-size:var(--t-body);color:var(--ink);word-break:break-word;}
+.drv-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);color:var(--muted);}
 .drv-gate .drv-cta{max-width:320px;margin-top:20px;}
 
 /* ── profile ───────────────────────────────────────────────────────── */
 .drv-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 15px;
-  border-radius:var(--d-r-pill);font-weight:600;font-size:9px;letter-spacing:.2em;
+  border-radius:var(--d-r-pill);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;border:1px solid;}
 .drv-badge.approved{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
 .drv-badge.pending{background:transparent;border-color:var(--soft);color:var(--silver);}
@@ -319,7 +354,7 @@
   box-shadow:0 0 0 1px var(--signal-glow),var(--shadow-hard-lg);}
 
 .drv-offer .oh{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-.drv-offer .ok{font-weight:600;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
+.drv-offer .ok{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 
 /* the countdown ring — the number is the fallback, the sweep is the feel */
 .drv-offer .ring{position:relative;width:52px;height:52px;flex:none;display:flex;
@@ -331,27 +366,27 @@
 .drv-offer .ring b{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);}
 
 .drv-offer .ofare{font-family:var(--serif);font-size:52px;font-weight:600;line-height:1;color:var(--ink);}
-.drv-offer .owhen{font-weight:600;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+.drv-offer .owhen{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);margin-top:6px;}
 .drv-offer .olegs{margin:18px 0 0;padding:16px 0;
   border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);}
-.drv-offer .ometa{font-weight:600;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+.drv-offer .ometa{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);margin-top:14px;}
-.drv-offer .orefused{margin-top:14px;font-size:13px;line-height:1.5;color:var(--alert-ink);font-weight:400;}
+.drv-offer .orefused{margin-top:14px;font-size:var(--t-body);line-height:1.5;color:var(--alert-ink);font-weight:400;}
 .drv-offer .oacts{margin-top:18px;}
 
 /* a refusal the driver can act on, rather than a button that did nothing */
 .drv-refused{margin-top:16px;border:1px solid var(--alert-line);border-radius:var(--d-r-md);
   background:var(--alert-tint);padding:13px 15px;}
-.drv-refused .rk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
+.drv-refused .rk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--alert-ink);}
-.drv-refused p{margin:5px 0 0;font-size:13px;line-height:1.5;color:var(--ink);font-weight:400;}
-.drv-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-word;}
+.drv-refused p{margin:5px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);word-break:break-word;}
 
 /* the day segments on the agenda */
 .drv-span{display:flex;width:100%;margin:20px 0 16px;}
 .drv-span button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;}
-.drv-span button b{font-family:var(--serif);font-size:13px;font-weight:600;opacity:.75;}
+.drv-span button b{font-family:var(--serif);font-size:var(--t-meta);font-weight:600;opacity:.75;}
 /* the count rides on the active pill, so it darkens rather than lightens */
 .drv-seg button.on b{opacity:1;background:var(--on-sheen-wash);color:var(--on-sheen);
   border-radius:var(--d-r-pill);padding:0 7px;min-width:20px;text-align:center;}
@@ -361,10 +396,10 @@
   z-index:85;display:flex;align-items:center;justify-content:space-between;gap:12px;
   background:var(--surface);border:1px solid var(--signal-line);border-radius:var(--d-r-md);
   padding:12px 14px;max-width:528px;margin:0 auto;animation:drvfade .3s var(--ease);}
-.drv-booked .bk{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.drv-booked .bk{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--silver);}
 .drv-booked .bv{display:block;font-family:var(--serif);font-size:17px;font-weight:500;margin-top:2px;}
-.drv-booked button{background:none;border:none;color:var(--silver);font-size:15px;
+.drv-booked button{background:none;border:none;color:var(--silver);font-size:var(--t-body);
   min-width:44px;min-height:44px;cursor:pointer;}
 
 /* the grace bar — a lapsed offer, still reachable */
@@ -373,10 +408,10 @@
   background:var(--surface);border:1px solid var(--alert-line);border-radius:var(--d-r-md);
   padding:10px 10px 10px 15px;animation:drvfade .3s var(--ease);}
 .drv-grace .gi{flex:1;min-width:0;}
-.drv-grace .gk{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.drv-grace .gk{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--alert-ink);}
-.drv-grace .gv{display:block;font-family:var(--serif);font-size:16px;font-weight:500;margin-top:2px;}
-.drv-grace .gx{background:none;border:none;color:var(--muted);font-size:14px;
+.drv-grace .gv{display:block;font-family:var(--serif);font-size:var(--t-body);font-weight:500;margin-top:2px;}
+.drv-grace .gx{background:none;border:none;color:var(--muted);font-size:var(--t-body);
   min-width:40px;min-height:40px;cursor:pointer;}
 
 /* the affirmative twin of .drv-refused */
@@ -401,7 +436,7 @@
 .drv-weekbar .wlab{flex:1;text-align:center;min-width:0;}
 .drv-weekbar .wr{display:block;font-family:var(--serif);font-size:20px;font-weight:600;
   color:var(--ink);line-height:1.1;}
-.drv-weekbar .wm{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.drv-weekbar .wm{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--silver);margin-top:4px;}
 
 /* ── the seven columns ── */
@@ -411,12 +446,12 @@
   border:1px solid var(--line);background:var(--surface);color:var(--ink);
   cursor:pointer;font-family:var(--sans);
   transition:background .25s var(--ease),border-color .25s var(--ease),color .25s var(--ease);}
-.drv-week .wl{font-weight:600;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);}
+.drv-week .wl{font-weight:600;font-size:var(--t-meta);letter-spacing:.12em;text-transform:uppercase;color:var(--silver);}
 .drv-week .wn{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1;}
 /* the count keeps its box whether or not it has a number in it, so seven
    columns stay one height and the row never jitters as the week changes */
 .drv-week .wc{min-height:16px;min-width:16px;display:flex;align-items:center;justify-content:center;
-  font-size:9.5px;font-weight:600;line-height:1;border-radius:var(--d-r-pill);
+  font-size:var(--t-meta);font-weight:600;line-height:1;border-radius:var(--d-r-pill);
   background:var(--signal-tint);color:var(--signal-ink);padding:0 5px;}
 .drv-week .wday.idle .wc{background:none;color:transparent;}
 .drv-week .wday.idle .wn{color:var(--muted);font-weight:500;}
@@ -434,10 +469,10 @@
 .drv-dayhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
   padding:0 0 12px;border-bottom:1px solid var(--line);margin-bottom:18px;}
 .drv-dayhead .dn{font-family:var(--serif);font-size:26px;font-weight:500;line-height:1;color:var(--ink);}
-.drv-dayhead .dd{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+.drv-dayhead .dd{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);margin-top:6px;}
 .drv-dayhead .dp{text-align:right;flex:none;}
-.drv-dayhead .dk{display:block;font-weight:600;font-size:9px;letter-spacing:.16em;
+.drv-dayhead .dk{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);}
 .drv-dayhead .dv{display:block;font-family:var(--serif);font-size:20px;font-weight:600;
   color:var(--ink);margin-top:3px;}
@@ -449,13 +484,13 @@
    actually planning around. */
 .drv-slot{display:flex;gap:12px;align-items:flex-start;}
 .drv-clock{flex:none;width:70px;padding-top:14px;text-align:right;}
-.drv-clock .ct{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--silver);
+.drv-clock .ct{font-family:var(--serif);font-size:var(--t-body);font-weight:600;color:var(--silver);
   line-height:1.1;display:block;white-space:nowrap;}
 .drv-slotbody{flex:1;min-width:0;}
 /* the rail keeps running through the gap: a dashed line down the clock
    column, with the distance named beside it */
 .drv-gap{position:relative;display:flex;align-items:center;gap:10px;margin:0 0 12px;padding-left:82px;}
-.drv-gap span{font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+.drv-gap span{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);}
 .drv-gap::before{content:"";position:absolute;left:35px;top:-8px;bottom:-4px;width:1px;
   background:repeating-linear-gradient(var(--line) 0 3px,transparent 3px 7px);}
@@ -463,8 +498,8 @@
 /* an empty day is information, so it is drawn rather than left blank */
 .drv-free{display:flex;align-items:baseline;gap:10px;padding:14px 16px;margin-bottom:12px;
   border:1px dashed var(--line);border-radius:var(--d-r-md);background:none;}
-.drv-free .fk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
-.drv-free .fv{font-size:12.5px;color:var(--muted);}
+.drv-free .fk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.drv-free .fv{font-size:var(--t-body);color:var(--muted);}
 
 /* ── the week, listed ── */
 .drv-daysec{margin-bottom:6px;}
@@ -475,10 +510,10 @@
 .drv-dayrow:hover{opacity:.72;}
 .drv-dayrow .dl{display:flex;align-items:baseline;gap:9px;min-width:0;}
 .drv-dayrow .dw{font-family:var(--serif);font-size:19px;font-weight:500;color:var(--ink);}
-.drv-dayrow .dm{font-weight:600;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
+.drv-dayrow .dm{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 .drv-dayrow .dr{display:flex;align-items:center;gap:10px;flex:none;}
-.drv-dayrow .dpay{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--silver);}
-.drv-dayrow .dcount{min-width:24px;text-align:center;font-weight:600;font-size:9.5px;
+.drv-dayrow .dpay{font-family:var(--serif);font-size:var(--t-body);font-weight:600;color:var(--silver);}
+.drv-dayrow .dcount{min-width:24px;text-align:center;font-weight:600;font-size:var(--t-meta);
   letter-spacing:.12em;text-transform:uppercase;color:var(--ink);
   background:var(--raised);border:1px solid var(--line);border-radius:var(--d-r-pill);padding:5px 9px;}
 /* today's band is the one the eye should land on in a list of seven */
@@ -501,9 +536,9 @@
 /* when — a band, so the eye finds it before it finds anything else */
 .drv-pool .pc-when{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
   padding:13px 17px;background:var(--raised);border-bottom:1px solid var(--line);}
-.drv-pool .pw-day{font-weight:600;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);}
+.drv-pool .pw-day{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 .drv-pool .pw-time{font-family:var(--serif);font-size:21px;font-weight:600;color:var(--ink);line-height:1;}
-.drv-pool .pw-rel{margin-left:auto;font-weight:600;font-size:9.5px;letter-spacing:.14em;
+.drv-pool .pw-rel{margin-left:auto;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);}
 
 /* where */
@@ -512,7 +547,7 @@
 /* Each fact is its own object. Joined with middots they were one grey
    string, and "1 child seat" — the fact a driver has to act on before
    leaving the house — was the easiest part of it to skim past. */
-.drv-pool .pc-facts li{font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+.drv-pool .pc-facts li{font-weight:600;font-size:var(--t-body);letter-spacing:.1em;text-transform:uppercase;
   color:var(--silver);background:var(--raised);border:1px solid var(--line);
   border-radius:var(--d-r-pill);padding:6px 11px;}
 
@@ -520,17 +555,17 @@
 .drv-pool .pc-money{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
   padding:14px 17px 16px;border-top:1px solid var(--line);background:var(--raised);}
 .drv-pool .pm-fig{min-width:0;}
-.drv-pool .pm-k{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.drv-pool .pm-k{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--silver);}
 .drv-pool .pm-v{display:block;font-family:var(--serif);font-size:40px;font-weight:600;
   line-height:1;color:var(--ink);margin:2px 0 4px;}
-.drv-pool .pm-s{display:block;font-size:11px;color:var(--muted);line-height:1.4;}
+.drv-pool .pm-s{display:block;font-size:var(--t-meta);color:var(--muted);line-height:1.4;}
 .drv-pool .pc-accept{width:auto;flex:none;padding:14px 26px;min-height:48px;}
 
 /* the day headings between groups of cards */
 .drv-poolday{display:flex;align-items:center;gap:10px;margin:24px 0 12px;}
-.drv-poolday .pd-k{font-weight:600;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);}
-.drv-poolday .pd-n{font-weight:600;font-size:9px;letter-spacing:.1em;color:var(--muted);
+.drv-poolday .pd-k{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--ink);}
+.drv-poolday .pd-n{font-weight:600;font-size:var(--t-meta);letter-spacing:.1em;color:var(--muted);
   border:1px solid var(--line);border-radius:var(--d-r-pill);padding:3px 8px;}
 /* the rule runs out to the edge, so the groups read as bands not as a list */
 .drv-poolday::after{content:"";flex:1;height:1px;background:var(--line);}
@@ -543,16 +578,16 @@
   max-width:560px;width:100%;margin:0 auto;
   padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;}
 .drv-dbar button{display:inline-flex;align-items:center;gap:5px;background:none;border:none;
-  color:var(--silver);font-family:var(--sans);font-weight:600;font-size:10px;
-  letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+  color:var(--silver);font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  letter-spacing:var(--ls-label);text-transform:uppercase;cursor:pointer;
   min-height:44px;padding:0 8px;transition:color .25s var(--ease);}
 .drv-dbar button:hover{color:var(--ink);}
 .drv-dbar button span{font-size:18px;line-height:1;}
-.drv-dbar .dbr{font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+.drv-dbar .dbr{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);padding-right:8px;}
 
 /* where the job stands */
-.drv-rail{display:flex;list-style:none;gap:0;padding:16px 20px 14px;
+.drv-rail{display:flex;list-style:none;gap:4px;padding:16px 20px 14px;
   max-width:560px;width:100%;margin:0 auto;}
 .drv-rail li{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
   position:relative;min-width:0;}
@@ -561,8 +596,17 @@
   top:4px;height:1px;background:var(--line);}
 .drv-rail li.done + li::before,.drv-rail li.now::before{background:var(--signal-line);}
 .drv-rail .rd{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;}
-.drv-rail .rt{font-weight:600;font-size:8px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--muted);text-align:center;line-height:1.3;}
+/* --t-micro, and the only place in this portal that takes it. Five step
+   names have to sit side by side across a 360px screen: at --t-meta
+   "BOOKED" and "ON THE WAY" were wider than the 72px column each one gets
+   and ran into each other, which is less readable than the 8px they
+   replaced, not more. This is the pattern the 12px rung exists for — the
+   step you are on is also carried by the filled dot, the --ink colour and
+   aria-current, so the word is confirming those three rather than being
+   the only thing that says it. Tracking near zero: there is no room to
+   spend and 12px does not need it. */
+.drv-rail .rt{font-weight:600;font-size:var(--t-micro);letter-spacing:.04em;text-transform:uppercase;
+  color:var(--muted);text-align:center;line-height:1.25;overflow-wrap:break-word;hyphens:none;}
 .drv-rail li.done .rd{background:var(--signal);}
 .drv-rail li.done .rt{color:var(--silver);}
 .drv-rail li.now .rd{background:var(--signal);box-shadow:0 0 0 4px var(--signal-glow);}
@@ -571,26 +615,28 @@
 .drv-pinmap img{width:100%;height:100%;object-fit:cover;display:block;}
 /* the licence, or the honest word that this is a drawing. On its own
    ground because the coastline runs right under it. */
-.drv-pinnote{position:absolute;right:12px;top:12px;font-size:9px;letter-spacing:.1em;
+/* --t-meta: this is a caption riding on the map, not a sentence. At body
+   size the disclaimer was competing with the pin it disclaims. */
+.drv-pinnote{position:absolute;right:12px;top:12px;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;font-weight:600;color:var(--muted);
   background:var(--ground);border-radius:var(--d-r-pill);padding:4px 9px;}
 /* ?mapdebug=1 — the reason, in full, for whoever is fixing it. Not
    uppercase and not truncated: this one is meant to be read. */
 .drv-pinnote.dbg{left:12px;right:12px;bottom:8px;text-transform:none;letter-spacing:0;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:400;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);font-weight:400;
   line-height:1.4;border-radius:var(--d-r-sm);padding:7px 9px;background:var(--scrim-heavy);
   color:var(--silver);}
 
 /* Call and Chat: labelled, because two unlabelled glyphs beside a name
    were a guess at 60km/h. Both keep a 46px target. */
 .drv-pax .pc a{width:auto;min-width:var(--tap);height:var(--tap);border-radius:var(--d-r-pill);
-  gap:6px;padding:0 14px;font-weight:600;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;}
+  gap:6px;padding:0 14px;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
 .drv-pax .pc a svg{width:15px;height:15px;flex:none;}
 
 /* an undo is a quiet control: findable, never competing with the step */
 .drv-undo{display:block;width:100%;margin-top:10px;background:none;border:none;
-  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:10px;
-  letter-spacing:.14em;text-transform:uppercase;cursor:pointer;min-height:44px;
+  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  letter-spacing:var(--ls-label);text-transform:uppercase;cursor:pointer;min-height:44px;
   transition:color .25s var(--ease);}
 .drv-undo:hover:not(:disabled){color:var(--silver);}
 .drv-undo:disabled{opacity:.5;cursor:wait;}
@@ -610,8 +656,8 @@
 /* the month band — a dispute about August is settled by a line saying August */
 .drv-band{display:flex;align-items:center;gap:10px;margin:26px 0 4px;
   padding-bottom:9px;border-bottom:1px solid var(--line);}
-.drv-band .bk{font-weight:600;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink);}
-.drv-band .bn{font-weight:600;font-size:9px;letter-spacing:.1em;color:var(--muted);
+.drv-band .bk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--ink);}
+.drv-band .bn{font-weight:600;font-size:var(--t-meta);letter-spacing:.1em;color:var(--muted);
   border:1px solid var(--line);border-radius:var(--d-r-pill);padding:3px 8px;}
 .drv-band .bv{margin-left:auto;font-family:var(--serif);font-size:17px;font-weight:600;color:var(--silver);}
 
@@ -619,7 +665,7 @@
 .drv-find{position:relative;display:flex;align-items:center;margin:16px 0 4px;}
 .drv-find input{flex:1;min-width:0;height:var(--tap);border-radius:var(--d-r-pill);
   border:1px solid var(--line);background:var(--raised);color:var(--ink);
-  font-family:var(--sans);font-size:13.5px;font-weight:400;padding:0 44px 0 18px;
+  font-family:var(--sans);font-size:var(--t-body);font-weight:400;padding:0 44px 0 18px;
   transition:border-color .25s var(--ease);}
 .drv-find input::placeholder{color:var(--placeholder);}
 .drv-find input:focus{outline:none;border-color:var(--silver-deep);}
@@ -628,7 +674,7 @@
    one that matches the rest of the portal */
 .drv-find input::-webkit-search-cancel-button{display:none;}
 .drv-find button{position:absolute;right:4px;width:40px;height:40px;border-radius:50%;
-  background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;
+  background:none;border:none;color:var(--muted);font-size:var(--t-meta);cursor:pointer;
   transition:color .25s var(--ease);}
 .drv-find button:hover{color:var(--ink);}
 
@@ -637,7 +683,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 /* a text button that lives inside a row, not a control competing with it */
 .drv-inline{background:none;border:none;margin-left:12px;padding:0 2px;
-  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.16em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-body);letter-spacing:.16em;
   text-transform:uppercase;color:var(--silver);cursor:pointer;
   transition:color .25s var(--ease);}
 .drv-inline:hover:not(:disabled){color:var(--ink);}
@@ -648,7 +694,7 @@
 .drv-r.edit label{flex:none;}
 .drv-r.edit input{flex:1;min-width:140px;height:40px;border-radius:var(--d-r-sm);
   border:1px solid var(--line);background:var(--raised);color:var(--ink);
-  font-family:var(--sans);font-size:14px;font-weight:400;padding:0 12px;}
+  font-family:var(--sans);font-size:var(--t-body);font-weight:400;padding:0 12px;}
 .drv-r.edit input:focus{outline:none;border-color:var(--silver-deep);}
 .drv-r.edit input:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 .drv-r.edit .acts{display:flex;align-items:center;gap:4px;flex:none;}
@@ -658,9 +704,9 @@
 /* signing out asks first */
 .drv-confirm{border:1px solid var(--alert-line);background:var(--alert-tint);
   border-radius:var(--d-r-md);padding:16px;}
-.drv-confirm p{margin:0 0 14px;font-size:13px;line-height:1.6;color:var(--ink);font-weight:400;}
+.drv-confirm p{margin:0 0 14px;font-size:var(--t-body);line-height:1.6;color:var(--ink);font-weight:400;}
 .drv-confirm .row{display:flex;gap:10px;}
-.drv-confirm .row .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
+.drv-confirm .row .drv-cta{margin-top:0;font-size:var(--t-meta);padding:14px 12px;min-height:48px;}
 
 /* ══════════════════════════════════════════════════════════════════════
    THE SWITCH THAT DIDN'T LAND
@@ -669,9 +715,9 @@
   margin:0 auto 4px;padding:11px 8px 11px 16px;
   border:1px solid var(--alert-line);background:var(--alert-tint);
   border-radius:var(--d-r-md);animation:drvfade .3s var(--ease);}
-.drv-offline span{flex:1;font-size:12px;line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-offline span{flex:1;font-size:var(--t-meta);line-height:1.5;color:var(--ink);font-weight:400;}
 .drv-offline button{flex:none;background:none;border:none;color:var(--muted);
-  font-size:13px;min-width:40px;min-height:40px;cursor:pointer;}
+  font-size:var(--t-meta);min-width:40px;min-height:40px;cursor:pointer;}
 
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -681,7 +727,7 @@
 /* the wordmark stands in for the mark circle where the screen is ours
    rather than a state: the hold, and the sign-in */
 .drv-mark.gate{font-size:19px;margin-bottom:26px;text-align:center;}
-.drv-mark.gate small{font-size:8px;letter-spacing:.38em;margin-top:5px;}
+.drv-mark.gate small{font-size:var(--t-micro);letter-spacing:var(--ls-micro);margin-top:5px;}
 
 /* The first thing seen on every cold open, and it was a grey line on a
    black screen. Still brief, still quiet — but ours. */
@@ -690,7 +736,7 @@
 
 /* the database's own words, for whoever has to fix it */
 .drv-gate .drv-why{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:11px;line-height:1.5;color:var(--muted);margin-top:14px;
+  font-size:var(--t-body);line-height:1.5;color:var(--muted);margin-top:14px;
   max-width:34ch;word-break:break-word;opacity:.8;}
 
 .drv-gateacts{width:100%;max-width:320px;margin-top:24px;}
@@ -700,13 +746,13 @@
    reachable, and still a 46px target — it just no longer reads as the
    suggested move on a screen whose actual answer is "wait" or "ask us". */
 .drv-quiet{display:block;width:100%;margin-top:18px;background:none;border:none;
-  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:10px;
+  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:var(--t-body);
   letter-spacing:.16em;text-transform:uppercase;cursor:pointer;min-height:var(--tap);
   transition:color .25s var(--ease);}
 .drv-quiet:hover{color:var(--silver);}
 
 /* a guest who landed here by accident: the back button is where they came from */
-.drv-wayout{display:inline-block;margin-top:26px;color:var(--muted);font-size:12px;
+.drv-wayout{display:inline-block;margin-top:26px;color:var(--muted);font-size:var(--t-body);
   font-weight:400;text-decoration:underline;text-underline-offset:4px;
   text-decoration-color:var(--line);transition:color .25s var(--ease);}
 .drv-wayout:hover{color:var(--silver);}
@@ -714,10 +760,10 @@
 
 /* what the booking was told — facts, one per line, not a paragraph */
 .drv-told{border:1px solid var(--line);border-radius:var(--d-r-md);padding:14px 16px;margin-bottom:16px;}
-.drv-told .tk{font-weight:600;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
+.drv-told .tk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);margin-bottom:9px;}
 .drv-told ul{list-style:none;margin:0;padding:0;}
-.drv-told li{position:relative;padding-left:15px;font-size:13.5px;line-height:1.5;color:var(--ink);}
+.drv-told li{position:relative;padding-left:15px;font-size:var(--t-body);line-height:1.5;color:var(--ink);}
 .drv-told li + li{margin-top:7px;}
 .drv-told li::before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
   border-radius:50%;background:var(--silver-deep);}
@@ -730,14 +776,14 @@
    competing with the thing next to it.
    ══════════════════════════════════════════════════════════════════════ */
 .drv-where{margin-bottom:18px;}
-.drv-where .wk{font-weight:600;font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+.drv-where .wk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);}
 .drv-where .wn{font-family:var(--serif);font-size:25px;font-weight:500;line-height:1.15;
   color:var(--ink);margin-top:6px;letter-spacing:-.01em;}
 /* the last hundred metres, and the only line on the screen allowed to
    wear signal as text — it is the one fact that stops a driver circling */
-.drv-where .wp{font-size:15px;font-weight:500;color:var(--signal-ink);margin-top:7px;letter-spacing:-.005em;}
-.drv-where .wh{font-size:13px;line-height:1.55;color:var(--muted);margin-top:6px;font-weight:400;}
+.drv-where .wp{font-size:var(--t-body);font-weight:500;color:var(--signal-ink);margin-top:7px;letter-spacing:-.005em;}
+.drv-where .wh{font-size:var(--t-body);line-height:1.55;color:var(--muted);margin-top:6px;font-weight:400;}
 /* NOT .drv-nav — that is the fixed tab bar at the foot of the portal,
    and a Navigate link wearing it inherited position:fixed and floated
    over the middle of the screen. */
@@ -748,13 +794,13 @@
 .drv-quick a{flex:1 1 auto;text-align:center;min-height:var(--tap);display:inline-flex;
   align-items:center;justify-content:center;padding:0 14px;border-radius:var(--d-r-pill);
   border:1px solid var(--line);background:var(--raised);color:var(--silver);
-  text-decoration:none;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  text-decoration:none;font-weight:600;font-size:var(--t-meta);letter-spacing:.12em;text-transform:uppercase;
   transition:color .25s var(--ease),border-color .25s var(--ease);}
 .drv-quick a:hover{color:var(--ink);border-color:var(--silver-deep);}
 
 /* the way to a human, never dressed as the ride's own action */
 .drv-help{display:block;text-align:center;margin-top:4px;min-height:var(--tap);
-  line-height:var(--tap);color:var(--muted);font-size:11.5px;font-weight:500;
+  line-height:var(--tap);color:var(--muted);font-size:var(--t-body);font-weight:500;
   text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line);
   transition:color .25s var(--ease);}
 .drv-help:hover{color:var(--silver);}
@@ -774,19 +820,19 @@
   box-shadow:0 0 0 4px var(--signal-glow);animation:drvpulse 2s var(--ease) infinite;}
 @keyframes drvpulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 .drv-live .li{flex:1;min-width:0;}
-.drv-live .lk{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.drv-live .lk{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--signal-ink);}
 .drv-live .lv{display:block;font-family:var(--serif);font-size:17px;font-weight:500;margin-top:2px;
   color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.drv-live .lg{flex:none;font-weight:600;font-size:9.5px;letter-spacing:.16em;
+.drv-live .lg{flex:none;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--silver);}
 
 /* the confirm before the one step with nothing behind it */
 .drv-actionbar .drv-confirm{border:1px solid var(--alert-line);background:var(--alert-tint);
   border-radius:var(--d-r-md);padding:14px;}
-.drv-actionbar .drv-confirm p{margin:0 0 12px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:400;}
+.drv-actionbar .drv-confirm p{margin:0 0 12px;font-size:var(--t-body);line-height:1.55;color:var(--ink);font-weight:400;}
 .drv-actionbar .drv-confirm .row{display:flex;gap:10px;}
-.drv-actionbar .drv-confirm .row .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
+.drv-actionbar .drv-confirm .row .drv-cta{margin-top:0;font-size:var(--t-meta);padding:14px 12px;min-height:48px;}
 
 
 /* ── work that was taken away ────────────────────────────────────────
@@ -795,12 +841,12 @@
    the roster wearing the alert chip the card already knows how to draw. */
 .drv-called{margin-top:22px;border:1px solid var(--alert-line);background:var(--alert-tint);
   border-radius:var(--d-r-md);padding:15px 17px;}
-.drv-called .ck{font-weight:600;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+.drv-called .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--alert-ink);}
 .drv-called ul{list-style:none;margin:10px 0 0;padding:0;}
-.drv-called li{font-size:13.5px;line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-called li{font-size:var(--t-body);line-height:1.5;color:var(--ink);font-weight:400;}
 .drv-called li + li{margin-top:5px;}
-.drv-called p{margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;}
+.drv-called p{margin:10px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);font-weight:400;}
 /* A cancelled job is readable, and plainly not work: the card recedes
    rather than disappearing, which is what it used to do. Keyed on the
    ride's own status — an earlier version keyed on .drv-chip.alert, which
@@ -816,23 +862,23 @@
    wrong thing to make easy, so it opens as a line of text and only then
    becomes a form. */
 .drv-handback{display:block;width:100%;margin-top:4px;background:none;border:none;
-  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:10px;
-  letter-spacing:.14em;text-transform:uppercase;cursor:pointer;min-height:var(--tap);
+  color:var(--muted);font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  letter-spacing:var(--ls-label);text-transform:uppercase;cursor:pointer;min-height:var(--tap);
   transition:color .25s var(--ease);}
 .drv-handback:hover{color:var(--alert-ink);}
 .drv-give{margin-top:8px;border:1px solid var(--alert-line);background:var(--alert-tint);
   border-radius:var(--d-r-md);padding:16px;}
-.drv-give .gk{font-weight:600;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+.drv-give .gk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--alert-ink);}
-.drv-give p{margin:8px 0 12px;font-size:13px;line-height:1.55;color:var(--ink);font-weight:400;}
+.drv-give p{margin:8px 0 12px;font-size:var(--t-body);line-height:1.55;color:var(--ink);font-weight:400;}
 .drv-give input{width:100%;height:46px;border-radius:var(--d-r-sm);border:1px solid var(--line);
-  background:var(--surface);color:var(--ink);font-family:var(--sans);font-size:14px;
+  background:var(--surface);color:var(--ink);font-family:var(--sans);font-size:var(--t-body);
   font-weight:400;padding:0 13px;}
 .drv-give input::placeholder{color:var(--placeholder);}
 .drv-give input:focus{outline:none;border-color:var(--silver-deep);}
 .drv-give input:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 .drv-give .row{display:flex;gap:10px;margin-top:12px;}
-.drv-give .row .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
+.drv-give .row .drv-cta{margin-top:0;font-size:var(--t-meta);padding:14px 12px;min-height:48px;}
 .drv-give .row .drv-cta:disabled{opacity:.45;cursor:not-allowed;}
 
 
@@ -855,7 +901,7 @@
 .drv-made{margin:0 0 22px;padding:14px 16px;border:1px solid var(--line);
   border-radius:var(--d-r-md);display:flex;flex-direction:column;gap:9px;}
 .drv-made > div{display:flex;align-items:baseline;justify-content:space-between;gap:14px;}
-.drv-made dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+.drv-made dt{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);font-weight:600;margin:0;}
 .drv-made dd{margin:0;font-family:var(--serif);font-size:17px;font-weight:600;
   color:var(--silver);font-variant-numeric:tabular-nums;}
@@ -871,16 +917,16 @@
 .drv-chart.dense{gap:3px;}
 .drv-chart.dense .drv-bar{gap:5px;}
 .drv-chart.dense .bfill{border-radius:2px 2px 0 0;}
-.drv-chart.dense .bl{font-size:8px;letter-spacing:0;}
+.drv-chart.dense .bl{font-size:var(--t-meta);letter-spacing:0;}
 
 
 /* a ride that was called off, said before anything else on the screen */
 .drv-closed{display:flex;flex-direction:column;gap:4px;max-width:560px;width:100%;
   margin:0 auto;padding:13px 20px;background:var(--alert-tint);
   border-top:1px solid var(--alert-line);border-bottom:1px solid var(--alert-line);}
-.drv-closed .ck{font-weight:600;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+.drv-closed .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--alert-ink);}
-.drv-closed .cv{font-size:13.5px;line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-closed .cv{font-size:var(--t-body);line-height:1.5;color:var(--ink);font-weight:400;}
 /* the walk is over, so it stops looking like a thing in progress */
 .drv-rail.off{opacity:.4;}
 
@@ -892,7 +938,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 .drv-car{border:1px solid var(--line);border-radius:var(--d-r-md);padding:16px;margin-bottom:20px;}
 .drv-car .car-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-.drv-car .ck{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
+.drv-car .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 
 .drv-car .car-face{display:flex;align-items:center;gap:14px;padding-bottom:15px;
   border-bottom:1px dashed var(--line);}
@@ -904,34 +950,34 @@
 .drv-car .cn{display:block;font-family:var(--serif);font-size:20px;font-weight:500;
   line-height:1.15;color:var(--ink);}
 /* the plate is the one thing checkable from across a car park */
-.drv-car .cp{display:inline-block;margin-top:6px;font-weight:600;font-size:11px;
-  letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
+.drv-car .cp{display:inline-block;margin-top:6px;font-weight:600;font-size:var(--t-meta);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--ink);
   background:var(--raised);border:1px solid var(--silver-deep);border-radius:var(--d-r-sm);
   padding:4px 9px;font-variant-numeric:tabular-nums;}
 
 /* the half that is missing, said where the guest's view is drawn */
-.drv-car .cw{display:inline-block;margin-left:8px;font-weight:600;font-size:9px;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--alert-ink);}
+.drv-car .cw{display:inline-block;margin-left:8px;font-weight:600;font-size:var(--t-meta);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--alert-ink);}
 .drv-car .car-spec{display:flex;gap:26px;margin:14px 0 0;}
-.drv-car .car-spec dt{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;
+.drv-car .car-spec dt{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);font-weight:600;margin:0;}
 .drv-car .car-spec dd{margin:4px 0 0;font-family:var(--serif);font-size:19px;font-weight:600;color:var(--ink);}
 
 .drv-car .car-grid{display:grid;grid-template-columns:76px 1fr;align-items:center;
   gap:9px 12px;margin:15px 0 0;}
-.drv-car .car-grid label{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+.drv-car .car-grid label{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--muted);font-weight:600;}
 .drv-car .car-grid input{width:100%;height:44px;border-radius:var(--d-r-sm);
   border:1px solid var(--line);background:var(--raised);color:var(--ink);
-  font-family:var(--sans);font-size:14.5px;font-weight:400;padding:0 12px;}
+  font-family:var(--sans);font-size:var(--t-body);font-weight:400;padding:0 12px;}
 .drv-car .car-grid input::placeholder{color:var(--placeholder);}
 .drv-car .car-grid input:focus{outline:none;border-color:var(--silver-deep);}
 .drv-car .car-grid input:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 
 .drv-car .car-photo{margin-top:14px;}
 .drv-car .car-acts{display:flex;gap:10px;margin-top:10px;}
-.drv-car .car-acts .drv-cta{margin-top:0;font-size:11px;padding:14px 12px;min-height:48px;}
-.drv-car .car-note{margin:14px 0 0;font-size:11.5px;line-height:1.55;color:var(--muted);font-weight:400;}
+.drv-car .car-acts .drv-cta{margin-top:0;font-size:var(--t-meta);padding:14px 12px;min-height:48px;}
+.drv-car .car-note{margin:14px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--muted);font-weight:400;}
 
 
 /* No car on record. Sits where the live-ride bar sits and yields to it,
@@ -943,9 +989,9 @@
   padding:12px 15px;text-align:left;cursor:pointer;
   background:var(--surface);border:1px solid var(--alert-line);border-radius:var(--d-r-md);
   box-shadow:var(--shadow-hard);animation:drvfade .3s var(--ease);}
-.drv-nocar .ck{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+.drv-nocar .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--alert-ink);}
-.drv-nocar .cv{font-size:12.5px;line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-nocar .cv{font-size:var(--t-body);line-height:1.5;color:var(--ink);font-weight:400;}
 
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
@@ -968,11 +1014,11 @@
 
 .drv-docs .dhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
   padding-bottom:10px;border-bottom:1px solid var(--line);}
-.drv-docs .dk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
-.drv-docs .dn{font-size:11px;color:var(--muted);font-weight:400;}
+.drv-docs .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.drv-docs .dn{font-size:var(--t-body);color:var(--muted);font-weight:400;}
 /* the one line that answers "am I finished?" — it has to read as a
    sentence, so it sits at body size and not at label size */
-.drv-docs .dq{margin:12px 0 0;font-size:13px;line-height:1.6;color:var(--ink);font-weight:400;}
+.drv-docs .dq{margin:12px 0 0;font-size:var(--t-body);line-height:1.6;color:var(--ink);font-weight:400;}
 
 .drv-docs .dlist{list-style:none;margin:14px 0 0;padding:0;}
 .drv-docs .drow{background:var(--surface);border:1px solid var(--line);border-radius:var(--d-r-md);
@@ -985,27 +1031,27 @@
 .drv-docs .drow.rejected{border-color:var(--alert-line);}
 
 .drv-docs .dtop{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.drv-docs .dl{font-size:14px;color:var(--ink);font-weight:400;}
-.drv-docs .dchip{flex:none;font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+.drv-docs .dl{font-size:var(--t-body);color:var(--ink);font-weight:400;}
+.drv-docs .dchip{flex:none;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   padding:4px 9px;border-radius:var(--d-r-pill);border:1px solid var(--line);color:var(--muted);}
 .drv-docs .dchip.accepted{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
 .drv-docs .dchip.rejected{background:var(--alert-tint);border-color:var(--alert-line);color:var(--alert-ink);}
 
-.drv-docs .dw{margin:6px 0 0;font-size:12px;line-height:1.55;color:var(--muted);font-weight:400;}
+.drv-docs .dw{margin:6px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--muted);font-weight:400;}
 /* the reason a document was sent back. The one sentence on this screen
    the driver has to be able to act on, so it is ink on an alert tint
    rather than alert-coloured text on the ground. */
 .drv-docs .dr{margin:9px 0 0;padding:9px 11px;border-radius:var(--d-r-sm);
   background:var(--alert-tint);border:1px solid var(--alert-line);
-  font-size:12.5px;line-height:1.5;color:var(--ink);font-weight:400;}
-.drv-docs .dok{margin:9px 0 0;font-size:12.5px;line-height:1.5;color:var(--signal-ink);font-weight:400;}
+  font-size:var(--t-body);line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-docs .dok{margin:9px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--signal-ink);font-weight:400;}
 .drv-docs .dsend{margin-top:11px;}
 
-.drv-docs .dnote{margin:14px 0 0;font-size:11.5px;line-height:1.6;color:var(--muted);font-weight:400;}
+.drv-docs .dnote{margin:14px 0 0;font-size:var(--t-body);line-height:1.6;color:var(--muted);font-weight:400;}
 /* the database's own words, for whoever fixes it — not for the driver,
    who has the sentence above it */
 .drv-docs .drv-refused .why{margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:11px;line-height:1.5;color:var(--muted);word-break:break-word;}
+  font-size:var(--t-body);line-height:1.5;color:var(--muted);word-break:break-word;}
 .drv-docs .drv-refused .drv-cta{margin-top:12px;}
 
 /* The paperwork band is the SAME band as .drv-nocar, at a lower

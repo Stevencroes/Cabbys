@@ -23,8 +23,8 @@ export default function AuthCallback() {
         justifyContent: "center",
         minHeight: "100vh",
         color: "var(--ink)",
-        fontSize: "15px",
-        fontWeight: 300,
+        fontSize: "var(--t-body)",
+        fontWeight: 400,
         letterSpacing: "0.04em",
       }}
     >

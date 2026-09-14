@@ -234,7 +234,7 @@ export default function History({ driver }: { driver: DriverProfile }) {
             {/* Say where the bottom is. A list that just stops is a list a
                 driver has to guess the end of. */}
             {exhausted ? (
-              <p className="sub" style={{ marginTop: 20, fontSize: "11.5px" }}>
+              <p className="sub foot" style={{ marginTop: 20 }}>
                 {drawer === "completed"
                   ? "That's every trip you've completed."
                   : "That's every ride that was called off."}

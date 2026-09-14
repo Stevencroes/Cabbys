@@ -208,7 +208,7 @@ export default function Pool() {
                 ))}
               </div>
             ))}
-            <p className="sub" style={{ marginTop: 18, fontSize: "11.5px" }}>
+            <p className="sub foot" style={{ marginTop: 18 }}>
               No guest names or numbers shown until a job is yours.
             </p>
           </>

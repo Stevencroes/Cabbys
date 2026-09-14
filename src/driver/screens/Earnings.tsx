@@ -256,7 +256,7 @@ export default function Earnings({ driver }: { driver: DriverProfile }) {
               />
             ))}
             {shown.length > BREAKDOWN && (
-              <p className="sub" style={{ marginTop: 14, fontSize: "11.5px" }}>
+              <p className="sub foot" style={{ marginTop: 14 }}>
                 {shown.length - BREAKDOWN} more in this {scope === "month" ? "month" : "week"} — all of them,
                 searchable, under History.
               </p>

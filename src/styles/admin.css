@@ -40,7 +40,7 @@
   color:var(--ink);
   font-family:var(--sans);
   font-weight:400;
-  font-size:13px;
+  font-size:var(--t-meta);
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
@@ -54,13 +54,13 @@
 .adm-top .in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   width:100%;max-width:var(--a-maxw);margin:0 auto;}
 .adm-mark{font-family:var(--serif);font-weight:500;letter-spacing:.3em;text-transform:uppercase;
-  font-size:15px;padding-left:.3em;color:var(--ink);flex:none;}
+  font-size:var(--t-body);padding-left:.3em;color:var(--ink);flex:none;}
 .adm-mark .ap{color:var(--silver);}
-.adm-mark small{display:block;font-family:var(--sans);font-size:7.5px;letter-spacing:.34em;
+.adm-mark small{display:block;font-family:var(--sans);font-size:var(--t-micro);letter-spacing:var(--ls-micro);
   color:var(--muted);margin-top:2px;font-weight:500;}
 /* pushed right, and the first thing to drop to its own line on a phone */
 .adm-who{margin-left:auto;display:flex;align-items:center;gap:12px;min-width:0;}
-.adm-who .em{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+.adm-who .em{font-size:var(--t-body);color:var(--muted);overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;max-width:26ch;}
 
 /* ── the tabs ──────────────────────────────────────────────────────── */
@@ -72,7 +72,7 @@
   padding:0 20px;overflow-x:auto;scrollbar-width:none;}
 .adm-tabs .in::-webkit-scrollbar{display:none;}
 .adm-tabs a{position:relative;flex:none;padding:13px 16px;color:var(--muted);
-  text-decoration:none;font-weight:600;font-size:9.5px;letter-spacing:.18em;
+  text-decoration:none;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;white-space:nowrap;
   transition:color .25s var(--ease);}
 .adm-tabs a:hover{color:var(--silver);}
@@ -90,17 +90,17 @@
 
 .adm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
   flex-wrap:wrap;margin-bottom:18px;}
-.adm .kick{font-weight:600;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--silver);}
+.adm .kick{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
 .adm .big{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.04;
   margin:6px 0 0;letter-spacing:-.01em;}
 .adm .big em{font-style:italic;color:var(--silver);}
-.adm .sub{color:var(--muted);font-size:12.5px;font-weight:400;line-height:1.6;margin:6px 0 0;max-width:62ch;}
+.adm .sub{color:var(--muted);font-size:var(--t-body);font-weight:400;line-height:1.6;margin:6px 0 0;max-width:62ch;}
 
 /* ── the filter strip ──────────────────────────────────────────────── */
 .adm-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--a-r-pill);
   background:var(--surface);overflow:hidden;}
 .adm-seg button{background:none;border:none;padding:8px 14px;min-height:var(--a-tap);
-  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.14em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);cursor:pointer;transition:.2s var(--ease);}
 .adm-seg button:hover:not(.on){color:var(--silver);}
 .adm-seg button.on{background:var(--sheen);color:var(--on-sheen);}
@@ -119,7 +119,7 @@
 .adm-table{width:100%;border-collapse:collapse;min-width:720px;}
 .adm-table thead th{position:sticky;top:0;z-index:2;text-align:left;
   background:var(--raised);border-bottom:1px solid var(--line);
-  padding:9px 12px;font-weight:600;font-size:8.5px;letter-spacing:.18em;
+  padding:9px 12px;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);white-space:nowrap;}
 .adm-table tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
 .adm-table tbody tr:last-child td{border-bottom:none;}
@@ -130,14 +130,14 @@
 .adm-table tbody tr.picked{background:var(--surface);box-shadow:inset 2px 0 0 var(--silver);}
 /* a row that needs a human — the reason this screen exists */
 .adm-table tbody tr.wants{box-shadow:inset 2px 0 0 var(--alert);}
-.adm-table .num{font-family:var(--serif);font-weight:600;font-size:15px;color:var(--ink);
+.adm-table .num{font-family:var(--serif);font-weight:600;font-size:var(--t-body);color:var(--ink);
   font-variant-numeric:tabular-nums;}
 .adm-table .right{text-align:right;}
 .adm-table .nowrap{white-space:nowrap;}
 
 /* two lines in one cell: the fact, and what qualifies it */
-.adm-two .a{display:block;color:var(--ink);font-size:13px;line-height:1.3;}
-.adm-two .b{display:block;color:var(--muted);font-size:10.5px;line-height:1.3;margin-top:2px;
+.adm-two .a{display:block;color:var(--ink);font-size:var(--t-body);line-height:1.3;}
+.adm-two .b{display:block;color:var(--muted);font-size:var(--t-meta);line-height:1.3;margin-top:2px;
   letter-spacing:.04em;}
 .adm-two .b.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;}
 
@@ -146,13 +146,13 @@
 .adm-person img,.adm-person .ph{width:32px;height:32px;border-radius:50%;flex:none;
   object-fit:cover;background:var(--raised);border:1px solid var(--line);}
 .adm-person .ph{display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:14px;font-weight:600;color:var(--silver);}
+  font-family:var(--serif);font-size:var(--t-meta);font-weight:600;color:var(--silver);}
 /* no photo at all is a fact about the booking, not a missing asset */
 .adm-person .ph.gap{border-color:var(--alert-line);color:var(--alert-ink);}
 
 /* the plate, checkable from across a car park — and on this screen,
    checkable against what the guest was told */
-.adm-plate{display:inline-block;font-weight:600;font-size:10.5px;letter-spacing:.16em;
+.adm-plate{display:inline-block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--ink);background:var(--raised);
   border:1px solid var(--silver-deep);border-radius:var(--a-r-sm);padding:2px 7px;
   font-variant-numeric:tabular-nums;white-space:nowrap;}
@@ -162,7 +162,7 @@
    "Aboard" is the same colour on both sides of the company. The class
    names match ChipTone in src/driver/JobCard.tsx, which is where the
    labels come from. */
-.adm-chip{display:inline-block;font-weight:600;font-size:8.5px;letter-spacing:.14em;
+.adm-chip{display:inline-block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;padding:4px 9px;border-radius:var(--a-r-pill);white-space:nowrap;
   background:var(--raised);color:var(--muted);border:1px solid var(--line);}
 .adm-chip.next{color:var(--ink);}
@@ -178,7 +178,7 @@
 .adm-btn{display:inline-flex;align-items:center;justify-content:center;
   border-radius:var(--a-r-pill);border:1px solid var(--silver-deep);background:transparent;
   color:var(--silver);padding:0 13px;min-height:var(--a-tap);cursor:pointer;
-  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.14em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;white-space:nowrap;text-decoration:none;
   transition:background .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease);}
 .adm-btn:hover:not(:disabled){background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
@@ -191,12 +191,12 @@
 .adm-btn.stop:hover:not(:disabled){background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert);}
 /* a control the database would refuse is not shown; this is what stands
    in its place, and it says why rather than sitting there greyed out */
-.adm-why{font-size:10.5px;color:var(--muted);line-height:1.4;text-align:right;max-width:30ch;
+.adm-why{font-size:var(--t-body);color:var(--muted);line-height:1.4;text-align:right;max-width:30ch;
   margin-left:auto;}
 
 /* a plain text control that lives inside a row */
 .adm-quiet{background:none;border:none;padding:0 4px;min-height:var(--a-tap);
-  font-family:var(--sans);font-weight:600;font-size:9.5px;letter-spacing:.16em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-body);letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted);cursor:pointer;
   transition:color .2s var(--ease);}
 .adm-quiet:hover{color:var(--silver);}
@@ -209,9 +209,9 @@
 .adm-confirm td{background:var(--raised);border-bottom:1px solid var(--line);padding:14px 12px;}
 .adm-confirm .cbody{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
 .adm-confirm .ct{flex:1;min-width:min(100%,30ch);}
-.adm-confirm .ck{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+.adm-confirm .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);}
-.adm-confirm p{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--ink);}
+.adm-confirm p{margin:6px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--ink);}
 .adm-confirm .cacts{display:flex;gap:8px;flex:none;flex-wrap:wrap;}
 .adm-confirm.bad td{background:var(--alert-tint);}
 .adm-confirm.bad .ck{color:var(--alert-ink);}
@@ -222,11 +222,11 @@
 .adm-note{display:flex;align-items:flex-start;gap:12px;margin:0 0 16px;padding:12px 14px;
   border:1px solid var(--line);border-radius:var(--a-r-md);background:var(--surface);
   animation:admfade .25s var(--ease);}
-.adm-note .nk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+.adm-note .nk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);}
-.adm-note p{margin:4px 0 0;font-size:12.5px;line-height:1.55;color:var(--ink);}
+.adm-note p{margin:4px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--ink);}
 .adm-note .nb{flex:1;min-width:0;}
-.adm-note button{flex:none;background:none;border:none;color:var(--muted);font-size:13px;
+.adm-note button{flex:none;background:none;border:none;color:var(--muted);font-size:var(--t-meta);
   min-width:30px;min-height:30px;cursor:pointer;}
 .adm-note.ok{border-color:var(--signal-line);background:var(--signal-tint);}
 .adm-note.ok .nk{color:var(--signal-ink);}
@@ -240,8 +240,8 @@
    not on this screen. */
 .adm-empty{padding:44px 24px;text-align:center;color:var(--muted);}
 .adm-empty .es{font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px;}
-.adm-empty .et{font-size:12.5px;line-height:1.65;max-width:52ch;margin:0 auto;}
-.adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+.adm-empty .et{font-size:var(--t-body);line-height:1.65;max-width:52ch;margin:0 auto;}
+.adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);
   word-break:break-word;opacity:.75;margin-top:10px;}
 .adm-empty .adm-btn{margin-top:16px;}
 
@@ -258,9 +258,9 @@
 .adm-gate .gi svg{width:27px;height:27px;}
 .adm-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
 .adm-gate h1{font-family:var(--serif);font-weight:300;font-size:27px;margin:0 0 10px;line-height:1.1;}
-.adm-gate p{color:var(--muted);font-size:13px;line-height:1.7;max-width:42ch;margin:0;}
+.adm-gate p{color:var(--muted);font-size:var(--t-body);line-height:1.7;max-width:42ch;margin:0;}
 .adm-mark.gate{font-size:18px;margin-bottom:24px;}
-.adm-mark.gate small{font-size:8px;letter-spacing:.38em;margin-top:5px;}
+.adm-mark.gate small{font-size:var(--t-micro);letter-spacing:var(--ls-micro);margin-top:5px;}
 /* the first thing seen on every cold open */
 .adm-hold{color:var(--muted);animation:admbreathe 2.4s var(--ease) infinite;}
 @keyframes admbreathe{0%,100%{opacity:.45;}50%{opacity:1;}}
@@ -272,10 +272,10 @@
 .adm-diag{width:100%;max-width:460px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--a-r-md);padding:14px 16px;text-align:left;margin-top:20px;}
 .adm-diag .row + .row{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
-.adm-diag .k{display:block;font-weight:600;font-size:8.5px;letter-spacing:.2em;
+.adm-diag .k{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
-.adm-diag .v{display:block;font-size:13.5px;color:var(--ink);word-break:break-word;}
-.adm-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--silver);}
+.adm-diag .v{display:block;font-size:var(--t-body);color:var(--ink);word-break:break-word;}
+.adm-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);color:var(--silver);}
 
 /* The statement to run, spelled out with their own uid already in it.
    The whole portal exists to stop people typing SQL at production; the
@@ -285,10 +285,10 @@
 .adm-sql{width:100%;max-width:640px;margin-top:18px;text-align:left;
   background:var(--deep);border:1px solid var(--line);border-radius:var(--a-r-md);
   padding:13px 15px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:11.5px;line-height:1.6;color:var(--silver);
+  font-size:var(--t-body);line-height:1.6;color:var(--silver);
   white-space:pre-wrap;word-break:break-word;}
 .adm-gate .adm-why{text-align:center;margin:14px auto 0;max-width:46ch;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;opacity:.8;}
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);opacity:.8;}
 .adm-gateacts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;}
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -303,10 +303,10 @@
   background:var(--surface);}
 .adm-pane > h2{margin:0;padding:11px 14px;background:var(--raised);
   border-bottom:1px solid var(--line);
-  font-family:var(--sans);font-weight:600;font-size:9px;letter-spacing:.2em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--silver);
   display:flex;align-items:center;gap:9px;}
-.adm-pane > h2 .n{margin-left:auto;font-size:9px;letter-spacing:.1em;color:var(--muted);
+.adm-pane > h2 .n{margin-left:auto;font-size:var(--t-meta);letter-spacing:.1em;color:var(--muted);
   border:1px solid var(--line);border-radius:var(--a-r-pill);padding:2px 7px;background:var(--surface);}
 .adm-pane .plist{max-height:min(62vh,620px);overflow-y:auto;}
 
@@ -318,11 +318,11 @@
 .adm-pick:hover{background:var(--raised);}
 .adm-pick.on{background:var(--raised);box-shadow:inset 2px 0 0 var(--silver);}
 .adm-pick .ptop{display:flex;align-items:baseline;gap:9px;margin-bottom:5px;}
-.adm-pick .pwhen{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--ink);}
-.adm-pick .pday{font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);}
-.adm-pick .pfare{margin-left:auto;font-family:var(--serif);font-size:15px;font-weight:600;color:var(--silver);}
-.adm-pick .proute{font-size:12.5px;color:var(--ink);line-height:1.35;}
-.adm-pick .pmeta{font-size:10.5px;color:var(--muted);margin-top:4px;letter-spacing:.04em;}
+.adm-pick .pwhen{font-family:var(--serif);font-size:var(--t-body);font-weight:600;color:var(--ink);}
+.adm-pick .pday{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.adm-pick .pfare{margin-left:auto;font-family:var(--serif);font-size:var(--t-body);font-weight:600;color:var(--silver);}
+.adm-pick .proute{font-size:var(--t-body);color:var(--ink);line-height:1.35;}
+.adm-pick .pmeta{font-size:var(--t-meta);color:var(--muted);margin-top:4px;letter-spacing:.04em;}
 .adm-pick[disabled]{cursor:default;opacity:.55;}
 
 /* a driver in the right-hand pane */
@@ -330,19 +330,19 @@
 .adm-pick .pdrv .ph{width:32px;height:32px;border-radius:50%;flex:none;object-fit:cover;
   background:var(--raised);border:1px solid var(--line);
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:14px;font-weight:600;color:var(--silver);}
+  font-family:var(--serif);font-size:var(--t-meta);font-weight:600;color:var(--silver);}
 .adm-pick .pdrv .pi{flex:1;min-width:0;}
-.adm-pick .pdrv .pn{display:block;font-size:13px;color:var(--ink);line-height:1.25;}
-.adm-pick .pdrv .pc{display:block;font-size:10.5px;color:var(--muted);margin-top:2px;}
+.adm-pick .pdrv .pn{display:block;font-size:var(--t-body);color:var(--ink);line-height:1.25;}
+.adm-pick .pdrv .pc{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:2px;}
 /* the half that is missing, said where the choice is being made */
-.adm-pick .pgap{display:block;margin-top:6px;font-weight:600;font-size:9px;letter-spacing:.14em;
+.adm-pick .pgap{display:block;margin-top:6px;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--alert-ink);}
 
 /* the foot of the right pane: what is about to happen, and the button */
 .adm-do{border-top:1px solid var(--line);background:var(--raised);padding:14px;}
-.adm-do .dk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
-.adm-do p{margin:6px 0 0;font-size:12.5px;line-height:1.55;color:var(--ink);}
-.adm-do .warn{margin-top:8px;font-size:12px;line-height:1.5;color:var(--alert-ink);}
+.adm-do .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.adm-do p{margin:6px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--ink);}
+.adm-do .warn{margin-top:8px;font-size:var(--t-body);line-height:1.5;color:var(--alert-ink);}
 .adm-do .adm-btn{width:100%;margin-top:12px;min-height:40px;}
 
 @media(max-width:900px){
@@ -383,7 +383,7 @@
   .adm-table tbody td{border-bottom:none;padding:3px 12px;}
   /* the heading comes back as a label beside its value */
   .adm-table tbody td[data-h]::before{content:attr(data-h) "  ";
-    font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+    font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
     color:var(--muted);margin-right:8px;}
   .adm-table .right{text-align:left;}
   .adm-acts{justify-content:flex-start;padding-top:6px;}
@@ -415,45 +415,45 @@
 .adm-docs{padding:14px 16px;}
 .adm-docs .dhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   padding-bottom:10px;border-bottom:1px solid var(--line);}
-.adm-docs .dk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
-.adm-docs .dn{font-size:12px;line-height:1.5;color:var(--muted);}
+.adm-docs .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.adm-docs .dn{font-size:var(--t-body);line-height:1.5;color:var(--muted);}
 
 .adm-docs .dlist{list-style:none;margin:0;padding:0;}
 .adm-docs .drow{padding:12px 0;border-bottom:1px solid var(--line);}
 .adm-docs .drow:last-child{border-bottom:none;}
 
 .adm-docs .dl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.adm-docs .dt{font-size:13.5px;color:var(--ink);}
-.adm-docs .dwhen{font-size:11.5px;color:var(--muted);}
-.adm-docs .dnone{margin:6px 0 0;font-size:12px;line-height:1.5;color:var(--muted);}
+.adm-docs .dt{font-size:var(--t-body);color:var(--ink);}
+.adm-docs .dwhen{font-size:var(--t-body);color:var(--muted);}
+.adm-docs .dnone{margin:6px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);}
 /* the sentence the driver was sent. Shown to the operator too, so they
    can see what they already told somebody before telling them again. */
 .adm-docs .dreason{margin:7px 0 0;padding:8px 10px;border-radius:var(--a-r-sm);
   background:var(--alert-tint);border:1px solid var(--alert-line);
-  font-size:12.5px;line-height:1.5;color:var(--ink);}
+  font-size:var(--t-body);line-height:1.5;color:var(--ink);}
 .adm-docs .adm-acts{justify-content:flex-start;margin-top:9px;}
 /* a signed link is a live link with a clock on it — say so where it is */
-.adm-docs .dexpiry{margin:7px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);}
+.adm-docs .dexpiry{margin:7px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);}
 
 .adm-docs .dback{margin-top:10px;padding:11px 12px;border:1px solid var(--alert-line);
   border-radius:var(--a-r-md);background:var(--surface);}
-.adm-docs .dback label{display:block;font-size:12px;line-height:1.5;color:var(--silver);margin-bottom:7px;}
+.adm-docs .dback label{display:block;font-size:var(--t-meta);line-height:1.5;color:var(--silver);margin-bottom:7px;}
 .adm-docs .dback textarea{width:100%;background:var(--raised);border:1px solid var(--line);
-  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:13px;
+  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:var(--t-body);
   line-height:1.5;padding:9px 11px;resize:vertical;}
 .adm-docs .dback textarea::placeholder{color:var(--placeholder);}
 .adm-docs .dback textarea:focus{outline:none;border-color:var(--silver-deep);}
 .adm-docs .dback textarea:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 /* why the button underneath is refusing, rather than a disabled control
    with no explanation attached to it */
-.adm-docs .dwhy{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);}
+.adm-docs .dwhy{margin:8px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);}
 
-.adm-docs .dbad{margin:10px 0 0;font-size:12.5px;line-height:1.55;color:var(--alert-ink);}
-.adm-docs .dbad.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+.adm-docs .dbad{margin:10px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--alert-ink);}
+.adm-docs .dbad.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);
   color:var(--muted);word-break:break-word;}
 
 /* the paperwork line inside the approval confirmation */
-.adm-confirm .cdocs{margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--silver);}
+.adm-confirm .cdocs{margin-top:8px;font-size:var(--t-body);line-height:1.55;color:var(--silver);}
 
 @media(max-width:440px){
   /* the stacked-cell rules above turn every td into a block with its own
