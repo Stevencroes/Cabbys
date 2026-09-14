@@ -29,7 +29,9 @@ import {
   identifiable, vehicleLabel,
   type DriverProfile, type DriverStatus,
 } from "../../driver/lib/driver";
-import { loadAllDrivers, setDriverStatus } from "../lib/admin";
+import { acceptedCount, DRIVER_DOCUMENTS, type DocumentRecord } from "../../driver/lib/documents";
+import { loadAllDrivers, loadAllDriverDocuments, setDriverStatus } from "../lib/admin";
+import DriverDocs from "../DriverDocs";
 
 /** Waiting first. It is the only row on this screen with a deadline on
     it: a driver who applied yesterday is sitting outside the portal
@@ -61,11 +63,29 @@ export default function Drivers() {
   const [ask, setAsk] = useState<Ask | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<Note | null>(null);
+  /** every driver's paperwork, read in one query alongside the list */
+  const [docs, setDocs] = useState<Map<string, DocumentRecord[]>>(new Map());
+  /** the documents table could not be read — NOT the same as nobody
+      having sent anything, and the difference decides whether an
+      operator should be chasing drivers or running a migration */
+  const [docsFailed, setDocsFailed] = useState<string | null>(null);
+  /** whose paperwork is open. One at a time: five documents under two
+      rows at once is a board nobody can read. */
+  const [openDocs, setOpenDocs] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const { drivers: rows, error } = await loadAllDrivers();
+    // Both reads, together. The documents are not a detail fetched when
+    // a row is opened: the count belongs on every row, because "who is
+    // waiting and what are they waiting on" is the question this screen
+    // is opened to answer.
+    const [{ drivers: rows, error }, { byDriver, error: docErr }] = await Promise.all([
+      loadAllDrivers(),
+      loadAllDriverDocuments(),
+    ]);
     setFailed(error);
     setDrivers(error ? null : [...rows].sort((a, b) => ORDER[a.status] - ORDER[b.status]));
+    setDocsFailed(docErr);
+    setDocs(byDriver);
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -180,6 +200,7 @@ export default function Drivers() {
                     <th scope="col">Driver</th>
                     <th scope="col">Car</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Papers</th>
                     <th scope="col" className="right adm-drop">Trips</th>
                     <th scope="col" className="right adm-drop">Rating</th>
                     <th scope="col" className="right">{/* actions */}</th>
@@ -197,6 +218,11 @@ export default function Drivers() {
                         asking={asking}
                         ask={asking ? ask : null}
                         busy={busy}
+                        records={docs.get(d.id) ?? []}
+                        docsFailed={docsFailed}
+                        docsOpen={openDocs === d.id}
+                        onDocs={() => setOpenDocs(openDocs === d.id ? null : d.id)}
+                        onReviewed={() => void refresh()}
                         onAsk={(next) => { setNote(null); setAsk({ driver: d, next }); }}
                         onCancel={() => setAsk(null)}
                         onConfirm={(a) => void commit(a)}
@@ -219,12 +245,22 @@ interface RowProps {
   asking: boolean;
   ask: Ask | null;
   busy: boolean;
+  /** this driver's documents, out of the board's single read */
+  records: DocumentRecord[];
+  /** the documents table itself could not be read */
+  docsFailed: string | null;
+  docsOpen: boolean;
+  onDocs: () => void;
+  onReviewed: () => void;
   onAsk: (next: DriverStatus) => void;
   onCancel: () => void;
   onConfirm: (a: Ask) => void;
 }
 
-function Row({ driver: d, car, asking, ask, busy, onAsk, onCancel, onConfirm }: RowProps) {
+function Row({
+  driver: d, car, asking, ask, busy, records, docsFailed, docsOpen,
+  onDocs, onReviewed, onAsk, onCancel, onConfirm,
+}: RowProps) {
   const initial = (d.fullName || "·").trim().charAt(0).toUpperCase();
   const gaps = missing(d, car);
 
@@ -255,6 +291,28 @@ function Row({ driver: d, car, asking, ask, busy, onAsk, onCancel, onConfirm }: 
               contradiction, and the database agrees with the chip. */}
           {d.status === "approved" && d.isOnline && (
             <span className="adm-two"><span className="b">On duty</span></span>
+          )}
+        </td>
+        {/* What has actually been checked, on the row, before the tap.
+            "3 of 5" is the whole reason this column exists: the board
+            could already say whether a driver had a plate and could say
+            nothing at all about whether anybody had seen their licence.
+            A count that could not be read shows as a question mark
+            rather than as zero — an operator reading "0 of 5" over an
+            unreadable table would go and chase five documents that are
+            already on file. */}
+        <td data-h="Papers" className="nowrap">
+          {docsFailed ? (
+            <span className="adm-two"><span className="b">Can't read them</span></span>
+          ) : (
+            <button
+              type="button"
+              className={`adm-btn adm-docbtn${docsOpen ? " on" : ""}`}
+              aria-expanded={docsOpen}
+              onClick={onDocs}
+            >
+              {acceptedCount(records)} of {DRIVER_DOCUMENTS.length}
+            </button>
           )}
         </td>
         <td data-h="Trips" className="right adm-drop num">{d.tripsCount}</td>
@@ -293,12 +351,30 @@ function Row({ driver: d, car, asking, ask, busy, onAsk, onCancel, onConfirm }: 
         </td>
       </tr>
 
+      {/* Opens under the row, like the confirmation does and for the same
+          reason: the decision about a document is a decision about a
+          person, and the person's name, car and status should still be
+          on screen while it is made. */}
+      {docsOpen && (
+        <tr className="adm-docrow">
+          <td colSpan={7}>
+            <DriverDocs
+              driverUserId={d.id}
+              driverName={d.fullName}
+              records={records}
+              unreadable={docsFailed}
+              onReviewed={onReviewed}
+            />
+          </td>
+        </tr>
+      )}
+
       {/* The question opens under the row it is about, rather than in a
           modal over it, so the operator can still read the driver they
           are deciding about while they decide. */}
       {asking && ask && (
         <tr className={`adm-confirm${ask.next === "suspended" ? " bad" : ""}`}>
-          <td colSpan={6}>
+          <td colSpan={7}>
             <div className="cbody">
               <div className="ct">
                 <div className="ck">
@@ -307,6 +383,21 @@ function Row({ driver: d, car, asking, ask, busy, onAsk, onCancel, onConfirm }: 
                     : "Stop them taking jobs?"}
                 </div>
                 <p>{question(d, ask.next, gaps)}</p>
+                {/* The paperwork, said at the moment of the decision
+                    rather than left in a column above it. It does not
+                    block anything: the operator may have seen the
+                    licence on WhatsApp last year, and a board that
+                    refused to approve until five PDFs existed would
+                    stop Cabby's taking on a driver it already trusts.
+                    It is a sentence, and the button underneath it is
+                    still live. */}
+                {ask.next === "approved" && !docsFailed && acceptedCount(records) < DRIVER_DOCUMENTS.length && (
+                  <p className="cdocs">
+                    You've accepted {acceptedCount(records)} of their {DRIVER_DOCUMENTS.length} documents.
+                    Approving doesn't wait for the rest — have a look at Papers first if
+                    that matters here.
+                  </p>
+                )}
               </div>
               <div className="cacts">
                 <button

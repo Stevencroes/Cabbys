@@ -1,20 +1,40 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { DriverProfile } from "../../driver/lib/driver";
+import type { DocumentRecord } from "../../driver/lib/documents";
 
 const state: {
   drivers: DriverProfile[];
   error: string | null;
   write: unknown;
-} = { drivers: [], error: null, write: { ok: true, heldRides: 0 } };
+  /** driver auth id → their documents, as the board reads them in one query */
+  documents: Map<string, DocumentRecord[]>;
+  documentsError: string | null;
+  review: unknown;
+  link: unknown;
+} = {
+  drivers: [], error: null, write: { ok: true, heldRides: 0 },
+  documents: new Map(), documentsError: null,
+  review: { ok: true, acceptedCount: 1, driverStatus: "pending" },
+  link: { ok: true, url: "https://example.test/signed" },
+};
 const wrote = vi.fn();
+const reviewed = vi.fn();
 
 vi.mock("../lib/admin", () => ({
   loadAllDrivers: () => Promise.resolve({ drivers: state.drivers, error: state.error }),
+  loadAllDriverDocuments: () =>
+    Promise.resolve({ byDriver: state.documents, error: state.documentsError }),
   setDriverStatus: (uid: string, status: string) => {
     wrote(uid, status);
     return Promise.resolve(state.write);
   },
+  reviewDocument: (uid: string, slug: string, status: string, reason: string | null, seenAt: string | null) => {
+    reviewed(uid, slug, status, reason, seenAt);
+    return Promise.resolve(state.review);
+  },
+  signedDocumentUrl: () => Promise.resolve(state.link),
+  DOCUMENT_LINK_SECONDS: 60,
 }));
 
 import Drivers from "./Drivers";
@@ -40,11 +60,27 @@ const driver = (over: Partial<DriverProfile> = {}): DriverProfile => ({
   ...over,
 });
 
+/** One document as the table holds it. */
+const doc = (over: Partial<DocumentRecord> = {}): DocumentRecord => ({
+  slug: "drivers-licence",
+  path: "d1/drivers-licence.pdf",
+  status: "uploaded",
+  reason: null,
+  uploadedAt: "2026-09-10T14:00:00.000Z",
+  reviewedAt: null,
+  ...over,
+});
+
 beforeEach(() => {
   state.drivers = [driver()];
   state.error = null;
   state.write = { ok: true, heldRides: 0 };
+  state.documents = new Map();
+  state.documentsError = null;
+  state.review = { ok: true, acceptedCount: 1, driverStatus: "pending" };
+  state.link = { ok: true, url: "https://example.test/signed" };
   wrote.mockClear();
+  reviewed.mockClear();
 });
 
 describe("Drivers", () => {
@@ -164,5 +200,54 @@ describe("Drivers", () => {
     const names = screen.getAllByText(/Person$/).map((n) => n.textContent);
     expect(names[0]).toBe("Waiting Person");
     expect(screen.getByText(/1 waiting on approval/i)).toBeInTheDocument();
+  });
+
+  // The column the board was missing. It could already say whether a
+  // driver had a plate; it could say nothing at all about whether
+  // anybody had ever seen their licence, because nobody ever had — that
+  // check lived in a WhatsApp thread.
+  it("says how much of a driver's paperwork has been checked, on the row", async () => {
+    state.documents = new Map([["d1", [
+      doc({ slug: "drivers-licence", status: "accepted" }),
+      doc({ slug: "id-or-passport", status: "uploaded" }),
+    ]]]);
+    render(<Drivers />);
+    expect(await screen.findByRole("button", { name: /1 of 5/ })).toBeInTheDocument();
+  });
+
+  it("opens the five documents under the driver they belong to", async () => {
+    state.documents = new Map([["d1", [doc({ slug: "drivers-licence" })]]]);
+    render(<Drivers />);
+    fireEvent.click(await screen.findByRole("button", { name: /0 of 5/ }));
+    expect(await screen.findByText("Public-transport permit")).toBeInTheDocument();
+    // still reading the driver they are deciding about, which is why it
+    // opens under the row rather than in a modal over it
+    expect(screen.getByText("Ana Croes")).toBeInTheDocument();
+  });
+
+  // An operator reading "0 of 5" over an unreadable table would go and
+  // chase five documents that are already on file.
+  it("shows a documents table it could not read as unreadable, not as zero", async () => {
+    state.documentsError = "permission denied for table driver_documents";
+    render(<Drivers />);
+    await screen.findByText("Ana Croes");
+    expect(screen.getByText(/can't read them/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /0 of 5/ })).toBeNull();
+  });
+
+  // The documents inform the decision; they do not make it. A board that
+  // refused to approve until five PDFs existed would stop Cabby's taking
+  // on a driver it has known for ten years — so this is a sentence, and
+  // the button underneath it is still live.
+  it("says what is outstanding at the moment of approval without blocking it", async () => {
+    state.drivers = [driver({ status: "pending" })];
+    state.documents = new Map([["d1", [doc({ slug: "drivers-licence", status: "accepted" })]]]);
+    render(<Drivers />);
+    fireEvent.click(await screen.findByRole("button", { name: /^approve$/i }));
+    expect(await screen.findByText(/accepted 1 of their 5 documents/i)).toBeInTheDocument();
+    const go = screen.getByRole("button", { name: /yes, approve/i });
+    expect(go).not.toBeDisabled();
+    fireEvent.click(go);
+    await waitFor(() => expect(wrote).toHaveBeenCalledWith("d1", "approved"));
   });
 });

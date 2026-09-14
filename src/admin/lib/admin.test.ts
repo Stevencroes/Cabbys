@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const calls: { from: string[]; rpc: [string, unknown][]; or: string[]; update: number } =
-  { from: [], rpc: [], or: [], update: 0 };
+const calls: {
+  from: string[]; rpc: [string, unknown][]; or: string[]; update: number;
+  /** which bucket a signature was asked of, and for how long */
+  signed: [string, string, number][];
+} = { from: [], rpc: [], or: [], update: 0, signed: [] };
 let rpcResult: unknown = true;
 let rpcError: { message: string } | null = null;
 let rows: unknown[] = [];
 let rowsError: { message: string } | null = null;
+let signedUrl: string | null = "https://example.test/signed?token=abc";
+let signedError: { message: string } | null = null;
 
 vi.mock("../../lib/supabase", () => {
   const builder = (table: string) => {
@@ -13,7 +18,12 @@ vi.mock("../../lib/supabase", () => {
     const b: Record<string, unknown> = {};
     const chain = () => b;
     Object.assign(b, {
-      select: chain,
+      // loadAllDriverDocuments ends on .select(); everything else chains
+      // past it, so select has to be both thenable and chainable.
+      select: () => {
+        const p = Promise.resolve({ data: rowsError ? null : rows, error: rowsError });
+        return Object.assign(p, b);
+      },
       eq: chain,
       in: chain,
       limit: () => Promise.resolve({ data: rowsError ? null : rows, error: rowsError }),
@@ -35,13 +45,25 @@ vi.mock("../../lib/supabase", () => {
         calls.rpc.push([name, args]);
         return Promise.resolve({ data: rpcResult, error: rpcError });
       },
+      storage: {
+        from: (bucket: string) => ({
+          createSignedUrl: (path: string, seconds: number) => {
+            calls.signed.push([bucket, path, seconds]);
+            return Promise.resolve({
+              data: signedError ? null : { signedUrl },
+              error: signedError,
+            });
+          },
+        }),
+      },
     },
   };
 });
 
 import {
-  assignRide, checkIsAdmin, clashesFor, loadAllDrivers, loadUpcomingRides,
-  needsDriver, setDriverStatus, type AdminRide,
+  assignRide, checkIsAdmin, clashesFor, loadAllDrivers, loadAllDriverDocuments,
+  loadUpcomingRides, needsDriver, reviewDocument, setDriverStatus,
+  signedDocumentUrl, DOCUMENT_LINK_SECONDS, type AdminRide,
 } from "./admin";
 
 const ride = (over: Partial<AdminRide> = {}): AdminRide => ({
@@ -53,8 +75,9 @@ const ride = (over: Partial<AdminRide> = {}): AdminRide => ({
 });
 
 beforeEach(() => {
-  calls.from = []; calls.rpc = []; calls.or = []; calls.update = 0;
+  calls.from = []; calls.rpc = []; calls.or = []; calls.update = 0; calls.signed = [];
   rpcResult = true; rpcError = null; rows = []; rowsError = null;
+  signedUrl = "https://example.test/signed?token=abc"; signedError = null;
 });
 
 describe("admin data layer", () => {
@@ -180,5 +203,102 @@ describe("admin data layer", () => {
     expect(clashesFor("d1", target, board).map((r) => r.id)).toEqual(["near"]);
     // an undated ride cannot clash with anything, and must not be claimed to
     expect(clashesFor("d1", null, board)).toEqual([]);
+  });
+});
+
+describe("driver documents, from the board", () => {
+  // One query, not one per row. Thirty drivers is thirty chances for
+  // some to fail while the rest succeed — a board where four rows say
+  // "3 of 5" and one says nothing for no reason an operator can see.
+  it("reads every driver's documents in a single query", async () => {
+    rows = [
+      { driver_user_id: "d1", slug: "drivers-licence", path: "d1/drivers-licence.pdf", status: "accepted" },
+      { driver_user_id: "d1", slug: "id-or-passport", path: "d1/id-or-passport.pdf", status: "uploaded" },
+      { driver_user_id: "d2", slug: "drivers-licence", path: "d2/drivers-licence.pdf", status: "rejected", reason: "Cut off" },
+    ];
+    const { byDriver, error } = await loadAllDriverDocuments();
+    expect(error).toBeNull();
+    expect(calls.from.filter((t) => t === "driver_documents")).toHaveLength(1);
+    expect(byDriver.get("d1")).toHaveLength(2);
+    expect(byDriver.get("d2")?.[0].reason).toBe("Cut off");
+  });
+
+  // The fault this project keeps catching. An operator told "nobody has
+  // sent anything" over a table nobody could read goes and asks five
+  // drivers to re-send documents that are already on file.
+  it("reports an unreadable documents table instead of an empty board", async () => {
+    rowsError = { message: "permission denied for table driver_documents" };
+    const { byDriver, error } = await loadAllDriverDocuments();
+    expect(byDriver.size).toBe(0);
+    expect(error).toBe("permission denied for table driver_documents");
+  });
+
+  // The whole reason driver-docs is private. getPublicUrl would hand
+  // back a permanent, forwardable URL to somebody's passport.
+  it("serves a document as a short-lived signature on the private bucket", async () => {
+    const res = await signedDocumentUrl("d1/id-or-passport.pdf");
+    expect(res).toEqual({ ok: true, url: "https://example.test/signed?token=abc" });
+    expect(calls.signed).toEqual([["driver-docs", "d1/id-or-passport.pdf", DOCUMENT_LINK_SECONDS]]);
+    expect(DOCUMENT_LINK_SECONDS).toBeLessThanOrEqual(60);
+  });
+
+  // A View button that silently does nothing sends an operator looking
+  // for a corrupt file instead of a missing migration.
+  it("says why a document could not be opened rather than handing back no link", async () => {
+    signedError = { message: "Object not found" };
+    const res = await signedDocumentUrl("d1/id-or-passport.pdf");
+    expect(res).toEqual({ ok: false, detail: "Object not found" });
+  });
+
+  it("sends the review through the RPC, pinned to the copy that was read", async () => {
+    rpcResult = { ok: true, accepted_count: 3, driver_status: "pending" };
+    const res = await reviewDocument("d1", "vehicle-insurance", "rejected", "Expired in June.", "2026-09-10T14:00:00.000Z");
+    expect(res).toEqual({ ok: true, acceptedCount: 3, driverStatus: "pending" });
+    expect(calls.rpc[0][0]).toBe("admin_review_document");
+    expect(calls.rpc[0][1]).toEqual({
+      p_driver_user_id: "d1",
+      p_slug: "vehicle-insurance",
+      p_status: "rejected",
+      p_reason: "Expired in June.",
+      p_seen_at: "2026-09-10T14:00:00.000Z",
+    });
+  });
+
+  // Accepting documents is not approving a driver. The status comes back
+  // unchanged so the board can say "all five in — they still need
+  // approving on the row above" rather than implying it happened.
+  it("hands back the driver's status untouched", async () => {
+    rpcResult = { ok: true, accepted_count: 5, driver_status: "pending" };
+    const res = await reviewDocument("d1", "drivers-licence", "accepted", null, null);
+    expect(res).toEqual({ ok: true, acceptedCount: 5, driverStatus: "pending" });
+  });
+
+  // The likeliest minute for a driver to re-upload is the one right
+  // after a rejection told them to. An Accept that lands on a file
+  // nobody opened is the outcome the whole panel exists to prevent.
+  it("turns a stale review into a sentence about the new copy", async () => {
+    rpcResult = { ok: false, error: "moved_on" };
+    const res = await reviewDocument("d1", "drivers-licence", "accepted", null, "2026-09-01T00:00:00.000Z");
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.detail).toMatch(/uploaded a new copy/i);
+  });
+
+  // The requirement the whole feature turns on: a driver told "not
+  // accepted" with no sentence attached has no move but messaging
+  // somebody, which is the process being replaced.
+  it("passes the database's refusal of a reasonless rejection through in words", async () => {
+    rpcResult = { ok: false, error: "need_reason" };
+    const res = await reviewDocument("d1", "drivers-licence", "rejected", null, null);
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.detail).toMatch(/say what's wrong/i);
+  });
+
+  // A matched row is not a moved value — the lesson admin_set_driver_status
+  // already learned the hard way against the drivers_protect trigger.
+  it("does not report a write that the database put back as a success", async () => {
+    rpcResult = { ok: false, error: "not_applied", status: "uploaded" };
+    const res = await reviewDocument("d1", "drivers-licence", "accepted", null, null);
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.detail).toMatch(/didn't move/i);
   });
 });

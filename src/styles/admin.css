@@ -396,3 +396,70 @@
     animation:none !important;transition:none !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE PAPERWORK
+   The count on the row, and the panel it opens. Same shapes as the
+   confirmation row above it — a decision about a driver opens UNDER the
+   driver, never over them, so their name, car and status are still on
+   screen while it is made.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* the count is a control, so it looks like one. It is the only cell in
+   the table that opens something, and an operator has to be able to see
+   that without hovering it. */
+.adm-docbtn{font-variant-numeric:tabular-nums;}
+.adm-docbtn.on{background:var(--raised);border-color:var(--silver-deep);color:var(--ink);}
+
+.adm-docrow td{background:var(--raised);border-top:1px solid var(--line);padding:0;}
+.adm-docs{padding:14px 16px;}
+.adm-docs .dhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding-bottom:10px;border-bottom:1px solid var(--line);}
+.adm-docs .dk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
+.adm-docs .dn{font-size:12px;line-height:1.5;color:var(--muted);}
+
+.adm-docs .dlist{list-style:none;margin:0;padding:0;}
+.adm-docs .drow{padding:12px 0;border-bottom:1px solid var(--line);}
+.adm-docs .drow:last-child{border-bottom:none;}
+
+.adm-docs .dl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.adm-docs .dt{font-size:13.5px;color:var(--ink);}
+.adm-docs .dwhen{font-size:11.5px;color:var(--muted);}
+.adm-docs .dnone{margin:6px 0 0;font-size:12px;line-height:1.5;color:var(--muted);}
+/* the sentence the driver was sent. Shown to the operator too, so they
+   can see what they already told somebody before telling them again. */
+.adm-docs .dreason{margin:7px 0 0;padding:8px 10px;border-radius:var(--a-r-sm);
+  background:var(--alert-tint);border:1px solid var(--alert-line);
+  font-size:12.5px;line-height:1.5;color:var(--ink);}
+.adm-docs .adm-acts{justify-content:flex-start;margin-top:9px;}
+/* a signed link is a live link with a clock on it — say so where it is */
+.adm-docs .dexpiry{margin:7px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);}
+
+.adm-docs .dback{margin-top:10px;padding:11px 12px;border:1px solid var(--alert-line);
+  border-radius:var(--a-r-md);background:var(--surface);}
+.adm-docs .dback label{display:block;font-size:12px;line-height:1.5;color:var(--silver);margin-bottom:7px;}
+.adm-docs .dback textarea{width:100%;background:var(--raised);border:1px solid var(--line);
+  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:13px;
+  line-height:1.5;padding:9px 11px;resize:vertical;}
+.adm-docs .dback textarea::placeholder{color:var(--placeholder);}
+.adm-docs .dback textarea:focus{outline:none;border-color:var(--silver-deep);}
+.adm-docs .dback textarea:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
+/* why the button underneath is refusing, rather than a disabled control
+   with no explanation attached to it */
+.adm-docs .dwhy{margin:8px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);}
+
+.adm-docs .dbad{margin:10px 0 0;font-size:12.5px;line-height:1.55;color:var(--alert-ink);}
+.adm-docs .dbad.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  color:var(--muted);word-break:break-word;}
+
+/* the paperwork line inside the approval confirmation */
+.adm-confirm .cdocs{margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--silver);}
+
+@media(max-width:440px){
+  /* the stacked-cell rules above turn every td into a block with its own
+     padding; the documents panel brings its own, so it would otherwise
+     be inset twice */
+  .adm-table tbody tr.adm-docrow td{padding:0;}
+  .adm-docs{padding:12px;}
+  .adm-docs .adm-acts{flex-wrap:wrap;}
+}

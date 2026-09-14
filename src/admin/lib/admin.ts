@@ -16,9 +16,10 @@
 //    is the column list.
 import { supabase } from "../../lib/supabase";
 import {
-  effectiveScheduledAt, toDriverProfile,
+  effectiveScheduledAt, toDocumentRecord, toDriverProfile,
   type DriverProfile, type DriverStatus, type Row,
 } from "../../driver/lib/driver";
+import type { DocumentRecord } from "../../driver/lib/documents";
 import { todayInAruba } from "../../lib/datetime";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
@@ -328,4 +329,152 @@ export function clashesFor(
     const o = new Date(r.scheduledAt).getTime();
     return !isNaN(o) && Math.abs(o - t) < CLASH_MINUTES * 60_000;
   });
+}
+
+/* ── the application's paperwork ─────────────────────────────────────── */
+
+/**
+ * Every document every driver has sent, in one read.
+ *
+ * One query rather than one per row, and that is not only about speed:
+ * the board shows a count against each of maybe thirty drivers, and
+ * thirty round trips is thirty chances for some of them to fail while
+ * the rest succeed — a board where four rows say "3 of 5" and one says
+ * nothing, for no reason the operator can see. One query has one answer,
+ * and it is either the documents or the reason there are none.
+ *
+ * Mapped with toDocumentRecord, the same function the driver's own
+ * portal reads its rows through. A second mapper here would drift, and
+ * the two screens would disagree about whether a document was accepted.
+ *
+ * Keyed by the driver's AUTH id, which is what driver_documents holds
+ * and what every write path in this project takes.
+ */
+export interface AllDocuments {
+  /** driver auth id → that driver's documents */
+  byDriver: Map<string, DocumentRecord[]>;
+  /** non-null when the query failed, not when nobody has sent anything.
+      An operator told "no documents" over an unreadable table would go
+      and ask five drivers to re-send what they already sent. */
+  error: string | null;
+}
+
+export async function loadAllDriverDocuments(): Promise<AllDocuments> {
+  const { data, error } = await supabase.from("driver_documents").select("*");
+  if (error) {
+    return {
+      byDriver: new Map(),
+      error: error.message || "The driver documents table could not be read.",
+    };
+  }
+  const byDriver = new Map<string, DocumentRecord[]>();
+  for (const row of Array.isArray(data) ? (data as Row[]) : []) {
+    const uid = str(row.driver_user_id);
+    if (!uid) continue;
+    const list = byDriver.get(uid) ?? [];
+    list.push(toDocumentRecord(row));
+    byDriver.set(uid, list);
+  }
+  return { byDriver, error: null };
+}
+
+/**
+ * A link to one document, good for a minute.
+ *
+ * The whole reason driver-docs is a private bucket. getPublicUrl() would
+ * hand back a permanent URL to somebody's passport — forwardable, and
+ * still working next year. A signed URL is minted for this operator, for
+ * this object, and has stopped working by the time it could be pasted
+ * anywhere it should not be.
+ *
+ * Sixty seconds is enough to open a tab and not much else. The operator
+ * clicks View again if they come back to it, which costs a round trip
+ * and nothing else.
+ *
+ * Returns its failure rather than a null link. A document that cannot be
+ * signed is usually docs/onboarding-schema.sql not having been run — the
+ * "driver docs: read as admin" policy is what permits the signature — and
+ * a View button that does nothing would send somebody looking for a
+ * broken file instead of a missing migration.
+ */
+export const DOCUMENT_LINK_SECONDS = 60;
+
+export type DocumentLink =
+  | { ok: true; url: string }
+  | { ok: false; detail: string };
+
+export async function signedDocumentUrl(path: string): Promise<DocumentLink> {
+  const { data, error } = await supabase.storage
+    .from("driver-docs")
+    .createSignedUrl(path, DOCUMENT_LINK_SECONDS);
+  if (error) return { ok: false, detail: error.message || "That document couldn't be opened." };
+  const url = data?.signedUrl;
+  if (!url) return { ok: false, detail: "That document couldn't be opened." };
+  return { ok: true, url };
+}
+
+/**
+ * Accept a document, or send it back with a reason.
+ *
+ * `seenAt` is the uploaded_at the board was showing when the operator
+ * opened the file, and the database refuses the review if the driver has
+ * replaced it since. That is not a rare race: the likeliest minute for a
+ * driver to re-upload is the one right after a rejection told them to,
+ * and an Accept that lands on a file nobody opened is the one outcome
+ * this screen exists to prevent.
+ *
+ * A rejection with no reason is refused by the database, not just by the
+ * form. A driver told "not accepted" with no sentence attached has no
+ * move except messaging somebody, which is the process being replaced.
+ */
+const REVIEW_REASONS: Record<string, string> = {
+  not_admin: "This account isn't an admin any more. Sign in again, or ask whoever set you up.",
+  bad_status: "A document can only be accepted or sent back.",
+  need_reason: "Say what's wrong with it. The driver sees this sentence and has to be able to act on it.",
+  no_document: "That document isn't there any more — the driver may have replaced it.",
+  moved_on: "The driver uploaded a new copy while you had this open. It's been reloaded — have a look at that one before deciding.",
+  not_applied:
+    "The change was accepted but the document didn't move. Something in the database is putting it back — don't rely on this until it's looked at.",
+};
+
+export type ReviewResult =
+  | {
+      ok: true;
+      /** how many of this driver's documents are accepted now. A COUNT,
+          not a verdict — the database has no idea how many Cabby's asks
+          for, because that list is DRIVER_DOCUMENTS. The screen compares
+          the two and says "all five" or "three of five". */
+      acceptedCount: number;
+      /** the driver's status, unchanged by this call and read back so
+          the board can say "all five in — they're still waiting on
+          approval". Accepting documents approves nobody. */
+      driverStatus: string | null;
+    }
+  | { ok: false; detail: string };
+
+export async function reviewDocument(
+  driverUserId: string,
+  slug: string,
+  status: "accepted" | "rejected",
+  reason: string | null,
+  seenAt: string | null,
+): Promise<ReviewResult> {
+  const { data, error } = await supabase.rpc("admin_review_document", {
+    p_driver_user_id: driverUserId,
+    p_slug: slug,
+    p_status: status,
+    p_reason: reason,
+    p_seen_at: seenAt,
+  });
+  if (error) return { ok: false, detail: error.message || "The decision didn't reach the server." };
+  const r = (data ?? {}) as Row;
+  if (r.ok === true) {
+    return {
+      ok: true,
+      acceptedCount: nNum(r.accepted_count) ?? 0,
+      driverStatus: nStr(r.driver_status),
+    };
+  }
+  const why = str(r.error);
+  return { ok: false, detail: REVIEW_REASONS[why] ?? why ?? "The decision was refused." };
 }
