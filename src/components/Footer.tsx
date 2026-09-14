@@ -36,21 +36,21 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
           </div>
           <div className="fcols">
             <div className="fcol">
-              <h4>Transfers</h4>
+              <h3>Transfers</h3>
               <a href="/#services">Airport pickup</a>
               <a href="/#services">Resort to resort</a>
               <a href="/#services">Cruise terminal</a>
               <a href="/#about">Hourly hire</a>
             </div>
             <div className="fcol">
-              <h4>Company</h4>
+              <h3>Company</h3>
               <a href="/#fleet">The fleet</a>
               <a href="/#about">FAQ</a>
               <a href="/trips">My trips</a>
               <a href="/#about">Terms &amp; privacy</a>
             </div>
             <div className="fcol">
-              <h4>Reach us</h4>
+              <h3>Reach us</h3>
               <a href="mailto:hello@cabbys.aw">hello@cabbys.aw</a>
               <a href="https://wa.me/" target="_blank" rel="noreferrer">WhatsApp</a>
               <a href="/#top">Oranjestad, Aruba</a>

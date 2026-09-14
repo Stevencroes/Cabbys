@@ -45,11 +45,16 @@ export default function Faq() {
             {ITEMS.map((item, i) => {
               const isOpen = open === i;
               const id = `faq-a-${i}`;
+              // The region needs a name or it lands in the landmark list as
+              // an anonymous "region" — six of them, in a row, saying nothing.
+              // The question is its name, so the button carries the id.
+              const qid = `faq-q-${i}`;
               return (
                 <div className={`fitem${isOpen ? " open" : ""}`} key={item.q}>
                   <button
                     type="button"
                     className="fq"
+                    id={qid}
                     aria-expanded={isOpen}
                     aria-controls={id}
                     onClick={() => setOpen(isOpen ? -1 : i)}
@@ -63,7 +68,7 @@ export default function Faq() {
                       keeps its own margin inside the clip. Collapsing these
                       into one element gives the margin nothing to be inside
                       of, and a closed item keeps 22px of height. */}
-                  <div className="fa" id={id} role="region" aria-hidden={!isOpen}>
+                  <div className="fa" id={id} role="region" aria-labelledby={qid} aria-hidden={!isOpen}>
                     <div className="fa-in"><p>{item.a}</p></div>
                   </div>
                 </div>

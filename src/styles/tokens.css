@@ -96,6 +96,72 @@
   --serif:'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --sans:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
+  /* ---------- the type scale ----------
+     Added 14 September 2026, because there wasn't one. 269 of the 417
+     font-size declarations in src/styles were under 14px, 91 of them under
+     10px, and the smallest was 7.5px — the word "PORTAL" under the
+     wordmark in a driver's title bar. Sizes were being picked one at a
+     time, in halves of a pixel, until a phone screen at 6am held type that
+     could not be read at arm's length. The numbers below are the whole
+     vocabulary now; a raw px font-size in a component stylesheet is a bug.
+
+     In rem, not px, and deliberately: a reader who has set a larger
+     default in their browser is telling us something, and a px scale
+     ignores it. The base is the browser's own 16px, so 1rem = 16px unless
+     the reader has said otherwise.
+
+     THE FLOORS, and they are floors rather than suggestions:
+       - anything that is a sentence a person reads: --t-body, 16px.
+       - supporting text, labels, meta, captions: --t-meta, 14px. Nothing
+         that carries information goes below this.
+       - --t-micro is the uppercase letterspaced label (the .kick family).
+         12px is the floor for those, not a target for anything else.
+
+     There is no step between 14px and 16px on purpose. 15px is where
+     "this is a bit long, I'll shrink it" lands, and shrinking it is the
+     habit that produced the 7.5px. If a block does not fit at 14, the box
+     is wrong, not the type. */
+  --t-micro:0.75rem;      /* 12px — uppercase letterspaced labels ONLY */
+  --t-meta:0.875rem;      /* 14px — supporting text, the absolute floor */
+  --t-body:1rem;          /* 16px — body copy, any sentence, form fields */
+  --t-lead:1.125rem;      /* 18px — lead paragraphs, prominent values */
+  --t-title:1.3125rem;    /* 21px — card titles, the h3 rung */
+  --t-head:1.625rem;      /* 26px — panel headings, the h2 rung */
+  /* The display sizes stay fluid: they are set in a hero or a band that
+     has the room to spend, and clamp() is how they spend it. The minima
+     are phone values and are not negotiable downward. */
+  --t-display-sm:clamp(1.6rem,5.6vw,2.2rem);
+  --t-display-md:clamp(1.95rem,7vw,2.9rem);
+  --t-display-lg:clamp(2.4rem,9vw,4.2rem);
+
+  /* ---------- leading ----------
+     Body copy at 1.4 was the other half of the complaint: the FAQ and the
+     driver's notes were set tight enough that the lines fused. 1.6 is the
+     floor for anything with more than one line of prose in it. */
+  --lh-display:1.05;      /* the serif headlines — tight is the point */
+  --lh-tight:1.2;         /* one-line values, figures, times */
+  --lh-snug:1.35;         /* headings that wrap, card titles */
+  --lh-body:1.6;          /* default — every paragraph */
+  --lh-long:1.75;         /* long-form reading: the FAQ answers */
+
+  /* ---------- tracking ----------
+     Tracking is a function of size, not a constant. .24em was doing real
+     work at 8.5px, where the glyphs are too small to separate on their
+     own; carried unchanged onto a 12px label it over-tracks, and an
+     over-tracked word is read letter by letter instead of as a shape. The
+     labels got bigger, so the tracking comes down — the optical result is
+     the same silver label, legibly set. */
+  --ls-micro:.14em;       /* the uppercase label at --t-micro */
+  --ls-label:.10em;       /* wider labels, nav items, buttons */
+  --ls-display:-.015em;   /* the serif, which sets loose by default */
+
+  /* ---------- measure ----------
+     65-75 characters. Past that the eye loses the line it is returning to,
+     which on a phone in portrait is most of the reason long text feels
+     like work. */
+  --measure:68ch;
+  --measure-narrow:54ch;
+
   /* ---------- layout ---------- */
   --maxw:1120px;
   --gutter:clamp(18px,4vw,48px);

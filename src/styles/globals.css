@@ -11,6 +11,13 @@ html{scroll-behavior:smooth;scroll-padding-top:var(--nav-clear);color-scheme:dar
    scroll-margin on the target covers arriving with the hash already set
    (a shared /#fleet link), where the scroller has no say. */
 [id]{scroll-margin-top:var(--nav-clear);}
+/* Weight 300 was the other half of "not readable", and the harder half to
+   see in a mockup. Inter Light on a near-black ground optically thins —
+   the light-on-dark stroke is eaten by the surrounding darkness, so 300
+   renders closer to a hairline than it does in the design tool, where the
+   canvas is white. 400 is the floor for body text on this ground. The
+   serif display faces keep their 300; a 40px headline has stroke to
+   spare, and that delicacy is the identity. */
 body{
   font-family:var(--sans);
   color:var(--ink);
@@ -18,8 +25,9 @@ body{
   background:var(--ground);
   min-height:100vh;
   overflow-x:hidden;
-  line-height:1.6;
-  font-weight:300;
+  font-size:var(--t-body);
+  line-height:var(--lh-body);
+  font-weight:400;
 }
 /* filmic grain — the marketing site only. The driver portal is a route in
    this same document, so body::after would still lie over it; .drive-route
@@ -31,13 +39,19 @@ body.locked{position:fixed;width:100%;overflow:hidden;}
 ::selection{background:var(--silver);color:var(--deep);}
 a{color:inherit;text-decoration:none;}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
-input,select,textarea{font-family:inherit;font-size:16px;} /* 16px floor — no Safari zoom */
+/* max() rather than a flat 16px: the 16px is the Safari floor (anything
+   under it zooms the page on focus and never zooms back), --t-body is the
+   reader's own preference when they have set one larger. */
+input,select,textarea{font-family:inherit;font-size:max(16px,var(--t-body));}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--gutter);}
-.eyebrow{font-weight:600;font-size:12px;letter-spacing:.28em;text-transform:uppercase;}
+.eyebrow{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;}
 .band{padding:clamp(46px,6.3vh,72px) 0;position:relative;}
-h2.sec{font-family:var(--serif);font-weight:300;font-size:clamp(25px,3vw,40px);line-height:1.05;letter-spacing:-.015em;margin:14px 0 0;}
+h2.sec{font-family:var(--serif);font-weight:300;font-size:var(--t-display-md);line-height:var(--lh-display);letter-spacing:var(--ls-display);margin:14px 0 0;}
 h2.sec em{font-style:italic;}
-.lede{font-size:15.5px;line-height:1.8;font-weight:400;max-width:54ch;margin-top:16px;color:var(--muted);}
+/* Was 15.5px/1.8 at 54ch. A lede is the first thing read after a headline
+   and the sentence most likely to decide whether the rest is read at all;
+   it had no business being smaller than the body it introduces. */
+.lede{font-size:var(--t-lead);line-height:var(--lh-body);font-weight:400;max-width:var(--measure-narrow);margin-top:16px;color:var(--silver);}
 .diamond{display:inline-block;width:5px;height:5px;background:var(--silver);transform:rotate(45deg);flex-shrink:0;}
 .diamond.hollow{background:transparent;border:1px solid var(--silver-deep);}
 
@@ -181,8 +195,11 @@ h2.sec em{font-style:italic;}
   max-width:var(--maxw);height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;}
 .nav-left{display:flex;align-items:center;gap:52px;min-width:0;}
-.brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:16px;
-  padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;}
+/* The wordmark is also the link home, and as a bare inline it was a 22px
+   tall target. The padding is vertical only so the mark does not move. */
+.brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);
+  padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;
+  display:inline-flex;align-items:center;min-height:var(--tap);}
 .brand .ap{color:var(--silver);}
 .nlinks{display:flex;gap:30px;align-items:center;}
 /* The underline is drawn, not switched on. text-decoration has no
@@ -190,7 +207,7 @@ h2.sec em{font-style:italic;}
    is a state change where the eye expects a gesture. A pseudo-element
    scaling from transform-origin:left is the same mark, arriving the way a
    pen would draw it. See .fcol a, which takes the identical treatment. */
-.nlinks a{position:relative;font-family:var(--sans);font-weight:300;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+.nlinks a{position:relative;font-family:var(--sans);font-weight:400;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color var(--dur-ui) var(--ease-ui);}
 .nlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
   background:var(--nav-underline);transform:scaleX(0);transform-origin:left center;
@@ -199,14 +216,16 @@ h2.sec em{font-style:italic;}
 .nlinks a:hover::after,.nlinks a:focus-visible::after{transform:scaleX(1);}
 @media(prefers-reduced-motion:reduce){.nlinks a::after{transition:none;}}
 .nright{display:flex;align-items:center;gap:24px;}
-.nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:12px 24px;
-  font-weight:500;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+/* 36px tall before — the one button in the rail, and under the floor. */
+.nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:12px 24px;min-height:var(--tap);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:500;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   white-space:nowrap;border-radius:3px;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
              filter var(--dur-ui) var(--ease-ui);}
 .nbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
 .nbtn:active{transform:translateY(0);transition-duration:var(--dur-press);}
-.nsign{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--nav-dim);
+.nsign{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;font-weight:500;color:var(--nav-dim);
   text-decoration:none;display:inline-flex;align-items:center;background:none;border:none;
   transition:color var(--dur-ui) var(--ease-ui);}
 .nsign:hover{color:var(--nav-ink);}
@@ -217,7 +236,7 @@ h2.sec em{font-style:italic;}
 .nacct-wrap{position:relative;display:flex;}
 .navatar{flex:none;width:30px;height:30px;border-radius:50%;background:transparent;color:var(--nav-dim);
   border:1px solid rgba(201,211,223,.24);display:flex;align-items:center;justify-content:center;
-  font-size:9px;font-weight:600;transition:.2s var(--ease);}
+  font-size:var(--t-meta);font-weight:600;transition:.2s var(--ease);}
 .navatar:hover,.navatar.on{color:var(--nav-ink);border-color:var(--nav-underline);}
 .nmenu{position:absolute;top:calc(100% + 12px);right:0;min-width:236px;z-index:var(--z-sheet);
   display:flex;flex-direction:column;padding:8px;
@@ -227,13 +246,13 @@ h2.sec em{font-style:italic;}
 @media(prefers-reduced-motion:reduce){.nmenu{animation:none;}}
 .nm-who{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px 12px 13px;
   border-bottom:1px solid var(--line);margin-bottom:6px;}
-.nm-name{font-size:14px;font-weight:500;color:var(--ink);letter-spacing:.01em;
+.nm-name{font-size:var(--t-meta);font-weight:500;color:var(--ink);letter-spacing:.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.nm-mail{font-size:11.5px;color:var(--muted);letter-spacing:.02em;
+.nm-mail{font-size:var(--t-meta);color:var(--muted);letter-spacing:.02em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .nmenu a,.nmenu button{display:flex;align-items:center;width:100%;min-height:40px;padding:0 12px;
   border:none;border-radius:var(--r-xs);background:transparent;color:var(--silver);text-align:left;
-  text-decoration:none;font-size:11.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+  text-decoration:none;font-size:var(--t-meta);font-weight:600;letter-spacing:.13em;text-transform:uppercase;
   transition:.2s var(--ease);}
 .nmenu a:hover,.nmenu button:hover{background:var(--raised);color:var(--ink);}
 .nmenu .nm-out{color:var(--muted);}
@@ -242,13 +261,19 @@ h2.sec em{font-style:italic;}
 .nav-sheet .sheet-who{display:flex;align-items:center;gap:12px;padding:10px 14px 14px;
   border-bottom:1px solid var(--line);margin-bottom:6px;}
 .sheet-av{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
-  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:13px;font-weight:600;}
+  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:var(--t-meta);font-weight:600;}
 .sheet-id{display:flex;flex-direction:column;gap:3px;min-width:0;}
 /* leaving is not a destination — it sits below the links, not among them */
 .nav-sheet .sheet-out{color:var(--muted);}
 .nav-sheet .sheet-out:hover{color:var(--ink);}
 /* the collapsed menu — everything the desktop pill holds, two taps away */
-.nburger{display:none;align-items:center;justify-content:center;width:30px;height:30px;
+/* 30x30 before. The fleet dots next to it carry a comment explaining that
+   they clear WCAG 2.5.8's 24px, and they do; this one had no such
+   argument and is a worse case than the dots in every way — it is the ONLY
+   route to the menu on a phone, nothing else on the bar duplicates it, and
+   it sits in the top corner where a thumb is least accurate. The rail is
+   60px tall, so a 44px target costs nothing but the declaration. */
+.nburger{display:none;align-items:center;justify-content:center;width:44px;height:44px;margin-right:-7px;
   border:none;background:transparent;color:var(--nav-dim);transition:color .15s linear;}
 .nburger:hover,.nburger.on{color:var(--nav-ink);}
 .nav-scrim{position:fixed;inset:0;z-index:var(--z-nav);background:var(--scrim);}
@@ -257,7 +282,7 @@ h2.sec em{font-style:italic;}
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-hard-lg);}
 .nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 18px;
   border:none;border-radius:var(--r-pill);background:transparent;color:var(--silver);text-align:left;
-  font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
 .nav-sheet a:hover,.nav-sheet button:hover{background:var(--raised);color:var(--ink);}
 .nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
@@ -321,23 +346,23 @@ h2.sec em{font-style:italic;}
 /* the bar must still hold brand + CTA + burger at 375px */
 @media(max-width:560px){
   .nright{gap:14px;}
-  .brand{font-size:15px;letter-spacing:.22em;}
+  .brand{font-size:var(--t-body);letter-spacing:.22em;}
   .nbtn{padding:11px 16px;letter-spacing:.12em;}
 }
 @media(max-width:380px){
   .nright{gap:10px;}
-  .brand{font-size:14px;letter-spacing:.16em;}
+  .brand{font-size:var(--t-meta);letter-spacing:var(--ls-label);}
   .nbtn{padding:10px 12px;letter-spacing:.06em;}
 }
 @media(min-width:1041px){.nav-sheet,.nav-scrim{display:none;}}
 
 /* ── date + time pickers (Phase 1) ── */
-.dtf-label{display:block;font-weight:600;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+.dtf-label{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);margin-bottom:7px;}
 .datefield{position:relative;}
 .dtf-trigger{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:var(--tap);
   padding:0 16px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raised);
-  color:var(--ink);font-size:16px;font-weight:400;text-align:left;transition:.2s var(--ease);}
+  color:var(--ink);font-size:var(--t-body);font-weight:400;text-align:left;transition:.2s var(--ease);}
 .dtf-trigger:hover{background:var(--surface);}
 .dtf-trigger.empty{color:var(--placeholder);}
 .dtf-trigger.invalid{border-color:var(--alert);}
@@ -358,10 +383,10 @@ h2.sec em{font-style:italic;}
 .dtf-nav:hover:not(:disabled){background:var(--raised);color:var(--ink);}
 .dtf-nav:disabled{opacity:.3;cursor:not-allowed;}
 .dtf-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
-.dtf-dow span{text-align:center;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);}
+.dtf-dow span{text-align:center;font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;color:var(--muted);}
 .dtf-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
 .dtf-day{display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-height:38px;
-  border:none;border-radius:50%;background:transparent;color:var(--ink);font-size:14px;font-weight:500;transition:.15s var(--ease);}
+  border:none;border-radius:50%;background:transparent;color:var(--ink);font-size:var(--t-meta);font-weight:500;transition:.15s var(--ease);}
 .dtf-day:hover:not(:disabled){background:var(--raised);}
 .dtf-day.out{color:var(--muted);opacity:.55;}
 
@@ -380,7 +405,7 @@ h2.sec em{font-style:italic;}
 .tmf-list::-webkit-scrollbar-thumb{background:var(--soft);border-radius:3px;}
 .tmf-list::-webkit-scrollbar-track{background:transparent;}
 .tmf-list button{flex:none;min-height:40px;border:1px solid transparent;background:transparent;
-  color:var(--silver);border-radius:var(--r-xs);font-size:14px;font-weight:500;
+  color:var(--silver);border-radius:var(--r-xs);font-size:var(--t-meta);font-weight:500;
   letter-spacing:.02em;white-space:nowrap;transition:.14s var(--ease);
   /* ranged left: a column of times is a list to read down, and centring
      them makes every row a different width to scan across */
@@ -392,15 +417,15 @@ h2.sec em{font-style:italic;}
 .tmf-list button.on{background:var(--sheen);color:var(--on-sheen);border-color:transparent;font-weight:600;}
 .tmf-exact{display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin-top:12px;padding-top:11px;border-top:1px solid var(--line);}
-.tmf-exact label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+.tmf-exact label{font-size:var(--t-meta);letter-spacing:.1em;text-transform:uppercase;
   font-weight:600;color:var(--silver);}
 .tmf-exact .soft{text-transform:none;letter-spacing:.02em;color:var(--muted);font-weight:400;}
 /* color-scheme, or the browser paints its own clock icon black on our navy */
 .tmf-exact input{color-scheme:dark;background:var(--raised);border:1px solid var(--line);
-  border-radius:var(--r-xs);color:var(--ink);font-size:15px;padding:7px 9px;min-height:38px;}
+  border-radius:var(--r-xs);color:var(--ink);font-size:var(--t-body);padding:7px 9px;min-height:38px;}
 .tmf-exact input:focus{background:var(--surface);}
-.tmf-exactly{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
-.tmf-zone{display:block;margin-top:5px;font-size:11px;color:var(--muted);letter-spacing:.04em;}
+.tmf-exactly{display:block;margin-top:5px;font-size:var(--t-body);color:var(--muted);letter-spacing:.04em;}
+.tmf-zone{display:block;margin-top:5px;font-size:var(--t-meta);color:var(--muted);letter-spacing:.04em;}
 
 /* ── live map ── Google Maps JavaScript API, loaded only when a step that
    shows one mounts. The canvas fills its column; RouteMap holds the space
@@ -425,7 +450,7 @@ h2.sec em{font-style:italic;}
    this app draws in the one corner it does not claim keeps clear of both
    without guessing at the height of anything Google renders. */
 .lmap-dur{align-self:flex-start;max-width:100%;
-  font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);
   background:rgba(7,13,22,.82);border:1px solid var(--line);border-radius:var(--r-pill);padding:6px 12px;}
 /* Google's own zoom control and copyright line are left at their default
    styling — their DOM is undocumented and semi-private (unlabelled divs,
@@ -442,7 +467,7 @@ h2.sec em{font-style:italic;}
   padding:9px 11px;border:1px solid var(--signal-line);border-radius:var(--r-xs);
   background:rgba(7,13,22,.9);color:var(--silver);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:10.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+  font-size:var(--t-meta);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
 .mtrace b{color:var(--signal-ink);font-weight:600;margin-bottom:3px;}
 
 /* ── step 3 ── the form on one side, the journey on the other ─────── */
@@ -467,7 +492,7 @@ h2.sec em{font-style:italic;}
 .pcols-rail .timing p{margin-top:6px;line-height:1.55;}
 .panel:has(.pcols-rail) .psub{margin-bottom:14px;}
 .qtoggle-sm{border:1px solid var(--line);background:var(--raised);flex:none;}
-.qtoggle-sm button{min-height:34px;padding:0 14px;font-size:11px;letter-spacing:.1em;
+.qtoggle-sm button{min-height:34px;padding:0 14px;font-size:var(--t-meta);letter-spacing:.1em;
   white-space:nowrap;flex:none;}
 .tripmap .lmap,.tripmap .rmap{border-radius:var(--r-md);}
 /* Everything the app floats over the tiles, in one column. Stacking them
@@ -479,7 +504,7 @@ h2.sec em{font-style:italic;}
   gap:6px;align-items:flex-start;max-width:calc(100% - 60px);}
 .tme{display:inline-flex;align-items:center;gap:9px;max-width:100%;
   background:rgba(7,13,22,.86);border:1px solid var(--line);border-radius:var(--r-xs);
-  padding:7px 12px;font-size:13px;font-weight:500;color:var(--ink);
+  padding:7px 12px;font-size:var(--t-meta);font-weight:500;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tme i{flex:none;width:8px;height:8px;border-radius:50%;}
 .tme .tme-a{background:var(--ink);}
@@ -490,13 +515,13 @@ h2.sec em{font-style:italic;}
 .tm-facts > div{display:flex;justify-content:space-between;gap:14px;align-items:baseline;
   padding:13px 17px;border-bottom:1px solid var(--line);}
 .tm-facts > div:last-child{border-bottom:none;}
-.tm-facts dt{font-weight:600;font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--silver);flex:none;}
-.tm-facts dd{margin:0;font-size:16px;text-align:right;color:var(--ink);}
-.tm-facts .rv-zone{display:block;font-size:12.5px;color:var(--muted);letter-spacing:.04em;}
+.tm-facts dt{font-weight:600;font-size:var(--t-meta);letter-spacing:.13em;text-transform:uppercase;color:var(--silver);flex:none;}
+.tm-facts dd{margin:0;font-size:var(--t-body);text-align:right;color:var(--ink);}
+.tm-facts .rv-zone{display:block;font-size:var(--t-meta);color:var(--muted);letter-spacing:.04em;}
 .tm-facts .tm-total{background:var(--raised);}
 .tm-facts .tm-total dd{font-family:var(--serif);font-size:31px;font-weight:600;line-height:1;}
 .tm-change{margin-top:10px;padding:10px 2px;border:none;background:none;color:var(--silver);
-  font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
 .tm-change:hover{color:var(--ink);}
 
 /* ── route map ── real tiles with a token, a sketch of the island without */
@@ -514,28 +539,28 @@ h2.sec em{font-style:italic;}
    the north-west pin lands */
 .rmap-ends{display:flex;flex-direction:column;gap:5px;align-items:flex-start;min-width:0;}
 .rme{display:flex;align-items:center;gap:8px;max-width:100%;
-  font-size:12px;font-weight:500;color:var(--ink);letter-spacing:.01em;
+  font-size:var(--t-meta);font-weight:500;color:var(--ink);letter-spacing:.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rme i{flex:none;width:8px;height:8px;border-radius:50%;}
 .rme-a{background:var(--ink);}
 .rme-b{background:var(--signal);}
 .rmap-dur{position:absolute;right:10px;bottom:10px;padding:5px 10px;border-radius:var(--r-pill);
-  background:var(--scrim-heavy);font-size:11px;font-weight:600;color:var(--silver);
+  background:var(--scrim-heavy);font-size:var(--t-meta);font-weight:600;color:var(--silver);
   letter-spacing:.06em;text-transform:uppercase;}
-.rmap-attr{position:absolute;left:10px;bottom:10px;font-size:9.5px;color:var(--muted);
+.rmap-attr{position:absolute;left:10px;bottom:10px;font-size:var(--t-meta);color:var(--muted);
   letter-spacing:.03em;opacity:.8;}
 /* ?mapdebug=1 only — the reason a map gave up, in place of the caption.
    Must stay below .rmap-attr: same specificity, so the last one wins, and
    above it this whole block did nothing. Wraps onto its own scrim because
    these sentences are long and the point is that they are readable. */
 .rmap-why{left:8px;right:8px;bottom:8px;z-index:5;opacity:1;
-  white-space:normal;line-height:1.45;text-align:left;
+  white-space:normal;line-height:var(--lh-body);text-align:left;
   background:rgba(7,13,22,.9);border:1px solid var(--alert-line);
   border-radius:var(--r-xs);padding:8px 10px;color:var(--alert-ink);
-  font-size:11px;letter-spacing:.01em;text-transform:none;font-weight:400;}
+  font-size:var(--t-body);letter-spacing:.01em;text-transform:none;font-weight:400;}
 .rmap-empty .rmap-land{opacity:.55;}
 .rmap-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  margin:0;padding:0 24px;text-align:center;font-size:12.5px;color:var(--muted);}
+  margin:0;padding:0 24px;text-align:center;font-size:var(--t-body);color:var(--muted);}
 @media(max-width:600px){
   .tmf-pop{min-width:0;}
   .tmf-grid{max-height:190px;}
@@ -547,8 +572,8 @@ h2.sec em{font-style:italic;}
 .dtf-day.sel.cur{box-shadow:inset 0 0 0 2px var(--silver-deep);}
 
 .timefield{display:flex;flex-direction:column;}
-.tmf-zone{margin-top:6px;font-size:12px;font-weight:500;letter-spacing:.06em;color:var(--muted);}
-.rv-zone,.tv-zone{display:block;font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--muted);
+.tmf-zone{margin-top:6px;font-size:var(--t-meta);font-weight:500;letter-spacing:.06em;color:var(--muted);}
+.rv-zone,.tv-zone{display:block;font-size:var(--t-meta);font-weight:500;letter-spacing:.04em;color:var(--muted);
   text-transform:none;font-family:var(--sans);}
 
 /* ============ HERO ============ */
@@ -622,17 +647,21 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 .hero-eyebrow{color:var(--silver);margin-bottom:20px;}
 
-.hero-eyebrow .eyebrow{font-size:11.5px;font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}
+.hero-eyebrow .eyebrow{font-size:var(--t-micro);font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}
 /* 500, not 300: at hero size the light cut read as delicate. The mockup's
    headline is architectural — it has to hold the photograph down. */
 .hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,74px);line-height:1.02;
   letter-spacing:-.02em;margin:0;color:var(--ink);}
 .hero h1 em{font-style:normal;color:var(--ink);}
-.hero-sub{margin:20px 0 0;font-size:clamp(14.5px,1.15vw,16.5px);line-height:1.6;color:var(--silver);font-weight:400;}
+/* The clamp's floor was 14.5px, so on every phone — which is where this
+   sentence is actually read — the hero's one line of explanation was
+   below the body floor. The floor is now --t-body and the ceiling grows
+   from it. */
+.hero-sub{margin:20px 0 0;font-size:clamp(1rem,1.15vw,1.125rem);line-height:var(--lh-body);color:var(--silver);font-weight:400;}
 /* three marks, no boxes — the border-and-pill treatment was louder than
    the claims it carried */
 .hero-trust{margin-top:26px;display:flex;gap:clamp(18px,2.4vw,34px);flex-wrap:wrap;}
-.hero-trust span{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.02em;
+.hero-trust span{display:inline-flex;align-items:center;gap:9px;font-size:var(--t-body);letter-spacing:.02em;
   text-transform:none;font-weight:400;color:var(--silver);border:none;padding:0;}
 .hero-trust svg{color:var(--muted);flex:none;}
 /* Must stay BELOW the rules above: same specificity, so the last one wins.
@@ -648,7 +677,12 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .hero h1{font-size:clamp(32px,8.2vw,46px);max-width:none;}
   .hero-sub{margin-top:14px;}
   .hero-trust{margin-top:20px;gap:14px;}
-  .hero-trust span{font-size:11.5px;gap:7px;}
+  /* --t-meta, not --t-body: these three are badges, not sentences, and the
+     comment above is a promise the phone layout has to keep. Carrying them
+     at body size cost ~14px of height each and pushed .qbtn 46px under the
+     fold on a 360x640 handset — the card stopped breaking the fold, which
+     is the one thing this block exists to guarantee. */
+  .hero-trust span{font-size:var(--t-meta);gap:7px;}
 }
 
 /* ============ BOOKING CARD (§08) ============ */
@@ -663,7 +697,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* one way / round trip — an underline, not a segmented pill */
 .qtabs{position:relative;display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid var(--line);}
 .qtabs button{appearance:none;background:none;border:none;color:var(--muted);
-  padding:16px 18px 14px;font-size:13.5px;font-weight:500;letter-spacing:.01em;
+  padding:16px 18px 14px;font-size:var(--t-meta);font-weight:500;letter-spacing:.01em;
   position:relative;transition:color var(--dur-ui) var(--ease-ui);}
 .qtabs button:hover{color:var(--silver);}
 .qtabs button.on{color:var(--ink);}
@@ -705,8 +739,8 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    under them, no boxes; the divider does the separating */
 .qcell .combo{margin:0;}
 .qcell .combo .cfield{border-bottom:none;gap:0;}
-.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:11.5px;font-weight:600;
-  letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:var(--t-meta);font-weight:600;
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
 
 /* ── the cell IS the control ──────────────────────────────────────────
    A cell is 182x74 and only 37px of it did anything: an 18px label strip
@@ -723,18 +757,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    The padding/margin pairs live on the three rules further down that set
    these same properties last — putting them here instead lost the cascade
    to them and grew the cell by 22px. */
-.qcell .combo .cfield input{font-size:16px;padding:0;}
+.qcell .combo .cfield input{font-size:var(--t-body);padding:0;}
 .qcell .combo .cfield .cmark{color:var(--muted);}
 .qcell .combo .cfield .clear{display:none;}
-.qcell .qfld input,.qcell .qfld select{background:none;border:none;padding:0;min-height:0;font-size:16px;}
+.qcell .qfld input,.qcell .qfld select{background:none;border:none;padding:0;min-height:0;font-size:var(--t-body);}
 /* DateField and TimeField ship as self-contained controls with their own
    box. Inside the card the divider is the boundary, so the box goes and
    only the value and its mark remain. */
-.qcell .dtf-label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.13em;white-space:nowrap;
+.qcell .dtf-label{display:block;font-size:var(--t-meta);font-weight:600;letter-spacing:.13em;white-space:nowrap;
   text-transform:uppercase;color:var(--muted);padding:14px 16px 8px;margin:-14px -16px 0;}
 .qcell .dtf-trigger{background:none;border:none;border-radius:0;min-height:0;width:100%;
   padding:0 16px 16px;margin:0 -16px -16px;
-  font-size:16px;color:var(--ink);gap:8px;white-space:nowrap;}
+  font-size:var(--t-body);color:var(--ink);gap:8px;white-space:nowrap;}
 .qcell .dtf-trigger.empty{color:var(--placeholder);}
 .qcell .dtf-trigger:hover{background:none;}
 .qcell .qpax{display:block;color:var(--ink);padding:14px 16px 16px;margin:-14px -16px -16px;}
@@ -742,14 +776,14 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    "12 Passengers" was pushing this cell out past the card's own padding and
    the chosen value sat flush against the edge. min-width lets it shrink. */
 .qcell .qpax select{width:100%;min-width:0;min-height:0;padding:0;background:none;border:none;
-  color:var(--ink);font-size:16px;font-family:var(--sans);appearance:none;
+  color:var(--ink);font-size:var(--t-body);font-family:var(--sans);appearance:none;
   text-overflow:ellipsis;}
 .qcell .qpax select:hover{border:none;}
 
 .qgo{display:flex;justify-content:flex-end;padding:0 20px 20px;}
 .qbtn{width:auto;min-width:232px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
   background:var(--sheen);color:var(--on-sheen);border:none;padding:15px 26px;min-height:var(--tap);
-  font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;}
+  font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
 /* ── the two silver buttons ────────────────────────────────────────────
    "Get your fixed price" in the hero and "Book your transfer" in the
    closing band are the same decision asked twice, so they are one rule and
@@ -782,11 +816,11 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qbtn:hover svg{transform:none;}
 }
 .qloc{display:inline-flex;align-items:center;min-height:32px;padding:0 20px;margin:0 0 4px;
-  border:none;background:none;color:var(--silver);font-size:12.5px;font-weight:500;text-decoration:underline;
+  border:none;background:none;color:var(--silver);font-size:var(--t-meta);font-weight:500;text-decoration:underline;
   text-underline-offset:3px;text-decoration-color:var(--soft);}
 .qloc{transition:color var(--dur-ui) var(--ease-ui),text-decoration-color var(--dur-ui) var(--ease-ui);}
 .qloc:hover{color:var(--ink);text-decoration-color:var(--silver);}
-.qhint{font-size:13px;color:var(--silver);margin:0;padding:0 20px 10px;font-weight:500;}
+.qhint{font-size:var(--t-body);color:var(--silver);margin:0;padding:0 20px 10px;font-weight:500;}
 
 /* §09 — the phone gets its own composition, not a squeezed desktop card:
    FROM, TO, DATE + TIME, PASSENGERS, then a full-width action. */
@@ -812,24 +846,24 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    fields — under 16px, iOS zooms the page the moment one takes focus. */
 @media(min-width:981px){
   .quote{padding:19px 18px 17px;}
-  .qtitle{font-size:11px;letter-spacing:.2em;margin-bottom:12px;}
+  .qtitle{font-size:var(--t-body);letter-spacing:.2em;margin-bottom:12px;}
   .combo{margin-bottom:10px;}
-  .combo .cfield label,.qfld label{font-size:11px;letter-spacing:.12em;}
-  .combo .cfield input{font-size:15px;padding:6px 0 8px;}
+  .combo .cfield label,.qfld label{font-size:var(--t-meta);letter-spacing:.12em;}
+  .combo .cfield input{font-size:var(--t-body);padding:6px 0 8px;}
   .combo .cfield .clear{width:34px;height:34px;}
-  .locbtn{min-height:40px;font-size:11px;margin-bottom:10px;}
+  .locbtn{min-height:40px;font-size:var(--t-meta);margin-bottom:10px;}
   .qmini{gap:12px;margin-top:10px;}
-  .qfld input,.qfld select{font-size:15px;padding:9px 10px;min-height:40px;}
+  .qfld input,.qfld select{font-size:var(--t-body);padding:9px 10px;min-height:40px;}
   .qprice{margin:15px 0 12px;}
   .qprice .pv{font-size:34px;}
-  .qbtn{padding:13px;min-height:42px;font-size:12px;letter-spacing:.14em;}
-  .qfoot{margin-top:10px;font-size:11.5px;}
+  .qbtn{padding:13px;min-height:42px;font-size:var(--t-meta);letter-spacing:var(--ls-label);}
+  .qfoot{margin-top:10px;font-size:var(--t-meta);}
 }
 
 /* ============ COMBOBOX (§3.3) ============ */
 .combo{position:relative;margin-bottom:12px;}
 .combo .cfield{border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
-.combo .cfield label{display:block;font-weight:600;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--silver);}
+.combo .cfield label{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:.13em;text-transform:uppercase;color:var(--silver);}
 .combo .cfield .cwrap{flex:1;min-width:0;}
 .combo .cfield .cin{display:flex;align-items:center;gap:9px;min-width:0;}
 .combo .cfield .cmark{flex:none;display:flex;color:var(--muted);}
@@ -839,7 +873,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .combo .cfield input{width:100%;font-size:17px;font-weight:400;color:var(--ink);background:none;border:none;padding:8px 0 10px;text-overflow:ellipsis;}
 .combo .cfield input::placeholder{color:var(--placeholder);}
 .combo .cfield input:focus{outline:none;}
-.combo .cfield .clear{width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px;flex:none;}
+.combo .cfield .clear{width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:var(--t-body);flex:none;}
 .combo .cfield .clear:hover{color:var(--ink);}
 /* wipes the query while searching; .clear above wipes the selection when
    the field is at rest. Two buttons because they undo two different things. */
@@ -866,7 +900,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .cpanel.up{top:auto;bottom:calc(100% + 10px);}
 .clist{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
   list-style:none;margin:0;padding:6px 0;}
-.cpanel .cgroup{font-weight:600;font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--silver);
+.cpanel .cgroup{font-weight:600;font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;color:var(--silver);
   padding:13px 16px 7px;}
 /* Icon, then two lines: what it is called, and where it is. They used to
    share one row and compete for it — the name lost, mid-word. */
@@ -874,9 +908,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   min-height:var(--tap);font-weight:400;cursor:pointer;}
 .clist li[role="option"] .oicon{flex:none;color:var(--muted);}
 .clist li[role="option"] .otext{min-width:0;display:flex;flex-direction:column;gap:2px;}
-.clist li[role="option"] .on{font-size:15.5px;line-height:1.3;color:var(--ink);
+.clist li[role="option"] .on{font-size:var(--t-body);line-height:1.3;color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.clist li[role="option"] .oa{font-size:13px;line-height:1.35;color:var(--muted);
+.clist li[role="option"] .oa{font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .clist li[role="option"].hl{background:rgba(201,211,223,.09);}
 .clist li[role="option"].hl .oicon{color:var(--silver);}
@@ -895,17 +929,17 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .clist li.custom{border-top:1px dashed var(--line-soft);color:var(--silver);
   position:sticky;bottom:0;background:rgba(9,19,29,.97);
   -webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);}
-.clist .cempty{padding:14px 16px;font-size:14px;color:var(--muted);line-height:1.55;}
+.clist .cempty{padding:14px 16px;font-size:var(--t-meta);color:var(--muted);line-height:1.55;}
 .clist .csearching{color:var(--silver);}
 /* Where the answers come from, said once, quietly, under everything — the
    place every map and search UI has taught people to look for it. */
 .cpanel .cattrib{flex:none;padding:10px 16px 11px;
-  font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  font-size:var(--t-meta);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
   border-top:1px solid var(--line-soft);}
 /* the search could not run — say so where the "we searched" line goes,
    rather than leaving a short list looking like a complete answer */
 .cpanel .cattrib-down{color:var(--alert-ink);letter-spacing:.04em;text-transform:none;
-  font-size:12.5px;line-height:1.45;}
+  font-size:var(--t-meta);line-height:var(--lh-body);}
 /* the run of the row that the query matched — a highlight, not a
    marker pen, so <mark>'s yellow default has to go */
 .clist mark{background:none;color:var(--nav-ink);font-weight:600;}
@@ -914,11 +948,19 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    desktop dropdown stays away until a letter is typed, which is the
    honest answer there — an empty floating panel is worse than none. */
 .chint{display:none;}
-.chint p{padding:14px;margin:0;font-size:13.5px;line-height:1.6;color:var(--muted);}
+.chint p{padding:14px;margin:0;font-size:var(--t-body);line-height:1.6;color:var(--muted);}
 /* Five shortcuts, not a directory. The sheet takes the whole screen, so
    opening on a single line of hint text wastes it — and for a transfer
    service the airport is the answer often enough to be worth one tap. */
-.cquick{display:flex;flex-direction:column;}
+/* flex:1 + min-height:0 + scroll, the same shape .areasel below uses and
+   for the same reason: .cpanel is overflow:hidden under a max-height, and
+   in this state its children are a group label, these five buttons and the
+   hint paragraph, with nothing able to give. The content ran 440px into a
+   420px box and the panel simply cut the hint's last line off — "villas
+   and condos come out honest" ended at "villas and". The shortcuts scroll
+   now and the hint stays on screen, which is the right way round: the hint
+   is the instruction, the buttons are the shortcut past it. */
+.cquick{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
 .cquick button{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:none;border:none;
   padding:12px 14px;min-height:54px;margin:0 6px;border-radius:var(--r-xs);color:var(--ink);font-size:16.5px;font-weight:400;}
 /* hover only where there is a pointer: on touch it sticks after the tap and
@@ -929,9 +971,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* custom-address area anchor — the panel clips, so the form scrolls */
 .cpanel > .areasel{flex:1;min-height:0;overflow-y:auto;}
 .areasel{margin:10px 0 4px;padding:12px;border:1px solid var(--line);background:var(--raised);}
-.areasel label{display:block;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
-.areasel select,.areasel input{width:100%;font-size:16px;background:var(--surface);border:1px solid var(--line);padding:11px 12px;appearance:none;min-height:var(--tap);color:var(--ink);}
-.areasel .as-note{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;}
+.areasel label{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
+.areasel select,.areasel input{width:100%;font-size:var(--t-body);background:var(--surface);border:1px solid var(--line);padding:11px 12px;appearance:none;min-height:var(--tap);color:var(--ink);}
+.areasel .as-note{font-size:var(--t-body);color:var(--muted);margin-top:8px;line-height:1.5;}
 .areasel .frow{margin-top:10px;}
 
 /* A phone types in place. There used to be a full-screen sheet here: a tap
@@ -951,7 +993,16 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   /* Common stops, on tap, before a letter is typed. This was the one part
      of the sheet worth keeping: on a phone the airport and the cruise
      terminal are most of the pickups, and tapping one beats typing it. */
-  .combo.open .chint{display:block;}
+  /* display:FLEX, not block. PlaceCombobox renders this state as one node
+     carrying both classes — <div className="cpanel chint"> — so this rule
+     and .cpanel are fighting over the same element, and at (0,2,1) against
+     (0,1,0) this one won and quietly took the panel out of flex layout.
+     Nothing looked wrong until the content grew: .cquick's flex:1 had
+     nothing to shrink against, the children summed to 440px inside a
+     max-height:420px overflow:hidden box, and the hint's last line was cut
+     off mid-sentence. Same class collision that once had the Navigate
+     button inheriting position:fixed. */
+  .combo.open .chint{display:flex;}
 }
 
 /* ============ HOW — one bordered grid, shared rules ============ */
@@ -960,7 +1011,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    a ghost link to the right of the headline in both sections; both said
    "book", which the page already asks for in the nav, the hero and the
    closer. The heading is stronger on its own. */
-.sec-head .eyebrow{color:var(--silver);font-size:11.5px;font-weight:500;letter-spacing:.26em;}
+.sec-head .eyebrow{color:var(--silver);font-size:var(--t-meta);font-weight:500;letter-spacing:.26em;}
 .sec-head .sec{margin:14px 0 0;}
 
 /* ============ §10 — THE FOUR PILLARS ============ */
@@ -990,9 +1041,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    Transparent Prices" wraps at desktop widths and the other three do not,
    which pushed its paragraph 26px below its neighbours' — four columns
    that stopped sharing a baseline over one long word. */
-.pillar h3{font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:.01em;
+.pillar h3{font-family:var(--sans);font-size:var(--t-body);font-weight:600;letter-spacing:.01em;
   margin:0 0 10px;line-height:1.3;min-height:2.6em;color:var(--ink);}
-.pillar p{font-size:13.5px;color:var(--muted);line-height:1.72;margin:0;font-weight:400;}
+.pillar p{font-size:var(--t-body);color:var(--muted);line-height:1.72;margin:0;font-weight:400;}
 @media(max-width:900px){.pillars{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 24px;}}
 /* the phone's form: one open at a time, each row a real button */
 .pillars-list{grid-template-columns:1fr;gap:0;border-top:1px solid var(--line);}
@@ -1000,7 +1051,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .pillars-list .pillar h3{margin:0;font-size:inherit;font-weight:inherit;}
 .pillars-list .pillar h3 button{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
   background:none;border:none;color:var(--ink);padding:18px 2px;min-height:var(--tap);
-  font-size:15px;font-weight:600;font-family:var(--sans);}
+  font-size:var(--t-body);font-weight:600;font-family:var(--sans);}
 .pillars-list .pillar .pmark{width:38px;height:38px;margin:0;flex:none;}
 .pillars-list .pillar .pmark svg{width:19px;height:19px;}
 .pillars-list .ptitle{flex:1;min-width:0;}
@@ -1045,16 +1096,16 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .fcard:hover .fshot img{transform:none;}
 }
 .fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);}
-.fname{display:block;font-size:14.5px;font-weight:600;letter-spacing:.01em;color:var(--ink);}
+.fname{display:block;font-size:var(--t-body);font-weight:600;letter-spacing:.01em;color:var(--ink);}
 /* The price is absolutely positioned bottom-right, so the line beside it
    has to be told to stop. "1–3 Passengers" happened to be short enough to
    clear it; "Up to 12 guests · 12 bags" is not, and ran straight under the
    figure. ch units because what it must clear is a price, and a price is
    digits: room for "From $1,234" and the 18px inset it sits in. */
-.fpax{display:block;font-size:12.5px;color:var(--muted);margin-top:5px;
+.fpax{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:5px;
   padding-right:9ch;}
 .ffrom{position:absolute;right:18px;bottom:18px;display:flex;align-items:baseline;gap:6px;}
-.ffrom .fl{font-size:11px;color:var(--muted);}
+.ffrom .fl{font-size:var(--t-meta);color:var(--muted);}
 .ffrom .fv{font-size:17px;font-weight:600;color:var(--ink);}
 @media(max-width:1040px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:520px){
@@ -1127,7 +1178,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 @keyframes star-in{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:none;}}
 .ps-stars.in > *{animation-name:star-in;animation-duration:380ms;}
 @media(prefers-reduced-motion:reduce){.ps-stars.in > *{animation:none;}}
-.proof-rate .ps-c{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+.proof-rate .ps-c{font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;
   font-weight:500;color:var(--muted);}
 .proof-rate .ps-c strong{font-weight:600;color:var(--silver);}
 
@@ -1148,18 +1199,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .proof-quote p{margin:0 auto;max-width:23em;font-family:var(--serif);font-weight:300;
   font-size:clamp(21px,2.5vw,32px);line-height:1.28;letter-spacing:-.012em;color:var(--ink);}
 .proof-quote cite{display:block;margin-top:clamp(14px,2vh,20px);font-style:normal;
-  font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--muted);}
+  font-size:var(--t-meta);letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--muted);}
 /* the em dash belongs to the presentation, not to the name */
 .proof-quote cite::before{content:"— ";}
 
 /* The quietest line on screen, and the one that changed most: these were
    bold wordmarks that looked like buttons and did nothing. */
 .proof-on{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
-  gap:8px 10px;margin:clamp(26px,4vh,38px) 0 0;font-size:12.5px;color:var(--muted);font-weight:400;}
+  gap:8px 10px;margin:clamp(26px,4vh,38px) 0 0;font-size:var(--t-meta);color:var(--muted);font-weight:400;}
 /* --muted, not --soft: --soft is 2.39:1 on --ground and the tokens file
    scopes it to "disabled, faint icons" for exactly that reason. This is
    real text, so it takes the 4.67:1 colour and clears AA. */
-.proof-on .po-l{letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--muted);}
+.proof-on .po-l{letter-spacing:.14em;text-transform:uppercase;font-size:var(--t-meta);color:var(--muted);}
 /* These are credibility marks, not a place for flair, so the whole
    interaction is one step of opacity. .85 measures 6.5:1 on --ground — the
    row is still body text and still has to clear 4.5 at rest, which is why
@@ -1182,7 +1233,14 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fitem:first-child{border-top:1px solid var(--line);}
 .fq{width:100%;background:none;border:none;color:var(--ink);text-align:left;padding:22px 0;min-height:var(--tap);
   display:flex;justify-content:space-between;align-items:center;gap:20px;}
-.fq .qt{font-family:var(--serif);font-size:clamp(16.5px,1.4vw,19px);font-weight:400;line-height:1.3;}
+/* Cormorant is a Garamond, and a Garamond's x-height is small: at the old
+   16.5px floor the question read about the size of 13px Inter sitting
+   right under it, which is why the questions looked thinner than the
+   answers they opened. The floor is 20px so the serif lands at a real
+   reading size, and the weight goes to 500 — Cormorant at 400 is a
+   display weight, too fine to carry a line of running text on this
+   ground. */
+.fq .qt{font-family:var(--serif);font-size:clamp(1.25rem,1.6vw,1.5rem);font-weight:500;line-height:var(--lh-snug);}
 .fq .qi{font-size:22px;color:var(--silver);flex:none;
   transition:transform var(--dur-slow-ui) var(--ease-ui),color var(--dur-ui) var(--ease-ui);
   width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;}
@@ -1208,7 +1266,16 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fa-in{overflow:hidden;min-height:0;}
 /* the words follow the box rather than riding it open — the height starts
    moving, then 50ms later the answer fades up into the room it made */
-.fa p{margin:0 0 22px;font-size:14.5px;line-height:1.75;color:var(--muted);max-width:64ch;font-weight:400;
+/* The owner named this paragraph specifically, and it had three faults at
+   once: 14.5px, and set in --muted, which is the SECONDARY text colour —
+   but this paragraph is not secondary to anything. It is the answer to
+   the question the reader just tapped, the whole reason the section
+   exists, and it was being coloured as if it were a footnote to the
+   heading above it. Size to --t-body, colour to --silver (8.34:1 on
+   --deep, against --muted's 5.33), leading to --lh-long because six
+   sentences of prose on a phone is the one place in this site that is
+   genuinely long-form reading. */
+.fa p{margin:0 0 22px;font-size:var(--t-body);line-height:var(--lh-long);color:var(--silver);max-width:var(--measure);font-weight:400;
   opacity:0;transform:translateY(4px);
   transition:opacity 240ms var(--ease-ui),transform 240ms var(--ease-ui);}
 .fitem.open .fa p{opacity:1;transform:none;transition-delay:50ms;}
@@ -1227,7 +1294,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .closer h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,3.9vw,54px);line-height:1.03;
   letter-spacing:-.02em;margin:0;position:relative;z-index:var(--z-content);}
 .closer h2 em{font-style:italic;color:var(--silver);}
-.closer .ctag{margin-top:16px;font-weight:600;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);position:relative;z-index:var(--z-content);}
+.closer .ctag{margin-top:16px;font-weight:600;font-size:var(--t-micro);letter-spacing:.24em;text-transform:uppercase;color:var(--muted);position:relative;z-index:var(--z-content);}
 /* ── the closing band arrives in the hero's order ──────────────────────
    Headline, then the mark under it, then the button. The three are
    separate `.rise` elements so the observer reaches each on its own, but
@@ -1241,7 +1308,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .closer .ctag,.closer .cbtn{transition-delay:0ms;}
 }
 .closer .cbtn{margin-top:30px;background:var(--sheen);color:var(--on-sheen);border:none;padding:18px 42px;min-height:var(--tap);
-  font-weight:600;font-size:13px;letter-spacing:.16em;text-transform:uppercase;position:relative;z-index:var(--z-content);}
+  font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;position:relative;z-index:var(--z-content);}
 /* Transition, hover and active all live with .qbtn further up — the two
    CTAs are deliberately one rule. Nothing here may set `transition`: this
    selector is the same weight as the shared one and later in the file, so
@@ -1270,14 +1337,14 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .ftop{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;padding-bottom:38px;border-bottom:1px solid var(--line);}
 .fbrand{font-family:var(--serif);font-weight:500;letter-spacing:.26em;text-transform:uppercase;font-size:18px;color:var(--ink);padding-left:.26em;}
 .fbrand .ap{color:var(--silver);}
-.ftop p{margin:14px 0 0;font-size:13px;max-width:30ch;line-height:1.6;font-weight:300;}
+.ftop p{margin:14px 0 0;font-size:var(--t-body);max-width:30ch;line-height:1.6;font-weight:400;}
 .fcols{display:flex;gap:50px;flex-wrap:wrap;}
-.fcol h4{font-weight:600;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);margin:0 0 13px;}
+.fcol h3{font-weight:600;font-size:var(--t-meta);letter-spacing:.2em;text-transform:uppercase;color:var(--silver);margin:0 0 13px;}
 /* the nav's mark, repeated: a rule that grows from the left rather than a
    colour that changes. align-self keeps the box the width of the words and
    not the width of the column, so the underline ends where the text does. */
-.fcol a{position:relative;display:flex;align-self:flex-start;align-items:center;min-height:44px;font-size:13px;color:var(--muted);
-  text-decoration:none;font-weight:300;transition:color var(--dur-ui) var(--ease-ui);}
+.fcol a{position:relative;display:flex;align-self:flex-start;align-items:center;min-height:44px;font-size:var(--t-meta);color:var(--muted);
+  text-decoration:none;font-weight:400;transition:color var(--dur-ui) var(--ease-ui);}
 .fcol a::after{content:"";position:absolute;left:0;right:0;bottom:11px;height:1px;
   background:var(--silver-deep);transform:scaleX(0);transform-origin:left center;
   transition:transform var(--dur-ui) var(--ease-ui);}
@@ -1289,7 +1356,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    at 1440px still gets the full 44. */
 @media(pointer:fine){.fcol a{min-height:38px;}}
 .fbot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:22px;}
-.fbot span{font-size:12px;letter-spacing:.18em;text-transform:uppercase;}
+.fbot span{font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;}
 
 /* ============ BOOKING MODAL (§3.5) ============ */
 .book{position:fixed;inset:0;z-index:var(--z-modal);background:var(--ground);display:none;flex-direction:column;height:100dvh;}
@@ -1306,8 +1373,8 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    .panel rules that set them, so the two cannot drift apart. */
 .bhead-inner{max-width:620px;height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;gap:16px;}
-.bstep{margin:0;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--nav-dim);font-weight:300;white-space:nowrap;
+.bstep{margin:0;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+  color:var(--nav-dim);font-weight:400;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0;}
 /* the numeral is the part that changes, so it is the part that is lit */
 .bstep-n{color:var(--nav-ink);font-weight:400;}
@@ -1321,7 +1388,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .bclose{background:none;border:none;color:var(--nav-dim);
   display:inline-flex;align-items:center;min-height:44px;
   padding-inline:12px;margin-inline:-12px;
-  font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:500;
+  font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;font-weight:500;
   white-space:nowrap;transition:color .15s linear;}
 .bclose:hover{color:var(--nav-ink);}
 /* on a phone the row keeps the wordmark and the way out; the line carries
@@ -1333,7 +1400,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .panel{max-width:620px;margin:0 auto;padding:26px var(--gutter) clamp(32px,5vh,56px);}
 .panel h2{font-family:var(--serif);font-weight:300;font-size:clamp(26px,2.5vw,34px);line-height:1.1;margin:8px 0 6px;letter-spacing:-.01em;}
 .panel h2 em{font-style:italic;color:var(--silver);}
-.psub{font-size:16px;color:var(--muted);font-weight:400;margin-bottom:18px;line-height:1.6;}
+.psub{font-size:var(--t-body);color:var(--muted);font-weight:400;margin-bottom:18px;line-height:1.6;}
 /* wide screens read as two columns, so the step stops being one long ribbon */
 .pcols{display:grid;gap:0;}
 @media(min-width:1000px){
@@ -1376,9 +1443,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .pcols-review .rv-edit{order:3;margin-top:18px;}
 }
 .fld{margin-bottom:14px;}
-.fld label{display:block;font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
+.fld label{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin-bottom:7px;}
 .fld label .soft{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;}
-.fld input,.fld select,.fld textarea{width:100%;font-size:16px;font-weight:400;color:var(--ink);background:var(--raised);
+.fld input,.fld select,.fld textarea{width:100%;font-size:var(--t-body);font-weight:400;color:var(--ink);background:var(--raised);
   border:1px solid var(--line);padding:14px 16px;appearance:none;transition:.25s;min-height:var(--tap);}
 .fld input:focus,.fld select:focus,.fld textarea:focus{background:var(--surface);}
 .fld input::placeholder,.fld textarea::placeholder{color:var(--placeholder);}
@@ -1386,20 +1453,20 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:480px){.frow{grid-template-columns:1fr;}}
 .qtoggle{display:flex;border:1px solid var(--line);background:var(--raised);}
-.qtoggle button{flex:1;background:none;border:none;padding:12px;min-height:var(--tap);font-weight:600;font-size:12px;
+.qtoggle button{flex:1;background:none;border:none;padding:12px;min-height:var(--tap);font-weight:600;font-size:var(--t-meta);
   letter-spacing:.14em;text-transform:uppercase;color:var(--muted);transition:.28s;}
 .qtoggle button.on{background:var(--silver);color:var(--deep);}
-.subh{font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin:0 0 9px;}
+.subh{font-weight:600;font-size:var(--t-body);letter-spacing:.14em;text-transform:uppercase;color:var(--silver);margin:0 0 9px;}
 .pcol > .subh + * + .subh,.pcol .steppers + .subh,.pcol .fld + .subh{margin-top:18px;}
 .steppers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
 @media(max-width:460px){
   /* three across, tighter, rather than two-and-a-stray on its own line */
   .steppers{gap:7px;}
-  .stw label{font-size:11px;letter-spacing:.08em;}
+  .stw label{font-size:var(--t-meta);letter-spacing:.08em;}
   .steppers .stepper button{width:38px;height:44px;}
   .steppers .stepper .sv,.steppers .stepper .num{min-width:26px;font-size:21px;height:44px;line-height:44px;}
 }
-.stw label{display:block;font-weight:600;font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
+.stw label{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:.12em;text-transform:uppercase;color:var(--silver);margin-bottom:6px;}
 .stepper{display:flex;align-items:center;border:1px solid var(--line);width:fit-content;background:var(--raised);}
 .stepper button{background:none;border:none;width:var(--tap);height:var(--tap);font-size:19px;color:var(--ink);transition:.2s;display:flex;align-items:center;justify-content:center;}
 .stepper button:hover:not(:disabled){background:var(--surface);}
@@ -1409,9 +1476,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* derived-time panel (§3.6) — a raised block with the hour in silver */
 .timing{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;margin:2px 0 14px;}
 .timing b{font-family:var(--serif);font-size:22px;font-weight:600;display:block;line-height:1.2;color:var(--silver);}
-.timing p{font-size:15px;line-height:1.65;margin:8px 0 0;color:var(--muted);font-weight:400;}
+.timing p{font-size:var(--t-body);line-height:1.65;margin:8px 0 0;color:var(--muted);font-weight:400;}
 /* min-notice — informational, never a problem, so never alert */
-.notice{border:1px solid var(--line);background:var(--raised);padding:13px 16px;margin:0 0 14px;font-size:15px;line-height:1.6;font-weight:400;color:var(--ink);}
+.notice{border:1px solid var(--line);background:var(--raised);padding:13px 16px;margin:0 0 14px;font-size:var(--t-body);line-height:1.6;font-weight:400;color:var(--ink);}
 
 /* vehicles — real radio group */
 .vopt{display:flex;align-items:center;gap:14px;width:100%;background:var(--raised);border:1px solid var(--line);
@@ -1436,15 +1503,15 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .vopt.unfit .vthumb img{filter:grayscale(1);}
 .vopt .vmain{flex:1;min-width:0;}
 .vopt .vn{display:block;font-family:var(--serif);font-size:20px;font-weight:500;line-height:1.05;}
-.vopt .vm{display:block;font-size:13.5px;color:var(--muted);margin-top:4px;}
-.vopt .vs{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--silver);margin-top:4px;font-weight:600;}
+.vopt .vm{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:4px;}
+.vopt .vs{display:block;font-size:var(--t-meta);letter-spacing:.08em;text-transform:uppercase;color:var(--silver);margin-top:4px;font-weight:600;}
 .vopt .vp{font-family:var(--serif);font-size:25px;font-weight:600;white-space:nowrap;}
 @media(max-width:560px){
   .vopt{padding:12px 13px;gap:10px;}
   .vopt .vthumb{width:58px;height:38px;}
   .vopt .vn{font-size:18px;}
-  .vopt .vm{font-size:12.5px;}
-  .vopt .vs{font-size:11px;letter-spacing:.05em;}
+  .vopt .vm{font-size:var(--t-meta);}
+  .vopt .vs{font-size:var(--t-meta);letter-spacing:.05em;}
   .vopt .vp{font-size:22px;}
 }
 @media(max-width:380px){
@@ -1454,7 +1521,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 
 .pnav{display:flex;gap:12px;margin-top:6px;}
-.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:14.5px;letter-spacing:.12em;
+.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:var(--t-body);letter-spacing:.12em;
   text-transform:uppercase;transition:.3s;}
 .btn.primary{background:var(--sheen);color:var(--on-sheen);}
 .btn.primary:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}
@@ -1462,13 +1529,13 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .btn.back{flex:0 0 auto;background:transparent;border:1px solid var(--silver-deep);color:var(--silver);padding:17px 26px;}
 .btn.back:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
 /* one reason, under the field it belongs to (Phase 4) */
-.ferr{font-size:14.5px;line-height:1.45;color:var(--alert-ink);font-weight:500;margin:7px 0 14px;}
+.ferr{font-size:var(--t-body);line-height:var(--lh-body);color:var(--alert-ink);font-weight:500;margin:7px 0 14px;}
 .combo .cfield.invalid{border-color:var(--alert);}
-.secure{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;letter-spacing:.05em;font-weight:500;}
-.pay-error{margin:0 0 16px;padding:15px 17px;border:1px solid var(--alert-line);background:var(--alert-tint);font-size:15px;color:var(--alert-ink);font-weight:400;}
+.secure{margin-top:14px;font-size:var(--t-body);color:var(--muted);text-align:center;letter-spacing:.05em;font-weight:500;}
+.pay-error{margin:0 0 16px;padding:15px 17px;border:1px solid var(--alert-line);background:var(--alert-tint);font-size:var(--t-body);color:var(--alert-ink);font-weight:400;}
 /* Stripe's iframe arrives a beat after the step does. Reserving the room it
    will need keeps the Pay button still instead of shunting it down the page. */
-.pay-wait{font-size:14.5px;color:var(--muted);margin:10px 0 0;font-weight:400;}
+.pay-wait{font-size:var(--t-body);color:var(--muted);margin:10px 0 0;font-weight:400;}
 
 /* ── the card, in this form's own fields ──────────────────────────────
    Stripe's three iframes each sit where an <input> would, so .cardbox
@@ -1487,29 +1554,29 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .cardslot{flex:1;min-width:0;}
 .cardslot .StripeElement{width:100%;}
 /* the brand only earns its space once Stripe has recognised the number */
-.cardbrand{flex:none;font-size:11px;font-weight:600;letter-spacing:.12em;
+.cardbrand{flex:none;font-size:var(--t-meta);font-weight:600;letter-spacing:.12em;
   text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .2s;}
 .cardbrand.on{opacity:1;color:var(--silver);}
 /* expiry and CVC share a line — they are short, and a card reads that way */
 .cardrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.fld-err{margin:7px 0 0;font-size:13px;color:var(--signal-bad,#CF6A5F);font-weight:400;}
+.fld-err{margin:7px 0 0;font-size:var(--t-body);color:var(--signal-bad,#CF6A5F);font-weight:400;}
 /* no key configured: say so, rather than showing a field that cannot work */
 .pay-off{border:1px solid var(--line);background:var(--raised);padding:20px;}
 .pay-off h3{font-family:var(--serif);font-weight:400;font-size:21px;margin:0 0 8px;color:var(--ink);}
-.pay-off p{margin:0;font-size:14.5px;line-height:1.6;color:var(--silver);}
+.pay-off p{margin:0;font-size:var(--t-body);line-height:1.6;color:var(--silver);}
 /* review's two ways back — each to the screen that owns the line */
 .rv-edit{display:flex;flex-direction:column;gap:2px;margin-top:12px;}
 .rv-edit button{display:flex;align-items:center;text-align:left;padding:0 2px;border:none;
-  background:none;color:var(--silver);font-size:13px;font-weight:600;letter-spacing:.13em;
+  background:none;color:var(--silver);font-size:var(--t-meta);font-weight:600;letter-spacing:.13em;
   text-transform:uppercase;min-height:var(--tap);transition:.2s var(--ease);}
 @media(hover:hover){.rv-edit button:hover{color:var(--ink);}}
 
 /* running total — flat, at the end of the step's own column */
 .pfoot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   margin-top:20px;padding-top:18px;border-top:1px solid var(--line);}
-.pfoot .tk{display:block;font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);}
+.pfoot .tk{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;color:var(--silver);}
 .pfoot .tv{display:block;font-family:var(--serif);font-size:38px;font-weight:600;color:var(--ink);line-height:1.05;}
-.pfoot .tm{display:block;font-size:13.5px;color:var(--muted);font-weight:500;}
+.pfoot .tm{display:block;font-size:var(--t-meta);color:var(--muted);font-weight:500;}
 .pfoot .pf-r{display:flex;gap:10px;flex:1 1 240px;justify-content:flex-end;}
 /* step 3 — the review card already carries the fare, so this is buttons only */
 .pfoot.bare{margin-top:16px;padding-top:16px;}
@@ -1529,21 +1596,21 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tag{position:relative;border:1px solid var(--line);background:var(--surface);
   box-shadow:var(--shadow-hard-lg);text-align:left;}
 .tag-top{background:var(--raised);color:var(--ink);padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
-.tag-top .tk{font-weight:600;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--silver);}
-.tag-top .tr{font-size:12px;letter-spacing:.12em;color:var(--muted);}
+.tag-top .tk{font-weight:600;font-size:var(--t-meta);letter-spacing:.22em;text-transform:uppercase;color:var(--silver);}
+.tag-top .tr{font-size:var(--t-meta);letter-spacing:.12em;color:var(--muted);}
 .tag-body{padding:26px 22px;}
 .tag-body h2{font-family:var(--serif);font-weight:300;font-size:34px;line-height:1.03;margin:0 0 22px;}
 .tag-body h2 em{font-style:italic;color:var(--silver);}
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 @media(max-width:360px){.tgrid{grid-template-columns:1fr;}}
-.tgrid .tl{font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--silver);}
+.tgrid .tl{font-weight:600;font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;color:var(--silver);}
 .tgrid .tv{font-family:var(--serif);font-size:18px;font-weight:500;margin-top:2px;line-height:1.15;}
 .perf{border-top:1px dashed var(--line);margin:22px -22px 0;padding:20px 22px 0;position:relative;}
 .perf::before,.perf::after{content:"";position:absolute;top:-12px;width:22px;height:22px;border-radius:50%;background:var(--ground);border:1px solid var(--line);}
 .perf::before{left:-13px;} .perf::after{right:-13px;}
-.conf-note{margin:24px 0;font-size:13.5px;color:var(--muted);line-height:1.7;font-weight:400;}
+.conf-note{margin:24px 0;font-size:var(--t-body);color:var(--muted);line-height:1.7;font-weight:400;}
 .conf-acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
-.conf-acts button,.conf-acts a{border:1px solid var(--silver-deep);padding:15px 28px;min-height:var(--tap);font-weight:600;font-size:12px;
+.conf-acts button,.conf-acts a{border:1px solid var(--silver-deep);padding:15px 28px;min-height:var(--tap);font-weight:600;font-size:var(--t-meta);
   letter-spacing:.14em;text-transform:uppercase;transition:.3s;display:inline-flex;align-items:center;justify-content:center;}
 .conf-acts .prim{background:var(--sheen);border-color:transparent;color:var(--on-sheen);}
 .conf-acts .gh{background:transparent;color:var(--silver);}
@@ -1556,15 +1623,15 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-main{min-height:100vh;background:var(--ground);padding:var(--nav-clear) 0 4rem;}
 .tp-wrap{max-width:800px;}
 .tp-title{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,2.7vw,2.1rem);color:var(--ink);letter-spacing:-.01em;}
-.tp-sub{color:var(--muted);font-size:13.5px;font-weight:400;letter-spacing:.04em;margin:6px 0 40px;}
+.tp-sub{color:var(--muted);font-size:var(--t-body);font-weight:400;letter-spacing:.04em;margin:6px 0 40px;}
 .tp-quiet{color:var(--muted);letter-spacing:.04em;font-weight:400;}
-.tp-claimed{margin:14px 0 0;font-size:13px;line-height:1.6;color:var(--signal-ink);font-weight:400;
+.tp-claimed{margin:14px 0 0;font-size:var(--t-meta);line-height:1.6;color:var(--signal-ink);font-weight:400;
   background:var(--signal-tint);border:1px solid var(--signal-line);border-radius:var(--r-sm);padding:10px 14px;}
-.tp-unclosed{margin:12px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted);font-weight:400;
+.tp-unclosed{margin:12px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--muted);font-weight:400;
   border-left:2px solid var(--line);padding-left:11px;}
 .tp-empty{background:var(--surface);border:1px solid var(--line);padding:2.6rem;text-align:center;box-shadow:var(--shadow-hard);}
-.tp-empty p{color:var(--muted);font-size:15px;font-weight:400;letter-spacing:.02em;margin-bottom:1.1rem;}
-.tp-link{color:var(--silver);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--silver);padding-bottom:2px;transition:color .25s;min-height:var(--tap);display:inline-flex;align-items:center;}
+.tp-empty p{color:var(--muted);font-size:var(--t-body);font-weight:400;letter-spacing:.02em;margin-bottom:1.1rem;}
+.tp-link{color:var(--silver);font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--silver);padding-bottom:2px;transition:color .25s;min-height:var(--tap);display:inline-flex;align-items:center;}
 .tp-link:hover{color:var(--ink);}
 .tp-skeletons{display:flex;flex-direction:column;gap:14px;}
 /* a loading block, not a swept gradient — the system has only two of those */
@@ -1575,11 +1642,11 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px;}
 .tp-tab{display:inline-flex;align-items:center;gap:9px;min-height:var(--tap);padding:0 20px;
   border:1px solid var(--silver-deep);border-radius:var(--r-pill);background:transparent;color:var(--silver);
-  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.25s var(--ease);}
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.25s var(--ease);}
 .tp-tab:hover{background:var(--raised);color:var(--ink);}
 .tp-tab.on{background:var(--silver);color:var(--deep);border-color:var(--silver);}
 .tp-tab-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;
-  border-radius:var(--r-pill);background:var(--raised);font-size:11px;letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+  border-radius:var(--r-pill);background:var(--raised);font-size:var(--t-meta);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
 .tp-tab.on .tp-tab-n{background:var(--on-sheen-wash);color:var(--deep);}
 @media(max-width:420px){.tp-tab{flex:1 1 auto;justify-content:center;padding:0 12px;letter-spacing:.08em;}}
 .tp-list{display:flex;flex-direction:column;gap:16px;}
@@ -1587,7 +1654,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-more{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:var(--tap);
   margin-top:16px;padding:0 20px;border:1px dashed var(--line);border-radius:var(--r-pill);
   background:transparent;color:var(--muted);
-  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.25s var(--ease);}
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.25s var(--ease);}
 .tp-more:hover{border-color:var(--silver-deep);color:var(--ink);background:var(--raised);}
 .tp-more svg{transition:transform .3s var(--ease);}
 .tp-more.open svg{transform:rotate(180deg);}
@@ -1595,20 +1662,20 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-card:hover{transform:translateY(-2px);}
 .tp-card.cancelled{opacity:.55;}
 .tp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-.tp-ref{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600;letter-spacing:.08em;}
-.tp-status{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 11px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;}
+.tp-ref{font-family:var(--serif);font-size:var(--t-body);color:var(--ink);font-weight:600;letter-spacing:.08em;}
+.tp-status{font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 11px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;}
 /* assigned and en route are live states — the only place signal appears here */
 .tp-status.s-confirmed,.tp-status.s-driver_assigned{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
 .tp-status.s-en_route{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
 .tp-status.s-completed{color:var(--muted);}
 .tp-status.s-cancelled{color:var(--muted);text-decoration:line-through;}
-.tp-route .rr-stop{display:flex;align-items:center;gap:11px;font-size:15px;color:var(--ink);font-weight:400;}
+.tp-route .rr-stop{display:flex;align-items:center;gap:11px;font-size:var(--t-body);color:var(--ink);font-weight:400;}
 .tp-route .rr-line{width:0;height:18px;border-left:1px dashed var(--line);margin:3px 0 3px 5px;}
 .ring{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--silver);flex-shrink:0;}
 .rdiamond{width:11px;height:11px;background:var(--signal);transform:rotate(45deg);flex-shrink:0;margin:0 .5px;}
 .rr-stop{display:flex;align-items:center;gap:11px;}
 .rr-line{width:0;height:18px;border-left:1px dashed var(--line);margin:3px 0 3px 5px;}
-.tp-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;}
+.tp-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--t-meta);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;}
 .tp-fare{margin-left:auto;font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums;}
 .tp-timeline{display:flex;align-items:flex-start;margin-top:16px;overflow-x:auto;padding-bottom:2px;}
 .tp-tl-step{display:flex;align-items:center;color:var(--muted);}
@@ -1618,7 +1685,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* Five labels need ~700px and the card only ever offers ~650, so they
    used to clip mid-word. Dots carry the progress; only the step you're
    actually on is named. */
-.tp-tl-lbl{display:none;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-left:6px;white-space:nowrap;}
+.tp-tl-lbl{display:none;font-size:var(--t-meta);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-left:6px;white-space:nowrap;}
 .tp-tl-step.now .tp-tl-lbl{display:inline;}
 .tp-tl-step.done .tp-tl-node{border-color:var(--silver);background:var(--silver);}
 .tp-tl-step.done{color:var(--silver);}
@@ -1629,7 +1696,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-driver-ava{width:44px;height:44px;border-radius:50%;background:var(--raised);color:var(--silver);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:20px;font-weight:500;flex-shrink:0;}
 .tp-driver-info{display:flex;flex-direction:column;min-width:0;}
 .tp-driver-info b{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:500;}
-.tp-driver-info span{font-size:12px;color:var(--muted);font-weight:400;margin-top:2px;}
+.tp-driver-info span{font-size:var(--t-body);color:var(--muted);font-weight:400;margin-top:2px;}
 .tp-driver-wa{margin-left:auto;flex-shrink:0;}
 /* a real face when the driver has uploaded one */
 img.tp-driver-ava{object-fit:cover;}
@@ -1637,21 +1704,21 @@ img.tp-driver-ava{object-fit:cover;}
    is matching characters, not reading a sentence, so it gets the
    treatment a licence plate has: boxed, spaced and lining. */
 .tp-plate{display:inline-block;align-self:flex-start;margin-top:6px;
-  font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  font-size:var(--t-meta);font-weight:600;letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--ink);background:var(--raised);border:1px solid var(--silver-deep);
   border-radius:var(--r-xs);padding:4px 9px;font-variant-numeric:tabular-nums;}
 .tp-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;}
 .tp-actions:empty{display:none;}
-.btn-ghost{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);padding:0 18px;min-height:var(--tap);display:inline-flex;align-items:center;border:1px solid var(--silver-deep);transition:.3s var(--ease);background:transparent;}
+.btn-ghost{font-size:var(--t-meta);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);padding:0 18px;min-height:var(--tap);display:inline-flex;align-items:center;border:1px solid var(--silver-deep);transition:.3s var(--ease);background:transparent;}
 .btn-ghost:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
 /* nothing to submit, or a request already in flight — the button has to
    look inert, not merely refuse the click */
 .btn-ghost:disabled{color:var(--soft);border-color:var(--line);cursor:default;}
 .btn-ghost:disabled:hover{background:transparent;color:var(--soft);border-color:var(--line);}
-.tp-cancel-link{font-size:13px;color:var(--muted);font-weight:500;min-height:var(--tap);display:inline-flex;align-items:center;transition:color .25s;}
+.tp-cancel-link{font-size:var(--t-meta);color:var(--muted);font-weight:500;min-height:var(--tap);display:inline-flex;align-items:center;transition:color .25s;}
 .tp-cancel-link:hover{color:var(--ink);}
 .tp-cancel-link.danger{color:var(--alert-ink);}
-.tp-cancel-confirm{display:inline-flex;align-items:center;gap:14px;font-size:13px;color:var(--muted);font-weight:400;flex-wrap:wrap;}
+.tp-cancel-confirm{display:inline-flex;align-items:center;gap:14px;font-size:var(--t-meta);color:var(--muted);font-weight:400;flex-wrap:wrap;}
 
 /* ============ AUTH ============ */
 .auth-overlay{position:fixed;inset:0;z-index:var(--z-modal);display:flex;align-items:center;justify-content:center;padding:24px;background:var(--scrim);}
@@ -1659,34 +1726,34 @@ img.tp-driver-ava{object-fit:cover;}
 .auth-close{position:absolute;top:12px;right:12px;width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;border:1px solid var(--line);color:var(--silver);background:transparent;transition:.3s var(--ease);}
 .auth-close:hover{background:var(--raised);color:var(--ink);}
 .auth-brand{font-family:var(--serif);font-weight:500;font-size:18px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink);text-align:center;padding-left:.32em;}
-.auth-sub{margin:8px 0 4px;font-size:12.5px;line-height:1.6;color:var(--muted);font-weight:400;text-align:center;}
+.auth-sub{margin:8px 0 4px;font-size:var(--t-body);line-height:1.6;color:var(--muted);font-weight:400;text-align:center;}
 .oauth{display:flex;flex-direction:column;gap:12px;margin-top:26px;}
-.oauth-btn{display:flex;align-items:center;justify-content:center;gap:13px;padding:14px;min-height:var(--tap);border:1px solid var(--silver-deep);background:transparent;font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--silver);transition:.3s var(--ease);}
+.oauth-btn{display:flex;align-items:center;justify-content:center;gap:13px;padding:14px;min-height:var(--tap);border:1px solid var(--silver-deep);background:transparent;font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;color:var(--silver);transition:.3s var(--ease);}
 .oauth-btn:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
 .oauth-btn svg path{fill:currentColor;}
 .authform .oauth{margin-top:22px;}
 .authform.compact .oauth{margin-top:14px;}
-.auth-or{display:flex;align-items:center;gap:14px;margin:18px 0 14px;color:var(--muted);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;}
+.auth-or{display:flex;align-items:center;gap:14px;margin:18px 0 14px;color:var(--muted);font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;font-weight:500;}
 .auth-or::before,.auth-or::after{content:"";flex:1;height:0;border-top:1px dashed var(--line);}
-.auth-toggle{display:block;margin:16px auto 0;font-size:13px;color:var(--muted);font-weight:500;min-height:var(--tap);transition:.3s var(--ease);}
+.auth-toggle{display:block;margin:16px auto 0;font-size:var(--t-meta);color:var(--muted);font-weight:500;min-height:var(--tap);transition:.3s var(--ease);}
 .auth-toggle:hover{color:var(--ink);}
-.acct-note{margin-top:20px;font-size:13px;color:var(--muted);font-weight:400;line-height:1.7;text-align:center;}
+.acct-note{margin-top:20px;font-size:var(--t-body);color:var(--muted);font-weight:400;line-height:1.7;text-align:center;}
 /* the signed-in half of the modal — who you are, and the one thing about
    that you can change here */
 .acct-panel{display:flex;flex-direction:column;gap:20px;margin-top:22px;}
 .acct-head{display:flex;align-items:center;gap:14px;min-width:0;}
 .acct-av{flex:none;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);
-  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:15px;font-weight:600;}
+  display:flex;align-items:center;justify-content:center;color:var(--silver);font-size:var(--t-body);font-weight:600;}
 .acct-id{display:flex;flex-direction:column;gap:3px;min-width:0;}
-.acct-name{font-size:16px;font-weight:500;color:var(--ink);letter-spacing:.01em;
+.acct-name{font-size:var(--t-body);font-weight:500;color:var(--ink);letter-spacing:.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.acct-mail{font-size:12px;color:var(--muted);letter-spacing:.02em;
+.acct-mail{font-size:var(--t-meta);color:var(--muted);letter-spacing:.02em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .acct-form{display:flex;flex-direction:column;gap:9px;}
-.acct-lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);font-weight:600;}
-.acct-panel .acct-note{margin-top:0;text-align:left;font-size:12.5px;}
+.acct-lbl{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);font-weight:600;}
+.acct-panel .acct-note{margin-top:0;text-align:left;font-size:var(--t-meta);}
 .acct-out{align-self:flex-start;background:none;border:none;padding:6px 0;color:var(--muted);
-  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:.2s var(--ease);}
+  font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:.2s var(--ease);}
 .acct-out:hover{color:var(--ink);}
 .acct-go{justify-content:center;text-decoration:none;}
 
@@ -1698,20 +1765,20 @@ img.tp-driver-ava{object-fit:cover;}
 .pf-idt{display:flex;flex-direction:column;gap:4px;min-width:0;}
 .pf-name{font-family:var(--serif);font-size:21px;font-weight:600;color:var(--ink);letter-spacing:.01em;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pf-mail{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pf-mail{font-size:var(--t-meta);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pf-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);
   padding:26px 26px 28px;margin-bottom:18px;}
 .pf-h{font-family:var(--serif);font-style:italic;font-weight:500;font-size:19px;color:var(--ink);margin:0 0 8px;}
-.pf-note{font-size:13px;line-height:1.65;color:var(--muted);margin:0 0 20px;max-width:52ch;}
+.pf-note{font-size:var(--t-body);line-height:1.65;color:var(--muted);margin:0 0 20px;max-width:52ch;}
 .pf-form{display:flex;flex-direction:column;gap:16px;align-items:stretch;}
 .pf-form .btn-ghost{align-self:flex-start;justify-content:center;}
 .pf-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
   padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:14px;}
-.pf-rl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--silver);font-weight:600;}
-.pf-rv{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
-.pf-saved{font-size:12.5px;color:var(--signal-ink);margin:0;}
+.pf-rl{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);font-weight:600;}
+.pf-rv{font-size:var(--t-meta);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.pf-saved{font-size:var(--t-meta);color:var(--signal-ink);margin:0;}
 .pf-out{align-self:flex-start;background:none;border:none;padding:8px 0;margin-top:6px;color:var(--muted);
-  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:.2s var(--ease);}
+  font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;transition:.2s var(--ease);}
 .pf-out:hover{color:var(--ink);}
 @media(max-width:560px){
   .pf-card{padding:22px 18px 24px;}
@@ -1725,20 +1792,20 @@ img.tp-driver-ava{object-fit:cover;}
    line above the button, where the eye already is when the tap does nothing */
 input.txt.invalid{border-color:var(--alert);}
 .authform .ferr{margin:0 0 2px;}
-.auth-err{margin:2px 0 4px;font-size:13px;line-height:1.5;color:var(--alert-ink);font-weight:500;
+.auth-err{margin:2px 0 4px;font-size:var(--t-body);line-height:1.5;color:var(--alert-ink);font-weight:500;
   border-left:2px solid var(--alert-line);padding-left:10px;}
-.auth-toggle.quiet{margin:10px auto 0;font-size:12.5px;color:var(--silver-deep);}
-input.txt{width:100%;padding:14px 16px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font-size:16px;font-weight:400;transition:.3s;min-height:var(--tap);}
+.auth-toggle.quiet{margin:10px auto 0;font-size:var(--t-meta);color:var(--silver-deep);}
+input.txt{width:100%;padding:14px 16px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font-size:var(--t-body);font-weight:400;transition:.3s;min-height:var(--tap);}
 input.txt::placeholder{color:var(--placeholder);}
 input.txt:focus{outline:none;background:var(--surface);}
-.ride-auth-h{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);font-weight:600;margin-bottom:12px;}
+.ride-auth-h{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);font-weight:600;margin-bottom:12px;}
 /* the modal sets its own line above the form; without this the two
    headings sit on top of each other */
 .auth-sub + .authform .ride-auth-h{margin-top:20px;}
 .auth-pw{position:relative;display:flex;align-items:center;}
 .auth-pw .txt{padding-right:70px;}
 .auth-pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);padding:0 10px;min-height:38px;
-  font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
   border:1px solid var(--line);background:transparent;transition:.25s var(--ease);}
 .auth-pw-toggle:hover{color:var(--ink);border-color:var(--silver-deep);}
 
@@ -1855,7 +1922,32 @@ input.txt{border-radius:var(--r-sm);}
 @media(max-width:900px) and (max-height:700px){
   .hero-grid{padding-top:14px;gap:14px;}
   .hero h1{font-size:31px;}
-  .hero-sub{margin-top:10px;font-size:14px;}
+  .hero-sub{margin-top:10px;font-size:var(--t-body);}
   .hero-eyebrow{margin-bottom:9px;}
   .qgo{padding-bottom:10px;}
+}
+
+/* And a third, for the 360x640 Android that is still the floor of this
+   market. The two tiers above were tuned against 11.5px labels and a 12px
+   button; at the legible sizes those same tiers left the button 46px under
+   the fold, which on the one screen the page exists to reach is the whole
+   page failing.
+
+   The order the block above sets out is air, then the trust row, then
+   type, then cells. Air and the trust row are already spent by the time
+   this tier applies, and type is where the floors are — 14px labels and
+   16px values are the point of this pass and do not move. So it comes out
+   of the cells, which is the last thing the design wanted to give up and
+   the only thing left to give. They keep 32px+ of contiguous hit area,
+   well clear of the 24px floor the comment above defends. */
+@media(max-width:900px) and (max-height:660px){
+  .hero-grid{padding-top:10px;gap:12px;}
+  .hero h1{font-size:29px;}
+  .qtabs{padding-top:0;}
+  .qcell{padding:5px 16px 7px;}
+  .qcell .dtf-label{padding:5px 16px 3px;margin:-5px -16px 0;}
+  .qcell .dtf-trigger{padding:0 16px 7px;margin:0 -16px -7px;}
+  .qcell .qpax{padding:5px 16px 7px;margin:-5px -16px -7px;}
+  .qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{margin-bottom:3px;}
+  .qgo{padding-bottom:8px;}
 }
