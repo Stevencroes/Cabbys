@@ -209,6 +209,12 @@ const DRIVER_STATUS_REASONS: Record<string, string> = {
   not_admin: "This account isn't an admin any more. Sign in again, or ask whoever set you up.",
   bad_status: "That isn't a status a driver can be in.",
   no_driver: "There's no driver record for that account — it may have been removed.",
+  // v2. The write was made and the row did not move. Said out loud
+  // rather than shown as success: an operator who is told a driver is
+  // on hold, and whose driver then keeps claiming from the pool, has
+  // been actively misled.
+  not_applied:
+    "The change was accepted but the driver's status didn't move. Something in the database is putting it back — don't rely on this until it's looked at.",
 };
 
 export type DriverStatusResult =

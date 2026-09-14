@@ -200,6 +200,7 @@ as $$
 declare
   v_updated integer;
   v_held    integer;
+  v_now     text;
 begin
   if not public.is_admin() then
     return json_build_object('ok', false, 'error', 'not_admin');
@@ -229,12 +230,31 @@ begin
     return json_build_object('ok', false, 'error', 'no_driver');
   end if;
 
+  -- v2. Read the row back rather than trusting row_count.
+  --
+  -- row_count says a row was MATCHED, not that the value moved. A
+  -- BEFORE UPDATE trigger that rewrites NEW, a rule, a replica the
+  -- caller then reads — each leaves a non-zero count over an unchanged
+  -- column, and this function was reporting every one of them as
+  -- success. An operator taps "Put on hold", gets a green line saying
+  -- the driver can't take new jobs, and the driver carries on claiming
+  -- from the pool: the worst answer a dispatch tool can give, because
+  -- it is confidently wrong rather than merely broken.
+  --
+  -- So the truth comes from the row, and the caller is told what the
+  -- row actually says.
+  select status into v_now from public.drivers where user_id = p_driver_user_id;
+
+  if v_now is distinct from p_status then
+    return json_build_object('ok', false, 'error', 'not_applied', 'status', v_now);
+  end if;
+
   select count(*) into v_held
     from public.rides
    where driver_id = p_driver_user_id
      and status in ('driver_assigned', 'en_route', 'arrived', 'in_progress');
 
-  return json_build_object('ok', true, 'status', p_status, 'held_rides', v_held);
+  return json_build_object('ok', true, 'status', v_now, 'held_rides', v_held);
 end;
 $$;
 
