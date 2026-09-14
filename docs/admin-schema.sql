@@ -404,6 +404,84 @@ grant execute on function public.admin_assign_ride(uuid, uuid) to authenticated;
 -- operator, and an "the first user to ask becomes admin" rule is a race
 -- anybody can win.
 --
+-- ── 6. protect_driver_fields — teaching the lock about this door ────
+-- Not our trigger. `drivers_protect` is a BEFORE UPDATE trigger that
+-- predates this project, from whatever tool built the original driver
+-- app, and it is doing the right job: a driver must not be able to
+-- approve themselves, take over another driver's row, or inflate their
+-- own rating. Nothing below weakens any of that.
+--
+-- What it got wrong is only WHERE it looks for an operator. It asks
+-- `public.profiles.role = 'admin'`. This project has no profiles table,
+-- so that select raises undefined_table, the handler sets is_admin
+-- false, and every API update has status, user_id, approved_at and
+-- rating put back to their old values.
+--
+-- And it does so SILENTLY, which is why this cost a long evening. The
+-- row is still matched, so the UPDATE reports one row affected;
+-- admin_set_driver_status believed that count and printed "on hold"
+-- over a driver who went on claiming from the pool. (That function now
+-- reads the row back rather than trusting row_count — section 4a — so
+-- the screen is honest about it either way.)
+--
+-- The clause that made it look table-specific is the first one:
+--
+--     if auth.uid() is null then return new; end if;
+--
+-- The SQL editor has no JWT, so auth.uid() is null there and a
+-- hand-typed UPDATE sails through — which is exactly why the table
+-- looked innocent while the board could not move a single status.
+--
+-- So: ask public.is_admin() as well. The profiles lookup stays, second
+-- and unchanged, for any deployment that does have it. A driver is
+-- neither, and the four columns are still forced back for them.
+create or replace function public.protect_driver_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path to 'public'
+as $fn$
+declare
+  v_admin boolean := false;
+begin
+  -- service_role / SQL editor: no JWT, no auth.uid(), trusted
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  -- this project's operator concept. Wrapped, because a database that
+  -- has the trigger but not admin-schema.sql has no such function, and
+  -- the answer there is "not an admin", not a failed update.
+  begin
+    v_admin := public.is_admin();
+  exception when undefined_function then
+    v_admin := false;
+  end;
+
+  -- the original check, kept verbatim in intent for deployments that
+  -- really do carry a profiles.role column
+  if not v_admin then
+    begin
+      select exists (
+        select 1 from public.profiles
+        where id = auth.uid() and role = 'admin'
+      ) into v_admin;
+    exception when undefined_column or undefined_table then
+      v_admin := false;
+    end;
+  end if;
+
+  if not v_admin then
+    new.status      := old.status;       -- cannot self-approve
+    new.user_id     := old.user_id;      -- cannot steal another driver row
+    new.approved_at := old.approved_at;
+    new.rating      := old.rating;       -- cannot inflate own rating
+  end if;
+
+  return new;
+end $fn$;
+
+
 -- Find your uid in Authentication → Users, or run
 --   select id, email from auth.users where email = 'you@example.com';
 -- then replace the placeholder below and run it in the SQL editor:
