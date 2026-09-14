@@ -1797,7 +1797,14 @@ input.txt.invalid{border-color:var(--alert);}
 .auth-toggle.quiet{margin:10px auto 0;font-size:var(--t-meta);color:var(--silver-deep);}
 input.txt{width:100%;padding:14px 16px;border:1px solid var(--line);background:var(--raised);color:var(--ink);font-size:var(--t-body);font-weight:400;transition:.3s;min-height:var(--tap);}
 input.txt::placeholder{color:var(--placeholder);}
-input.txt:focus{outline:none;background:var(--surface);}
+/* outline:none here removed the ONLY focus indicator these fields had and
+   replaced it with a background step from --raised to --surface, which is
+   1.05:1 — two darks a fifth of a percent apart. On the sign-in, sign-up
+   and password-reset forms a keyboard user had no way to see which box
+   they were in. The wash stays, because it is a nice answer to a pointer;
+   the ring comes back for the keyboard, where it is the whole point. */
+input.txt:focus{background:var(--surface);border-color:var(--silver-deep);}
+input.txt:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 .ride-auth-h{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);font-weight:600;margin-bottom:12px;}
 /* the modal sets its own line above the form; without this the two
    headings sit on top of each other */
