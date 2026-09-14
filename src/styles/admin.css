@@ -31,6 +31,17 @@
   /* an operator's pointer target — a mouse, not a thumb, so the 46px
      floor the driver portal keeps would waste a third of the screen */
   --a-tap:34px;
+  /* the rail. One number, read by the grid that places it and by
+     nothing else — everything inside it sizes from content. */
+  --a-rail:228px;
+  /* The board's vertical rhythm, and the reason it reads as expensive
+     rather than as dense. Three steps, used in this order: --a-gap
+     between things in a group, --a-block between groups, --a-band
+     before a new section of the page. Picking a fourth number is how a
+     layout starts looking approximate. */
+  --a-gap:12px;
+  --a-block:22px;
+  --a-band:38px;
 
   position:relative;
   min-height:100dvh;
@@ -47,54 +58,74 @@
 .adm *{box-sizing:border-box;}
 .adm :focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 
-/* ── the bar: who you are, and the way out ─────────────────────────── */
-.adm-top{flex:none;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  border-bottom:1px solid var(--line);background:var(--deep);
-  padding:calc(env(safe-area-inset-top,0px) + 12px) 20px 12px;}
-.adm-top .in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  width:100%;max-width:var(--a-maxw);margin:0 auto;}
+/* the first thing a keyboard reaches, and the only way past eight nav
+   links to the table somebody actually came for */
+.adm-skip{position:absolute;left:-9999px;top:0;z-index:var(--z-modal);
+  background:var(--sheen);color:var(--on-sheen);padding:10px 16px;border-radius:0 0 var(--a-r-md) 0;
+  font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
+.adm-skip:focus{left:0;}
+
+/* ── the frame: a rail, and the board beside it ────────────────────── */
+/* A vertical rail rather than a strip of tabs. Three tabs read fine
+   across the top; eight wrap to two lines at any window worth working
+   in, and navigation that reflows as the window narrows is navigation
+   an operator stops trusting to be in the same place. The rail also has
+   room for a count beside the two entries that ever need one, which a
+   horizontal strip could only have carried by becoming a toolbar. */
+.adm-frame{display:grid;grid-template-columns:var(--a-rail) minmax(0,1fr);
+  align-items:start;min-height:100dvh;}
+.adm-rail{position:sticky;top:0;align-self:start;height:100dvh;
+  display:flex;flex-direction:column;gap:var(--a-block);
+  border-right:1px solid var(--line);background:var(--deep);
+  padding:calc(env(safe-area-inset-top,0px) + 26px) 0 20px;}
+.adm-railtop{padding:0 20px;flex:none;}
 .adm-mark{font-family:var(--serif);font-weight:500;letter-spacing:.3em;text-transform:uppercase;
-  font-size:var(--t-body);padding-left:.3em;color:var(--ink);flex:none;}
+  font-size:var(--t-body);padding-left:.3em;color:var(--ink);flex:none;display:block;}
 .adm-mark .ap{color:var(--silver);}
 .adm-mark small{display:block;font-family:var(--sans);font-size:var(--t-micro);letter-spacing:var(--ls-micro);
-  color:var(--muted);margin-top:2px;font-weight:500;}
-/* pushed right, and the first thing to drop to its own line on a phone */
-.adm-who{margin-left:auto;display:flex;align-items:center;gap:12px;min-width:0;}
-.adm-who .em{font-size:var(--t-body);color:var(--muted);overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap;max-width:26ch;}
+  color:var(--muted);margin-top:4px;font-weight:500;}
 
-/* ── the tabs ──────────────────────────────────────────────────────── */
-/* At the top, not the foot. The driver portal's rail is thumb-reach
-   furniture on a phone; a dispatch board is scrolled with a wheel and
-   its navigation belongs where the eye starts. */
-.adm-tabs{flex:none;border-bottom:1px solid var(--line);background:var(--deep);}
-.adm-tabs .in{display:flex;gap:2px;width:100%;max-width:var(--a-maxw);margin:0 auto;
-  padding:0 20px;overflow-x:auto;scrollbar-width:none;}
-.adm-tabs .in::-webkit-scrollbar{display:none;}
-.adm-tabs a{position:relative;flex:none;padding:13px 16px;color:var(--muted);
-  text-decoration:none;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;white-space:nowrap;
-  transition:color .25s var(--ease);}
-.adm-tabs a:hover{color:var(--silver);}
-.adm-tabs a.on{color:var(--ink);}
-/* the marker is a rule under the tab, the way a table's own headings
-   are underscored — the driver portal's dot would read as decoration here */
-.adm-tabs a.on::after{content:"";position:absolute;left:16px;right:16px;bottom:-1px;height:2px;
-  background:var(--silver);}
+.adm-nav{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:1px;padding:0 10px;}
+.adm-nav a{position:relative;display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:var(--a-r-sm);color:var(--muted);text-decoration:none;
+  font-weight:500;font-size:var(--t-meta);white-space:nowrap;
+  transition:color .2s var(--ease-ui),background .2s var(--ease-ui);}
+.adm-nav a .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.adm-nav a:hover{color:var(--silver);background:var(--surface);}
+.adm-nav a.on{color:var(--ink);background:var(--surface);}
+/* the marker is a rule down the active row's left edge — restrained, and
+   it reads as a position in a list rather than as a highlight */
+.adm-nav a.on::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:2px;
+  border-radius:2px;background:var(--silver);}
+/* a count is a claim that something needs doing, so it is absent at zero
+   and it carries a number rather than a coloured dot */
+.adm-nav a .ct{flex:none;font-variant-numeric:tabular-nums;font-weight:600;font-size:var(--t-micro);
+  letter-spacing:0;min-width:20px;text-align:center;padding:2px 6px;border-radius:var(--a-r-pill);
+  background:var(--alert-tint);color:var(--alert-ink);border:1px solid var(--alert-line);}
+.adm-navgap{display:block;height:1px;background:var(--line);margin:10px;}
+
+.adm-railfoot{flex:none;padding:0 20px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+  min-width:0;max-width:100%;}
+.adm-railfoot .em{font-size:var(--t-meta);color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;max-width:100%;}
+
 /* ── the page ──────────────────────────────────────────────────────── */
-.adm-screen{flex:1;display:flex;flex-direction:column;min-height:0;}
+.adm-screen{min-width:0;display:flex;flex-direction:column;}
 .adm-view{flex:1;display:flex;flex-direction:column;animation:admfade .3s var(--ease);}
 @keyframes admfade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 .adm-pad{width:100%;max-width:var(--a-maxw);margin:0 auto;
-  padding:22px 20px calc(48px + env(safe-area-inset-bottom,0px));}
+  padding:34px 32px calc(64px + env(safe-area-inset-bottom,0px));}
 
 .adm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
-  flex-wrap:wrap;margin-bottom:18px;}
-.adm .kick{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
-.adm .big{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.04;
-  margin:6px 0 0;letter-spacing:-.01em;}
+  flex-wrap:wrap;margin-bottom:var(--a-band);}
+.adm-headt{min-width:0;}
+.adm-heada{flex:none;display:flex;gap:8px;align-items:center;}
+.adm .kick{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
+.adm .big{font-family:var(--serif);font-weight:300;font-size:var(--t-display-sm);line-height:var(--lh-display);
+  margin:10px 0 0;letter-spacing:var(--ls-display);}
 .adm .big em{font-style:italic;color:var(--silver);}
-.adm .sub{color:var(--muted);font-size:var(--t-body);font-weight:400;line-height:1.6;margin:6px 0 0;max-width:62ch;}
+.adm .sub{color:var(--muted);font-size:var(--t-body);font-weight:400;line-height:var(--lh-body);
+  margin:10px 0 0;max-width:var(--measure);}
 
 /* ── the filter strip ──────────────────────────────────────────────── */
 .adm-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--a-r-pill);
@@ -239,7 +270,7 @@
    carries the database's own words, because the fix is in Supabase and
    not on this screen. */
 .adm-empty{padding:44px 24px;text-align:center;color:var(--muted);}
-.adm-empty .es{font-family:var(--serif);font-size:20px;color:var(--ink);margin-bottom:6px;}
+.adm-empty .es{font-family:var(--serif);font-size:var(--t-title);color:var(--ink);margin-bottom:6px;}
 .adm-empty .et{font-size:var(--t-body);line-height:1.65;max-width:52ch;margin:0 auto;}
 .adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);
   word-break:break-word;opacity:.75;margin-top:10px;}
@@ -257,9 +288,9 @@
   margin-bottom:20px;flex:none;}
 .adm-gate .gi svg{width:27px;height:27px;}
 .adm-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
-.adm-gate h1{font-family:var(--serif);font-weight:300;font-size:27px;margin:0 0 10px;line-height:1.1;}
+.adm-gate h1{font-family:var(--serif);font-weight:300;font-size:var(--t-head);margin:0 0 10px;line-height:var(--lh-snug);}
 .adm-gate p{color:var(--muted);font-size:var(--t-body);line-height:1.7;max-width:42ch;margin:0;}
-.adm-mark.gate{font-size:18px;margin-bottom:24px;}
+.adm-mark.gate{font-size:var(--t-lead);margin-bottom:24px;}
 .adm-mark.gate small{font-size:var(--t-micro);letter-spacing:var(--ls-micro);margin-top:5px;}
 /* the first thing seen on every cold open */
 .adm-hold{color:var(--muted);animation:admbreathe 2.4s var(--ease) infinite;}
@@ -359,16 +390,43 @@
    and the rest stops trying to be a grid. The horizontal scroller on
    .adm-scroll stays for what is left, and the PAGE never scrolls.
    ══════════════════════════════════════════════════════════════════════ */
+
+/* ── the rail, folded ──────────────────────────────────────────────────
+   The same markup, laid out as a bar. Not a hamburger and not a bottom
+   tab strip: the driver portal has a thumb rail because it is held in a
+   car mount, and this is the owner checking the board from a kerb, which
+   is a narrower window rather than a different product. The eight scroll
+   sideways inside their own strip; the PAGE still never does. */
+@media(max-width:960px){
+  .adm-frame{display:block;}
+  .adm-rail{position:sticky;top:0;z-index:var(--z-nav);height:auto;
+    flex-direction:row;flex-wrap:wrap;align-items:center;gap:var(--a-gap);
+    border-right:none;border-bottom:1px solid var(--line);
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 20px 0;}
+  .adm-railtop{padding:0;}
+  .adm-mark small{display:inline;margin:0 0 0 10px;}
+  .adm-railfoot{margin-left:auto;padding:0;flex-direction:row;align-items:center;gap:12px;
+    width:auto;max-width:50%;}
+  .adm-nav{order:3;width:100%;flex:none;flex-direction:row;gap:2px;padding:0;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
+  .adm-nav::-webkit-scrollbar{display:none;}
+  .adm-nav a{flex:none;border-radius:0;padding:12px 12px;}
+  .adm-nav a.on{background:none;}
+  /* the marker moves with the layout: a rule UNDER the tab, the way a
+     table's own headings are underscored */
+  .adm-nav a.on::before{left:12px;right:12px;top:auto;bottom:0;width:auto;height:2px;}
+  .adm-navgap{width:1px;height:auto;margin:8px 6px;align-self:stretch;}
+  .adm-pad{padding:26px 20px calc(48px + env(safe-area-inset-bottom,0px));}
+}
+
 @media(max-width:700px){
-  .adm-pad{padding:16px 14px calc(40px + env(safe-area-inset-bottom,0px));}
-  .adm-top,.adm-tabs .in{padding-left:14px;padding-right:14px;}
-  .adm .big{font-size:25px;}
+  .adm-pad{padding:18px 14px calc(40px + env(safe-area-inset-bottom,0px));}
+  .adm-rail{padding-left:14px;padding-right:14px;}
+  .adm-railfoot{max-width:100%;}
   .adm-drop{display:none;}
   .adm-table{min-width:0;}
   .adm-table thead th,.adm-table tbody td{padding:9px 8px;}
   .adm-acts{justify-content:flex-start;}
-  .adm-who{margin-left:0;width:100%;}
-  .adm-who .em{max-width:100%;}
 }
 
 /* Below 400px the table gives up on columns entirely: every cell
@@ -462,4 +520,409 @@
   .adm-table tbody tr.adm-docrow td{padding:0;}
   .adm-docs{padding:12px;}
   .adm-docs .adm-acts{flex-wrap:wrap;}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE BOARD'S OWN FURNITURE
+   Everything below was added when the portal grew from three screens to
+   eight. The rule it is all written against, in the owner's words:
+   premium is less noise, better hierarchy, excellent typography,
+   spacing and precision — NOT more cards, gradients or animation. So
+   the vocabulary here is deliberately small: a rule, a label, a row,
+   and air. There are exactly two boxed surfaces in it, and both are
+   things that genuinely sit on the page rather than groupings that
+   wanted a border.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── a section, which is a rule with a name on it ──────────────────── */
+.adm-sect{margin-top:var(--a-band);}
+.adm-sect:first-child{margin-top:0;}
+.adm-secth{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+  padding-bottom:10px;margin-bottom:var(--a-block);border-bottom:1px solid var(--line);}
+.adm-secth h2{margin:0;font-family:var(--sans);font-weight:600;font-size:var(--t-micro);
+  letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
+.adm-sectx{margin-left:auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  font-size:var(--t-meta);color:var(--muted);}
+
+/* ── the compact figure strip ──────────────────────────────────────────
+   Four readings across one rule. NOT four cards: a card implies
+   something you can open, and a count of today's rides is not an
+   object. The dividers are hairlines between the cells, so the strip
+   reads as one instrument rather than as a row of tiles. */
+.adm-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.adm-fig{padding:16px 22px;border-left:1px solid var(--line);min-width:0;}
+/* the strip is a reading, not a heading, so whatever follows it needs
+   the same air a new section gets — .adm-sect:first-child zeroes its own
+   margin inside a detail column and would otherwise butt straight up */
+.adm-figs + .adm-detail,.adm-figs + .adm-sect{margin-top:var(--a-band);}
+.adm-fig:first-child{border-left:none;padding-left:0;}
+.adm-fig .k{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
+  text-transform:uppercase;color:var(--muted);}
+.adm-fig .v{margin-top:8px;font-family:var(--serif);font-weight:600;font-size:var(--t-head);
+  line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
+.adm-fig .n{margin-top:5px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+/* a figure that is only ever a problem when it isn't zero. The word
+   under it still says so — the colour is the second signal, never the
+   only one. */
+.adm-fig.alarm .v{color:var(--alert-ink);}
+
+/* ── a chronological list, which most of this board is ─────────────────
+   Rows on a ground, separated by a hairline and nothing else. This is
+   the shape the brief asks for by name — time, passenger, route,
+   vehicle, driver, status — and it is a list rather than a table
+   because the eye reads it down the clock, not across the columns. */
+.adm-list{display:flex;flex-direction:column;}
+.adm-row{display:grid;grid-template-columns:82px minmax(0,1.5fr) minmax(0,1.6fr) auto;
+  align-items:center;gap:18px;width:100%;text-align:left;
+  padding:14px 8px;border:none;border-bottom:1px solid var(--line);background:none;color:inherit;
+  font-family:var(--sans);font-size:var(--t-meta);cursor:pointer;
+  transition:background .18s var(--ease-ui);}
+.adm-row:last-child{border-bottom:none;}
+.adm-row:hover{background:var(--surface);}
+/* a row that needs a human. The rule down its edge is the mark; the
+   chip inside it carries the word. */
+.adm-row.wants{box-shadow:inset 2px 0 0 var(--alert);}
+.adm-row.past{opacity:.62;}
+.adm-rtime{font-family:var(--serif);font-weight:600;font-size:var(--t-lead);color:var(--ink);
+  line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
+.adm-rtime small{display:block;font-family:var(--sans);font-weight:500;font-size:var(--t-micro);
+  letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--muted);margin-top:4px;}
+.adm-rmain{min-width:0;}
+.adm-rmain .a{display:block;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adm-rmain .b{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adm-rend{justify-self:end;display:flex;align-items:center;gap:12px;flex:none;}
+
+/* ── the status timeline ───────────────────────────────────────────────
+   The seven steps a ride walks, drawn as a position rather than as a
+   progress bar. Each step carries its own word and, where the database
+   stamped one, its own time — a step with no time is a step not
+   reached, never a time that was lost. */
+.adm-time{list-style:none;margin:0;padding:0;}
+.adm-time li{position:relative;padding:0 0 18px 26px;}
+.adm-time li:last-child{padding-bottom:0;}
+/* the rail between the dots, drawn per item so the last one has none */
+.adm-time li::before{content:"";position:absolute;left:5px;top:16px;bottom:0;width:1px;
+  background:var(--line);}
+.adm-time li:last-child::before{display:none;}
+.adm-time .dot{position:absolute;left:0;top:5px;width:11px;height:11px;border-radius:50%;
+  border:1px solid var(--soft);background:var(--ground);}
+.adm-time .done .dot{background:var(--silver);border-color:var(--silver);}
+.adm-time .at .dot{background:var(--signal);border-color:var(--signal);
+  box-shadow:0 0 0 4px var(--signal-glow);}
+.adm-time .off .dot{background:var(--alert);border-color:var(--alert);}
+.adm-time .lb{display:block;font-size:var(--t-body);line-height:var(--lh-snug);color:var(--muted);}
+.adm-time .done .lb,.adm-time .at .lb{color:var(--ink);}
+.adm-time .off .lb{color:var(--alert-ink);}
+.adm-time .tm{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;
+  font-variant-numeric:tabular-nums;}
+/* what a step being "now" means, said in a word as well as by the ring */
+.adm-time .at .tm{color:var(--signal-ink);}
+
+/* ── a detail view ─────────────────────────────────────────────────────
+   Two columns: the thing, and what can be done about it. The second
+   column is the only place on the board where actions live, which is
+   how a list stays a list. */
+.adm-detail{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
+  gap:var(--a-band);align-items:start;}
+.adm-aside{display:flex;flex-direction:column;gap:var(--a-band);min-width:0;}
+.adm-back{display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;
+  font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
+  color:var(--muted);text-decoration:none;transition:color .2s var(--ease-ui);}
+.adm-back:hover{color:var(--silver);}
+
+/* a key and its value, stacked. The only "card" in here is the panel
+   below, and even that is a surface rather than a container. */
+.adm-fact{display:flex;gap:16px;padding:9px 0;border-bottom:1px solid var(--line-soft);}
+.adm-fact:last-child{border-bottom:none;}
+.adm-fact .fk{flex:none;width:9.5em;font-size:var(--t-meta);color:var(--muted);line-height:var(--lh-snug);}
+.adm-fact .fv{flex:1;min-width:0;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);
+  word-break:break-word;}
+.adm-fact .fv .q{color:var(--muted);}
+
+/* the one boxed surface: something raised off the page because it is an
+   object on it, not a grouping that wanted a border */
+.adm-panel{border:1px solid var(--line);border-radius:var(--a-r-md);background:var(--surface);
+  padding:18px;}
+.adm-panel + .adm-panel{margin-top:var(--a-block);}
+
+/* ── one search box, one meaning ───────────────────────────────────── */
+.adm-search{display:block;position:relative;min-width:min(100%,260px);}
+.adm-search .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+.adm-search input{width:100%;min-height:var(--a-tap);padding:8px 14px;
+  border:1px solid var(--line);border-radius:var(--a-r-pill);background:var(--raised);
+  color:var(--ink);font-family:var(--sans);font-size:var(--t-meta);}
+.adm-search input::placeholder{color:var(--placeholder);}
+.adm-search input:focus{outline:none;border-color:var(--silver-deep);}
+.adm-search input:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
+
+/* ── waiting ───────────────────────────────────────────────────────────
+   Rows in the shape of what is coming, so the list arrives into the
+   space its skeleton held instead of pushing the page down. The bars are
+   aria-hidden; the sentence above them is what a screen reader gets. */
+.adm-skel{padding:6px 0;}
+.adm-skelsay{margin:0 0 14px;font-size:var(--t-meta);color:var(--muted);}
+.adm-skelrow{display:flex;gap:18px;align-items:center;padding:16px 8px;
+  border-bottom:1px solid var(--line);}
+.adm-skelrow:last-child{border-bottom:none;}
+.adm-skelrow span{display:block;height:11px;border-radius:var(--a-r-pill);background:var(--raised);
+  animation:admpulse 1.6s var(--ease) infinite;}
+.adm-skelrow:nth-child(3) span{animation-delay:.08s;}
+.adm-skelrow:nth-child(4) span{animation-delay:.16s;}
+.adm-skelrow:nth-child(5) span{animation-delay:.24s;}
+@keyframes admpulse{0%,100%{opacity:.45;}50%{opacity:.9;}}
+
+/* ── the attention list ────────────────────────────────────────────────
+   Derived from live state, so nothing here can be dismissed — an item
+   goes when the thing it is about is fixed. Each one says its own grade
+   in a word; the rule down the left is the second signal, never the
+   first. */
+.adm-att{display:flex;flex-direction:column;}
+.adm-attrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:start;
+  width:100%;text-align:left;padding:15px 8px 15px 14px;background:none;border:none;
+  border-bottom:1px solid var(--line);color:inherit;font-family:var(--sans);cursor:pointer;
+  box-shadow:inset 2px 0 0 var(--soft);transition:background .18s var(--ease-ui);}
+.adm-attrow:last-child{border-bottom:none;}
+.adm-attrow:hover{background:var(--surface);}
+.adm-attrow.now{box-shadow:inset 2px 0 0 var(--alert);}
+.adm-attrow.soon{box-shadow:inset 2px 0 0 var(--silver);}
+.adm-attgrade{flex:none;font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
+  text-transform:uppercase;color:var(--muted);padding-top:3px;min-width:4.5em;}
+.adm-attrow.now .adm-attgrade{color:var(--alert-ink);}
+.adm-atth{display:block;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);}
+.adm-attd{display:block;margin-top:5px;font-size:var(--t-meta);color:var(--muted);
+  line-height:var(--lh-body);max-width:var(--measure);}
+.adm-attgo{flex:none;align-self:center;color:var(--muted);font-size:var(--t-body);}
+
+/* ── the day rail on the schedule ──────────────────────────────────────
+   A day is read down the clock, so the hours are the spine and the
+   rides hang off them. An hour with nothing in it still shows, because
+   a gap is information on a dispatch board — it is where another
+   booking fits. */
+.adm-day{display:flex;flex-direction:column;}
+.adm-hour{display:grid;grid-template-columns:70px minmax(0,1fr);gap:20px;align-items:start;
+  border-top:1px solid var(--line);padding:10px 0;}
+.adm-hour:first-child{border-top:none;}
+.adm-hourk{font-family:var(--serif);font-weight:600;font-size:var(--t-body);color:var(--silver);
+  font-variant-numeric:tabular-nums;padding-top:12px;}
+.adm-hour.quiet .adm-hourk{color:var(--muted);opacity:.55;}
+.adm-hourv{min-width:0;}
+.adm-hour.quiet .adm-hourv{padding:12px 0;font-size:var(--t-meta);color:var(--muted);opacity:.55;}
+/* the day picker: yesterday, today, tomorrow and a date */
+.adm-days{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.adm-days .now{font-size:var(--t-meta);color:var(--muted);margin-left:6px;}
+
+/* ── one simple chart, and only where it helps ─────────────────────────
+   Bars for a fortnight of revenue, drawn from the same completed rides
+   the totals are drawn from. No axes, no gridlines, no legend: the
+   question it answers is "which days were busy", and a chart that needs
+   a legend is answering a different one. */
+.adm-bars{display:flex;align-items:flex-end;gap:6px;height:96px;}
+.adm-bar{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;
+  height:100%;background:none;border:none;padding:0;cursor:pointer;}
+.adm-bar i{display:block;width:100%;background:var(--raised);border-top:1px solid var(--silver-deep);
+  border-radius:2px 2px 0 0;min-height:2px;transition:background .2s var(--ease-ui);}
+.adm-bar:hover i,.adm-bar.on i{background:var(--signal-tint);border-top-color:var(--signal);}
+.adm-barx{display:flex;gap:6px;margin-top:8px;}
+.adm-barx span{flex:1;min-width:0;text-align:center;font-size:var(--t-micro);color:var(--muted);
+  letter-spacing:0;overflow:hidden;}
+
+/* ── the paperwork count, wherever it appears ──────────────────────── */
+.adm-meter{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--muted);
+  font-variant-numeric:tabular-nums;}
+.adm-meter i{display:block;width:44px;height:4px;border-radius:var(--a-r-pill);background:var(--raised);
+  overflow:hidden;}
+.adm-meter i b{display:block;height:100%;background:var(--silver);}
+.adm-meter.full i b{background:var(--signal);}
+
+/* ── settings, which is a document rather than a form ──────────────── */
+.adm-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));
+  gap:var(--a-band) var(--a-band);}
+.adm-setg{min-width:0;}
+.adm-setg h3{margin:0 0 4px;font-family:var(--sans);font-weight:600;font-size:var(--t-micro);
+  letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
+/* what can and cannot be changed from here, said once per group rather
+   than implied by whether a control is greyed out */
+.adm-setg .where{margin:0 0 14px;font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);
+  max-width:var(--measure-narrow);}
+.adm-setg .where b{color:var(--silver);font-weight:500;}
+
+@media(max-width:900px){
+  .adm-detail{grid-template-columns:minmax(0,1fr);gap:var(--a-band);}
+  .adm-figs{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .adm-fig{padding:14px 16px;}
+  .adm-fig:nth-child(odd){border-left:none;padding-left:0;}
+  .adm-fig:nth-child(n+3){border-top:1px solid var(--line);}
+}
+
+@media(max-width:700px){
+  /* the list stops being a grid and becomes what it always was under
+     the columns: a time, a thing, and its state */
+  .adm-row{grid-template-columns:74px minmax(0,1fr);gap:12px;row-gap:6px;padding:12px 6px;}
+  .adm-row > .adm-rsub{grid-column:2;}
+  .adm-rend{grid-column:2;justify-self:start;}
+  .adm-rtime{font-size:var(--t-body);}
+  .adm-hour{grid-template-columns:54px minmax(0,1fr);gap:12px;}
+  .adm-attrow{grid-template-columns:minmax(0,1fr);gap:6px;}
+  .adm-attgo{display:none;}
+  .adm-fact{flex-direction:column;gap:3px;}
+  .adm-fact .fk{width:auto;}
+  .adm-bars{height:72px;}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE PIECES THE SCREENS ACTUALLY ASK FOR
+   Written after rendering every screen and looking at it, which is how
+   half of this block came to exist: the schedule's week strip and its
+   ride slots had no rules at all and were laying out as one run-on line
+   of text, and "Reach them" was printing "+1 305 555 0142WhatsApp"
+   because two links in a row had nothing between them. Neither is
+   visible in a test.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* the qualifier inside a value: "no plate", "not recorded", "charged to
+   the guest". Muted rather than absent, because the absence of a fact is
+   itself a fact on this board. */
+.adm .q{color:var(--muted);}
+
+/* a sentence that is not a heading and not a value: the caveat under a
+   control, the line that stands where a control would be */
+.adm-fine{margin:10px 0 0;font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);
+  max-width:var(--measure);}
+.adm-fine.warn{color:var(--alert-ink);}
+.adm-fine + .adm-fine{margin-top:6px;}
+/* a warning in a section's own header line */
+.adm-warnword{color:var(--alert-ink);}
+
+/* the quiet link out of a section — "the whole schedule →" */
+.adm-more{color:var(--silver);text-decoration:none;font-weight:600;font-size:var(--t-meta);
+  transition:color .2s var(--ease-ui);}
+.adm-more:hover{color:var(--ink);}
+
+/* a row that opens something. The pointer is the only affordance a table
+   row gets; the real link inside its first cell is what a keyboard uses. */
+.adm-table tbody tr.adm-open{cursor:pointer;}
+.adm-rowlink{color:var(--ink);text-decoration:none;}
+.adm-rowlink:hover{text-decoration:underline;text-underline-offset:3px;}
+/* the list rows are links too, and a link on this board is never blue
+   and never underlined until it is hovered */
+a.adm-row{text-decoration:none;color:inherit;}
+
+/* two or three ways to reach one person, on one line */
+.adm-reach{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;}
+.adm-reach a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);
+  transition:border-color .2s var(--ease-ui);}
+.adm-reach a:hover{border-bottom-color:var(--silver);}
+.adm-fact .fv a{color:var(--ink);}
+.adm-fact .fv .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);
+  color:var(--silver);}
+
+/* what the booking, the driver or an operator wrote into rides.notes */
+.adm-notes{list-style:none;margin:0;padding:0;}
+.adm-notes li{padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:var(--t-body);
+  line-height:var(--lh-snug);color:var(--ink);}
+.adm-notes li:last-child{border-bottom:none;}
+.adm-notes b{color:var(--silver);font-weight:600;}
+
+/* ── the chip for a ride nobody is driving ─────────────────────────────
+   Its own tone, not the alert one. "Cancelled" and "needs a driver" are
+   both problems and they are not the same problem — one is over, the
+   other is the only thing on the board with a deadline on it. The word
+   is what carries it either way. */
+.adm-chip.warn{background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert-line);}
+
+/* ── asking before something lands on somebody, outside a table ──────── */
+/* The table's version is .adm-confirm, which is a <tr>. This is the same
+   question in a detail column, and it keeps the same shape: what will
+   happen, in a sentence, then the two buttons. */
+.adm-ask{border:1px solid var(--line);border-left:2px solid var(--silver);border-radius:var(--a-r-md);
+  background:var(--raised);padding:16px;}
+.adm-ask.bad{border-left-color:var(--alert);background:var(--alert-tint);}
+.adm-ask .ck{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
+  color:var(--silver);}
+.adm-ask.bad .ck{color:var(--alert-ink);}
+.adm-ask p{margin:8px 0 0;font-size:var(--t-body);line-height:var(--lh-snug);color:var(--ink);}
+.adm-ask .adm-acts{margin-top:14px;}
+.adm-reason{display:block;margin-top:12px;}
+.adm-reason span{display:block;font-size:var(--t-meta);line-height:var(--lh-body);color:var(--silver);
+  margin-bottom:7px;}
+.adm-reason textarea{width:100%;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:var(--t-body);
+  line-height:var(--lh-snug);padding:9px 11px;resize:vertical;}
+.adm-reason textarea::placeholder{color:var(--placeholder);}
+.adm-reason textarea:focus{outline:none;border-color:var(--silver-deep);}
+.adm-reason textarea:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
+/* in a detail column the actions read left-to-right, not right-aligned
+   against a table's edge */
+.adm-acts.start{justify-content:flex-start;}
+
+/* ── the person, on their own page ─────────────────────────────────── */
+.adm-idcard{display:flex;gap:18px;align-items:flex-start;}
+.adm-face{width:72px;height:72px;border-radius:50%;flex:none;object-fit:cover;
+  background:var(--raised);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:var(--t-head);font-weight:600;color:var(--silver);}
+/* no photo is a fact about what a guest will see, not a missing asset */
+.adm-face.gap{border-color:var(--alert-line);color:var(--alert-ink);}
+.adm-idfacts{flex:1;min-width:0;}
+
+/* the driver picker, inside the ride it is about */
+.adm-assign .plist{max-height:min(46vh,420px);overflow-y:auto;
+  border:1px solid var(--line);border-radius:var(--a-r-md);background:var(--surface);}
+
+/* ── the schedule's week strip ─────────────────────────────────────────
+   A picker that also answers "which day needs me". Each cell carries a
+   number AND the word for what the number is — a bare coloured dot would
+   be the one thing on this board that says something only by colour. */
+.adm-week{display:flex;align-items:stretch;gap:4px;margin-bottom:var(--a-band);}
+.adm-weekstep{flex:none;width:34px;background:none;border:1px solid var(--line);
+  border-radius:var(--a-r-sm);color:var(--muted);cursor:pointer;font-size:var(--t-body);
+  transition:color .2s var(--ease-ui),border-color .2s var(--ease-ui);}
+.adm-weekstep:hover{color:var(--ink);border-color:var(--silver-deep);}
+.adm-weekday{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;
+  padding:10px 8px;border:1px solid var(--line);border-radius:var(--a-r-sm);
+  background:none;color:inherit;cursor:pointer;text-align:left;font-family:var(--sans);
+  transition:background .2s var(--ease-ui),border-color .2s var(--ease-ui);}
+.adm-weekday:hover{background:var(--surface);}
+.adm-weekday.on{background:var(--surface);border-color:var(--silver-deep);}
+/* today is marked by a rule, not only by a colour */
+.adm-weekday.now{box-shadow:inset 0 2px 0 var(--silver);}
+.adm-weekday .wd{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
+  text-transform:uppercase;color:var(--muted);}
+.adm-weekday.on .wd{color:var(--silver);}
+.adm-weekday .wn{font-family:var(--serif);font-size:var(--t-lead);font-weight:600;color:var(--ink);
+  line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
+.adm-weekday .wc{font-size:var(--t-meta);color:var(--muted);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;}
+.adm-weekday .wg{font-size:var(--t-meta);color:var(--alert-ink);white-space:nowrap;}
+
+/* ── one ride in the day ───────────────────────────────────────────── */
+.adm-slot{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:16px;align-items:start;
+  padding:10px 10px 10px 12px;border-radius:var(--a-r-sm);color:inherit;text-decoration:none;
+  transition:background .18s var(--ease-ui);}
+.adm-slot + .adm-slot{margin-top:4px;}
+.adm-slot:hover{background:var(--surface);}
+.adm-slot.wants{box-shadow:inset 2px 0 0 var(--alert);}
+.adm-slot.past{opacity:.55;}
+.adm-slot .st{font-family:var(--serif);font-weight:600;font-size:var(--t-lead);color:var(--ink);
+  line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
+.adm-slot .sm{min-width:0;}
+.adm-slot .sm .a{display:block;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);}
+.adm-slot .sm .b{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;}
+/* a warning is a sentence; the accent rule beside the row says the same
+   thing a second time, never the first */
+.adm-slot .sw{display:block;margin-top:5px;font-size:var(--t-meta);color:var(--alert-ink);
+  line-height:var(--lh-snug);}
+.adm-slot .se{justify-self:end;}
+
+@media(max-width:700px){
+  .adm-idcard{flex-direction:column;gap:12px;}
+  .adm-slot{grid-template-columns:70px minmax(0,1fr);row-gap:6px;}
+  .adm-slot .se{grid-column:2;justify-self:start;}
+  .adm-week{gap:3px;overflow-x:auto;scrollbar-width:none;}
+  .adm-week::-webkit-scrollbar{display:none;}
+  .adm-weekday{min-width:62px;}
+  .adm-weekday .wc,.adm-weekday .wg{font-size:var(--t-micro);}
 }

@@ -1,15 +1,13 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import type { AdminRide } from "../lib/admin";
+import type { Board } from "../BoardContext";
+import { makeBoard, makeRide } from "../lib/fixtures";
 
-const state: { rides: AdminRide[]; error: string | null } = { rides: [], error: null };
+const state: { board: Board } = { board: makeBoard() };
 const navigate = vi.fn();
 
-vi.mock("../lib/admin", async (orig) => ({
-  ...(await orig<typeof import("../lib/admin")>()),
-  loadUpcomingRides: () => Promise.resolve({ rides: state.rides, error: state.error }),
-}));
+vi.mock("../BoardContext", () => ({ useBoard: () => state.board }));
 vi.mock("react-router-dom", async (orig) => ({
   ...(await orig<typeof import("react-router-dom")>()),
   useNavigate: () => navigate,
@@ -17,47 +15,27 @@ vi.mock("react-router-dom", async (orig) => ({
 
 import Rides from "./Rides";
 
-const ride = (over: Partial<AdminRide> = {}): AdminRide => ({
-  id: "r1",
-  status: "confirmed",
-  scheduledAt: "2026-09-01T18:35:00.000Z",
-  pickup: "Queen Beatrix International Airport",
-  dropoff: "The Ritz-Carlton Aruba",
-  vehicle: "The Scout",
-  passengers: 3,
-  luggage: 2,
-  childSeats: 0,
-  // ƒ89.50 is what the guest pays — $50, not the driver's $37.50 cut
-  fareAwg: 89.5,
-  bookingRef: "CB-1",
-  guestName: "Marta Vos",
-  guestPhone: "+31 6 1234 5678",
-  flightNumber: null,
-  driverId: null,
-  driverName: null,
-  driverVehicle: null,
-  driverPlate: null,
-  ...over,
-});
-
 const renderBoard = () => render(<MemoryRouter><Rides /></MemoryRouter>);
 
 beforeEach(() => {
-  state.rides = [ride()];
-  state.error = null;
+  state.board = makeBoard({ rides: [makeRide()] });
   navigate.mockClear();
 });
 
-describe("Rides board", () => {
+describe("Ride requests", () => {
   // A booking with no driver is the only row here that will not resolve
   // itself: an assigned ride runs, a cancelled one is over, and an
   // unassigned one just gets closer to its pickup time. So it is where
   // the board opens.
   it("opens on the rides nobody is driving", async () => {
-    state.rides = [ride({ id: "r1" }), ride({ id: "r2", driverId: "d1", status: "driver_assigned", driverName: "Ana Croes", driverPlate: "A-12345" })];
+    state.board = makeBoard({
+      rides: [
+        makeRide({ id: "r1" }),
+        makeRide({ id: "r2", driverId: "d1", status: "driver_assigned", driverName: "Ana Croes", driverPlate: "A-12345" }),
+      ],
+    });
     renderBoard();
     expect(await screen.findByRole("button", { name: /needs a driver/i })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: /put a driver on/i })).toBeInTheDocument();
     expect(screen.queryByText("Ana Croes")).toBeNull();
   });
 
@@ -71,20 +49,29 @@ describe("Rides board", () => {
     expect(screen.queryByText("$90")).toBeNull();
   });
 
-  it("carries the ride through to the assign screen rather than leaving it to be found again", async () => {
+  // A row opens the ride; it does not expand. An operator comparing
+  // thirty rides wants thirty rows the same height.
+  it("opens the ride rather than growing the row", () => {
     renderBoard();
-    fireEvent.click(await screen.findByRole("button", { name: /put a driver on/i }));
-    expect(navigate).toHaveBeenCalledWith("/admin/assign?ride=r1");
+    fireEvent.click(screen.getByText("Marta Vos").closest("tr")!);
+    expect(navigate).toHaveBeenCalledWith("/admin/rides/r1");
   });
 
-  // admin_assign_ride refuses a cancelled or completed ride. A button
-  // that exists only to be refused is worse than no button — this says
+  // A <tr> with an onClick and nothing focusable inside it is a row only
+  // a mouse can open.
+  it("gives every row a real link, so a keyboard can open it too", () => {
+    renderBoard();
+    expect(screen.getByRole("link", { name: "Marta Vos" })).toHaveAttribute("href", "/admin/rides/r1");
+  });
+
+  // admin_assign_ride refuses a cancelled or completed ride. A control
+  // that exists only to be refused is worse than no control — this says
   // why instead.
   it("does not offer to assign a ride the database would refuse", async () => {
-    state.rides = [ride({ status: "cancelled" })];
+    state.board = makeBoard({ rides: [makeRide({ status: "cancelled" })] });
     renderBoard();
-    fireEvent.click(await screen.findByRole("button", { name: /done or called off/i }));
-    expect(screen.queryByRole("button", { name: /put a driver on/i })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: /^cancelled/i }));
+    expect(screen.queryByRole("link", { name: /put a driver on/i })).toBeNull();
     expect(screen.getByText(/nobody drove this — it was called off/i)).toBeInTheDocument();
   });
 
@@ -92,14 +79,16 @@ describe("Rides board", () => {
   // ride can have a driver and still show the guest nothing, because the
   // five driver_* columns are what My Trips reads.
   it("says when an assigned ride shows the guest no car", async () => {
-    state.rides = [ride({ driverId: "d1", status: "driver_assigned", driverName: "Ana Croes" })];
+    state.board = makeBoard({
+      rides: [makeRide({ driverId: "d1", status: "driver_assigned", driverName: "Ana Croes" })],
+    });
     renderBoard();
-    fireEvent.click(await screen.findByRole("button", { name: /with a driver/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /^assigned/i }));
     expect(screen.getByText(/no car shown to the guest/i)).toBeInTheDocument();
   });
 
   it("says so plainly when nothing is booked from today on", async () => {
-    state.rides = [];
+    state.board = makeBoard({ rides: [] });
     renderBoard();
     expect(await screen.findByText(/nothing booked from today on/i)).toBeInTheDocument();
   });
@@ -108,7 +97,9 @@ describe("Rides board", () => {
   // is empty" is a different fact entirely. Reading the first as the
   // second is how somebody concludes bookings have stopped arriving.
   it("tells an empty filter apart from an empty board", async () => {
-    state.rides = [ride({ driverId: "d1", status: "driver_assigned", driverName: "Ana Croes" })];
+    state.board = makeBoard({
+      rides: [makeRide({ driverId: "d1", status: "driver_assigned", driverName: "Ana Croes" })],
+    });
     renderBoard();
     expect(await screen.findByText(/every ride has a driver/i)).toBeInTheDocument();
     expect(screen.getByText(/all 1 booking from today on are covered/i)).toBeInTheDocument();
@@ -118,8 +109,7 @@ describe("Rides board", () => {
   // Bookings keep arriving while the board cannot see them. An operator
   // who reads a failed read as a quiet day will not go looking.
   it("does not call an unreadable board a quiet day", async () => {
-    state.rides = [];
-    state.error = "permission denied for table rides";
+    state.board = makeBoard({ rides: [], ridesError: "permission denied for table rides" });
     renderBoard();
     expect(await screen.findByText(/can't read the rides/i)).toBeInTheDocument();
     expect(screen.getByText(/permission denied for table rides/)).toBeInTheDocument();
@@ -129,9 +119,30 @@ describe("Rides board", () => {
   // A ride with no date is broken, and a broken ride hidden from the one
   // screen that could fix it is a ride nobody ever fixes.
   it("keeps an undated ride on the board and says what is missing", async () => {
-    state.rides = [ride({ scheduledAt: null })];
+    state.board = makeBoard({ rides: [makeRide({ scheduledAt: null })] });
     renderBoard();
     expect(await screen.findByText(/no date set/i)).toBeInTheDocument();
     expect(screen.getByText(/no time/i)).toBeInTheDocument();
+  });
+
+  // A search that matches every row for "airport" — on an island with
+  // one airport — is a search that answers nothing.
+  it("searches the things an operator actually has in their hand", async () => {
+    state.board = makeBoard({
+      rides: [makeRide({ id: "r1" }), makeRide({ id: "r2", guestName: "Luis Wever", bookingRef: "CB-2" })],
+    });
+    renderBoard();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "CB-2" } });
+    expect(screen.getByText("Luis Wever")).toBeInTheDocument();
+    expect(screen.queryByText("Marta Vos")).toBeNull();
+  });
+
+  // An empty search result is not an empty board, and saying "every ride
+  // has a driver" over a typo would be a lie about the board's state.
+  it("tells an empty search apart from a covered board", () => {
+    renderBoard();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzzz" } });
+    expect(screen.getByText(/nothing matches that/i)).toBeInTheDocument();
+    expect(screen.queryByText(/every ride has a driver/i)).toBeNull();
   });
 });

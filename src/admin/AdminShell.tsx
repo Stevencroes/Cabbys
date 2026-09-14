@@ -1,26 +1,54 @@
-// The shell: the mark, who you are signed in as, and three tabs.
+// The shell: the mark, the eight places to be, and who you are.
 //
-// Three, because there are three jobs — see the note in AdminPortal. The
-// tabs sit at the TOP rather than in a thumb rail at the foot: the
-// driver portal's bottom nav is furniture for a phone in a car mount,
-// and this board is read at a desk with a wheel, where navigation
-// belongs where the eye starts.
+// A rail down the left, not tabs across the top. The old bar held three
+// tabs and read fine; eight would have wrapped to two lines, and a
+// navigation that reflows as the window narrows is one an operator stops
+// trusting to be in the same place. A vertical list also has room for
+// the one thing a horizontal strip could never carry — a count beside
+// the two entries that ever need one — without turning into a toolbar.
 //
-// The signed-in address is on the bar and not tucked behind a menu on
-// purpose. Cabby's has one Supabase project and one identity system, so
-// the same person can be signed in as a passenger in one tab and as the
-// operator here — and "why is this board empty" has, more than once in
-// this codebase's history, turned out to be "you're the other account".
+// The counts are the whole argument for loading the board's working set
+// in the shell rather than per screen. An operator reading the Drivers
+// list has to be able to see that a ride just went unassigned, or the
+// board only tells the truth about whichever screen is open.
+//
+// Below 960px the same markup lays out as a bar: mark, account, and a
+// horizontal rail of the eight. Not a hamburger and not a bottom tab
+// strip — the driver portal has a thumb rail because it is used in a car
+// mount, and this is the owner checking the board from a kerb, which is
+// a different thing from an app.
+//
+// The signed-in address stays visible rather than hiding behind a menu.
+// Cabby's has one Supabase project and one identity system, so the same
+// person can be a passenger in one tab and the operator here — and "why
+// is this board empty" has more than once turned out to be "you're the
+// other account".
 import { type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../booking/useAuth";
 import type { AuthedUser } from "../driver/lib/driver";
+import { useBoard } from "./BoardContext";
 import "../styles/admin.css";
 
-const TABS = [
-  { to: "/admin", label: "Drivers", end: true },
-  { to: "/admin/rides", label: "Rides", end: false },
-  { to: "/admin/assign", label: "Assign", end: false },
+/**
+ * The eight, and the list is closed.
+ *
+ * Vehicles is deliberately not among them. A vehicle in this database is
+ * six columns on a driver — one car per driver, no identity of its own,
+ * no registry a car could outlive its driver in — so a Vehicles screen
+ * would have been the Drivers screen with different column headings.
+ * The car lives inside the driver's profile, where the operator is
+ * already standing when they ask about it. What a real fleet registry
+ * would take is written down in the report that came with this work.
+ */
+const NAV: { to: string; label: string; end?: boolean; count?: "unassigned" | "attention" }[] = [
+  { to: "/admin", label: "Dashboard", end: true },
+  { to: "/admin/rides", label: "Ride requests", count: "unassigned" },
+  { to: "/admin/schedule", label: "Schedule" },
+  { to: "/admin/drivers", label: "Drivers" },
+  { to: "/admin/customers", label: "Customers" },
+  { to: "/admin/earnings", label: "Earnings" },
+  { to: "/admin/support", label: "Support", count: "attention" },
 ];
 
 interface ShellProps {
@@ -30,33 +58,55 @@ interface ShellProps {
 
 export default function AdminShell({ user, children }: ShellProps) {
   const { signOut } = useAuth();
+  const { unassigned, attention } = useBoard();
+  // Only the ones that are happening now. A badge that counts everything
+  // worth knowing is a badge that is never zero, and a badge that is
+  // never zero is furniture.
+  const urgent = attention.filter((a) => a.severity === "now").length;
+
+  const countFor = (key?: "unassigned" | "attention") =>
+    key === "unassigned" ? unassigned : key === "attention" ? urgent : 0;
 
   return (
     <div className="adm">
-      <div className="adm-top">
-        <div className="in">
-          <span className="adm-mark">
-            Cabby<span className="ap">'</span>s
-            <small>Admin</small>
-          </span>
-          <div className="adm-who">
+      <a className="adm-skip" href="#adm-main">Skip to the board</a>
+      <div className="adm-frame">
+        <header className="adm-rail">
+          <div className="adm-railtop">
+            <span className="adm-mark">
+              Cabby<span className="ap">'</span>s
+              <small>Operations</small>
+            </span>
+          </div>
+
+          <nav className="adm-nav" aria-label="Admin">
+            {NAV.map((t) => {
+              const n = countFor(t.count);
+              return (
+                <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => (isActive ? "on" : "")}>
+                  <span className="lb">{t.label}</span>
+                  {/* Absent at zero rather than showing a 0. A count is a
+                      claim that something needs doing. */}
+                  {n > 0 && (
+                    <span className="ct" aria-label={`${n} needing attention`}>{n}</span>
+                  )}
+                </NavLink>
+              );
+            })}
+            <span className="adm-navgap" aria-hidden="true" />
+            <NavLink to="/admin/settings" className={({ isActive }) => (isActive ? "on" : "")}>
+              <span className="lb">Settings</span>
+            </NavLink>
+          </nav>
+
+          <div className="adm-railfoot">
             <span className="em" title={user.email ?? undefined}>{user.email ?? user.id}</span>
             <button type="button" className="adm-quiet" onClick={signOut}>Sign out</button>
           </div>
-        </div>
+        </header>
+
+        <main className="adm-screen" id="adm-main">{children}</main>
       </div>
-
-      <nav className="adm-tabs" aria-label="Admin">
-        <div className="in">
-          {TABS.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => (isActive ? "on" : "")}>
-              {t.label}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-
-      <div className="adm-screen">{children}</div>
     </div>
   );
 }

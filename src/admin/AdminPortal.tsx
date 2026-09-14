@@ -1,27 +1,52 @@
 // The board's routing, behind the operator gate.
 //
-// Three screens, and the list is closed:
+// Eight screens and four detail views, and the shape is the same one
+// everywhere: a list answers "which", a detail answers "what about this
+// one", and nothing on a list expands in place. That is the rule the
+// whole portal is laid out around — an operator comparing thirty rides
+// wants thirty rows the same height, and the row that grows to show you
+// its contents is the row that makes the other twenty-nine move.
 //
-//   Drivers  the one that is currently a hand-typed UPDATE against
-//            production. Approve, suspend, reinstate.
-//   Rides    today and ahead, filterable, with the unassigned ones
-//            impossible to miss — that is the row that needs a human.
-//   Assign   put a named driver on a named unassigned ride, for when
-//            the pool does not clear on its own.
+//   Dashboard      what needs you, what is happening now, what is next.
+//   Ride requests  every booking as a table, filtered and searchable.
+//   Ride           one booking, its timeline, its driver, its map, and
+//                  the three or four things that can be done to it.
+//   Schedule       a day, read down the clock, with the collisions and
+//                  the gaps drawn where they fall.
+//   Drivers        the directory; a driver opens their own profile,
+//                  which is where the car, the paperwork, the work and
+//                  the money live.
+//   Customers      derived from bookings, because there is no customers
+//                  table — see src/admin/lib/customers.ts.
+//   Earnings       completed work only, on the same arithmetic the
+//                  driver's own earnings screen uses.
+//   Support        what needs a person, derived from live state rather
+//                  than from a tickets table nobody would close.
+//   Settings       what this company is currently configured to do, and
+//                  which half of it can be changed without a deploy.
 //
-// There is no analytics screen, no revenue chart, no pricing editor and
-// no messaging centre, and that is a decision rather than an omission.
-// Every one of those would be a second version of something that already
-// has a home: fares come out of src/lib/quote.ts, a driver's own money
-// is the Earnings screen they already have, and the island runs on
-// WhatsApp. A dispatch board that grows a dashboard stops being read.
+// /admin/assign is gone and redirects here. It was a second way to put a
+// driver on a ride, and the ride's own screen is a better one — it has
+// the guest, the route, the money and the timeline on it while the
+// decision is made, which a two-pane picker never did. Its warnings (a
+// driver with no car, a driver already booked at that hour) moved with
+// it and are tested in AssignPanel.test.tsx.
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AdminGuard from "./AdminGuard";
 import AdminShell from "./AdminShell";
-import Drivers from "./screens/Drivers";
+import { BoardProvider } from "./BoardContext";
+import Dashboard from "./screens/Dashboard";
 import Rides from "./screens/Rides";
-import Assign from "./screens/Assign";
+import RideView from "./screens/RideView";
+import Schedule from "./screens/Schedule";
+import Drivers from "./screens/Drivers";
+import DriverProfile from "./screens/DriverProfile";
+import Customers from "./screens/Customers";
+import CustomerView from "./screens/CustomerView";
+import Earnings from "./screens/Earnings";
+import Support from "./screens/Support";
+import Settings from "./screens/Settings";
 
 export default function AdminPortal() {
   // Suppresses the site-wide grain for as long as an admin screen is up,
@@ -36,14 +61,26 @@ export default function AdminPortal() {
   return (
     <AdminGuard>
       {(user) => (
-        <AdminShell user={user}>
-          <Routes>
-            <Route index element={<Drivers />} />
-            <Route path="rides" element={<Rides />} />
-            <Route path="assign" element={<Assign />} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Routes>
-        </AdminShell>
+        <BoardProvider>
+          <AdminShell user={user}>
+            <Routes>
+              <Route index element={<Dashboard />} />
+              <Route path="rides" element={<Rides />} />
+              <Route path="rides/:id" element={<RideView />} />
+              <Route path="schedule" element={<Schedule />} />
+              <Route path="drivers" element={<Drivers />} />
+              <Route path="drivers/:id" element={<DriverProfile />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="customers/:key" element={<CustomerView />} />
+              <Route path="earnings" element={<Earnings />} />
+              <Route path="support" element={<Support />} />
+              <Route path="settings" element={<Settings />} />
+              {/* the old two-pane assign screen's links, kept working */}
+              <Route path="assign" element={<Navigate to="/admin/rides" replace />} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </AdminShell>
+        </BoardProvider>
       )}
     </AdminGuard>
   );
