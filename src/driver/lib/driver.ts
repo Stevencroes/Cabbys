@@ -283,27 +283,41 @@ export async function saveDriverPhone(phone: string): Promise<StatusResult> {
  *
  * v8 — identifiable() has required a name since the stamp chain was
  * built, and nothing in the portal could ever set one. A driver whose
- * drivers row has a blank full_name could fill in colour, make, model,
- * plate and photo, watch the car save, and still be told "your guests
- * can't spot you" with no control anywhere to fix it — a dead end, and
- * the screen gave no hint which of the four pieces was missing.
+ * drivers row had no name could fill in colour, make, model, plate and
+ * photo, watch the car save, and still be told "your guests can't spot
+ * you" with no control anywhere to fix it — a dead end, and the screen
+ * gave no hint which of the four pieces was missing.
  *
  * It matters beyond the nag: claim_ride stamps rides.driver_name from
- * this column, so a blank one puts a guest at arrivals looking for a
+ * the same value, so a blank one puts a guest at arrivals looking for a
  * plate with nobody's name against it.
  *
- * Written straight, like the phone: the "drivers: update own" policy
- * admits an update to their own row and blocks only a change to
- * `status`. Trimmed, because " " would satisfy the column and fail
- * every reader of it.
+ * v8.1 — WRITES first_name/last_name, NOT full_name. The first version
+ * wrote full_name and would have failed outright on the live database:
+ * that column does not exist there. This table predates the project and
+ * carries a first/last pair, which is also what toDriverProfile reads
+ * FIRST — so writing full_name would have been doubly wrong, erroring
+ * where the column is absent and being ignored where it is not.
+ *
+ * Split on the first space, which is a guess about people's names and a
+ * bad one in general. It is acceptable here only because nothing reads
+ * the halves apart: toDriverProfile joins them straight back together,
+ * and the driver sees whatever they typed.
  */
 export async function saveDriverName(name: string): Promise<StatusResult> {
-  const clean = name.trim();
+  const clean = name.trim().replace(/\s+/g, " ");
   if (!clean) return { ok: false, detail: "Tell us your name — it goes on the booking your guest is holding." };
+  const cut = clean.indexOf(" ");
+  const first = cut === -1 ? clean : clean.slice(0, cut);
+  const last = cut === -1 ? "" : clean.slice(cut + 1);
+
   const { data: session } = await supabase.auth.getSession();
   const uid = session.session?.user?.id;
   if (!uid) return { ok: false, detail: "You're not signed in any more." };
-  const { error } = await supabase.from("drivers").update({ full_name: clean }).eq("user_id", uid);
+  const { error } = await supabase
+    .from("drivers")
+    .update({ first_name: first, last_name: last })
+    .eq("user_id", uid);
   if (error) return { ok: false, detail: error.message || "The change didn't save." };
   return { ok: true };
 }
