@@ -264,6 +264,19 @@ function Row({ driver: d, car, asking, ask, busy, onAsk, onCancel, onConfirm }: 
               approved driver is a no-op that still writes a row and
               still reports success, which is worse than not offering
               it: it teaches an operator that the button means nothing. */}
+          {/* v2. Same rule, one step further back: a drivers row with no
+              user_id is one NO write path in this project can address.
+              admin_set_driver_status matches on user_id, claim_ride
+              stamps auth.uid(), every policy keys on it — so a row
+              without one is a record of a person, not an account. The
+              board used to offer Approve on it anyway and the tap came
+              back "no driver record for that account", which reads as a
+              bug in the button rather than a gap in the row. */}
+          {!d.id ? (
+            <span className="adm-two">
+              <span className="b">No account linked — they have to sign up before they can be approved</span>
+            </span>
+          ) : (
           <div className="adm-acts">
             {d.status !== "approved" && (
               <button type="button" className="adm-btn go" onClick={() => onAsk("approved")}>
@@ -276,6 +289,7 @@ function Row({ driver: d, car, asking, ask, busy, onAsk, onCancel, onConfirm }: 
               </button>
             )}
           </div>
+          )}
         </td>
       </tr>
 

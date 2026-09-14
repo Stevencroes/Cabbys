@@ -114,6 +114,17 @@ describe("admin data layer", () => {
   // drivers.status would also let the same request set fare_total. The
   // function signature is the column list — which is only true if the
   // client never reaches for an update.
+  // v2. A drivers row with no user_id is one no write path can address:
+  // the RPC matches on user_id, claim_ride stamps auth.uid(). Sent
+  // anyway it reaches Postgres as an invalid uuid and comes back as a
+  // cast error, which says nothing about the actual gap.
+  it("refuses a driver with no account rather than sending an empty id", async () => {
+    const res = await setDriverStatus("", "approved");
+    expect(res.ok).toBe(false);
+    expect(calls.rpc.length).toBe(0);
+    if (!res.ok) expect(res.detail).toMatch(/no account linked/i);
+  });
+
   it("changes a driver's status through the RPC and never through an update", async () => {
     rpcResult = { ok: true, held_rides: 2 };
     const res = await setDriverStatus("auth-1", "suspended");

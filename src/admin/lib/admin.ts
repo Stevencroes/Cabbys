@@ -219,6 +219,17 @@ export async function setDriverStatus(
   driverUserId: string,
   status: DriverStatus,
 ): Promise<DriverStatusResult> {
+  // v2. An empty id is a drivers row with no user_id behind it. Sending
+  // it reaches Postgres as an invalid uuid and comes back as a cast
+  // error, which tells an operator nothing about what is actually
+  // wrong. The board hides the controls on such a row; this is the same
+  // answer for anything that gets past it.
+  if (!driverUserId) {
+    return {
+      ok: false,
+      detail: "That driver has no account linked yet, so there's nothing to approve. They need to sign up first.",
+    };
+  }
   const { data, error } = await supabase.rpc("admin_set_driver_status", {
     p_driver_user_id: driverUserId,
     p_status: status,
