@@ -2,7 +2,12 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-const state: { online: boolean; assigned: unknown[] } = { online: true, assigned: [] };
+const state: {
+  online: boolean;
+  assigned: unknown[];
+  documents: unknown[];
+  documentsError: string | null;
+} = { online: true, assigned: [], documents: [], documentsError: null };
 const calls: boolean[] = [];
 const navigate = vi.fn();
 
@@ -10,6 +15,8 @@ vi.mock("./lib/driver", async (orig) => ({
   ...(await orig<typeof import("./lib/driver")>()),
   setOnline: (next: boolean) => { calls.push(next); return Promise.resolve(state.online); },
   loadAssigned: () => Promise.resolve({ jobs: state.assigned, error: null }),
+  loadDriverDocuments: () =>
+    Promise.resolve({ documents: state.documents, error: state.documentsError }),
 }));
 vi.mock("react-router-dom", async (orig) => ({
   ...(await orig<typeof import("react-router-dom")>()),
@@ -24,6 +31,7 @@ vi.mock("./useRideOffers", () => ({
 vi.mock("./lib/chime", () => ({ primeAudio: () => {}, chime: () => Promise.resolve() }));
 
 import DriverShell from "./DriverShell";
+import { DRIVER_DOCUMENTS } from "./lib/documents";
 
 const carless = (over: Record<string, unknown> = {}) =>
   ({ ...driver, plate: null, vehicle: null, make: null, model: null, colour: null, photoUrl: null, ...over });
@@ -37,6 +45,16 @@ const driver = {
   seats: 7, bags: 6, photoUrl: "https://cdn.example/face.jpg",
   status: "approved" as const, rating: 4.9, tripsCount: 12, isOnline: false,
 };
+
+/** Every document accepted — the state that produces no band at all. */
+const FULL_SET = DRIVER_DOCUMENTS.map((spec) => ({
+  slug: spec.slug,
+  path: `d1/${spec.slug}.pdf`,
+  status: "accepted" as const,
+  reason: null,
+  uploadedAt: "2026-09-01T12:00:00.000Z",
+  reviewedAt: "2026-09-02T12:00:00.000Z",
+}));
 
 const renderShell = () =>
   render(<MemoryRouter><DriverShell driver={driver}><p>screen</p></DriverShell></MemoryRouter>);
@@ -54,6 +72,10 @@ const job = (status: string) => ({
 beforeEach(() => {
   state.online = true;
   state.assigned = [];
+  // An approved driver with the paperwork in is the ordinary case, so
+  // the identity band's tests are not competing with a second one.
+  state.documents = FULL_SET;
+  state.documentsError = null;
   calls.length = 0;
   navigate.mockClear();
 });
@@ -136,6 +158,60 @@ describe("The driver shell", () => {
     );
     const nag = await screen.findByRole("button", { name: /can't spot you/i });
     expect(nag).toHaveTextContent(/your name, your car, your plate and a photo of yourself/i);
+  });
+
+  // ONE band, not two. The paperwork gap and the identity gap are the
+  // same strip at the foot of the screen with a precedence rule between
+  // them: a missing plate is a guest at a kerb this morning, a missing
+  // permit is a conversation with an operator. Two bands stacked over
+  // the nav would be the "second, different nag" this was built to avoid.
+  it("shows the identity gap first when a driver has both", async () => {
+    state.documents = [];
+    render(
+      <MemoryRouter>
+        <DriverShell driver={carless()}><p>screen</p></DriverShell>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole("button", { name: /can't spot you/i })).toBeInTheDocument();
+    expect(screen.queryByText(/still waiting on your paperwork/i)).toBeNull();
+  });
+
+  // The drivers already on the road were approved before any of this
+  // existed, so none of them has a document on file. Named pieces, not a
+  // count — "three outstanding" is a number and "your licence and your
+  // permit" is an instruction.
+  it("names the documents Cabby's is still waiting on", async () => {
+    state.documents = [];
+    renderShell();
+    const nag = await screen.findByRole("button", { name: /still waiting on your paperwork/i });
+    expect(nag).toHaveTextContent(/Driver's licence/);
+    expect(nag).toHaveTextContent(/Public-transport permit/);
+    fireEvent.click(nag);
+    expect(navigate).toHaveBeenCalledWith("/drive/profile");
+  });
+
+  // A document sent back has, as far as the application is concerned,
+  // not been sent — and it is the one the driver can actually do
+  // something about today.
+  it("counts a document that was sent back as still outstanding", async () => {
+    state.documents = FULL_SET.map((d, i) =>
+      i === 0 ? { ...d, status: "rejected", reason: "The expiry date is cut off." } : d);
+    renderShell();
+    const nag = await screen.findByRole("button", { name: /still waiting on your paperwork/i });
+    expect(nag).toHaveTextContent(/Driver's licence/);
+    expect(nag).not.toHaveTextContent(/Public-transport permit/);
+  });
+
+  // The fault this codebase keeps catching: an empty result reported as
+  // "nothing here" when it means "I couldn't look". A band that nagged a
+  // driver about five documents because the table was unreadable would
+  // have them re-sending everything they already sent.
+  it("says nothing about paperwork it could not read", async () => {
+    state.documents = [];
+    state.documentsError = "permission denied for table driver_documents";
+    renderShell();
+    await waitFor(() => expect(screen.getByText("screen")).toBeInTheDocument());
+    expect(screen.queryByText(/still waiting on your paperwork/i)).toBeNull();
   });
 
   // A job in flight always outranks a thing to go and fix.

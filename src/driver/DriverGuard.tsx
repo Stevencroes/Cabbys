@@ -34,6 +34,7 @@ import AuthForm from "../components/auth/AuthForm";
 import { useAuth } from "../booking/useAuth";
 import { supabase } from "../lib/supabase";
 import { getAuthedUser, loadDriverById, type AuthedUser, type DriverProfile } from "./lib/driver";
+import Documents from "./Documents";
 import { whatsappLink } from "../lib/whatsapp";
 import "../styles/driver.css";
 
@@ -186,12 +187,20 @@ export default function DriverGuard({ children }: GateProps) {
       <h1>{suspended ? "Your account is on hold." : "Application received."}</h1>
       <p>
         {suspended
-          ? "You can't take jobs until this is lifted. Message us and we'll pick it up from there."
-          : "We're checking your licence and vehicle details. You'll get a message the moment you're approved — usually within a day."}
+          ? "You can't take jobs until this is lifted. Anything we've sent back is below — replacing it is usually the quickest way through. Message us if it isn't clear."
+          : "We check your licence, your insurance and your permit before you carry anybody. Send them below and you'll get a message the moment you're approved — usually within a day of the last one landing."}
       </p>
       {/* Whose application. A driver with two accounts, waiting on the
           wrong one, cannot see that from a screen that names neither. */}
       <Diag user={state.user} name={state.driver.fullName} nameLabel={suspended ? "Driver" : "Applied as"} />
+      {/* The gate is a route guard, so a waiting driver never reaches the
+          shell and never reaches Profile. Until this was here, the
+          paragraph above promised a check on documents the portal gave
+          them no way to send — the whole process lived on WhatsApp. It
+          is shown to a suspended driver too: a lapsed insurance
+          certificate is a common reason to be held, and the way back is
+          to replace it. */}
+      <Documents uid={state.user.id} compact />
       <Actions
         user={state.user}
         checking={checking}

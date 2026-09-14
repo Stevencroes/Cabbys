@@ -4,9 +4,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  isImminent, loadAssigned, missingIdentity, setOnline,
+  isImminent, loadAssigned, loadDriverDocuments, missingIdentity, setOnline,
   type AssignedJob, type DriverProfile, type OpenJob,
 } from "./lib/driver";
+import { outstandingDocuments } from "./lib/documents";
 import { jobDateShort, jobTime, shortPlace, statusChip } from "./JobCard";
 import RideOffer from "./RideOffer";
 import { useRideOffers } from "./useRideOffers";
@@ -61,6 +62,33 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
   const [live, setLive] = useState<AssignedJob | null>(null);
   const offers = useRideOffers(online);
   const gaps = missingIdentity(driver);
+  /**
+   * What Cabby's is still waiting on from them, by name.
+   *
+   * The SAME band as the identity one below, not a second one: one
+   * component, one place, one shape, and a precedence rule rather than
+   * two things competing for the foot of the screen. Identity wins,
+   * because a missing plate is a guest at a kerb this morning while a
+   * missing permit is a conversation with an operator.
+   *
+   * Read once on mount, not polled. Nobody's paperwork changes while
+   * they are looking at the Earnings screen, and this is a phone on
+   * island mobile data — the 45-second poll below exists because a ride
+   * in flight genuinely can change under them, and that reasoning does
+   * not carry to a licence. A failed read leaves the list empty on
+   * purpose: a band that nags about documents because it could not
+   * count them is worse than no band.
+   */
+  const [docGaps, setDocGaps] = useState<string[]>([]);
+
+  useEffect(() => {
+    let stop = false;
+    void loadDriverDocuments(driver.id).then(({ documents, error }) => {
+      if (stop || error) return;
+      setDocGaps(outstandingDocuments(documents));
+    });
+    return () => { stop = true; };
+  }, [driver.id]);
 
   /**
    * A job in flight outranks whatever screen is open.
@@ -176,6 +204,22 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
           <span className="cv">
             Your bookings are missing {listGaps(gaps)}, so there's nothing for a
             guest to look for. Add {gaps.length === 1 ? "it" : "them"} — it takes a minute.
+          </span>
+        </button>
+      )}
+
+      {/* The same band, the other gap. Approval came before these were
+          ever asked for, so the drivers already on the road have none of
+          them on file — and a licence or a permit that has been sent
+          back is the kind of thing that stops being a paperwork problem
+          the morning somebody is pulled over. Named pieces, not a count,
+          for the same reason the band above names them. */}
+      {!live && !bare && gaps.length === 0 && docGaps.length > 0 && (
+        <button type="button" className="drv-nocar docs" onClick={() => navigate("/drive/profile")}>
+          <span className="ck">Cabby's is still waiting on your paperwork</span>
+          <span className="cv">
+            We don't have {listGaps(docGaps)}. Send {docGaps.length === 1 ? "it" : "them"} from
+            your profile — PDF, straight from your phone.
           </span>
         </button>
       )}

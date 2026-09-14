@@ -954,3 +954,63 @@
   .drv-job:hover,.drv-cta:hover,.drv-pool:hover{transform:none !important;}
   .drv-live .lp{animation:none !important;}
 }
+
+/* ── the application's paperwork ────────────────────────────────────
+   Mounted on two very different screens: the gate, which is a centred
+   column on an otherwise empty page, and Profile, which is a left-
+   aligned stack. So the block sets its own alignment rather than
+   inheriting the gate's `text-align:center`, and carries its own width
+   cap — .drv-gate's other blocks stop at 320px, which is a column two
+   words wide once a document label and a status chip are in the same
+   row. */
+.drv-docs{width:100%;max-width:420px;margin:26px auto 0;text-align:left;}
+.drv-pad .drv-docs{max-width:none;margin:30px 0 0;}
+
+.drv-docs .dhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding-bottom:10px;border-bottom:1px solid var(--line);}
+.drv-docs .dk{font-weight:600;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--silver);}
+.drv-docs .dn{font-size:11px;color:var(--muted);font-weight:400;}
+/* the one line that answers "am I finished?" — it has to read as a
+   sentence, so it sits at body size and not at label size */
+.drv-docs .dq{margin:12px 0 0;font-size:13px;line-height:1.6;color:var(--ink);font-weight:400;}
+
+.drv-docs .dlist{list-style:none;margin:14px 0 0;padding:0;}
+.drv-docs .drow{background:var(--surface);border:1px solid var(--line);border-radius:var(--d-r-md);
+  padding:13px 15px;}
+.drv-docs .drow + .drow{margin-top:10px;}
+/* only the two functional colours, and only on the two rows that have
+   earned one: accepted is an ok state, sent back is a wrong one.
+   "With Cabby's" is neither and stays silver. */
+.drv-docs .drow.accepted{border-color:var(--signal-line);}
+.drv-docs .drow.rejected{border-color:var(--alert-line);}
+
+.drv-docs .dtop{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.drv-docs .dl{font-size:14px;color:var(--ink);font-weight:400;}
+.drv-docs .dchip{flex:none;font-weight:600;font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;
+  padding:4px 9px;border-radius:var(--d-r-pill);border:1px solid var(--line);color:var(--muted);}
+.drv-docs .dchip.accepted{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
+.drv-docs .dchip.rejected{background:var(--alert-tint);border-color:var(--alert-line);color:var(--alert-ink);}
+
+.drv-docs .dw{margin:6px 0 0;font-size:12px;line-height:1.55;color:var(--muted);font-weight:400;}
+/* the reason a document was sent back. The one sentence on this screen
+   the driver has to be able to act on, so it is ink on an alert tint
+   rather than alert-coloured text on the ground. */
+.drv-docs .dr{margin:9px 0 0;padding:9px 11px;border-radius:var(--d-r-sm);
+  background:var(--alert-tint);border:1px solid var(--alert-line);
+  font-size:12.5px;line-height:1.5;color:var(--ink);font-weight:400;}
+.drv-docs .dok{margin:9px 0 0;font-size:12.5px;line-height:1.5;color:var(--signal-ink);font-weight:400;}
+.drv-docs .dsend{margin-top:11px;}
+
+.drv-docs .dnote{margin:14px 0 0;font-size:11.5px;line-height:1.6;color:var(--muted);font-weight:400;}
+/* the database's own words, for whoever fixes it — not for the driver,
+   who has the sentence above it */
+.drv-docs .drv-refused .why{margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px;line-height:1.5;color:var(--muted);word-break:break-word;}
+.drv-docs .drv-refused .drv-cta{margin-top:12px;}
+
+/* The paperwork band is the SAME band as .drv-nocar, at a lower
+   priority and in a quieter colour: a missing plate is a guest at a
+   kerb this morning, and a missing permit is a conversation. Only the
+   border and the eyebrow move. */
+.drv-nocar.docs{border-color:var(--line);}
+.drv-nocar.docs .ck{color:var(--silver);}

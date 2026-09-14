@@ -1,8 +1,10 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const state: { user: unknown; driver: unknown; error: string | null } =
-  { user: null, driver: null, error: null };
+const state: {
+  user: unknown; driver: unknown; error: string | null;
+  documents: unknown[]; documentsError: string | null;
+} = { user: null, driver: null, error: null, documents: [], documentsError: null };
 let lookups = 0;
 const signOut = vi.fn();
 
@@ -12,6 +14,11 @@ vi.mock("./lib/driver", () => ({
     lookups++;
     return Promise.resolve({ driver: state.driver, error: state.error });
   },
+  // The gate now carries the document checklist — a waiting driver never
+  // reaches the shell, so the gate is the only place they can send us
+  // anything. Mocked here so these tests keep asking about the gate.
+  loadDriverDocuments: () => Promise.resolve({ documents: state.documents, error: state.documentsError }),
+  uploadDriverDocument: () => Promise.resolve({ ok: true }),
 }));
 vi.mock("../booking/useAuth", () => ({
   useAuth: () => ({ signOut }),
@@ -34,6 +41,8 @@ beforeEach(() => {
   state.user = null;
   state.driver = null;
   state.error = null;
+  state.documents = [];
+  state.documentsError = null;
   lookups = 0;
   signOut.mockClear();
 });
@@ -86,8 +95,22 @@ describe("approval gate", () => {
     signedInWith("pending");
     renderGate();
     expect(await screen.findByText(/application received/i)).toBeInTheDocument();
-    expect(screen.getByText(/checking your licence and vehicle/i)).toBeInTheDocument();
+    expect(screen.getByText(/we check your licence/i)).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(PORTAL))).toBeNull();
+  });
+
+  // The gate is a route guard, so a waiting driver never reaches the
+  // shell and never reaches Profile. For as long as the checklist lived
+  // only on Profile, this screen promised a check on documents the
+  // portal gave them no way at all to send — the whole process was a
+  // WhatsApp thread, and the sentence above was about nothing.
+  it("lets a waiting driver actually send the documents it asks them for", async () => {
+    signedInWith("pending");
+    renderGate();
+    expect(await screen.findByText(/application received/i)).toBeInTheDocument();
+    expect(await screen.findByText("Driver's licence")).toBeInTheDocument();
+    expect(screen.getByText("Public-transport permit")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /send pdf/i }).length).toBeGreaterThan(0);
   });
 
   it("keeps a suspended driver out, and says who to talk to", async () => {
@@ -96,6 +119,22 @@ describe("approval gate", () => {
     expect(await screen.findByText(/on hold/i)).toBeInTheDocument();
     expect(screen.getByText(/message us/i)).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(PORTAL))).toBeNull();
+  });
+
+  // A lapsed insurance certificate is one of the likeliest reasons to be
+  // put on hold, and replacing it is the way back. A gate that only
+  // offered "Message Cabby's" made that a conversation instead of an
+  // upload.
+  it("lets a suspended driver replace what was sent back", async () => {
+    signedInWith("suspended");
+    state.documents = [{
+      slug: "vehicle-insurance", path: "d1/vehicle-insurance.pdf", status: "rejected",
+      reason: "This one expired in June — we need the current certificate.",
+      uploadedAt: null, reviewedAt: null,
+    }];
+    renderGate();
+    expect(await screen.findByText(/this one expired in june/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /send a new one/i }).length).toBeGreaterThan(0);
   });
 
   it("lets an approved driver through", async () => {

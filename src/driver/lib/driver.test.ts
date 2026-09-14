@@ -9,6 +9,9 @@ let orderResult: unknown[] = [];
 let orderError: { message: string } | null = null;
 let updateError: { message: string } | null = null;
 const updates: Record<string, unknown>[] = [];
+let uploadError: { message: string } | null = null;
+const uploads: { bucket: string; path: string; opts: Record<string, unknown> }[] = [];
+const publicUrls: { bucket: string; path: string }[] = [];
 
 vi.mock("../../lib/supabase", () => {
   const builder = (table: string) => {
@@ -17,7 +20,14 @@ vi.mock("../../lib/supabase", () => {
     const chain = () => b;
     Object.assign(b, {
       select: chain,
-      eq: (col: string, val: unknown) => { calls.eq.push([col, val]); return b; },
+      // loadDriverDocuments ends on .eq(); loadDriverById and the ride
+      // loaders chain past it, so eq has to be both thenable and
+      // chainable.
+      eq: (col: string, val: unknown) => {
+        calls.eq.push([col, val]);
+        const p = Promise.resolve({ data: orderError ? null : orderResult, error: orderError });
+        return Object.assign(p, b);
+      },
       in: chain,
       order: () => Promise.resolve({ data: orderError ? null : orderResult, error: orderError }),
       maybeSingle: () => Promise.resolve({ data: singleError ? null : singleResult, error: singleError }),
@@ -38,6 +48,18 @@ vi.mock("../../lib/supabase", () => {
       auth: {
         getSession: () => Promise.resolve({ data: { session: { user: { id: "d1" } } } }),
       },
+      storage: {
+        from: (bucket: string) => ({
+          upload: (path: string, _file: unknown, opts: Record<string, unknown>) => {
+            uploads.push({ bucket, path, opts });
+            return Promise.resolve({ data: null, error: uploadError });
+          },
+          getPublicUrl: (path: string) => {
+            publicUrls.push({ bucket, path });
+            return { data: { publicUrl: `https://cdn.example/${bucket}/${path}` } };
+          },
+        }),
+      },
     },
   };
 });
@@ -45,14 +67,20 @@ vi.mock("../../lib/supabase", () => {
 import {
   loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline,
   saveDriverPhone, releaseRide, canRelease, vehicleLabel, identifiable,
-  isImminent, IMMINENT_MINUTES, type DriverProfile,
+  isImminent, IMMINENT_MINUTES, loadDriverDocuments, uploadDriverDocument,
+  type DriverProfile,
 } from "./driver";
+
+/** A File the jsdom environment will report the type and size of. */
+const pdf = (bytes = 1024, type = "application/pdf") =>
+  ({ name: "licence.pdf", type, size: bytes } as unknown as File);
 
 beforeEach(() => {
   calls.from = []; calls.rpc = []; calls.eq = [];
   rpcResult = { ok: true, ride_id: "r1" }; rpcError = null;
   singleResult = null; singleError = null; orderResult = []; orderError = null;
   updateError = null; updates.length = 0;
+  uploadError = null; uploads.length = 0; publicUrls.length = 0;
 });
 
 describe("driver data layer", () => {
@@ -351,5 +379,101 @@ describe("driver data layer", () => {
       const [job] = (await loadOpen()).jobs;
       expect(job.scheduledAt).toBe("2026-08-07T18:35:00.000Z");
     });
+  });
+});
+
+describe("the application's paperwork", () => {
+  it("reads a driver's documents keyed on the auth id, not the drivers row id", async () => {
+    orderResult = [
+      { driver_user_id: "d1", slug: "drivers-licence", path: "d1/drivers-licence.pdf", status: "accepted" },
+    ];
+    const { documents, error } = await loadDriverDocuments("d1");
+    expect(error).toBeNull();
+    expect(calls.from).toContain("driver_documents");
+    expect(calls.eq).toContainEqual(["driver_user_id", "d1"]);
+    expect(documents[0].slug).toBe("drivers-licence");
+  });
+
+  // The same distinction loadDriverById exists to make, in the place it
+  // matters most: a checklist showing five outstanding documents over an
+  // unreadable table has a driver uploading a licence they already sent,
+  // being told nothing landed, and doing it again.
+  it("reports an unreadable table instead of a driver who has sent nothing", async () => {
+    orderError = { message: "permission denied for table driver_documents" };
+    const { documents, error } = await loadDriverDocuments("d1");
+    expect(documents).toEqual([]);
+    expect(error).toBe("permission denied for table driver_documents");
+  });
+
+  it("trusts nothing it does not recognise as a decision", async () => {
+    orderResult = [{ driver_user_id: "d1", slug: "x", path: "d1/x.pdf", status: "banana" }];
+    const { documents } = await loadDriverDocuments("d1");
+    // "needs a look" is the safe landing, not "accepted"
+    expect(documents[0].status).toBe("uploaded");
+  });
+
+  // THE DECISION THIS WHOLE FEATURE TURNS ON. driver-photos is public
+  // because a guest who is not signed in has to see the driver's face.
+  // None of that reasoning survives the trip to a passport scan, and a
+  // public bucket is a forwardable URL.
+  it("puts documents in the private bucket, never the public photo one", async () => {
+    const res = await uploadDriverDocument("drivers-licence", pdf());
+    expect(res.ok).toBe(true);
+    expect(uploads[0].bucket).toBe("driver-docs");
+    expect(uploads[0].bucket).not.toBe("driver-photos");
+    // and never asks for a public URL, which on a private bucket would
+    // hand back a link that 400s and look like a broken document
+    expect(publicUrls).toEqual([]);
+  });
+
+  it("files it under the driver's own uid, which is what the policy keys on", async () => {
+    await uploadDriverDocument("vehicle-insurance", pdf());
+    expect(uploads[0].path).toBe("d1/vehicle-insurance.pdf");
+    // replacing is the ordinary case: a rejected document is corrected
+    // over the top of itself, and a licence expires
+    expect(uploads[0].opts.upsert).toBe(true);
+    expect(uploads[0].opts.contentType).toBe("application/pdf");
+  });
+
+  it("records the upload through the RPC, after the file has actually landed", async () => {
+    rpcResult = { ok: true, slug: "drivers-licence" };
+    await uploadDriverDocument("drivers-licence", pdf());
+    expect(uploads).toHaveLength(1);
+    expect(calls.rpc[0][0]).toBe("save_driver_document");
+    expect(calls.rpc[0][1]).toEqual({ p_slug: "drivers-licence", p_path: "d1/drivers-licence.pdf" });
+  });
+
+  // Checked before the network call, so a driver on airport wifi learns
+  // the file is wrong now rather than after a two-minute upload.
+  it("refuses anything that isn't a PDF without uploading it", async () => {
+    const res = await uploadDriverDocument("drivers-licence", pdf(1024, "image/jpeg"));
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.detail).toMatch(/isn't a PDF/i);
+    expect(uploads).toEqual([]);
+  });
+
+  it("refuses a file over the cap the bucket would refuse anyway", async () => {
+    const res = await uploadDriverDocument("drivers-licence", pdf(9 * 1024 * 1024));
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.detail).toMatch(/over 8MB/i);
+    expect(uploads).toEqual([]);
+  });
+
+  // The file is in the bucket and nothing knows about it. "It didn't
+  // upload" would have the driver doing the same thing again to the same
+  // result.
+  it("says so when the file landed but the row did not", async () => {
+    rpcError = { message: "could not find the function" };
+    const res = await uploadDriverDocument("drivers-licence", pdf());
+    expect(res.ok).toBe(false);
+    expect(uploads).toHaveLength(1);
+    expect(res.ok === false && res.detail).toMatch(/could not find the function/);
+  });
+
+  it("turns the database's refusals into sentences, not codes", async () => {
+    rpcResult = { ok: false, error: "no_driver" };
+    const res = await uploadDriverDocument("drivers-licence", pdf());
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.detail).toMatch(/can't find a driver record/i);
   });
 });

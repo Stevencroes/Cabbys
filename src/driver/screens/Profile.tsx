@@ -40,6 +40,7 @@ import {
 } from "../lib/driver";
 import { isValidPhone, normalizePhone } from "../../lib/contact";
 import { whatsappLink } from "../../lib/whatsapp";
+import Documents from "../Documents";
 
 interface ProfileProps {
   driver: DriverProfile;
@@ -365,6 +366,14 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
             changes your upcoming rides too.
           </p>
         </div>
+
+        {/* ── the paperwork ──
+            Here as well as on the gate, because approval is not the end
+            of it: insurance lapses, licences expire, and the answer to
+            "we need their cover note again" cannot be suspending a
+            working driver so the gate comes back. A driver who has been
+            sent a document back reads why here, and replaces it. */}
+        <Documents uid={driver.id} />
 
         {problem && (
           <div className="drv-refused" role="alert" style={{ marginTop: 0, marginBottom: 14 }}>

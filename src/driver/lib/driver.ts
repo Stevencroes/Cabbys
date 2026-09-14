@@ -9,6 +9,10 @@
 import { supabase } from "../../lib/supabase";
 import { driverPayoutUsd } from "../../lib/quote";
 import { arubaInstant } from "../../lib/datetime";
+import {
+  DOC_MAX_BYTES, documentPath,
+  type DocumentRecord, type DocumentStatus,
+} from "./documents";
 
 export type DriverStatus = "pending" | "approved" | "suspended";
 
@@ -688,4 +692,126 @@ export async function loadRide(rideId: string): Promise<AssignedJob | null> {
   const { data, error } = await supabase.from("rides").select("*").eq("id", rideId).maybeSingle();
   if (error || !data) return null;
   return toAssigned(data as Row);
+}
+
+/* ── the application's paperwork ───────────────────────────────────────
+   The list of documents is data, and it lives in ./documents.ts. What
+   lives here is the only thing that file deliberately does not have: the
+   conversation with Supabase. Same split as everywhere else in this
+   portal — the rules are testable without a database, the queries are in
+   the one file that talks to one. */
+
+/**
+ * The documents a driver has actually sent.
+ *
+ * Two parts, for the reason loadDriverById answers in two parts: a driver
+ * who has uploaded nothing and a table that could not be read look
+ * identical as an empty array, and the first is an ordinary Tuesday while
+ * the second means docs/onboarding-schema.sql has not been run. A
+ * checklist that shows five outstanding documents over an unreadable
+ * table would have a driver uploading a licence they already sent, being
+ * told nothing landed, and doing it again.
+ *
+ * Takes the auth uid rather than reading the session, so the admin board
+ * can ask the same question about somebody else through the same
+ * function. RLS decides which of the two is allowed: "driver documents:
+ * read own" for the driver, "driver documents: read as admin" for the
+ * operator, and nobody else sees anything.
+ */
+export interface DocumentList {
+  documents: DocumentRecord[];
+  /** non-null when the query failed, not when nothing has been sent */
+  error: string | null;
+}
+
+export async function loadDriverDocuments(uid: string): Promise<DocumentList> {
+  const { data, error } = await supabase
+    .from("driver_documents")
+    .select("*")
+    .eq("driver_user_id", uid);
+  if (error) {
+    return { documents: [], error: error.message || "Your documents couldn't be read." };
+  }
+  if (!Array.isArray(data)) return { documents: [], error: null };
+  return { documents: (data as Row[]).map(toDocumentRecord), error: null };
+}
+
+/** One driver_documents row, in the portal's words. Exported for the same
+    reason toDriverProfile is: the admin board reads the same table and a
+    second mapper would drift. An unknown status lands on 'uploaded' —
+    the state that asks somebody to look — rather than being trusted. */
+export function toDocumentRecord(r: Row): DocumentRecord {
+  const status = str(r.status);
+  return {
+    slug: str(r.slug),
+    path: str(r.path),
+    status: (status === "accepted" || status === "rejected" ? status : "uploaded") as DocumentStatus,
+    reason: nStr(r.reason),
+    uploadedAt: nStr(r.uploaded_at),
+    reviewedAt: nStr(r.reviewed_at),
+  };
+}
+
+const DOCUMENT_REASONS: Record<string, string> = {
+  not_signed_in: "You're not signed in any more.",
+  no_driver: "We can't find a driver record for this account, so there's no application to attach this to.",
+  // Both of these mean the page and the database disagree about what is
+  // being uploaded, which is a bug here rather than anything the driver
+  // did — so the sentence sends them to a person instead of asking them
+  // to try the same thing again.
+  bad_slug: "We couldn't file that document. Message Cabby's and we'll take it by hand.",
+  bad_path: "We couldn't file that document. Message Cabby's and we'll take it by hand.",
+};
+
+/**
+ * Put one document in the PRIVATE bucket and record that it arrived.
+ *
+ * Two steps, and the order matters: the file lands first, and only then
+ * is the row written. The other way round leaves the board showing an
+ * operator a document to review with nothing behind the link.
+ *
+ * `upsert` because re-uploading is the ordinary case — a rejected
+ * document is corrected over the top of itself, and a licence expires.
+ * The row that follows resets the review with it, so a replaced document
+ * never carries the last copy's verdict (docs/onboarding-schema.sql §4).
+ *
+ * No public URL is taken, and none exists: driver-docs is private, and
+ * getPublicUrl() on it returns a link that 400s. An operator reads these
+ * through a signed URL that expires in a minute. See the top of
+ * docs/onboarding-schema.sql for why that is not negotiable.
+ */
+export async function uploadDriverDocument(slug: string, file: File): Promise<StatusResult> {
+  // Checked before the network call so a driver on airport wifi learns
+  // the file is wrong now rather than after a two-minute upload.
+  if (file.type !== "application/pdf") {
+    return { ok: false, detail: "That isn't a PDF. Most phones can save a photo or a scan as one from the share menu." };
+  }
+  if (file.size > DOC_MAX_BYTES) {
+    return { ok: false, detail: "That file is over 8MB. Scan it at a lower quality, or send the pages as one PDF instead of several." };
+  }
+
+  const { data: session } = await supabase.auth.getSession();
+  const uid = session.session?.user?.id;
+  if (!uid) return { ok: false, detail: "You're not signed in any more." };
+
+  const path = documentPath(uid, slug);
+  const { error: upErr } = await supabase.storage
+    .from("driver-docs")
+    .upload(path, file, { upsert: true, contentType: "application/pdf" });
+  if (upErr) return { ok: false, detail: upErr.message || "The document didn't upload." };
+
+  const { data, error } = await supabase.rpc("save_driver_document", {
+    p_slug: slug,
+    p_path: path,
+  });
+  // The file is in the bucket and nothing knows about it. Said plainly,
+  // because "it didn't upload" would have the driver doing the same thing
+  // again to the same result.
+  if (error) {
+    return { ok: false, detail: error.message || "The document uploaded, but we couldn't file it. Try again." };
+  }
+  const r = (data ?? {}) as Row;
+  if (r.ok === true) return { ok: true };
+  const why = str(r.error);
+  return { ok: false, detail: DOCUMENT_REASONS[why] ?? why ?? "The document was refused." };
 }
