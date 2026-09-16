@@ -55,7 +55,26 @@
 
 /* ── the scrolling screen ──────────────────────────────────────────── */
 .drv-screen{flex:1;display:flex;flex-direction:column;min-height:0;}
-.drv-view{flex:1;display:flex;flex-direction:column;animation:drvfade .45s var(--ease);}
+/* The portal is a phone app, and every band that draws its own background
+   — the ride header, the step rail, the map — had no column to sit in.
+   .drv-top and .drv-pad were each capped at 560 and centred; those three
+   were not, so on anything wider than a phone the header ran to the far
+   left edge while the content it belonged to sat centred hundreds of
+   pixels away, and the map stretched to the full width of the window.
+   The map took that literally: it measures itself before asking Google
+   for an image, so a 2000px window asked for a 2000x170 letterbox, which
+   is past the size the static endpoint accepts at all.
+
+   One column on the view, and all three inherit it. The caps inside are
+   left where they are — they are correct, and they are what this matches. */
+.drv-view{flex:1;display:flex;flex-direction:column;
+  width:100%;max-width:560px;margin-inline:auto;
+  animation:drvfade .45s var(--ease);}
+/* Past the column's own width, an edge — so it reads as a deliberate
+   column and not as a screen that failed to fill the window. */
+@media(min-width:592px){
+  .drv-view{border-inline:1px solid var(--line-soft);}
+}
 @keyframes drvfade{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
 .drv-pad{max-width:560px;width:100%;margin:0 auto;
   padding:0 20px calc(84px + env(safe-area-inset-bottom,0px));}
@@ -184,7 +203,11 @@
 .drv-dhead h1{font-family:var(--serif);font-weight:300;font-size:30px;line-height:1.05;margin:7px 0 0;color:var(--ink);}
 .drv-dhead .ref{font-size:var(--t-meta);letter-spacing:var(--ls-label);color:var(--muted);margin-top:6px;font-weight:500;}
 
-.drv-pinmap{height:150px;position:relative;overflow:hidden;background:var(--surface);flex:none;
+/* No height here on purpose. The component sets it inline, because it has
+   to send that same number to Google in the image request — two numbers
+   for one frame is how they drift, and the 150 that used to sit here had
+   already drifted from the 170 the request was asking for. */
+.drv-pinmap{position:relative;overflow:hidden;background:var(--surface);flex:none;
   border-bottom:1px solid var(--line);}
 .drv-pinmap svg{width:100%;height:100%;display:block;}
 .drv-pinbadge{position:absolute;left:14px;bottom:12px;background:var(--silver);color:var(--deep);

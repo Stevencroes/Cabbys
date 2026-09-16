@@ -136,6 +136,27 @@ function staticStyleParams(): string[] {
 }
 
 /**
+ * The size parameter, inside the limit Google actually enforces.
+ *
+ * The static endpoint refuses any dimension over 640 — scale=2 is how you
+ * ask for retina, not how you ask for a bigger canvas. Past that it hands
+ * back an error image, and a component that draws whatever arrives with
+ * object-fit:cover then magnifies that error to fill its frame. That is
+ * what a 2000px-wide driver screen was showing: not a map of the wrong
+ * place, a rejected request stretched over the right one.
+ *
+ * Clamped here rather than at each call site so no caller can post an
+ * invalid size, and so the two builders below cannot drift apart.
+ */
+const STATIC_MAX = 640;
+
+function mapSize(width: number, height: number): string {
+  const w = Math.min(Math.max(Math.round(width), 1), STATIC_MAX);
+  const h = Math.min(Math.max(Math.round(height), 1), STATIC_MAX);
+  return `${w}x${h}`;
+}
+
+/**
  * A dark static map with the route drawn on it.
  *
  * With a path or markers present, Google infers the viewport itself — the
@@ -151,7 +172,7 @@ export function staticMapUrl(
 ): string | null {
   if (!googleMapsEnabled) return null;
   const params = new URLSearchParams();
-  params.set("size", `${Math.round(opts.width)}x${Math.round(opts.height)}`);
+  params.set("size", mapSize(opts.width, opts.height));
   if (opts.retina) params.set("scale", "2");
   params.set("maptype", "roadmap");
   for (const s of staticStyleParams()) params.append("style", s);
@@ -176,7 +197,7 @@ export function pinMapUrl(
 ): string | null {
   if (!googleMapsEnabled) return null;
   const params = new URLSearchParams();
-  params.set("size", `${Math.round(opts.width)}x${Math.round(opts.height)}`);
+  params.set("size", mapSize(opts.width, opts.height));
   if (opts.retina) params.set("scale", "2");
   params.set("maptype", "roadmap");
   params.set("center", `${at.lat},${at.lon}`);

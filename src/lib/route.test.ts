@@ -203,4 +203,20 @@ describe("pinMapUrl", () => {
     expect(pinMapUrl(at, { width: 400, height: 170 })).toBeNull();
     google.googleMapsEnabled = true;
   });
+
+  // A frame wider than Google will serve used to be sent as-is. The reply
+  // is an error image, and the map component draws whatever arrives — so
+  // the driver got that error magnified to fill the frame, which looked
+  // like a broken map rather than a refused request.
+  it("never asks for a size the static endpoint refuses", () => {
+    const q = new URLSearchParams((pinMapUrl(at, { width: 2016, height: 170 }) ?? "").split("?")[1]);
+    expect(q.get("size")).toBe("640x170");
+  });
+
+  it("clamps the route map the same way, from the same place", () => {
+    const q = new URLSearchParams(
+      (staticMapUrl(at, { lat: 12.57, lon: -70.05 }, null, { width: 1600, height: 900 }) ?? "").split("?")[1],
+    );
+    expect(q.get("size")).toBe("640x640");
+  });
 });
