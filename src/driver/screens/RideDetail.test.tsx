@@ -318,7 +318,8 @@ describe("Ride detail", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /hand it back/i }));
     await waitFor(() => expect(released).toEqual([["r1", "Car won't start"]]));
-    expect(navigate).toHaveBeenCalledWith("/drive/pool");
+    // the pool is told which ride to expect, so it can outwait the lag
+    expect(navigate).toHaveBeenCalledWith("/drive/pool", { state: { released: "r1" } });
   });
 
   // Inside the two-hour window a handback stops being scheduling and

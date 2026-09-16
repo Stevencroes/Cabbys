@@ -200,7 +200,10 @@ export default function RideDetail() {
       const res = await releaseRide(id, reason);
       setBusy(false);
       if (!res.ok) { setProblem(res.detail); return; }
-      navigate("/drive/pool");
+      // Hand the pool the id it should expect. release_ride() has returned,
+      // but open_rides can still be a beat behind, and a pool that renders
+      // in that beat says "Pool's empty" over a ride that is already back.
+      navigate("/drive/pool", { state: { released: id } });
     },
     [id, navigate],
   );

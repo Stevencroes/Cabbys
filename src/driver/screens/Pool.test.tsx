@@ -2,14 +2,20 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
-const state: { open: unknown[]; error: string | null; claim: unknown } =
-  { open: [], error: null, claim: { ok: true, rideId: "r1" } };
+// lag = how many of the first reads come back before the write lands,
+// which is the race a handback loses against open_rides.
+const state: { open: unknown[]; error: string | null; claim: unknown; lag: number } =
+  { open: [], error: null, claim: { ok: true, rideId: "r1" }, lag: 0 };
 const navigate = vi.fn();
 let loadCalls = 0;
 
 vi.mock("../lib/driver", async (orig) => ({
   ...(await orig<typeof import("../lib/driver")>()),
-  loadOpen: () => { loadCalls++; return Promise.resolve({ jobs: state.open, error: state.error }); },
+  loadOpen: () => {
+    loadCalls++;
+    const late = loadCalls <= state.lag;
+    return Promise.resolve({ jobs: late ? [] : state.open, error: state.error });
+  },
   claimRide: () => Promise.resolve(state.claim),
 }));
 vi.mock("react-router-dom", async (orig) => ({
@@ -27,12 +33,17 @@ const job = (id: string, pickup = "Queen Beatrix International Airport") => ({
   fareAwg: 89.5, payoutUsd: (89.5 / 1.79) * 0.75, bookingRef: "CB-1",
 });
 
-const renderPool = () => render(<MemoryRouter><Pool /></MemoryRouter>);
+const renderPool = (handedBack?: string) => render(
+  <MemoryRouter initialEntries={[
+    handedBack ? { pathname: "/drive/pool", state: { released: handedBack } } : "/drive/pool",
+  ]}><Pool /></MemoryRouter>,
+);
 
 beforeEach(() => {
   state.open = [job("r1")];
   state.error = null;
   state.claim = { ok: true, rideId: "r1" };
+  state.lag = 0;
   navigate.mockClear();
   loadCalls = 0;
 });
@@ -96,6 +107,37 @@ describe("Open pool", () => {
     state.open = [];
     renderPool();
     expect(await screen.findByText(/pool's empty/i)).toBeInTheDocument();
+  });
+
+  it("waits for a ride handed back before calling the pool empty", async () => {
+    // Handing a ride back and landing on an empty pool is what makes a
+    // driver hand it back twice. The row is there; the read was early.
+    state.open = [job("r9")];
+    state.lag = 1;
+    renderPool("r9");
+    expect(await screen.findByText(/the ritz-carlton aruba/i)).toBeInTheDocument();
+    expect(screen.queryByText(/pool's empty/i)).toBeNull();
+    expect(loadCalls).toBe(2);
+  });
+
+  it("reads once when no ride is owed", async () => {
+    // The wait is the handback's to pay, not every driver's on every load.
+    state.open = [job("r1")];
+    state.lag = 1;
+    renderPool();
+    expect(await screen.findByText(/pool's empty/i)).toBeInTheDocument();
+    expect(loadCalls).toBe(1);
+  });
+
+  it("stops waiting and shows the pool as it really is", async () => {
+    // A ride that never returns is a fact — an admin may have reassigned
+    // it in that second — not something to hide behind a spinner.
+    state.open = [];
+    state.lag = 9;
+    renderPool("r9");
+    // three reads, two half-second waits — past findByText's default
+    expect(await screen.findByText(/pool's empty/i, undefined, { timeout: 2500 })).toBeInTheDocument();
+    expect(loadCalls).toBe(3);
   });
 
   it("does not call a broken pool an empty one", async () => {

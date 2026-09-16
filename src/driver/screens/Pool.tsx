@@ -14,8 +14,8 @@
 // before the school run. Best paid is the earnings question — what is the
 // best hour I can buy today. Neither is the "right" default; soonest is
 // simply the one that matches how the jobs are grouped.
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import PoolCard from "../PoolCard";
 import { jobDate, jobDateShort, jobTime } from "../JobCard";
 import { claimRide, isImminent, loadOpen, type OpenJob } from "../lib/driver";
@@ -43,10 +43,30 @@ export default function Pool() {
   const [booked, setBooked] = useState<OpenJob | null>(null);
   const [order, setOrder] = useState<Order>("soonest");
 
+  // A ride just handed back arrives here with its id, because RideDetail
+  // navigates the instant release_ride() returns and this query can beat
+  // the write home. Claiming already survives that race the same way. The
+  // wait is spent only on a load that is owed a specific ride — an ordinary
+  // pool load, and every refresh after the first, reads once as before.
+  const handback = (useLocation().state as { released?: string } | null)?.released ?? null;
+  const owed = useRef<string | null>(handback);
+
   const refresh = useCallback(async () => {
-    const { jobs: rows, error } = await loadOpen();
-    setFailed(error);
-    setJobs(rows);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { jobs: rows, error } = await loadOpen();
+      const waitingFor = owed.current;
+      const there = waitingFor !== null && rows.some((j) => j.id === waitingFor);
+      // Last attempt shows whatever the pool really holds. A ride that
+      // never comes back is a fact the driver should see, not one to hide
+      // behind a spinner — an admin may have reassigned it in that second.
+      if (error !== null || waitingFor === null || there || attempt === 2) {
+        owed.current = null;
+        setFailed(error);
+        setJobs(rows);
+        return;
+      }
+      await new Promise((done) => setTimeout(done, 500));
+    }
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
