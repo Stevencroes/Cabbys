@@ -12,6 +12,7 @@ import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
 import { usd, AWG_PER_USD } from "../lib/quote";
 import { formatDateTime, ARUBA_OFFSET_MINUTES } from "../lib/datetime";
 import { findPlaceByName, selFromPlace } from "../data/places";
+import PickupPin from "../components/PickupPin";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuthModal } from "../components/auth/AuthModal";
@@ -36,6 +37,9 @@ interface Ride {
   driver_vehicle?: string;
   driver_plate?: string;
   driver_photo?: string;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
+  pickup_note?: string | null;
 }
 
 // The journey a ride moves through — synonyms collapse onto these stations.
@@ -225,6 +229,10 @@ function TripCard({
           )}
         </div>
       )}
+
+      {/* Only while there is still a driver to tell. A cancelled or
+          finished trip has nobody on the other end of this. */}
+      {upcoming && !cancelled && !completed && <PickupPin ride={ride} />}
 
       {error && <div className="pay-error" role="alert" style={{ marginTop: "12px" }}>{error}</div>}
 

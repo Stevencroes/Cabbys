@@ -1958,3 +1958,39 @@ input.txt{border-radius:var(--r-sm);}
   .qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{margin-bottom:3px;}
   .qgo{padding-bottom:8px;}
 }
+
+/* ── the guest's pickup pin ───────────────────────────────────────────
+   Sits inside the trip card, below the driver and above the actions,
+   because it is about the pickup and not about the booking. Quiet by
+   construction: nothing here is required, and a card that shouted would
+   be asking for something the trip does not need. */
+.tp-pin{margin-top:16px;padding:15px;border:1px solid var(--line);border-radius:12px;
+  background:var(--raised);display:flex;flex-direction:column;gap:9px;}
+.tp-pin .pk-k{font-family:var(--serif);font-size:18px;font-weight:500;color:var(--ink);line-height:1.2;}
+.tp-pin .pk-why{margin:0;font-size:var(--t-meta);color:var(--muted);line-height:1.55;max-width:52ch;}
+
+/* The one control on this card that is a real offer rather than a field.
+   Full width and a 46px target: it is tapped one-handed, outdoors, often
+   in the dark, by somebody who is already slightly lost. */
+.tp-pin .pk-spot{width:100%;min-height:46px;margin-top:3px;}
+.tp-pin .pk-spot.done{color:var(--silver);}
+
+.tp-pin .pk-note{display:flex;flex-direction:column;gap:6px;margin-top:3px;}
+.tp-pin .pk-nk{font-size:var(--t-micro);font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--silver);}
+.tp-pin textarea{width:100%;background:var(--ground);border:1px solid var(--line);
+  border-radius:9px;color:var(--ink);font-family:var(--sans);font-size:var(--t-body);
+  padding:10px 12px;resize:vertical;line-height:1.5;min-height:60px;}
+.tp-pin textarea::placeholder{color:var(--placeholder);}
+.tp-pin textarea:focus{outline:none;border-color:var(--silver-deep);}
+
+.tp-pin .pk-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.tp-pin .pk-count{font-size:var(--t-micro);color:var(--muted);font-variant-numeric:tabular-nums;}
+.tp-pin .pk-save{min-height:44px;}
+.tp-pin .pk-save:disabled{opacity:.55;cursor:default;}
+
+/* Said in words, not only in colour — this is read on a phone in
+   sunlight, and by people who cannot see the colour at all. */
+.tp-pin .pk-ok,.tp-pin .pk-bad{margin:0;font-size:var(--t-meta);line-height:1.55;}
+.tp-pin .pk-ok{color:var(--signal-ink);}
+.tp-pin .pk-bad{color:var(--alert-ink);}

@@ -18,9 +18,10 @@
 //                         driver's own Earnings screen under them.
 //   cancelled           → nothing, plus whether money is still held
 //
-// THE MAP IS DRAWN FROM THE PLACE NAMES, and says so. There is no live
-// location anywhere in this project — rides.pickup_lat/pickup_lng exist
-// and nothing has ever written them (see the header of
+// THE MAP IS DRAWN FROM THE PLACE NAMES, and says so. There is still no
+// live location anywhere in this project: rides.pickup_lat/pickup_lng now
+// have a writer, but it is a guest marking where they are standing at
+// pickup — a point, once, not a moving car (see the header of
 // src/driver/screens/RideDetail.tsx) — so this shows the ROUTE, pickup
 // to destination, which is a real answer to "where is this ride going"
 // rather than a guess at "where is the car". It reuses RouteMap, the

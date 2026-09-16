@@ -29,19 +29,21 @@
 //    same island sketch the passenger site draws, from the real coastline,
 //    labelled as a sketch.
 //
-// About that map, and the thing it is honest about now: rides.pickup_lat,
-// pickup_lng and pickup_note are columns docs/driver-schema.sql creates
-// and NOTHING IN THIS APP EVER WRITES. The guest-drops-a-pin flow the
-// header above describes was specified and never built — buildRidePayload
-// sets none of the three, and no other writer exists. So every ride
-// reached this screen with no pin, and the map had nothing to centre on
-// but an island.
+// About that map, and the thing it is honest about: rides.pickup_lat,
+// pickup_lng and pickup_note went years as columns nothing wrote. The
+// writer now exists — src/components/PickupPin.tsx and docs/pin-schema.sql
+// — but it is deliberately narrow, so MOST RIDES STILL ARRIVE HERE WITH
+// NO PIN and this screen's fallback is the ordinary case, not the edge.
+// The guest is never asked at the airport, is asked which entrance at a
+// resort, and is offered a coordinate only for an address and only in a
+// window around the pickup, because a pin dropped from home three weeks
+// early is not a rough pin, it is a wrong one.
 //
-// Until that flow exists, the pickup's own NAME is the best location we
-// hold, and it is a good one: the catalog knows where its places are, and
-// resolvePin sharpens a hotel from its area centre to its actual door.
-// The map is drawn from that, and the badge says which of the two it is
-// looking at — "Guest pinned" only ever means a real dropped pin. An
+// So the pickup's own NAME stays the location this screen is built
+// around, and it is a good one: the catalog knows where its places are,
+// and resolvePin sharpens a hotel from its area centre to its actual
+// door. The badge says which of the two it is looking at — "Guest
+// pinned" only ever means a coordinate a guest actually stood on. An
 // approximate map of the right resort beats an accurate map of nowhere.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";

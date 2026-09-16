@@ -15,9 +15,10 @@
 // single most load-bearing decision on this screen.
 //
 // THERE IS NO MAP HERE, and that is not an omission. A live operations
-// map means driver positions, and this project has none: rides carry
-// pickup_lat/pickup_lng that nothing has ever written, and no driver
-// screen reports a location. A map of today's PICKUPS would have been
+// map means driver positions, and this project has none: pickup_lat and
+// pickup_lng carry a spot the GUEST sent once from the kerb, which is a
+// different thing entirely, and no driver screen reports a location at
+// all. A map of today's PICKUPS would have been
 // honest and would also have been decoration — it answers "where is the
 // island" rather than "where is the car". The route map lives on the
 // ride's own page, where it answers a question somebody is asking.
