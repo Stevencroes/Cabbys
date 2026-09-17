@@ -19,4 +19,19 @@ describe("flight helpers", () => {
   it("canonicalizes for storage", () => {
     expect(formatFlightNumber("ua 1523")).toBe("UA1523");
   });
+
+  // One flight, three spellings: the boarding pass pads it, AeroDataBox
+  // spaces it, the departure board does neither. They have to collapse
+  // onto one string or the lookup silently never matches.
+  it("collapses the spellings of one flight number onto each other", () => {
+    for (const typed of ["KL0765", "KL 765", "kl765", " KL0765 "]) {
+      expect(formatFlightNumber(typed)).toBe("KL765");
+    }
+    expect(formatFlightNumber("AA0001")).toBe("AA1");
+    expect(formatFlightNumber("KL765a")).toBe("KL765A");
+  });
+
+  it("leaves something it doesn't recognise alone rather than mangling it", () => {
+    expect(formatFlightNumber("not a flight")).toBe("NOTAFLIGHT");
+  });
 });
