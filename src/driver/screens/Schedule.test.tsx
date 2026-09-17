@@ -36,6 +36,29 @@ const job = (id: string, day: string, time: string, pickup: string) => ({
 });
 
 const week = weekDays(todayInAruba());
+
+/**
+ * A day this week that the screen will name by its WEEKDAY.
+ *
+ * The day view calls today "Today", tomorrow "Tomorrow" and yesterday
+ * "Yesterday" — those names beat the weekday, and rightly so. Asserting
+ * on weekdayLong() therefore only means anything for a day that is none
+ * of the three, and picking a fixed index made the assertion depend on
+ * which day of the week the suite happened to run.
+ *
+ * It did, and it went unnoticed because it still passed: on a Wednesday
+ * "Wednesday" was in the page's own masthead, which names today, so a
+ * substring match found it there while the day view underneath said
+ * "Today". The assertion was green for a year without once looking at
+ * the thing it claimed to check.
+ */
+const plainDayIndex = (() => {
+  const t = todayInAruba();
+  const named = new Set([t, addDays(t, 1), addDays(t, -1)]);
+  // the last one, so it leans towards a day still ahead
+  for (let i = week.length - 1; i >= 0; i--) if (!named.has(week[i])) return i;
+  throw new Error("a Monday-first week always holds one");
+})();
 const renderSchedule = () => render(<MemoryRouter><Schedule driver={driver} /></MemoryRouter>);
 
 beforeEach(() => {
@@ -92,15 +115,19 @@ describe("The weekly roster", () => {
   });
 
   it("opens a single day onto its own clock, with the gap between pickups named", async () => {
+    const day = week[plainDayIndex];
     state.assigned = [
-      job("a", week[2], "08:00", "Queen Beatrix International Airport"),
-      job("b", week[2], "14:30", "Bucuti & Tara Beach Resort"),
+      job("a", day, "08:00", "Queen Beatrix International Airport"),
+      job("b", day, "14:30", "Bucuti & Tara Beach Resort"),
     ];
     renderSchedule();
     const strip = await screen.findByRole("group", { name: /days of the week/i });
-    fireEvent.click(strip.querySelectorAll("button")[2]);
+    fireEvent.click(strip.querySelectorAll("button")[plainDayIndex]);
 
-    expect(await screen.findByText(weekdayLong(week[2]), { exact: false })).toBeInTheDocument();
+    // the DAY VIEW's own heading, not the masthead above it — the whole
+    // point of tapping a day is that the panel says which one you opened
+    const head = await screen.findByText(weekdayLong(day), { selector: ".dn" });
+    expect(head).toBeInTheDocument();
     expect(screen.getByText("8:00 AM")).toBeInTheDocument();
     expect(screen.getByText("2:30 PM")).toBeInTheDocument();
     expect(screen.getByText(/6h 30m between pickups/)).toBeInTheDocument();

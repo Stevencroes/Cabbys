@@ -60,6 +60,8 @@ import { findPlaceByName, selFromPlace } from "../../data/places";
 import { resolvePin } from "../../lib/placePins";
 import { formatFlightNumber } from "../../lib/flight";
 import { meetingPointFor } from "../../data/meetingPoints";
+import { pinPolicyFor } from "../../lib/pickupPin";
+import FlightLine from "../FlightLine";
 import { whatsappLink } from "../../lib/whatsapp";
 import { normalizePhone } from "../../lib/contact";
 
@@ -404,6 +406,19 @@ export default function RideDetail() {
             </span>
           )}
         </div>
+
+        {/* Above the guest's own line, because it is the same fact with
+            somebody accountable for it. Only for a pickup AT the airport:
+            on a run TO the airport the guest's flight does not move the
+            time a car is needed, and a line that changes for it would be
+            noise on the one screen that cannot afford any.
+
+            pinPolicyFor asks the catalog rather than matching on the
+            word "airport", which is the same question the pin card asks
+            and the same answer. */}
+        {!aboard && pinPolicyFor(ride.pickup) === "airport" && (
+          <FlightLine flightNumber={ride.flightNumber} scheduledAt={ride.scheduledAt} />
+        )}
 
         {/* Said at booking, and until now shown to nobody. It sits under
             the guest rather than above the map because it is context, not

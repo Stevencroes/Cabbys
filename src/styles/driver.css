@@ -1083,3 +1083,32 @@
    border and the eyebrow move. */
 .drv-nocar.docs{border-color:var(--line);}
 .drv-nocar.docs .ck{color:var(--silver);}
+
+/* ── the flight line ──────────────────────────────────────────────────
+   Read at 5am, one-handed, by somebody deciding whether to set off. It
+   earns its colour only twice: when the airline or the tracking has
+   moved the time enough to change that decision, and when there is no
+   flight to meet at all. Everything else is one quiet line, and the
+   quiet is the point — a box that reacts to four minutes is a box that
+   gets ignored on the day it matters. */
+.drv-flight{border:1px solid var(--line);border-radius:var(--d-r-sm);
+  background:var(--raised);padding:13px 15px;margin:16px 0;
+  display:flex;flex-direction:column;gap:3px;}
+.drv-flight .fk{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+.drv-flight .fn{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--silver);}
+.drv-flight .fa{font-size:var(--t-meta);color:var(--muted);font-weight:400;}
+/* the time is the answer, so it is set like one */
+.drv-flight .fv{font-family:var(--serif);font-size:21px;font-weight:500;
+  line-height:1.2;color:var(--ink);}
+.drv-flight .fd{font-size:var(--t-meta);color:var(--muted);line-height:1.5;}
+
+.drv-flight.warn{border-color:var(--signal-line);background:var(--signal-tint);}
+.drv-flight.warn .fv{color:var(--signal-ink);}
+.drv-flight.warn .fd{color:var(--silver);}
+
+/* Only cancelled and diverted. Both mean: do not drive to this yet. */
+.drv-flight.alert{border-color:var(--alert-line);background:var(--alert-tint);}
+.drv-flight.alert .fn{color:var(--alert-ink);}
+.drv-flight.alert .fv{color:var(--alert-ink);}
+.drv-flight.alert .fd{color:var(--silver);}
