@@ -213,7 +213,7 @@ notify pgrst, 'reload schema';
 --     $cron$
 --     select net.http_post(
 --       url     := 'https://<PROJECT-REF>.supabase.co/functions/v1/flight-refresh',
---       headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE-ROLE-KEY>"}'::jsonb,
+--       headers := '{"Content-Type":"application/json","apikey":"<SB-SECRET-KEY>"}'::jsonb,
 --       body    := '{}'::jsonb
 --     );
 --     $cron$

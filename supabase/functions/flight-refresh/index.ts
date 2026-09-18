@@ -134,8 +134,17 @@ async function ask(flight: string, day: string): Promise<{ raw: unknown; ok: boo
  * something a person can actually read.
  */
 function authorised(req: Request): { ok: boolean; via: string } {
-  const sent = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-  if (!sent) return { ok: false, via: "no header" };
+  // apikey first, because that is where the platform insists an sb_ key
+  // goes. Put one in Authorization and the gateway rejects the request
+  // with "Conflicting API keys" before this function is reached at all —
+  // so the header that works is not the one the legacy keys used.
+  // Authorization is still read, so a legacy JWT and anything already
+  // pointed at this function keep working while the migration finishes.
+  const sent = (
+    req.headers.get("apikey") ||
+    (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "")
+  ).trim();
+  if (!sent) return { ok: false, via: "no apikey or Authorization header" };
   if (SERVICE && sent === SERVICE) return { ok: true, via: "service key" };
   return { ok: false, via: sent.startsWith("eyJ") ? `legacy JWT (${claimedRole(sent)})` : "not the service key" };
 }
