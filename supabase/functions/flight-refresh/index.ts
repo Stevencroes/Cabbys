@@ -159,32 +159,37 @@ Deno.serve(async (req) => {
   // somewhere it cannot end. Nothing here reveals a key — only what the
   // token the caller just sent says about itself.
   const gate = authorised(req);
-  const auth = req.headers.get("Authorization") ?? "";
-  if (gate.ok) { /* fall through */ }
-  else if (!auth) {
+  if (!gate.ok) {
+    // One refusal, reporting what actually arrived. The previous version
+    // had two branches and picked the wrong one: an apikey header that
+    // did not match was reported as "no Authorization header", which is
+    // a true failure described as a different failure — and sends the
+    // next half hour in the wrong direction. Shapes and lengths only,
+    // never a character of either key, which is enough to separate every
+    // case that has actually come up: nothing sent, sent in the header
+    // the gateway strips, a legacy key after the migration, a truncated
+    // paste, and the secret not being set at all.
+    const seen = {
+      apikey: req.headers.get("apikey") ? "present" : "absent",
+      authorization: req.headers.get("Authorization") ? "present" : "absent",
+    };
+    const sent = (
+      req.headers.get("apikey") ||
+      (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "")
+    ).trim();
     return Response.json({
-      error: "no Authorization header",
-      fix: "Send 'Authorization: Bearer <service role key>'. In the dashboard's Test panel, add it under Headers.",
-    }, { status: 401 });
-  }
-  else {
-    const sent = auth.replace(/^Bearer\s+/i, "");
-    const role = claimedRole(sent);
-    return Response.json({
-      error: "That token is not allowed to spend anything",
-      you_sent: role,
-      expected: "service_role",
-      fix:
-        role === "anon"
-          ? "That is the ANON key — the public one, and it must never be able to spend units. You want the row below it on Project Settings → API, labelled service_role / secret, hidden behind Reveal."
-          : role === "not a JWT"
-          ? "That is not a JWT. A short sb_secret_… key is the likely culprit; this needs the long eyJ… one from the same page."
-          : role === "unreadable"
-          ? "The token could not be read at all — check for a truncated paste, or a stray quote around the value."
-          : `The token claims the role "${role}", which cannot spend units. Only service_role can.`,
-      // Lengths, never values. Catches a truncated paste, which matches
-      // nothing and looks exactly like the wrong key.
-      lengths: { you_sent: sent.length, expected: SERVICE.length },
+      error: "Not the scheduler",
+      why: gate.via,
+      headers_seen: seen,
+      // "sb_secret_" vs "eyJ" vs nothing. A prefix that long identifies a
+      // FORMAT and not a key; every sb_ key in the world shares it.
+      you_sent: sent ? `${sent.slice(0, 10)}… (${sent.length} chars)` : "nothing",
+      expected: SERVICE ? `${SERVICE.slice(0, 10)}… (${SERVICE.length} chars)` : "CABBYS_SERVICE_KEY IS NOT SET",
+      fix: !SERVICE
+        ? "Add CABBYS_SERVICE_KEY under Edge Functions → Secrets, set to your sb_secret_… key."
+        : seen.apikey === "absent"
+        ? "Send the key in an 'apikey' header — plain, no 'Bearer'. An sb_ key in Authorization is rejected by the gateway before this function runs."
+        : "The apikey arrived but does not match CABBYS_SERVICE_KEY. Compare the two above: same length and prefix means a stray space; different length means a truncated paste; different prefix means a different key.",
     }, { status: 401 });
   }
 
