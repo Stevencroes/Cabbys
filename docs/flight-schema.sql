@@ -94,6 +94,25 @@ begin
 end;
 $$;
 
+-- Shut to everyone but the scheduler. THIS IS NOT HOUSEKEEPING.
+--
+-- Postgres grants EXECUTE on a new function to PUBLIC by default, and
+-- the anon key is public by design — it ships inside the JavaScript
+-- every visitor downloads. Left as it was, anyone who opened dev tools
+-- on the site could POST to /rest/v1/rpc/flight_budget_take in a loop
+-- and spend all 380 units in a few seconds, every month, for nothing.
+--
+-- Every other function in this project survives that default because it
+-- checks auth.uid() or is_admin() itself and refuses a stranger. These
+-- two do neither, on purpose: the scheduler is the only caller and has
+-- no user to check. That makes the grant the only thing holding the
+-- door, so the door has to be shut explicitly.
+--
+-- service_role is named because revoking from public revokes it too —
+-- it is not a superuser and does not own these functions.
+revoke all on function public.flight_budget_take() from public, anon, authenticated;
+grant execute on function public.flight_budget_take() to service_role;
+
 -- ── 3. which flights are worth asking about ──────────────────────────
 --
 -- The cadence is the budget. A flight a day out is asked about once; one
@@ -151,6 +170,13 @@ as $$
    order by s.at
    limit p_limit;
 $$;
+
+-- Same reasoning, different damage: this one reads the flight numbers of
+-- every upcoming airport ride out of the rides table, as a definer, so
+-- on the default grant it hands an anonymous caller a column that RLS is
+-- otherwise protecting.
+revoke all on function public.flights_due(integer) from public, anon, authenticated;
+grant execute on function public.flights_due(integer) to service_role;
 
 -- ── 4. tell PostgREST ────────────────────────────────────────────────
 

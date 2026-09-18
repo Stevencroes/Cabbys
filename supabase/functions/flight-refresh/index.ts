@@ -52,9 +52,46 @@ async function ask(flight: string, day: string): Promise<{ raw: unknown; ok: boo
 Deno.serve(async (req) => {
   // Only the scheduler. pg_net sends the service role key; anything else
   // is turned away before it can spend a unit of somebody's quota.
+  //
+  // The refusal names which of the two problems it is. It used to answer
+  // "no" to both, which is the same fault this project keeps finding
+  // everywhere else: a true error reported as the wrong one. Neither
+  // message reveals anything about the key — only whether a header
+  // arrived at all — and the half hour it saves whoever is setting this
+  // up is worth more than that.
   const auth = req.headers.get("Authorization") ?? "";
+  if (!auth) {
+    return Response.json({
+      error: "no Authorization header",
+      fix: "Send 'Authorization: Bearer <service role key>'. In the dashboard's Test panel, add it under Headers.",
+    }, { status: 401 });
+  }
   if (auth !== `Bearer ${SERVICE}`) {
-    return new Response("no", { status: 401 });
+    return Response.json({
+      error: "Authorization header did not match the service role key",
+      fix: "Project Settings → API → service_role. Note this function needs the long JWT-style key; a short sb_secret_… key is rejected by the platform before this code runs, and that 401 looks different from this one.",
+    }, { status: 401 });
+  }
+
+  const db = createClient(URL_, SERVICE);
+
+  // A dry run: proves the whole chain without spending a unit. Meant for
+  // the person wiring this up, who otherwise cannot tell a missing
+  // secret from an unrun migration from a cron that never fired.
+  let body: { check?: boolean } = {};
+  try { body = await req.json(); } catch { /* an empty body is the ordinary call */ }
+
+  if (body.check === true) {
+    const due = await db.rpc("flights_due", { p_limit: 1 });
+    const meter = await db.from("flight_budget").select("month, used, cap");
+    return Response.json({
+      auth: "ok",
+      // whether it is set, never what it is
+      aerodatabox_key: KEY ? `set (${KEY.length} chars)` : "MISSING — add it under Edge Functions → Secrets",
+      flights_due: due.error ? `FAILED — ${due.error.message}` : `ok — ${(due.data ?? []).length} due right now`,
+      budget: meter.error ? `FAILED — ${meter.error.message}` : (meter.data ?? []),
+      spent_this_call: 0,
+    });
   }
 
   if (!KEY) {
@@ -62,8 +99,6 @@ Deno.serve(async (req) => {
     // screen is built to look right against it.
     return Response.json({ skipped: "no AERODATABOX_KEY set", asked: 0 });
   }
-
-  const db = createClient(URL_, SERVICE);
 
   const { data: due, error } = await db.rpc("flights_due", { p_limit: MAX_PER_RUN });
   if (error) return Response.json({ error: error.message }, { status: 500 });
