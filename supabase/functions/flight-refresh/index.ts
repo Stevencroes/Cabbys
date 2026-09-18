@@ -34,6 +34,29 @@ const MAX_PER_RUN = 6;
 
 interface Due { flight: string; day: string }
 
+/**
+ * The role a presented token CLAIMS, read without verifying it.
+ *
+ * Diagnosis only — it never grants anything, because a claim nobody
+ * checked the signature on is not evidence. What it is for: the anon key
+ * and the service role key are both JWTs beginning "eyJ", they sit two
+ * rows apart on the same settings page, and telling them apart by eye is
+ * not realistic. Every one of those tokens is already in the hand of
+ * whoever sent it, so reading its own claim back to them reveals nothing
+ * they did not just type.
+ */
+function claimedRole(token: string): string {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return "not a JWT";
+    const pad = part.replace(/-/g, "+").replace(/_/g, "/");
+    const body = JSON.parse(atob(pad.padEnd(Math.ceil(pad.length / 4) * 4, "=")));
+    return typeof body.role === "string" ? body.role : "no role claim";
+  } catch {
+    return "unreadable";
+  }
+}
+
 async function ask(flight: string, day: string): Promise<{ raw: unknown; ok: boolean }> {
   const url = `https://aerodatabox.p.rapidapi.com/flights/Number/${encodeURIComponent(flight)}/${day}`
     + "?withAircraftImage=false&withLocation=false";
@@ -67,9 +90,23 @@ Deno.serve(async (req) => {
     }, { status: 401 });
   }
   if (auth !== `Bearer ${SERVICE}`) {
+    const sent = auth.replace(/^Bearer\s+/i, "");
+    const role = claimedRole(sent);
     return Response.json({
       error: "Authorization header did not match the service role key",
-      fix: "Project Settings → API → service_role. Note this function needs the long JWT-style key; a short sb_secret_… key is rejected by the platform before this code runs, and that 401 looks different from this one.",
+      you_sent: role,
+      expected: "service_role",
+      fix:
+        role === "anon"
+          ? "That is the ANON key — the public one. You want the row below it on Project Settings → API, labelled service_role or secret, hidden behind a Reveal button."
+          : role === "service_role"
+          ? "The right kind of key, but not this project's. Check you are on the right project, and that the key was not rotated after this function's secrets were set."
+          : SERVICE.length === 0
+          ? "This function cannot see SUPABASE_SERVICE_ROLE_KEY at all, which should never happen — it is a default secret in every project."
+          : "Check for a stray space or newline: the value is the word Bearer, one space, then the key, with nothing after it.",
+      // Lengths, never values. Catches a truncated paste, which matches
+      // nothing and looks exactly like the wrong key.
+      lengths: { you_sent: sent.length, expected: SERVICE.length },
     }, { status: 401 });
   }
 
