@@ -24,7 +24,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
-const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+/**
+ * The key this function uses for both doors: proving who called it, and
+ * reaching the database.
+ *
+ * CABBYS_SERVICE_KEY is one this project sets by hand — an sb_secret_…
+ * key from Project Settings → API Keys. It is preferred over Supabase's
+ * managed SUPABASE_SERVICE_ROLE_KEY for one reason: the managed one held
+ * something nobody could read, and the whole afternoon that cost went
+ * into finding out that a header did not equal a value neither side
+ * could see. A key set here is one both ends can be checked against.
+ *
+ * It also cuts the last tie to the legacy JWT keys, which are being
+ * switched off — a legacy key in SUPABASE_SERVICE_ROLE_KEY would take
+ * this function's database access down with them, silently.
+ *
+ * The fallback keeps today working until the secret is added.
+ */
+const SERVICE = Deno.env.get("CABBYS_SERVICE_KEY")
+  ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+  ?? "";
 const KEY = Deno.env.get("AERODATABOX_KEY") ?? "";
 
 /** At most this many units in one run, whatever the database offers. A
@@ -95,16 +115,29 @@ async function ask(flight: string, day: string): Promise<{ raw: unknown; ok: boo
  * The anon key fails both, which is the point: it is public, it ships in
  * the browser bundle, and it must never be able to spend anything.
  */
-// TODO, the moment "Verify JWT with legacy secret" is switched off:
-// delete the role-claim door below. It is sound ONLY while the platform
-// checks the signature first. With that off, an unsigned token claiming
-// service_role walks straight in and spends the month.
+/**
+ * Is this the scheduler?
+ *
+ * One door now: the header must equal CABBYS_SERVICE_KEY exactly.
+ *
+ * There used to be a second, which accepted any token CLAIMING the
+ * service_role. That was only ever sound because Supabase verified the
+ * signature first — and switching off "Verify JWT with legacy secret",
+ * which this migration does, is exactly what removes that. Left in, an
+ * unsigned token claiming service_role would walk straight in and spend
+ * the month's units. It is gone rather than guarded, because a door that
+ * is safe only while a setting elsewhere stays a particular way is a
+ * door nobody will remember to re-check.
+ *
+ * Equality is workable here in a way it was not before: the secret is
+ * one this project set by hand, so both ends can be compared against
+ * something a person can actually read.
+ */
 function authorised(req: Request): { ok: boolean; via: string } {
   const sent = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!sent) return { ok: false, via: "no header" };
   if (SERVICE && sent === SERVICE) return { ok: true, via: "service key" };
-  if (claimedRole(sent) === "service_role") return { ok: true, via: "verified role claim" };
-  return { ok: false, via: claimedRole(sent) };
+  return { ok: false, via: sent.startsWith("eyJ") ? `legacy JWT (${claimedRole(sent)})` : "not the service key" };
 }
 
 Deno.serve(async (req) => {
@@ -167,13 +200,13 @@ Deno.serve(async (req) => {
       // stops working the moment they are disabled, a new secret key
       // does not. Worth knowing BEFORE pressing that button rather than
       // from the silence afterwards.
-      service_key_shape: !SERVICE
+      service_key: !SERVICE
         ? "MISSING"
+        : Deno.env.get("CABBYS_SERVICE_KEY")
+        ? "CABBYS_SERVICE_KEY — set by hand, independent of the legacy keys"
         : SERVICE.startsWith("eyJ")
-        ? "legacy JWT — will die with the legacy keys"
-        : SERVICE.startsWith("sb_")
-        ? "new secret key — survives disabling legacy"
-        : "unrecognised",
+        ? "falling back to the managed legacy JWT — WILL BREAK when legacy keys are disabled"
+        : "falling back to the managed key (not a legacy JWT)",
       flights_due: due.error ? `FAILED — ${due.error.message}` : `ok — ${(due.data ?? []).length} due right now`,
       budget: meter.error ? `FAILED — ${meter.error.message}` : (meter.data ?? []),
       spent_this_call: 0,
