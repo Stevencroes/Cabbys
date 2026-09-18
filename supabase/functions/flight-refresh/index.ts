@@ -95,6 +95,10 @@ async function ask(flight: string, day: string): Promise<{ raw: unknown; ok: boo
  * The anon key fails both, which is the point: it is public, it ships in
  * the browser bundle, and it must never be able to spend anything.
  */
+// TODO, the moment "Verify JWT with legacy secret" is switched off:
+// delete the role-claim door below. It is sound ONLY while the platform
+// checks the signature first. With that off, an unsigned token claiming
+// service_role walks straight in and spends the month.
 function authorised(req: Request): { ok: boolean; via: string } {
   const sent = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!sent) return { ok: false, via: "no header" };
@@ -157,6 +161,19 @@ Deno.serve(async (req) => {
       auth: `ok — via ${gate.via}`,
       // whether it is set, never what it is
       aerodatabox_key: KEY ? `set (${KEY.length} chars)` : "MISSING — add it under Edge Functions → Secrets",
+      // The SHAPE of the service key, never a character of it. This
+      // decides whether disabling the legacy API keys takes the
+      // function's database access down with them: a legacy JWT here
+      // stops working the moment they are disabled, a new secret key
+      // does not. Worth knowing BEFORE pressing that button rather than
+      // from the silence afterwards.
+      service_key_shape: !SERVICE
+        ? "MISSING"
+        : SERVICE.startsWith("eyJ")
+        ? "legacy JWT — will die with the legacy keys"
+        : SERVICE.startsWith("sb_")
+        ? "new secret key — survives disabling legacy"
+        : "unrecognised",
       flights_due: due.error ? `FAILED — ${due.error.message}` : `ok — ${(due.data ?? []).length} due right now`,
       budget: meter.error ? `FAILED — ${meter.error.message}` : (meter.data ?? []),
       spent_this_call: 0,
