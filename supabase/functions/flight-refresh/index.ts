@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
   // A dry run: proves the whole chain without spending a unit. Meant for
   // the person wiring this up, who otherwise cannot tell a missing
   // secret from an unrun migration from a cron that never fired.
-  let body: { check?: boolean } = {};
+  let body: { check?: boolean; flight?: string; day?: string } = {};
   try { body = await req.json(); } catch { /* an empty body is the ordinary call */ }
 
   if (body.check === true) {
@@ -167,6 +167,38 @@ Deno.serve(async (req) => {
     // Not an error. It is the state this project ships in, and every
     // screen is built to look right against it.
     return Response.json({ skipped: "no AERODATABOX_KEY set", asked: 0 });
+  }
+
+  // One named flight, on demand. SPENDS A UNIT — it is a real call.
+  //
+  // Here because the alternative was worse: flights_due() only answers
+  // about flights somebody is actually being collected from, so proving
+  // this chain end to end otherwise means inventing a booking in the
+  // rides table, which puts a fake job on the board and in the pool and
+  // then has to be found and deleted again. This asks the same question
+  // of the same vendor and writes to the same table, without lying to
+  // the rest of the business to do it.
+  if (typeof body.flight === "string" && typeof body.day === "string") {
+    const flight = body.flight.trim().toUpperCase();
+    const { data: allowed } = await db.rpc("flight_budget_take");
+    if (allowed !== true) {
+      return Response.json({ error: "monthly cap reached", asked: 0 }, { status: 429 });
+    }
+    const { raw, ok } = await ask(flight, body.day);
+    const wrote = await db.from("flight_status").upsert({
+      flight, day: body.day, raw, ok, checked_at: new Date().toISOString(),
+    });
+    return Response.json({
+      asked: 1,
+      flight,
+      day: body.day,
+      vendor: ok ? (raw ? "answered" : "no such flight that day") : "refused the request",
+      // the rotation's leg count — three for KL765, which is the shape
+      // that caught us out in the first place
+      legs: Array.isArray(raw) ? raw.length : 0,
+      stored: wrote.error ? `FAILED — ${wrote.error.message}` : "written to flight_status",
+      spent_this_call: 1,
+    });
   }
 
   const { data: due, error } = await db.rpc("flights_due", { p_limit: MAX_PER_RUN });
