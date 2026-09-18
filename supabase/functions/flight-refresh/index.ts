@@ -72,38 +72,70 @@ async function ask(flight: string, day: string): Promise<{ raw: unknown; ok: boo
   return { raw: await res.json(), ok: true };
 }
 
+/**
+ * Is this the scheduler?
+ *
+ * Two ways in, because one of them turned out not to be reliable enough
+ * to be the only one.
+ *
+ * EXACT MATCH against the service key this function was handed. Simple,
+ * and independent of any platform setting — but it is equality against a
+ * value nobody can see from either side, so when it fails it fails
+ * silently and unprovably. A key rotated after these secrets were set
+ * breaks it with no signal at all.
+ *
+ * THE ROLE CLAIM, which is the same question asked of the token itself.
+ * This is only sound because Supabase verifies the JWT's signature
+ * BEFORE invoking the function — the "Verify JWT" setting, on by
+ * default. With that on, the claim is this project's own word about the
+ * token and not the caller's. WITH IT OFF, THIS PATH IS FORGEABLE: any
+ * stranger could hand over an unsigned token claiming service_role and
+ * start spending the month's units. It must stay on.
+ *
+ * The anon key fails both, which is the point: it is public, it ships in
+ * the browser bundle, and it must never be able to spend anything.
+ */
+function authorised(req: Request): { ok: boolean; via: string } {
+  const sent = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!sent) return { ok: false, via: "no header" };
+  if (SERVICE && sent === SERVICE) return { ok: true, via: "service key" };
+  if (claimedRole(sent) === "service_role") return { ok: true, via: "verified role claim" };
+  return { ok: false, via: claimedRole(sent) };
+}
+
 Deno.serve(async (req) => {
-  // Only the scheduler. pg_net sends the service role key; anything else
-  // is turned away before it can spend a unit of somebody's quota.
+  // Only the scheduler. Anything else is turned away before it can spend
+  // a unit of somebody's quota.
   //
-  // The refusal names which of the two problems it is. It used to answer
-  // "no" to both, which is the same fault this project keeps finding
-  // everywhere else: a true error reported as the wrong one. Neither
-  // message reveals anything about the key — only whether a header
-  // arrived at all — and the half hour it saves whoever is setting this
-  // up is worth more than that.
+  // The refusal names what was actually wrong. It used to answer "no" to
+  // everything, which is the fault this project keeps finding in itself:
+  // a true error reported as the wrong one, sending the diagnosis
+  // somewhere it cannot end. Nothing here reveals a key — only what the
+  // token the caller just sent says about itself.
+  const gate = authorised(req);
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth) {
+  if (gate.ok) { /* fall through */ }
+  else if (!auth) {
     return Response.json({
       error: "no Authorization header",
       fix: "Send 'Authorization: Bearer <service role key>'. In the dashboard's Test panel, add it under Headers.",
     }, { status: 401 });
   }
-  if (auth !== `Bearer ${SERVICE}`) {
+  else {
     const sent = auth.replace(/^Bearer\s+/i, "");
     const role = claimedRole(sent);
     return Response.json({
-      error: "Authorization header did not match the service role key",
+      error: "That token is not allowed to spend anything",
       you_sent: role,
       expected: "service_role",
       fix:
         role === "anon"
-          ? "That is the ANON key — the public one. You want the row below it on Project Settings → API, labelled service_role or secret, hidden behind a Reveal button."
-          : role === "service_role"
-          ? "The right kind of key, but not this project's. Check you are on the right project, and that the key was not rotated after this function's secrets were set."
-          : SERVICE.length === 0
-          ? "This function cannot see SUPABASE_SERVICE_ROLE_KEY at all, which should never happen — it is a default secret in every project."
-          : "Check for a stray space or newline: the value is the word Bearer, one space, then the key, with nothing after it.",
+          ? "That is the ANON key — the public one, and it must never be able to spend units. You want the row below it on Project Settings → API, labelled service_role / secret, hidden behind Reveal."
+          : role === "not a JWT"
+          ? "That is not a JWT. A short sb_secret_… key is the likely culprit; this needs the long eyJ… one from the same page."
+          : role === "unreadable"
+          ? "The token could not be read at all — check for a truncated paste, or a stray quote around the value."
+          : `The token claims the role "${role}", which cannot spend units. Only service_role can.`,
       // Lengths, never values. Catches a truncated paste, which matches
       // nothing and looks exactly like the wrong key.
       lengths: { you_sent: sent.length, expected: SERVICE.length },
@@ -122,7 +154,7 @@ Deno.serve(async (req) => {
     const due = await db.rpc("flights_due", { p_limit: 1 });
     const meter = await db.from("flight_budget").select("month, used, cap");
     return Response.json({
-      auth: "ok",
+      auth: `ok — via ${gate.via}`,
       // whether it is set, never what it is
       aerodatabox_key: KEY ? `set (${KEY.length} chars)` : "MISSING — add it under Edge Functions → Secrets",
       flights_due: due.error ? `FAILED — ${due.error.message}` : `ok — ${(due.data ?? []).length} due right now`,
