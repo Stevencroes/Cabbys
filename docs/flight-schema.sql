@@ -187,6 +187,19 @@ notify pgrst, 'reload schema';
 -- Run this ONCE, after the edge function is deployed and after its
 -- secrets are set. Replace <PROJECT-REF> and <SERVICE-ROLE-KEY>.
 --
+-- <SERVICE-ROLE-KEY> MUST BE THE LEGACY JWT — the long eyJ… one from
+-- Project Settings → API, the same string the Test panel accepts. The
+-- function's "Verify JWT with legacy secret" setting is on, and it
+-- requires a JWT signed by the legacy secret; a newer sb_secret_… key is
+-- not a JWT and is turned away by the platform before the function runs.
+--
+-- Get this wrong and nothing announces it. cron.job_run_details will
+-- record the POST as succeeding, because pg_net's job is to send the
+-- request and it sent one — the 401 comes back later, to nobody. The
+-- symptom is silence: no rows, no spend, no error, for weeks. Check the
+-- function's Invocations tab after the first firing rather than trusting
+-- the cron's own log.
+--
 -- Every ten minutes is the heartbeat, NOT the call rate: most runs find
 -- nothing due and spend nothing. flights_due() decides, and p_limit caps
 -- any single run at six.
