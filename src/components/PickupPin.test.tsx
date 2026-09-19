@@ -10,8 +10,17 @@ const AT = "2026-09-20T18:00:00.000Z";
 const DURING = Date.parse(AT) - 30 * 60_000;
 const WEEKS_EARLY = Date.parse(AT) - 21 * 24 * 60 * 60_000;
 
+// The shape a real booking has: scheduled_date + scheduled_time, Aruba
+// wall clock, scheduled_at null. Every test in this file used to pass a
+// scheduled_at instead, which is why they all stayed green while the
+// button never once appeared in production — the fixture was a shape
+// bookingPayload.ts has never written. 14:00 on the island is AT.
 const ride = (over: Partial<Parameters<typeof PickupPin>[0]["ride"]> = {}) => ({
-  id: "r1", pickup_location: "Kamay 14-B, Noord", scheduled_at: AT, ...over,
+  id: "r1",
+  pickup_location: "Kamay 14-B, Noord",
+  scheduled_date: "2026-09-20",
+  scheduled_time: "14:00",
+  ...over,
 });
 
 function geolocation(answer: { lat: number; lng: number } | { code: number }) {
@@ -110,5 +119,25 @@ describe("sending", () => {
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "x" } });
     fireEvent.click(screen.getByRole("button", { name: /send to driver/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/cancelled/i);
+  });
+});
+
+// Rides written before the date/time pair existed, and anything the
+// admin side stores as an instant, still have to work.
+describe("a ride that carries an instant instead of a pair", () => {
+  it("opens the window off scheduled_at", () => {
+    render(
+      <PickupPin
+        ride={{ id: "r1", pickup_location: "Kamay 14-B, Noord", scheduled_at: AT }}
+        now={DURING}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /send my exact spot/i })).toBeTruthy();
+  });
+
+  it("offers the note but not the spot when the row has no time at all", () => {
+    render(<PickupPin ride={{ id: "r1", pickup_location: "Kamay 14-B, Noord" }} now={DURING} />);
+    expect(screen.queryByRole("button", { name: /send my exact spot/i })).toBeNull();
+    expect(screen.getByRole("textbox")).toBeTruthy();
   });
 });

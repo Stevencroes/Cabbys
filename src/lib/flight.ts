@@ -6,9 +6,33 @@ export function isAirportTransfer(from: string, to: string): boolean {
   return isAirport(from) || isAirport(to);
 }
 
-/** Loose IATA shape: "AA123", "ua 1523", "KL765a". */
+/**
+ * The two shapes a flight number can take, split into airline and number.
+ *
+ * An IATA airline designator is two characters and EITHER of them may be
+ * a digit: B6 is JetBlue, 3M is Silver, 8T and 9K are real. "Two or
+ * three letters" only looks like the rule because the codes everyone
+ * pictures — KL, AA, UA — happen to obey it. The pattern that assumed it
+ * read B61234 as airline "B" and flight "61234", failed its own
+ * four-digit check, and so threw away every JetBlue arrival before it
+ * ever reached the lookup. On an island JetBlue flies into daily, that
+ * was most of the point of flight tracking.
+ *
+ * Deliberately two anchored patterns rather than one with an alternation
+ * in the middle: docs/flight-schema.sql has to normalise to the SAME
+ * string, because the scheduler writes the row under that key and the
+ * browser reads it back by that key. A disagreement between the two
+ * engines is not an error, it is a row nobody ever finds. Two patterns
+ * whose first characters cannot both match leave nothing for a regex
+ * engine to have an opinion about. Change one, change the other.
+ */
+const LETTER_CODE = /^([A-Z]{2,3})0*(\d{1,4}[A-Z]?)$/;
+const DIGIT_CODE = /^([A-Z]\d|\d[A-Z])0*(\d{1,4}[A-Z]?)$/;
+
+/** Loose IATA shape: "AA123", "ua 1523", "KL765a", "B6 1234", "3M4020". */
 export function isValidFlightNumber(input: string): boolean {
-  return /^[A-Za-z]{1,3}\s?\d{1,4}[A-Za-z]?$/.test(input.trim());
+  const flat = input.trim().replace(/\s+/g, "").toUpperCase();
+  return LETTER_CODE.test(flat) || DIGIT_CODE.test(flat);
 }
 
 /**
@@ -23,6 +47,6 @@ export function isValidFlightNumber(input: string): boolean {
  */
 export function formatFlightNumber(input: string): string {
   const flat = input.trim().replace(/\s+/g, "").toUpperCase();
-  const parts = /^([A-Z]{1,3})0*(\d{1,4})([A-Z]?)$/.exec(flat);
-  return parts ? `${parts[1]}${parts[2]}${parts[3]}` : flat;
+  const parts = LETTER_CODE.exec(flat) ?? DIGIT_CODE.exec(flat);
+  return parts ? `${parts[1]}${parts[2]}` : flat;
 }

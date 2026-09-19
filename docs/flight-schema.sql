@@ -136,10 +136,24 @@ set search_path = public
 as $$
   with booked as (
     select
-      -- the same normalising the app does: strip spaces, drop the
-      -- padded zero, so KL0765 / "KL 765" / KL765 are one flight
-      regexp_replace(upper(regexp_replace(r.flight_number, '\s+', '', 'g')),
-                     '^([A-Z]{1,3})0*([0-9]+)', '\1\2') as flight,
+      -- The same normalising the app does — strip spaces, drop the
+      -- padded zero — so KL0765 / "KL 765" / KL765 are one flight.
+      --
+      -- Two passes, not one pattern with an alternation, and the same
+      -- two in src/lib/flight.ts. An IATA airline code is two characters
+      -- and either may be a digit (B6 is JetBlue, 3M is Silver), so the
+      -- letters-only pass cannot see those at all and the second pass
+      -- exists for them. Their first characters are disjoint, so neither
+      -- regex engine has a choice to make and both produce the same
+      -- string. That matters more than it looks: this expression decides
+      -- the key a row is WRITTEN under and flight.ts decides the key it
+      -- is READ back by. They disagree, and every lookup misses a row
+      -- that is sitting right there. Change one, change the other.
+      regexp_replace(
+        regexp_replace(
+          upper(regexp_replace(r.flight_number, '\s+', '', 'g')),
+          '^([A-Z]{2,3})0*([0-9]{1,4}[A-Z]?)$', '\1\2'),
+        '^([A-Z][0-9]|[0-9][A-Z])0*([0-9]{1,4}[A-Z]?)$', '\1\2') as flight,
       coalesce(
         r.scheduled_at,
         (r.scheduled_date || ' ' || coalesce(r.scheduled_time, '00:00'))::timestamp

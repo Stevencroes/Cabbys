@@ -4,7 +4,7 @@ const rpc = vi.fn();
 vi.mock("./supabase", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 
 import {
-  ARUBA_BOX, inAruba, pinPolicyFor, pinWindowOpen, savePickupPin,
+  ARUBA_BOX, inAruba, pickupInstant, pinPolicyFor, pinWindowOpen, savePickupPin,
   PIN_OPENS_MINUTES, PIN_CLOSES_MINUTES,
 } from "./pickupPin";
 
@@ -104,5 +104,62 @@ describe("saving", () => {
     const res = await savePickupPin("r1", { note: "x" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.detail).toBe("permission denied for table rides");
+  });
+});
+
+// ── the two shapes a ride's time comes in ────────────────────────────
+//
+// This is the fault that made the whole feature invisible. The booking
+// flow writes scheduled_date + scheduled_time and leaves scheduled_at
+// null; the component read scheduled_at alone, got undefined, and
+// pinWindowOpen correctly refused a time that was not there. So the
+// window was never open — for anyone, at any hour — while every unit
+// test passed, because the tests handed it a scheduled_at that no real
+// row has.
+describe("finding out when the pickup actually is", () => {
+  it("reads the date and time pair the booking flow writes", () => {
+    expect(pickupInstant({ scheduled_date: "2026-09-20", scheduled_time: "14:00" }))
+      .toBe("2026-09-20T18:00:00.000Z");   // 2pm in Aruba is 18:00Z
+  });
+
+  it("anchors to the island, not to the phone reading it", () => {
+    // The same booking, resolved from a browser in Amsterdam or in Los
+    // Angeles, has to be the same instant — otherwise the three-hour
+    // window opens six hours out for exactly the guest it is for.
+    const at = pickupInstant({ scheduled_date: "2026-09-20", scheduled_time: "05:30" });
+    expect(at).toBe("2026-09-20T09:30:00.000Z");
+  });
+
+  it("still takes a scheduled_at when that is what the row has", () => {
+    expect(pickupInstant({ scheduled_at: "2026-09-20T18:00:00.000Z" }))
+      .toBe("2026-09-20T18:00:00.000Z");
+  });
+
+  it("prefers the pair, the way every SQL path in the repo does", () => {
+    expect(pickupInstant({
+      scheduled_date: "2026-09-20", scheduled_time: "14:00",
+      scheduled_at: "2030-01-01T00:00:00.000Z",
+    })).toBe("2026-09-20T18:00:00.000Z");
+  });
+
+  it("has no opinion when the row carries no time", () => {
+    expect(pickupInstant({})).toBe(null);
+    expect(pinWindowOpen(pickupInstant({}))).toBe(false);
+  });
+
+  // A bad date must not take the trip card down with it. arubaInstant
+  // would hand toISOString an Invalid Date and throw.
+  it("falls through a malformed date instead of throwing", () => {
+    expect(() => pickupInstant({ scheduled_date: "soon" })).not.toThrow();
+    expect(pickupInstant({ scheduled_date: "soon" })).toBe(null);
+    expect(pickupInstant({ scheduled_date: "soon", scheduled_at: "2026-09-20T18:00:00.000Z" }))
+      .toBe("2026-09-20T18:00:00.000Z");
+  });
+
+  it("opens the window off the pair, which is the whole point", () => {
+    const pickup = Date.parse("2026-09-20T18:00:00.000Z");
+    const row = { scheduled_date: "2026-09-20", scheduled_time: "14:00" };
+    expect(pinWindowOpen(pickupInstant(row), pickup - 30 * 60_000)).toBe(true);
+    expect(pinWindowOpen(pickupInstant(row), pickup - 5 * 60 * 60_000)).toBe(false);
   });
 });

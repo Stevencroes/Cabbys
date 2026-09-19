@@ -23,13 +23,16 @@
 // the resort's own door and a phone number.
 import { useState } from "react";
 import {
-  pinPolicyFor, pinWindowOpen, readPosition, savePickupPin,
+  pickupInstant, pinPolicyFor, pinWindowOpen, readPosition, savePickupPin,
 } from "../lib/pickupPin";
 
 export interface PinnableRide {
   id: string;
   pickup_location: string;
+  /** Both shapes, because rides carry the time in both — see pickupInstant. */
   scheduled_at?: string;
+  scheduled_date?: string;
+  scheduled_time?: string;
   pickup_lat?: number | null;
   pickup_lng?: number | null;
   pickup_note?: string | null;
@@ -58,7 +61,7 @@ export default function PickupPin({
   // no question to ask, so there is no card.
   if (policy === "airport") return null;
 
-  const canDropSpot = policy === "address" && pinWindowOpen(ride.scheduled_at, now);
+  const canDropSpot = policy === "address" && pinWindowOpen(pickupInstant(ride), now);
   const saved = (ride.pickup_note ?? "") === note.trim();
 
   async function sendSpot() {

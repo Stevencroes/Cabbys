@@ -36,6 +36,7 @@
 // metres; the landmark closes the last twenty. The driver's screen puts
 // the note above the map for that reason and this must not undo it.
 import { supabase } from "./supabase";
+import { arubaInstant, isIsoDate } from "./datetime";
 import { findPlaceByName } from "../data/places";
 
 export type PinResult = { ok: true } | { ok: false; detail: string };
@@ -79,6 +80,40 @@ export function pinPolicyFor(pickup: string | null | undefined): PinPolicy {
  */
 export const PIN_OPENS_MINUTES = 180;
 export const PIN_CLOSES_MINUTES = 60;
+
+/**
+ * When this pickup actually happens, as a fixed instant — or null.
+ *
+ * A ride carries its time in one of two shapes, and the one the booking
+ * flow writes is NOT the obvious one: bookingPayload.ts stores
+ * scheduled_date + scheduled_time, and scheduled_at is null on every row
+ * a guest has ever created. Every SQL path in the repo already knows
+ * this and coalesces the pair; the client did not, so the pin window was
+ * measured against a time that was not there. pinWindowOpen refuses a
+ * missing time, correctly, and the result was that "send my exact spot"
+ * never appeared for anybody — not late, not early, never. The unit
+ * tests did not catch it because they handed the component a
+ * scheduled_at, which is a shape the product does not produce.
+ *
+ * The pair is wall-clock ON THE ISLAND, so it is anchored at −04:00
+ * rather than handed to `new Date()` to read in whatever zone the phone
+ * is in. A guest opening their trip on a phone still set to Amsterdam
+ * would otherwise have this three-hour window open and shut six hours
+ * out — and they are exactly the guest this feature is for.
+ */
+export function pickupInstant(ride: {
+  scheduled_at?: string | null;
+  scheduled_date?: string | null;
+  scheduled_time?: string | null;
+}): string | null {
+  // A malformed date falls through rather than throwing: arubaInstant
+  // would hand toISOString an Invalid Date and take the card down with
+  // it, over a field that is only ever advisory.
+  if (ride.scheduled_date && isIsoDate(ride.scheduled_date)) {
+    return arubaInstant(ride.scheduled_date, ride.scheduled_time ?? "");
+  }
+  return ride.scheduled_at ?? null;
+}
 
 export function pinWindowOpen(scheduledAt: string | null | undefined, now = Date.now()): boolean {
   if (!scheduledAt) return false;
