@@ -115,17 +115,34 @@ grant execute on function public.flight_budget_take() to service_role;
 
 -- ── 3. which flights are worth asking about ──────────────────────────
 --
--- The cadence is the budget. A flight a day out is asked about once; one
--- landing within the hour is asked about every twenty-five minutes,
--- which is when the answer actually changes what a driver does.
+-- The cadence IS the budget, so it is sized against the real number of
+-- airport pickups rather than against what feels attentive.
 --
 --   further than 6h      once every 12 hours
---   2h to 6h             every 3 hours
---   under 2h             every 25 minutes
+--   2h to 6h             every 4 hours
+--   under 2h             every hour
 --
--- Roughly six or seven units per airport transfer, and flights nobody is
--- being collected from cost nothing at all, because this reads from the
--- rides table rather than from a timetable.
+-- Six units per flight-day, replayed against the cron's ten-minute tick
+-- rather than estimated. At sixty airport transfers a month that is
+-- about 330 against a cap of 380 — and fewer in practice, because six
+-- guests off one aircraft are one row here, not six. Flights nobody is
+-- being collected from cost nothing at all: this reads from the rides
+-- table, not from a timetable.
+--
+-- The ceiling that follows from those numbers, worth knowing before it
+-- arrives: past roughly 63 flight-days a month the free plan cannot
+-- cover this cadence, and the honest fix is the paid tier rather than a
+-- looser cadence. Loosening further would start costing the driver the
+-- thing this is for.
+--
+-- What the last tier used to be, and why it changed: every 25 minutes
+-- under 2 hours, which came to ten units per flight-day and would have
+-- emptied the month's budget around the 20th — flight tracking then
+-- going quiet for the rest of the month with nothing on any screen
+-- saying so. An hour is chosen to put a fresh answer in front of the
+-- driver at the moment they decide to leave, which is around an hour
+-- before pickup. Between that decision and the kerb, a newer number
+-- changes nothing they can act on.
 
 create or replace function public.flights_due(p_limit integer default 6)
 returns table (flight text, day date)
@@ -178,8 +195,8 @@ as $$
     left join public.flight_status f
       on f.flight = s.flight and f.day = s.day
    where f.checked_at is null
-      or (s.at - now() < interval '2 hours' and f.checked_at < now() - interval '25 minutes')
-      or (s.at - now() < interval '6 hours' and f.checked_at < now() - interval '3 hours')
+      or (s.at - now() < interval '2 hours' and f.checked_at < now() - interval '60 minutes')
+      or (s.at - now() < interval '6 hours' and f.checked_at < now() - interval '4 hours')
       or (f.checked_at < now() - interval '12 hours')
    order by s.at
    limit p_limit;
