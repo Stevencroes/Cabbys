@@ -1264,6 +1264,12 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   transition:grid-template-rows 420ms var(--ease-reveal);}
 .fitem.open .fa{grid-template-rows:1fr;}
 .fa-in{overflow:hidden;min-height:0;}
+/* The way out of the FAQ. Meta size and muted ink so it reads as a
+   footnote to the section rather than a second offer competing with the
+   booking card — the links carry the weight, not the sentence. */
+.fmore{margin:28px 0 0;font-size:var(--t-meta);color:var(--muted);line-height:var(--lh-body);}
+.fmore a{color:var(--silver);text-decoration:underline;text-underline-offset:3px;}
+.fmore a:hover{color:var(--ink);}
 /* the words follow the box rather than riding it open — the height starts
    moving, then 50ms later the answer fades up into the room it made */
 /* The owner named this paragraph specifically, and it had three faults at
@@ -1704,6 +1710,13 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-flight .tf-v{font-family:var(--serif);font-size:var(--t-title);font-weight:500;
   line-height:var(--lh-tight);color:var(--ink);}
 .tp-flight .tf-d{font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);}
+/* Only ever inside .alert, so it takes that panel's ink rather than
+   introducing a third colour to a box already carrying two. Underlined
+   because in a box this quiet nothing else would say "tappable", and
+   given the tap target a thumb needs in an arrivals hall. */
+.tp-flight .tf-go{display:inline-block;margin-top:9px;font-size:var(--t-meta);font-weight:500;
+  color:var(--alert-ink);text-decoration:underline;text-underline-offset:3px;padding:6px 0;}
+.tp-flight .tf-go:hover{color:var(--ink);}
 
 /* the airline moved the time — live, not wrong */
 .tp-flight.warn{border-color:var(--signal-line);background:var(--signal-tint);}
@@ -1884,6 +1897,13 @@ input.txt:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 .vopt{border-radius:var(--r-md);}
 .btn{border-radius:var(--r-pill);}
 .pay-error{border-radius:var(--r-sm);}
+/* A chat link inside a message block. It has to read as tappable without
+   putting a second colour into a box whose colour IS the signal — an
+   alert-tinted panel with a teal link in it is two things shouting. So
+   it borrows the block's own ink and takes an underline, the one
+   affordance that costs nothing semantically. */
+.pay-error a,.notice a{color:inherit;text-decoration:underline;text-underline-offset:3px;}
+.pay-error a:hover,.notice a:hover{text-decoration-thickness:2px;}
 .totalbar .tb-r .btn{border-radius:var(--r-pill);}
 
 /* confirmation tag */

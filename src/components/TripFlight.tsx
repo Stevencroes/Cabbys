@@ -22,10 +22,14 @@ import { flightSay } from "../lib/flightSay";
 import { useFlight } from "../lib/useFlight";
 import { pickupInstant, pinPolicyFor } from "../lib/pickupPin";
 import { ARUBA_OFFSET_MINUTES, formatTime } from "../lib/datetime";
+import { whatsappLink } from "../lib/whatsapp";
+import { askAboutFlight } from "../lib/support";
 
 export interface FlightRide {
   pickup_location: string;
   flight_number?: string | null;
+  /** so a cancelled flight can open a chat that already says which trip */
+  booking_ref?: string | null;
   /** Both shapes, because rides carry the time in both — see pickupInstant. */
   scheduled_at?: string | null;
   scheduled_date?: string | null;
@@ -67,6 +71,22 @@ export default function TripFlight({ ride }: { ride: FlightRide }) {
     meeting ? pickupInstant(ride) : null,
   );
   const say = flightSay(flight, arubaClock, "guest");
+
+  // "Message us and we'll sort your pickup out" named a channel and
+  // handed over nothing to tap, on the one line that only ever appears
+  // when a guest's plan has already failed. The card does carry a
+  // WhatsApp button further down, which is the reasoning this line
+  // shipped with — but a guest reading "flight cancelled" should not
+  // have to go looking, and the generic button opens a chat saying
+  // "about booking CB-1234" when what they need to ask is whether a car
+  // is still coming. This one asks it for them.
+  //
+  // Alert only. A flight that merely moved is not a reason to make
+  // somebody feel they should be contacting us.
+  const trouble = say?.tone === "alert" && flight && ride.booking_ref
+    ? whatsappLink(askAboutFlight(ride.booking_ref, flight.flight, flight.state === "cancelled"))
+    : null;
+
   if (!flight || !say) return null;
 
   return (
@@ -83,6 +103,11 @@ export default function TripFlight({ ride }: { ride: FlightRide }) {
           most likely reason this box is absent. */}
       <div className="tf-v">{say.head}</div>
       {say.detail && <div className="tf-d">{say.detail}</div>}
+      {trouble && (
+        <a className="tf-go" href={trouble} target="_blank" rel="noreferrer">
+          Message us on WhatsApp
+        </a>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { formatDate, formatTime, ARUBA_TZ_LABEL } from "../lib/datetime";
 import { refFromRideId } from "../lib/bookingRef";
 import { downloadIcs } from "../lib/ics";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
+import { askAboutTrip } from "../lib/support";
 import { VEHICLES } from "../data/vehicles";
 import type { ConfirmedBooking } from "../booking/types";
 
@@ -35,7 +36,11 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
   const bookingRef = booking.bookingRef ?? refFromRideId(booking.rideId);
   const vehicleName = VEHICLES.find((v) => v.id === booking.vehicle)?.name ?? booking.vehicle;
   const dateLabel = formatDate(booking.date) || "—";
-  const waHref = whatsappLink(`Hi Cabby's — booking ${bookingRef} (${booking.from} → ${booking.to}, ${booking.date} ${booking.time}).`);
+  // Through askAboutTrip so the date arrives in the same unambiguous
+  // shape the rest of the flow uses. This line used to interpolate the
+  // raw ISO date and a bare HH:MM, which is the one format a human
+  // reading it at speed can misread by a month.
+  const waHref = whatsappLink(askAboutTrip(bookingRef, booking));
 
   function handleCalendar() {
     if (!booking) return;

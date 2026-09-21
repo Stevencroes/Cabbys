@@ -2,6 +2,7 @@ import { useRef } from "react";
 import Closer from "./Closer";
 import { useRevealOnce } from "./motion";
 import { whatsappLink } from "../lib/whatsapp";
+import { askAnything, SUPPORT_EMAIL } from "../lib/support";
 
 // `closing` makes this the landing page's whole closing band: the CTA and
 // the sitemap used to be two stacked sections in two different grounds,
@@ -34,7 +35,7 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
   // ignored the switch: whatsappEnabled hides these links everywhere else
   // when no number is set, and this one advertised a channel that could
   // not work. Null when unset, so it disappears with the rest.
-  const wa = whatsappLink("Hi Cabby's — I have a question.");
+  const wa = whatsappLink(askAnything());
   return (
     <footer id="contact" className={`site-foot${closing ? " closing" : ""}`}>
       {closing && <Closer />}
@@ -66,7 +67,7 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
                   message sent to it bounced. An address that silently
                   fails is worse than none: the guest believes they have
                   reached us and waits. */}
-              <a href="mailto:cabbystransfer@gmail.com">cabbystransfer@gmail.com</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
               {wa && <a href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
               <a href="/#top">Oranjestad, Aruba</a>
             </div>

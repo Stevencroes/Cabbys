@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { SplitHeading } from "./motion";
+import { whatsappLink } from "../lib/whatsapp";
+import { askAnything, SUPPORT_EMAIL } from "../lib/support";
 
 const ITEMS = [
   {
@@ -32,6 +34,7 @@ export default function Faq() {
   // One at a time: opening a question closes whichever was open, so the
   // section never grows into a wall of prose. -1 is "all closed".
   const [open, setOpen] = useState(0);
+  const wa = whatsappLink(askAnything());
   return (
     <section id="about">
       <div className="faq flow">
@@ -75,6 +78,22 @@ export default function Faq() {
               );
             })}
           </div>
+          {/* Six answers and then nothing. A guest whose question is the
+              seventh had no way out of the one section built for what
+              they are worried about — and two of these answers (changes,
+              cancellations) are the kind that produce a follow-up by
+              design. Deliberately quiet: a way out for the few, not a
+              second call to action arguing with the booking card. */}
+          <p className="fmore">
+            Still not answered?{" "}
+            {wa && (
+              <>
+                <a href={wa} target="_blank" rel="noreferrer">Message us on WhatsApp</a>
+                {" or "}
+              </>
+            )}
+            <a href={`mailto:${SUPPORT_EMAIL}`}>email us</a> — a person answers, not a form.
+          </p>
         </div>
       </div>
     </section>

@@ -1,8 +1,19 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   clearFlightCache, NO_PROVIDER, useFlightProvider, type FlightStatus,
 } from "../lib/flightStatus";
+// A number, because there isn't one in the test environment and the link
+// correctly hides without one — whatsappLink returns null when
+// VITE_WHATSAPP_NUMBER is unset, which is the behaviour that kept the
+// footer's dead "https://wa.me/" honest everywhere else. Mocked rather
+// than stubbed on import.meta.env because whatsapp.ts reads the variable
+// once at module load, so a stub set afterwards arrives too late.
+vi.mock("../lib/whatsapp", () => ({
+  whatsappEnabled: true,
+  whatsappLink: (text: string) => `https://wa.me/2975551234?text=${encodeURIComponent(text)}`,
+}));
+
 import TripFlight, { type FlightRide } from "./TripFlight";
 
 // The canonical name, which is what a booking actually stores:
@@ -201,5 +212,53 @@ describe("when there is no flight to meet", () => {
     render(<TripFlight ride={ride()} />);
     expect(await screen.findByRole("alert")).toHaveTextContent(/Flight diverted/);
     expect(screen.getByText(/isn't landing in Aruba/)).toBeInTheDocument();
+  });
+});
+
+// ── the way out, at the only moment it is offered ────────────────────
+//
+// The cancelled line's own words are "Message us and we'll sort your
+// pickup out". Naming a channel and handing over nothing to tap is the
+// same fault as showing a control the database will refuse, pointing the
+// other way — and this is the one line that only ever appears when a
+// guest's plan has already failed.
+describe("the chat link on a flight that is not coming", () => {
+  it("offers one when the flight is cancelled, and asks the question for them", async () => {
+    answering(row({ state: "cancelled" }));
+    render(<TripFlight ride={ride({ booking_ref: "CB-1234" })} />);
+
+    const go = await screen.findByRole("link", { name: /message us on whatsapp/i });
+    const href = decodeURIComponent(go.getAttribute("href") ?? "");
+    // Not "about booking CB-1234" — the thing they need to ask is
+    // whether a car is still coming.
+    expect(href).toContain("CB-1234");
+    expect(href).toContain("KL765");
+    expect(href).toContain("cancelled");
+    expect(href).toContain("What happens with my pickup?");
+  });
+
+  it("says diverted when it is diverted", async () => {
+    answering(row({ state: "diverted" }));
+    render(<TripFlight ride={ride({ booking_ref: "CB-1234" })} />);
+    const go = await screen.findByRole("link", { name: /message us on whatsapp/i });
+    expect(decodeURIComponent(go.getAttribute("href") ?? "")).toContain("diverted");
+  });
+
+  // A flight that merely moved is not a reason to make somebody feel
+  // they ought to be contacting us. The quiet states stay quiet.
+  it("offers nothing when the flight has only moved", async () => {
+    answering(row({ estimated: "2026-09-17T22:40:00.000Z" }));
+    render(<TripFlight ride={ride({ booking_ref: "CB-1234" })} />);
+    await screen.findByText(/lands/i);
+    expect(screen.queryByRole("link", { name: /whatsapp/i })).toBeNull();
+  });
+
+  // No reference, nothing to say in the message — so no link rather than
+  // a chat that opens on "which booking is this?"
+  it("offers nothing when the row has no booking reference", async () => {
+    answering(row({ state: "cancelled" }));
+    render(<TripFlight ride={ride()} />);
+    await screen.findByText(/cancelled/i);
+    expect(screen.queryByRole("link", { name: /whatsapp/i })).toBeNull();
   });
 });

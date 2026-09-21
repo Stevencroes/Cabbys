@@ -20,7 +20,9 @@ import { formatDate, formatTime, todayInAruba } from "../../lib/datetime";
 import { driverWaitsFrom, collectAt, insideMinNotice, MIN_NOTICE_HOURS } from "../../lib/derivedTime";
 import { CONFIRM_WINDOW_MINUTES } from "../../lib/policy";
 import { AIRPORT_ID } from "../../data/places";
-import type { StepProblem } from "./steps/shared";
+import { effectivePickupTime, type StepProblem } from "./steps/shared";
+import { whatsappLink } from "../../lib/whatsapp";
+import { askAboutShortNotice } from "../../lib/support";
 
 interface TripScheduleProps {
   problem: StepProblem | null;
@@ -33,6 +35,11 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
   const { state, setField } = useBooking();
   const fromAirport = state.from?.id === AIRPORT_ID;
   const toAirport = state.to?.id === AIRPORT_ID;
+
+  const soonHref = whatsappLink(askAboutShortNotice({
+    from: state.from?.name ?? "", to: state.to?.name ?? "",
+    date: state.date, time: effectivePickupTime(state),
+  }));
 
   const err = (f: string) => (problem?.field === f ? problem.message : undefined);
   const errId = (f: string) => (problem?.field === f ? `err-${f}` : undefined);
@@ -127,8 +134,16 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
       )}
       {shortNotice && (
         <div className="notice" role="status">
-          Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we'll confirm on
-          WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes — or message us first if you'd rather.
+          Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we&rsquo;ll confirm on
+          WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes
+          {soonHref ? (
+            /* "message us first if you'd rather" offered a route and no
+               way onto it — on the screen where the clock is the whole
+               problem and retyping the trip is the last thing anybody
+               has time for. */
+            <> — or <a href={soonHref} target="_blank" rel="noreferrer">message us first</a> if
+            you&rsquo;d rather.</>
+          ) : "."}
         </div>
       )}
     </>

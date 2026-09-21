@@ -28,6 +28,8 @@ import LiveMap from "../LiveMap";
 import FieldError from "../FieldError";
 import TripSchedule, { validateTrip } from "../TripSchedule";
 import { effectivePickupTime, type StepProblem } from "./shared";
+import { whatsappLink } from "../../../lib/whatsapp";
+import { askToBookByHand } from "../../../lib/support";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
@@ -402,10 +404,28 @@ export default function Step3Details({
     goTo(step);
   }
 
+  // The sentence used to name WhatsApp and hand over nothing to tap, on
+  // the one screen where somebody has filled in a whole booking and been
+  // refused. Telling a guest to message us without giving them the
+  // message is the same fault as showing a control the database will
+  // refuse, pointing the other way. Null when no number is configured,
+  // and then the sentence does not mention a channel that isn't there.
+  const byHand = whatsappLink(askToBookByHand({
+    from: state.from?.name ?? "", to: state.to?.name ?? "", date: state.date, time,
+  }));
+
   const errorBlock = error && (
     <div className="pay-error" role="alert">
       {error}
-      {needsAuth && <div style={{ marginTop: 12 }}>Sign in from the top of the page, then try again — or message us on WhatsApp and we'll book it by hand.</div>}
+      {needsAuth && (
+        <div style={{ marginTop: 12 }}>
+          Sign in from the top of the page, then try again
+          {byHand ? (
+            <> — or <a href={byHand} target="_blank" rel="noreferrer">message us on WhatsApp</a> and
+            we&rsquo;ll book it by hand, with everything you have already typed.</>
+          ) : "."}
+        </div>
+      )}
     </div>
   );
 

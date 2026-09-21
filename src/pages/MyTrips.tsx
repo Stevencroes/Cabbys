@@ -9,6 +9,7 @@ import { claimGuestRides } from "../lib/claimRides";
 import { refFromRideId } from "../lib/bookingRef";
 import { cancellationInfo, scheduledDate } from "../lib/policy";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
+import { askAboutBooking } from "../lib/support";
 import { usd, AWG_PER_USD } from "../lib/quote";
 import { formatDateTime, ARUBA_OFFSET_MINUTES } from "../lib/datetime";
 import { findPlaceByName, selFromPlace } from "../data/places";
@@ -163,7 +164,7 @@ function TripCard({
   // still tagged "Driver assigned" sitting under Past looks like a filter bug
   // until the card admits nobody ever closed it off.
   const unclosed = !upcoming && !cancelled && !completed;
-  const waHref = whatsappLink(`Hi Cabby's — about booking ${bookingRef}.`);
+  const waHref = whatsappLink(askAboutBooking(bookingRef));
 
   async function handleCancel() {
     setBusy(true);
