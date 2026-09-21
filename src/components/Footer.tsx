@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import Closer from "./Closer";
 import { useRevealOnce } from "./motion";
+import { whatsappLink } from "../lib/whatsapp";
 
 // `closing` makes this the landing page's whole closing band: the CTA and
 // the sitemap used to be two stacked sections in two different grounds,
@@ -25,6 +26,15 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
   // page hook, all of which would have ended up with an invisible footer.
   const sitemap = useRef<HTMLDivElement>(null);
   useRevealOnce(sitemap);
+
+  // Through whatsappLink like every other chat link in the app, rather
+  // than a hand-written href. This one was hard-coded to "https://wa.me/"
+  // with no number on the end — a live link, on every page, that opened
+  // WhatsApp's own landing page instead of a chat with Cabby's. It also
+  // ignored the switch: whatsappEnabled hides these links everywhere else
+  // when no number is set, and this one advertised a channel that could
+  // not work. Null when unset, so it disappears with the rest.
+  const wa = whatsappLink("Hi Cabby's — I have a question.");
   return (
     <footer id="contact" className={`site-foot${closing ? " closing" : ""}`}>
       {closing && <Closer />}
@@ -51,8 +61,13 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
             </div>
             <div className="fcol">
               <h3>Reach us</h3>
-              <a href="mailto:hello@cabbys.aw">hello@cabbys.aw</a>
-              <a href="https://wa.me/" target="_blank" rel="noreferrer">WhatsApp</a>
+              {/* The address that actually receives mail. What stood here
+                  was hello@cabbys.aw — a domain nobody owns yet, so every
+                  message sent to it bounced. An address that silently
+                  fails is worse than none: the guest believes they have
+                  reached us and waits. */}
+              <a href="mailto:cabbystransfer@gmail.com">cabbystransfer@gmail.com</a>
+              {wa && <a href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
               <a href="/#top">Oranjestad, Aruba</a>
             </div>
           </div>
