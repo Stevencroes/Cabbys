@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName,
-  searchPlaces, selFromCustom, selFromGeo, areaByName, nearestArea, axisAt,
+  GROUPS, AREAS, AIRPORT, placesByGroup, findPlaceByName, displayName,
+  selFromPlace, searchPlaces, selFromCustom, selFromGeo, areaByName,
+  nearestArea, axisAt,
 } from "./places";
 
 describe("places catalog (§3.1)", () => {
@@ -114,5 +115,41 @@ describe("places catalog (§3.1)", () => {
       expect(villa.km).not.toBe(area.km);
       expect(villa.km).toBeCloseTo(15.8, 1);
     });
+  });
+});
+
+// ── which of a place's two names is the one on the row ───────────────
+//
+// A place has a canonical `name` and a `short` for one-line fields, and
+// only one of them is an identifier. findPlaceByName matches `name`
+// alone, and everything that asks "what KIND of pickup is this?" goes
+// through it — pinPolicyFor, and so the pin card, the flight line on all
+// three portals, and the board's airport filter.
+//
+// So a row carrying the short name is not a cosmetic difference. It is a
+// ride that resolves to no place at all and falls through to the address
+// path: no flight line, and a pin card offered at the one pickup the
+// design says must never have one. Real rows are safe — Step3Details
+// sends state.from.name — but two test fixtures carried the short form
+// for a year and quietly exercised the wrong path, which is the same way
+// the pin bug stayed invisible. These assertions exist so the next
+// fixture gets caught here instead.
+describe("the canonical name is the identifier, the short one is not", () => {
+  it("resolves the airport by its canonical name", () => {
+    expect(findPlaceByName(AIRPORT.name)?.id).toBe(AIRPORT.id);
+  });
+
+  it("does NOT resolve it by the short name — that one is for display", () => {
+    expect(AIRPORT.short).toBeTruthy();
+    expect(AIRPORT.short).not.toBe(AIRPORT.name);
+    expect(findPlaceByName(AIRPORT.short!)).toBeUndefined();
+  });
+
+  // The contract displayName documents in its own comment, asserted so
+  // it cannot quietly become the thing that gets written to a row.
+  it("displayName is the short one, and is not what a row stores", () => {
+    const sel = selFromPlace(AIRPORT);
+    expect(displayName(sel)).toBe(AIRPORT.short);
+    expect(findPlaceByName(displayName(sel))).toBeUndefined();
   });
 });

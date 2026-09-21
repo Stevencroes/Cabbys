@@ -15,7 +15,10 @@ vi.mock("../lib/supabase", () => {
   const past = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
   const rows = [{
     id: "r-stale", booking_ref: "CB-STALE", pickup_location: "Palm Beach",
-    dropoff_location: "Queen Beatrix Airport", scheduled_date: past,
+    // Canonical, as the booking flow writes it. Nothing here turns on it
+    // today — the policy reads the PICKUP — but a fixture that disagrees
+    // with the product is one somebody copies into a test where it does.
+    dropoff_location: "Queen Beatrix International Airport", scheduled_date: past,
     scheduled_time: "08:00", fare_total: 100, status: "driver_assigned",
   }];
   const order = vi.fn().mockResolvedValue({ data: rows, error: null });

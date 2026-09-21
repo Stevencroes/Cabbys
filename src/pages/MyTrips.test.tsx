@@ -22,7 +22,14 @@ vi.mock("../lib/supabase", () => {
     { id: "r-far", booking_ref: "CB-FAR", pickup_location: "Palm Beach",
       dropoff_location: "Flying Fishbone", scheduled_date: dateOf(now + 9 * day),
       scheduled_time: "19:00", fare_total: 100, status: "confirmed" },
-    { id: "r-soon", booking_ref: "CB-SOON", pickup_location: "Queen Beatrix Airport",
+    // The CANONICAL name, which is what the booking flow writes —
+    // Step3Details sends state.from.name. findPlaceByName matches on that
+    // alone, so the short form ("Queen Beatrix Airport", what a one-line
+    // field DISPLAYS) resolves to nothing and sends this ride down the
+    // address path: no airport policy, no flight line, a pin card offered
+    // at the one pickup that must never have one. A fixture in a shape
+    // the product cannot produce is how the pin bug stayed invisible.
+    { id: "r-soon", booking_ref: "CB-SOON", pickup_location: "Queen Beatrix International Airport",
       dropoff_location: "Manchebo Beach Resort", scheduled_date: dateOf(now + 2 * day),
       scheduled_time: "14:35", fare_total: 100, status: "driver_assigned" },
     { id: "r-cancelled", booking_ref: "CB-CANX", pickup_location: "Eagle Beach Hotel",
