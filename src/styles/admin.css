@@ -696,6 +696,24 @@
   line-height:var(--lh-body);max-width:var(--measure);}
 .adm-attgo{flex:none;align-self:center;color:var(--muted);font-size:var(--t-body);}
 
+/* ── what the flight table says, under the number the guest typed ──────
+   The attention list told an operator a flight was cancelled; this is
+   where they confirm it before taking a driver off a ride, so it sits
+   inside the Flight fact rather than in a panel of its own.
+
+   The STATE IS A WORD — "Flight cancelled", "Now lands 7:20 PM" — and
+   the colour is the second signal, never the only one. Same rule as the
+   rows on the attention list, same reason: there is exactly one colour
+   for "wrong" in this palette, and the operator who cannot pick it out
+   of the teal still has to be able to read the board at 5am. Quiet is
+   the default and stays silver; only the two states that mean "do not
+   send a car" reach for --alert-ink. */
+.adm-flight{display:block;margin-top:4px;font-size:var(--t-meta);line-height:var(--lh-body);}
+.adm-flight .fv{display:block;color:var(--silver);}
+.adm-flight.warn .fv{color:var(--ink);}
+.adm-flight.alert .fv{color:var(--alert-ink);font-weight:600;}
+.adm-flight .q{display:block;}
+
 /* ── the day rail on the schedule ──────────────────────────────────────
    A day is read down the clock, so the hours are the spine and the
    rides hang off them. An hour with nothing in it still shows, because

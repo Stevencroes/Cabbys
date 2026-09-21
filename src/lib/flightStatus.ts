@@ -67,6 +67,26 @@ export interface FlightStatus {
 export type FlightState =
   | "scheduled" | "delayed" | "early" | "landed" | "cancelled" | "diverted" | "unknown";
 
+/** One question: this flight, on this Aruba calendar day. */
+export interface FlightKey {
+  flight: string;
+  day: string;
+}
+
+/**
+ * The one spelling of a cache key, so the two ways in agree.
+ *
+ * arrivalFor() and arrivalsFor() index the same map, and a provider
+ * answering in bulk has to name its rows the same way or every answer it
+ * gives is filed under a key nobody looks up. Normalising the number
+ * here rather than at each call site is the same fix formatFlightNumber
+ * already carries: "KL0765" and "KL765" are one flight, and two keys for
+ * one flight is a cache that never hits and a budget spent twice.
+ */
+export function flightKey(flight: string, day: string): string {
+  return `${formatFlightNumber(flight)}|${day}`;
+}
+
 export interface FlightProvider {
   name: string;
   enabled: boolean;
@@ -74,6 +94,16 @@ export interface FlightProvider {
       both "no such flight" and "could not ask" — the screen does the
       same thing either way, which is to keep the guest's own words. */
   lookup(flight: string, day: string): Promise<FlightStatus | null>;
+  /**
+   * The same question about many flights, in one round trip. Optional:
+   * a provider without one is asked flight by flight instead, which is
+   * correct and merely slower.
+   *
+   * Keyed by flightKey(). A key the provider leaves out of the map means
+   * exactly what a null lookup() means — nobody can say — so a partial
+   * answer is a legal answer and not an error.
+   */
+  lookupMany?(keys: FlightKey[]): Promise<Map<string, FlightStatus | null>>;
 }
 
 /**
@@ -143,7 +173,7 @@ export async function arrivalFor(
   const want = formatFlightNumber(flightNumber);
   if (!want) return null;
 
-  const key = `${want}|${day}`;
+  const key = flightKey(want, day);
   const hit = seen.get(key);
   if (hit && now - hit.at < TTL_MS) return hit.row;
 
@@ -170,6 +200,99 @@ export async function arrivalFor(
 
   inflight.set(key, run);
   return run;
+}
+
+/**
+ * Everything a whole SCREEN needs to know, in one round trip.
+ *
+ * Written for the dispatch board, which is the first caller that asks
+ * about many flights at once: an operator's morning is thirty rides, and
+ * thirty of these questions fired one per row — re-fired every time the
+ * board re-renders — is the shape of request storm this cache was built
+ * to prevent in the first place.
+ *
+ * It does NOT go around the cache; it goes through it. Every key is
+ * checked against `seen` first, every key already being fetched joins
+ * that promise rather than starting a second one, and every key this
+ * call does fetch is registered in `inflight` BEFORE the await — so a
+ * card mounting mid-flight (a ride view opening while the board loads)
+ * joins this read instead of paying for its own. What comes back is
+ * filed in `seen` exactly as a single lookup would file it, which is why
+ * the two can be mixed freely.
+ *
+ * Returns only what is known. A key with no answer is simply absent,
+ * because "no row yet", "no such flight" and "no key set" are one state
+ * to every caller — say nothing — and a map full of nulls invites a
+ * screen to draw a box for each of them.
+ */
+export async function arrivalsFor(
+  keys: FlightKey[],
+  now = Date.now(),
+): Promise<Map<string, FlightStatus>> {
+  const out = new Map<string, FlightStatus>();
+  const joins: Promise<unknown>[] = [];
+  const ask = new Map<string, FlightKey>();
+  const handled = new Set<string>();
+
+  for (const k of keys) {
+    const want = formatFlightNumber(k.flight ?? "");
+    if (!want || !k.day) continue;
+    const key = flightKey(want, k.day);
+    // Two rides off the same flight are one question. This is the
+    // ordinary case on an island where a single KLM arrival fills three
+    // cars, not an edge one.
+    if (handled.has(key)) continue;
+    handled.add(key);
+
+    const hit = seen.get(key);
+    if (hit && now - hit.at < TTL_MS) {
+      if (hit.row) out.set(key, hit.row);
+      continue;
+    }
+    const already = inflight.get(key);
+    if (already) {
+      joins.push(already.then((row) => { if (row) out.set(key, row); }));
+      continue;
+    }
+    ask.set(key, { flight: want, day: k.day });
+  }
+
+  if (ask.size) {
+    if (provider.lookupMany) {
+      // One call, one unit. `spent` counts what the vendor bills, and a
+      // vendor that answers thirty flights in one request billed once —
+      // counting it thirty times would make the budget guard refuse a
+      // month that had not been spent.
+      spent++;
+      const run = provider.lookupMany([...ask.values()]);
+      for (const key of ask.keys()) {
+        // A provider that threw could not answer, which is the same
+        // nothing as a flight it has never heard of — and it is cached
+        // as a miss for the same reason arrivalFor caches one, so a dead
+        // vendor cannot be retried into the ground by a board that
+        // re-renders.
+        const per = run
+          .then((m) => m.get(key) ?? null, () => null)
+          .then((row) => {
+            seen.set(key, { at: now, row });
+            inflight.delete(key);
+            return row;
+          });
+        inflight.set(key, per);
+        joins.push(per.then((row) => { if (row) out.set(key, row); }));
+      }
+    } else {
+      // No bulk path on this vendor. One at a time is the honest
+      // fallback, and arrivalFor already carries the cache, the dedupe
+      // and the failure handling — there is nothing to reimplement here.
+      for (const [key, k] of ask) {
+        joins.push(arrivalFor(k.flight, k.day, now).then((row) => { if (row) out.set(key, row); }));
+      }
+    }
+  }
+
+  await Promise.all(joins);
+  return out;
 }
 
 // ── reading one ──────────────────────────────────────────────────────

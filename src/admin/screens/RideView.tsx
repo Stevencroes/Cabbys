@@ -38,6 +38,7 @@ import { normalizePhone } from "../../lib/contact";
 import { awgToUsd, usd } from "../../lib/quote";
 import { useBoard } from "../BoardContext";
 import AssignPanel from "../AssignPanel";
+import RideFlight from "../RideFlight";
 import {
   cancelRide, isClosed, isLive, loadAdminRide, moneyStillOutstanding, needsDriver,
   unassignRide, type AdminRide,
@@ -321,7 +322,16 @@ export default function RideView() {
                 ride.childSeats ? `${ride.childSeats} child seat${ride.childSeats === 1 ? "" : "s"}` : null,
               ].filter(Boolean).join(" · ") || <span className="q">Not recorded</span>}
             </Fact>
-            {ride.flightNumber && <Fact k="Flight">{formatFlightNumber(ride.flightNumber)}</Fact>}
+            {ride.flightNumber && (
+              <Fact k="Flight">
+                {/* What the guest typed, kept where it was — it is the
+                    only thing on this screen that shows a typo, and a
+                    typo is the likeliest reason the line below is
+                    absent. */}
+                {formatFlightNumber(ride.flightNumber)}
+                <RideFlight ride={ride} />
+              </Fact>
+            )}
             <Fact k="Price">
               {/* What the GUEST was charged, which is the figure this
                   board is reconciled against. Never the driver's cut —

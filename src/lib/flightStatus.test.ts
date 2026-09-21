@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
-  arrivalFor, clearFlightCache, driftMinutes, expectedAt, flightTrackingEnabled,
+  arrivalFor, arrivalsFor, clearFlightCache, driftMinutes, expectedAt, flightTrackingEnabled,
   NO_PROVIDER, predictedOnly, useFlightProvider, worthSaying,
   type FlightProvider, type FlightStatus,
 } from "./flightStatus";
@@ -124,5 +124,135 @@ describe("four clocks, ranked by who said it", () => {
     expect(worthSaying(row())).toBe(false);
     expect(worthSaying(row({ state: "cancelled" }))).toBe(true);
     expect(worthSaying(row({ state: "diverted" }))).toBe(true);
+  });
+});
+
+describe("asking about a whole board at once", () => {
+  /** A provider that answers in bulk, and counts its round trips. */
+  function bulk(answers: Record<string, FlightStatus | null>, calls = { n: 0, one: 0 }) {
+    const p: FlightProvider = {
+      name: "bulk", enabled: true,
+      lookup: async (f, d) => { calls.one++; return answers[`${f}|${d}`] ?? null; },
+      lookupMany: async (keys) => {
+        calls.n++;
+        const m = new Map<string, FlightStatus | null>();
+        for (const k of keys) m.set(`${k.flight}|${k.day}`, answers[`${k.flight}|${k.day}`] ?? null);
+        return m;
+      },
+    };
+    return { p, calls };
+  }
+
+  it("asks about thirty flights in one round trip", async () => {
+    const { p, calls } = bulk({ "KL765|2026-09-17": row() });
+    useFlightProvider(p);
+    const keys = Array.from({ length: 30 }, (_, i) => ({ flight: `AA${100 + i}`, day: "2026-09-17" }));
+    keys.push({ flight: "KL765", day: "2026-09-17" });
+    const known = await arrivalsFor(keys);
+    expect(calls.n).toBe(1);
+    expect(calls.one).toBe(0);
+    expect(known.get("KL765|2026-09-17")?.flight).toBe("KL765");
+  });
+
+  // Two cars off one KLM arrival is one question, not two. On an island
+  // where a single wide-body fills three transfers, this is the ordinary
+  // case rather than an edge one.
+  it("collapses duplicate flights and normalises however they were typed", async () => {
+    const { p, calls } = bulk({ "KL765|2026-09-17": row() });
+    useFlightProvider(p);
+    let asked: string[] = [];
+    p.lookupMany = async (keys) => {
+      calls.n++;
+      asked = keys.map((k) => `${k.flight}|${k.day}`);
+      return new Map([["KL765|2026-09-17", row()]]);
+    };
+    await arrivalsFor([
+      { flight: "KL765", day: "2026-09-17" },
+      { flight: "kl 0765", day: "2026-09-17" },
+      { flight: "KL765", day: "2026-09-17" },
+    ]);
+    expect(asked).toEqual(["KL765|2026-09-17"]);
+  });
+
+  // The bulk path goes THROUGH the cache, not around it. A board that
+  // re-reads its rides after a write must not re-buy the morning.
+  it("answers a repeat from the cache without asking anyone", async () => {
+    const { p, calls } = bulk({ "KL765|2026-09-17": row() });
+    useFlightProvider(p);
+    const keys = [{ flight: "KL765", day: "2026-09-17" }];
+    await arrivalsFor(keys);
+    await arrivalsFor(keys);
+    expect(calls.n).toBe(1);
+  });
+
+  // A ride view opening while the board is still loading must join the
+  // read in progress rather than start a second one.
+  it("lets a single lookup join a bulk read already in flight", async () => {
+    const { p, calls } = bulk({ "KL765|2026-09-17": row() });
+    useFlightProvider(p);
+    const many = arrivalsFor([{ flight: "KL765", day: "2026-09-17" }]);
+    const one = arrivalFor("KL765", "2026-09-17");
+    const [, single] = await Promise.all([many, one]);
+    expect(calls.n).toBe(1);
+    expect(calls.one).toBe(0);
+    expect(single?.flight).toBe("KL765");
+  });
+
+  // Same budget rule as arrivalFor, and the same reason: a board that
+  // re-renders must not be able to retry a dead vendor into the ground.
+  it("caches a bulk miss, and a bulk failure, as a miss", async () => {
+    const { p, calls } = bulk({});
+    useFlightProvider(p);
+    await arrivalsFor([{ flight: "KL765", day: "2026-09-17" }]);
+    await arrivalsFor([{ flight: "KL765", day: "2026-09-17" }]);
+    expect(calls.n).toBe(1);
+
+    clearFlightCache();
+    let thrown = 0;
+    useFlightProvider({
+      name: "bad", enabled: true,
+      lookup: async () => null,
+      lookupMany: async () => { thrown++; throw new Error('relation "flight_status" does not exist'); },
+    });
+    const known = await arrivalsFor([{ flight: "KL765", day: "2026-09-17" }]);
+    expect(known.size).toBe(0);
+    await arrivalsFor([{ flight: "KL765", day: "2026-09-17" }]);
+    expect(thrown).toBe(1);
+  });
+
+  // A vendor with no bulk path is asked one at a time — correct, merely
+  // slower — and arrivalFor's cache and dedupe still apply.
+  it("falls back to one call per flight when the vendor has no bulk path", async () => {
+    const calls = { n: 0 };
+    useFlightProvider(provider(row(), calls));
+    const known = await arrivalsFor([
+      { flight: "KL765", day: "2026-09-17" },
+      { flight: "AA123", day: "2026-09-17" },
+    ]);
+    expect(calls.n).toBe(2);
+    expect(known.size).toBe(2);
+  });
+
+  // The silent case, and the one the board is built around: nothing
+  // known is an empty map, never a map of nulls for a screen to draw
+  // boxes from.
+  it("returns nothing at all when nobody can say", async () => {
+    useFlightProvider(NO_PROVIDER);
+    const known = await arrivalsFor([{ flight: "KL765", day: "2026-09-17" }]);
+    expect(known.size).toBe(0);
+    expect([...known.keys()]).toEqual([]);
+  });
+
+  // A ride with no date on it has no day to ask about, and asking is
+  // the only thing that costs anything. (The shape of the NUMBER is
+  // gated one layer up, where the board decides what is worth asking —
+  // see flightWatch.test.ts — because arrivalFor has always taken
+  // whatever it was handed and this must not diverge from it.)
+  it("asks about nothing when there is no day to ask about", async () => {
+    const { p, calls } = bulk({});
+    useFlightProvider(p);
+    const known = await arrivalsFor([{ flight: "KL765", day: "" }]);
+    expect(known.size).toBe(0);
+    expect(calls.n).toBe(0);
   });
 });

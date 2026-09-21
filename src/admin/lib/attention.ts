@@ -27,6 +27,7 @@
 // minute rather than against whatever time the suite happens to run at.
 import { CLASH_MINUTES, isClosed, isLive, needsDriver, type AdminRide } from "./admin";
 import { identifiable, type DriverProfile } from "../../driver/lib/driver";
+import { driftMinutes, expectedAt, type FlightStatus } from "../../lib/flightStatus";
 
 /**
  * How urgent, in the only three grades an operator can act on
@@ -57,7 +58,11 @@ export type AttentionKind =
   | "money-outstanding"
   | "payment-failed"
   | "no-time"
-  | "waiting-approval";
+  | "waiting-approval"
+  | "flight-cancelled"
+  | "flight-diverted"
+  | "flight-late"
+  | "flight-early";
 
 export interface AttentionItem {
   /** stable across reloads, so a re-read does not reshuffle the list */
@@ -95,6 +100,31 @@ const HORIZON_HOURS = 24;
     tapped. Past twenty, somebody is standing outside. */
 const LATE_MINUTES = 20;
 
+/**
+ * ── What a flight has to do before it is the BOARD's problem ─────────
+ *
+ * A delay is already on two screens before it reaches this one. The
+ * driver's ride screen says "Now lands 19:20" from fifteen minutes out
+ * (WORTH_SAYING_MINUTES), and the guest's trip card says Cabby's can see
+ * it. Repeating that here would be a red badge on a dispatch board: true,
+ * and no job attached to it.
+ *
+ * What makes a delay an operator's job is that somebody has to DECIDE
+ * something. Under three quarters of an hour nobody does — the driver
+ * waits at the kerb, which is what an airport pickup already is, and the
+ * fare does not move. Past it the car is parked for the better part of
+ * an hour on a fixed fare, anything else that driver holds today is at
+ * risk, and the pickup time on the booking has become a fiction that
+ * every other screen is still sorting by.
+ *
+ * Early is set TIGHTER than late, and deliberately. flightSay says why:
+ * a driver arriving early waits in a car, a guest arriving early waits
+ * in an arrivals hall in a country they landed in twenty minutes ago.
+ * Those are not the same cost, so they do not get the same threshold.
+ */
+const FLIGHT_LATE_MINUTES = 45;
+const FLIGHT_EARLY_MINUTES = 30;
+
 function minutesUntil(iso: string | null, now: number): number | null {
   if (!iso) return null;
   const t = new Date(iso).getTime();
@@ -108,6 +138,18 @@ function when(mins: number | null): string {
   if (mins >= 0) return mins < 60 ? `in ${mins} min` : `in ${Math.round(mins / 60)}h`;
   const late = -mins;
   return late < 60 ? `${late} min ago` : `${Math.round(late / 60)}h ago`;
+}
+
+/** "50 min" / "2h 10m" — a LENGTH, not a moment.
+    when() says when something happens; this says how far off it is. One
+    function doing both ends up writing "in 2h" about a delay, which
+    reads as a time of day on a board full of times of day. */
+function howLong(mins: number): string {
+  const m = Math.abs(Math.round(mins));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  return rest ? `${h}h ${rest}m` : `${h}h`;
 }
 
 /** How release_ride() and admin_unassign_ride mark the notes column. */
@@ -150,11 +192,22 @@ export function collisions(rides: AdminRide[]): Map<string, AdminRide[]> {
  * produced empty: telling an operator no driver is suspended, over a
  * drivers table that would not load, is the exact fault this codebase
  * keeps naming.
+ *
+ * `flights` is ride id → what the flight table says, built by
+ * flightWatch.ts from one bulk read. It defaults to empty, and empty
+ * means SILENCE — no key set, no row written yet, the month's budget
+ * gone, a flight nobody has heard of. All of those are ordinary and all
+ * of them produce nothing, exactly as they do on the driver's line and
+ * the guest's card. There is no "we could not look" to distinguish here,
+ * because flightStatus.ts has already collapsed every kind of
+ * not-knowing into one null on purpose: a screen that tells them apart
+ * is a screen showing an operator something that is not a job.
  */
 export function attentionItems(
   rides: AdminRide[],
   drivers: DriverProfile[] | null,
   now: number = Date.now(),
+  flights: Map<string, FlightStatus> = new Map(),
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
   const clash = collisions(rides);
@@ -188,6 +241,48 @@ export function attentionItems(
       continue;
     }
 
+    // ── the flight, when Cabby's knows anything about it ─────────────
+    //
+    // Undefined for almost every ride on almost every board: not an
+    // airport arrival, no number typed, no row written yet, no key set.
+    // Nothing below runs, and the board looks exactly as it did before
+    // this existed.
+    const f = flights.get(r.id);
+
+    // A plane that is not coming outranks everything else that could be
+    // wrong with the ride, and it has to be checked BEFORE the
+    // unassigned block below. Otherwise the most valuable row on the
+    // board reads "Nobody is driving Queen Beatrix, in 40 min — put a
+    // driver on", about a flight that was cancelled last night. Staffing
+    // a ride that will not happen is worse than not staffing it.
+    if (f && !isClosed(r) && (f.state === "cancelled" || f.state === "diverted")) {
+      if (claim(r.id)) {
+        const gone = f.state === "cancelled";
+        const driver = r.driverName || (r.driverId ? "The assigned driver" : null);
+        items.push({
+          id: `flight:${r.id}`,
+          kind: gone ? "flight-cancelled" : "flight-diverted",
+          // Always "now", at any hour of the window. There is nothing to
+          // wait for: every hour this sits is an hour the guest is not
+          // told and a driver keeps a slot they could be selling.
+          severity: "now",
+          rideId: r.id,
+          at: r.scheduledAt,
+          headline: gone
+            ? `${f.flight} is cancelled — this ride is still on the board`
+            : `${f.flight} isn't landing in Aruba`,
+          detail: gone
+            ? `${who}, ${route}. The flight isn't operating, so nobody should drive to the airport for it. ${
+                driver ? `Take ${driver} off the ride and call the guest.` : "Call the guest before anybody is put on it."
+              } Cancelling the booking does not release the card — the hold shows up on this list separately.`
+            : `${who}, ${route}. ${f.flight} was diverted, so the pickup time on this booking means nothing until somebody knows where they are coming from. Call the guest first${
+                driver ? ` and leave ${driver} on it for now` : ""
+              } — a diverted flight often still arrives, just late and from somewhere else.`,
+        });
+      }
+      continue;
+    }
+
     // Nobody driving it, and close enough that the pool is not going to
     // solve it on its own.
     if (needsDriver(r) && mins !== null && mins < HORIZON_HOURS * 60) {
@@ -214,9 +309,64 @@ export function attentionItems(
       continue;
     }
 
+    // ── the flight moved, and the booking did not ────────────────────
+    //
+    // Both of these want a driver on the ride and the car still at home:
+    // the fix is "move the pickup or tell them", and neither sentence
+    // can be written without somebody to tell. A ride nobody is driving
+    // was already claimed above, where "put a driver on it" is the
+    // bigger and still-correct job.
+    //
+    // Once the car is moving there is nothing left for an operator to
+    // decide — the driver's own screen carries the flight from there —
+    // so this is gated on driver_assigned rather than on !isClosed.
+    // Cancelled and diverted are not, because a driver already en route
+    // to a plane that does not exist is exactly who needs turning round.
+    if (f && r.status === "driver_assigned" && mins !== null) {
+      const drift = driftMinutes(f);
+      const lands = minutesUntil(expectedAt(f), now);
+
+      // Late. Urgent when the driver is about to set off for a plane
+      // that is not there — inside the same ninety minutes the rest of
+      // this board calls imminent.
+      if (drift !== null && drift >= FLIGHT_LATE_MINUTES) {
+        if (claim(r.id)) {
+          items.push({
+            id: `flight:${r.id}`, kind: "flight-late",
+            severity: mins < URGENT_MINUTES ? "now" : "soon",
+            rideId: r.id, at: r.scheduledAt,
+            headline: `${f.flight} is running ${howLong(drift)} late — pickup is still ${when(mins)}`,
+            detail: `${who}, ${route}. ${r.driverName || "The driver"} is booked to collect ${when(mins)} and the flight is not due down until ${when(lands)}. Move the pickup time or tell them to hold — as it stands they park at arrivals for ${howLong(drift)} on a fixed fare, and anything else they are holding today is at risk.`,
+          });
+        }
+        continue;
+      }
+
+      // Early, and the tighter threshold: the cost of this one is a
+      // guest standing in an arrivals hall, not a driver sitting in a
+      // car. "Now" once the plane is down or nearly.
+      if (drift !== null && drift <= -FLIGHT_EARLY_MINUTES) {
+        if (claim(r.id)) {
+          items.push({
+            id: `flight:${r.id}`, kind: "flight-early",
+            severity: lands !== null && lands < URGENT_MINUTES ? "now" : "soon",
+            rideId: r.id, at: r.scheduledAt,
+            headline: `${f.flight} lands ${howLong(drift)} early — pickup is ${when(mins)}`,
+            detail: `${who}, ${route}. ${f.actual ? "The flight is already on the ground" : `The flight is due down ${when(lands)}`} and ${r.driverName || "the driver"} is not booked to collect until ${when(mins)}. Move the pickup up or ring them to leave now — nobody has told the guest to wait, and they will be at the kerb first.`,
+          });
+        }
+        continue;
+      }
+    }
+
     // Somebody has it and has not moved, past the time the guest was
     // told to be ready. The only item on this list where the guest is
     // already standing somewhere.
+    //
+    // AFTER the flight block above on purpose: a driver sitting still
+    // through a two-hour delay is a driver doing the right thing, and
+    // "call them, they haven't set off" over that is the false alarm
+    // that teaches an operator to stop reading this list.
     if (r.status === "driver_assigned" && mins !== null && mins < -LATE_MINUTES && !isClosed(r)) {
       if (claim(r.id)) {
         items.push({

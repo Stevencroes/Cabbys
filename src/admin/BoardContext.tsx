@@ -32,6 +32,8 @@ import {
   needsDriver, type AdminRide,
 } from "./lib/admin";
 import { attentionItems, type AttentionItem } from "./lib/attention";
+import { flightKeysFor, flightsByRide } from "./lib/flightWatch";
+import { arrivalsFor, type FlightStatus } from "../lib/flightStatus";
 import type { DriverProfile } from "../driver/lib/driver";
 import type { DocumentRecord } from "../driver/lib/documents";
 
@@ -74,6 +76,9 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [docs, setDocs] = useState<Map<string, DocumentRecord[]>>(new Map());
   const [docsError, setDocsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // ride id → what the flight table says about its arrival. Empty is the
+  // ordinary state and means silence, not failure — see attentionItems.
+  const [flights, setFlights] = useState<Map<string, FlightStatus>>(new Map());
 
   const refresh = useCallback(async () => {
     // Together, not in sequence. Three reads at a desk should cost one
@@ -95,15 +100,43 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
+  // ── the flights, in ONE read per board load ──────────────────────────
+  //
+  // Deliberately not inside refresh(): flight status is a different
+  // table, filled by a different process, and a board that would not
+  // render its rides until a flight read came back would be a board held
+  // hostage by a feature that is switched off in most deployments. The
+  // rides land first; the flight items appear a beat later, or never.
+  //
+  // Keyed on the rides array rather than on a derived signature, which
+  // is the cheap-looking shortcut that would have cost more: rides only
+  // changes when refresh() has produced a new list, and arrivalsFor()
+  // answers a repeat inside its ten-minute TTL from cache without asking
+  // anyone. So a refresh after a write costs nothing, and the one thing
+  // this must never become — a query per ride per render — cannot happen
+  // from here.
+  useEffect(() => {
+    const keys = flightKeysFor(rides);
+    if (!keys.length) {
+      setFlights((prev) => (prev.size ? new Map() : prev));
+      return;
+    }
+    let live = true;
+    void arrivalsFor(keys).then((known) => {
+      if (live) setFlights(flightsByRide(rides, known));
+    });
+    return () => { live = false; };
+  }, [rides]);
+
   const value = useMemo<Board>(() => ({
     rides, ridesError, drivers, driversError, docs, docsError, loading,
     // The drivers list is passed as null when it could not be read, so
     // the three driver-derived items are withheld rather than answered
     // "none" over a table nobody could see.
-    attention: attentionItems(rides, driversError ? null : drivers),
+    attention: attentionItems(rides, driversError ? null : drivers, Date.now(), flights),
     unassigned: rides.filter(needsDriver).length,
     refresh,
-  }), [rides, ridesError, drivers, driversError, docs, docsError, loading, refresh]);
+  }), [rides, ridesError, drivers, driversError, docs, docsError, loading, flights, refresh]);
 
   return <BoardCtx.Provider value={value}>{children}</BoardCtx.Provider>;
 }
