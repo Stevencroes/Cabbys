@@ -1677,6 +1677,43 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .rr-line{width:0;height:18px;border-left:1px dashed var(--line);margin:3px 0 3px 5px;}
 .tp-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--t-meta);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;}
 .tp-fare{margin-left:auto;font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums;}
+/* ── the flight line, guest side ──────────────────────────────────────
+   The driver's twin of this (driver.css, .drv-flight) is an operational
+   readout. This one is a receipt: it exists to show a guest at a gate
+   that Cabby's is looking at the same flight they are, so they don't
+   ring to check. That makes its resting state the important one — a
+   quiet inset panel, one rung up the ladder from the card it sits in,
+   carrying a time and a sentence and no colour at all.
+
+   It earns colour twice, and --signal and --alert already mean the two
+   things it needs. On this page --signal is LIVE, not "warning": it is
+   what marks confirmed, assigned and en route on .tp-status. So a
+   signal-tinted flight line reads the same way those do — we are on
+   this — which is exactly the message when a time has moved. --alert
+   stays what it is everywhere: something is wrong. Only cancelled and
+   diverted reach it, and there really is nothing to meet.
+
+   What is deliberately absent is a third, louder step. A trip card
+   shouting DELAYED at a traveller who is calmly waiting at the gate is
+   worse than no line at all — it invents the worry the line is here to
+   settle. */
+.tp-flight{margin-top:16px;padding:13px 15px;border:1px solid var(--line);
+  border-radius:var(--r-sm);background:var(--raised);
+  display:flex;flex-direction:column;gap:3px;}
+/* the time is the answer, so it is set like one */
+.tp-flight .tf-v{font-family:var(--serif);font-size:var(--t-title);font-weight:500;
+  line-height:var(--lh-tight);color:var(--ink);}
+.tp-flight .tf-d{font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);}
+
+/* the airline moved the time — live, not wrong */
+.tp-flight.warn{border-color:var(--signal-line);background:var(--signal-tint);}
+.tp-flight.warn .tf-v{color:var(--signal-ink);}
+.tp-flight.warn .tf-d{color:var(--silver);}
+
+/* cancelled or diverted: there is no flight to meet */
+.tp-flight.alert{border-color:var(--alert-line);background:var(--alert-tint);}
+.tp-flight.alert .tf-v{color:var(--alert-ink);}
+.tp-flight.alert .tf-d{color:var(--silver);}
 .tp-timeline{display:flex;align-items:flex-start;margin-top:16px;overflow-x:auto;padding-bottom:2px;}
 .tp-tl-step{display:flex;align-items:center;color:var(--muted);}
 .tp-tl-node{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--soft);background:transparent;flex-shrink:0;}

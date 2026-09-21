@@ -13,6 +13,7 @@ import { usd, AWG_PER_USD } from "../lib/quote";
 import { formatDateTime, ARUBA_OFFSET_MINUTES } from "../lib/datetime";
 import { findPlaceByName, selFromPlace } from "../data/places";
 import PickupPin from "../components/PickupPin";
+import TripFlight from "../components/TripFlight";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuthModal } from "../components/auth/AuthModal";
@@ -195,6 +196,17 @@ function TripCard({
         {ride.flight_number && <span>Flight {ride.flight_number}</span>}
         <span className="tp-fare">{fare}</span>
       </div>
+
+      {/* Directly under the meta row, because it is an elaboration of the
+          "Flight KL765" chip that sits in it — the typed number, then
+          what Cabby's can see about it.
+
+          Gated to a live trip for the same reason the pin is, plus one
+          of its own: flight lookups are billed per call, and an open
+          Past shelf is five cards that would each ask a vendor about a
+          plane that landed last month. TripFlight gates the direction
+          (arrival, not departure) itself. */}
+      {upcoming && !cancelled && !completed && <TripFlight ride={ride} />}
 
       {upcoming && !cancelled && <TripTimeline status={ride.status} />}
 
