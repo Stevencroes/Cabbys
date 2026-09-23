@@ -170,34 +170,78 @@ describe("tabs", () => {
   });
 });
 
-// The contradiction the redesign exists to remove.
+// The contradiction the redesign exists to remove — and the flood it
+// briefly caused: an uncapped review section above the tabs turned an
+// account with a pile of unclosed trips into one endless list.
 describe("a trip nobody closed off", () => {
   beforeEach(() => {
     h.rows = [...standard(), row("stale", -3, { status: "driver_assigned", driver_name: "Ana Croes" })];
   });
 
-  it("is shown above the tabs as needing review, never inside Past", async () => {
+  it("is its own category, listed first with its count, and never inside Past", async () => {
     renderTrips();
-    const review = await screen.findByRole("region", { name: /needs review/i });
-    expect(refs(review)).toEqual(["CB-STALE"]);
+    const tabs = within(await screen.findByRole("tablist")).getAllByRole("tab");
+    expect(tabs[0]).toHaveAccessibleName(/needs review\s*,\s*1 trip/i);
+    fireEvent.click(tabs[0]);
+    expect(refs(panel())).toEqual(["CB-STALE"]);
     fireEvent.click(screen.getByRole("tab", { name: /^past/i }));
     fireEvent.click(screen.getByRole("button", { name: /show 2 more/i }));
     expect(refs(panel())).not.toContain("CB-STALE");
   });
 
-  it("says 'Trip needs review', never 'Driver assigned'", async () => {
+  // What was reported: the page opened on a list, not on a way to choose.
+  it("opens on the category chooser, not on the review pile", async () => {
+    h.rows = [...standard(), ...Array.from({ length: 12 }, (_, i) =>
+      row(`stale${i}`, -(i + 3), { status: "confirmed" }))];
     renderTrips();
+    const list = await screen.findByRole("tablist");
+    // the chooser comes before any trip on the page
+    const first = document.querySelector("article")!;
+    expect(list.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // and the default is still what's ahead, not the unresolved pile
+    expect(screen.getByRole("tab", { name: /^upcoming/i })).toHaveAttribute("aria-selected", "true");
+    expect(refs(panel())).toEqual(["CB-SOON", "CB-FAR"]);
+  });
+
+  it("says 'Trip needs review', never 'Driver assigned'", async () => {
+    renderTrips("/trips?show=review");
     const c = await cardOf("CB-STALE");
     expect(within(c).getByText("Trip needs review")).toBeInTheDocument();
     expect(within(c).queryByText("Driver assigned")).toBeNull();
   });
 
   it("offers Report an issue and Contact support, and nothing that pretends it's live", async () => {
-    renderTrips();
+    renderTrips("/trips?show=review");
     const c = await cardOf("CB-STALE");
     expect(within(c).getByRole("button", { name: "Report an issue" })).toBeInTheDocument();
     expect(within(c).getByRole("button", { name: "Contact support" })).toBeInTheDocument();
     expect(within(c).queryByRole("button", { name: /track status|contact driver|cancel/i })).toBeNull();
+  });
+});
+
+describe("the category chooser", () => {
+  it("offers no Needs review category when nothing needs it", async () => {
+    renderTrips();
+    const tabs = within(await screen.findByRole("tablist")).getAllByRole("tab");
+    expect(tabs).toHaveLength(3);
+    expect(screen.queryByRole("tab", { name: /needs review/i })).toBeNull();
+  });
+
+  // "Show more" used to expand to everything at once — the unlimited list
+  // again, one tap later.
+  it("reveals a long history ten at a time, and says how much is showing", async () => {
+    h.rows = Array.from({ length: 23 }, (_, i) => row(`p${i}`, -(i + 1), { status: "completed" }));
+    renderTrips("/trips?show=past");
+    await screen.findByRole("tablist");
+    expect(refs(panel())).toHaveLength(5);
+    expect(screen.getByText("Showing 5 of 23")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /show 10 more/i }));
+    expect(refs(panel())).toHaveLength(15);
+    fireEvent.click(screen.getByRole("button", { name: /show 8 more/i }));
+    expect(refs(panel())).toHaveLength(23);
+    expect(screen.getByText("Showing 23 of 23")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /show fewer/i }));
+    expect(refs(panel())).toHaveLength(5);
   });
 });
 

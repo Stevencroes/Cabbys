@@ -1,16 +1,20 @@
 // ── My Trips ─────────────────────────────────────────────────────────────
 //
-// Three tabs — Upcoming, Past, Cancelled — and above them, when there are
-// any, the trips that need review. Every trip appears exactly once, in the
-// place src/lib/tripStatus.ts decides from the backend row and the clock,
-// and the tab counts are counts of that same decision. Nothing here
-// decides status for itself.
+// A category chooser at the top — Upcoming, Past, Cancelled, and Needs
+// review when there is any — and one category's trips below it. Every trip
+// appears exactly once, in the place src/lib/tripStatus.ts decides from
+// the backend row and the clock, and the counts are counts of that same
+// decision. Nothing here decides status for itself.
 //
-// Needs-review trips are deliberately NOT a fourth tab and NOT folded into
-// Past. A trip whose pickup came and went without being closed is the one
-// thing on this page that might mean something went wrong, and a tab is a
-// place a problem can be left unopened. Above the tabs it is on screen
-// whichever tab is chosen, until it is resolved.
+// Needs review used to be a section ABOVE the tabs, uncapped, on the
+// theory that a problem should never sit in a tab where it can be left
+// unopened. In practice it did the opposite of its job: an account with a
+// pile of trips nobody closed opened on that pile, and the category
+// chooser ended up screens below it — the page read as one endless list
+// of bookings with no way to pick what to look at. It is a category now,
+// listed FIRST and only when it has anything in it, with its count in the
+// alert colour: visible at the top of the page without flooding it, and
+// still never folded into Past.
 //
 // The page also has to be honest about how fresh it is. Statuses change
 // while it is open — a driver taps "on my way" — and the live channel can
@@ -32,22 +36,28 @@ import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuthModal } from "../components/auth/AuthModal";
 
-type Tab = "upcoming" | "past" | "cancelled";
+type Tab = "review" | "upcoming" | "past" | "cancelled";
 
-const TABS: { key: Tab; label: string }[] = [
+const BASE_TABS: { key: Tab; label: string }[] = [
   { key: "upcoming", label: "Upcoming" },
   { key: "past", label: "Past" },
   { key: "cancelled", label: "Cancelled" },
 ];
+const REVIEW_TAB = { key: "review" as Tab, label: "Needs review" };
 
 const EMPTY: Record<Tab, { h: string; p: string }> = {
+  review: { h: "Nothing needs review.", p: "Every trip on your account is closed off properly." },
   upcoming: { h: "No upcoming trips.", p: "When you book a transfer, it will be here with your driver's details." },
   past: { h: "No completed trips yet.", p: "Finished rides are kept here, with a summary of each." },
   cancelled: { h: "No cancelled trips.", p: "Anything you cancel is kept here, with what happened to the payment." },
 };
 
-/** How many trips a tab shows before it asks to be opened. */
+/** How many trips a category shows first, and how many each "Show more"
+    adds. Stepped rather than all-at-once: expanding a long history in one
+    go put the whole account on screen, which is the endless list the
+    category chooser exists to prevent. */
 const SHELF_PAGE = 5;
+const SHELF_STEP = 10;
 
 /**
  * The clock the whole page reads.
@@ -124,7 +134,7 @@ export default function MyTrips() {
   const [live, setLive] = useState<boolean | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [claimed, setClaimed] = useState(0);
-  const [openShelf, setOpenShelf] = useState<Tab | null>(null);
+  const [limit, setLimit] = useState(SHELF_PAGE);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -221,30 +231,32 @@ export default function MyTrips() {
     };
   }, [rides, now]);
 
+  // Needs review is offered only while it has something in it — an empty
+  // alert category would be a permanent red herring at the top of the page.
+  const tabs = groups.review.length > 0 ? [REVIEW_TAB, ...BASE_TABS] : BASE_TABS;
   const raw = params.get("show");
-  const chosen: Tab | null = TABS.some((t) => t.key === raw) ? (raw as Tab) : null;
+  const chosen: Tab | null = tabs.some((t) => t.key === raw) ? (raw as Tab) : null;
   // Upcoming when there is anything ahead; otherwise Past.
   const active: Tab = chosen ?? (groups.upcoming.length > 0 ? "upcoming" : "past");
   const shelf = groups[active];
-  const expanded = openShelf === active;
-  const visible = expanded ? shelf : shelf.slice(0, SHELF_PAGE);
-  const hidden = shelf.length - visible.length;
+  const visible = shelf.slice(0, limit);
+  const remaining = shelf.length - visible.length;
 
-  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ upcoming: null, past: null, cancelled: null });
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ review: null, upcoming: null, past: null, cancelled: null });
   function choose(t: Tab, focus = false) {
     setParams({ show: t });
-    setOpenShelf(null);
+    setLimit(SHELF_PAGE); // a newly chosen category always opens short
     if (focus) tabRefs.current[t]?.focus();
   }
   // The keyboard pattern a screen-reader user expects from a tablist:
   // arrows move between tabs, Home/End jump to the ends.
   function onTabKey(e: KeyboardEvent<HTMLButtonElement>) {
-    const i = TABS.findIndex((t) => t.key === active);
-    const go = (j: number) => { e.preventDefault(); choose(TABS[(j + TABS.length) % TABS.length].key, true); };
+    const i = tabs.findIndex((t) => t.key === active);
+    const go = (j: number) => { e.preventDefault(); choose(tabs[(j + tabs.length) % tabs.length].key, true); };
     if (e.key === "ArrowRight") go(i + 1);
     else if (e.key === "ArrowLeft") go(i - 1);
     else if (e.key === "Home") go(0);
-    else if (e.key === "End") go(TABS.length - 1);
+    else if (e.key === "End") go(tabs.length - 1);
   }
 
   const hasData = syncedAt !== null;
@@ -320,23 +332,8 @@ export default function MyTrips() {
 
           {!authLoading && account && hasData && rides.length > 0 && (
             <>
-              {groups.review.length > 0 && (
-                <section className="tp-review-sec" aria-labelledby="tp-review-h">
-                  <h2 id="tp-review-h" className="tp-sec-h">
-                    Needs review <span className="tp-count">{groups.review.length}</span>
-                  </h2>
-                  <p className="tp-sec-note">
-                    {groups.review.length === 1 ? "This trip wasn't" : "These trips weren't"} closed off properly.
-                    {" "}{groups.review.length === 1 ? "It stays" : "They stay"} here, not in Past, until it&rsquo;s sorted.
-                  </p>
-                  <div className="tp-list">
-                    {groups.review.map((e) => <TripCard key={e.ride.id} ride={e.ride} {...cardProps} />)}
-                  </div>
-                </section>
-              )}
-
-              <div className="tp-tabs" role="tablist" aria-label="Trips">
-                {TABS.map((t) => {
+              <div className="tp-tabs" role="tablist" aria-label="Trips" data-n={tabs.length}>
+                {tabs.map((t) => {
                   const on = active === t.key;
                   const n = groups[t.key].length;
                   return (
@@ -349,7 +346,7 @@ export default function MyTrips() {
                       aria-selected={on}
                       aria-controls="tp-panel"
                       tabIndex={on ? 0 : -1}
-                      className={`tp-tab${on ? " on" : ""}`}
+                      className={`tp-tab t-${t.key}${on ? " on" : ""}`}
                       onClick={() => choose(t.key)}
                       onKeyDown={onTabKey}
                     >
@@ -362,6 +359,12 @@ export default function MyTrips() {
               </div>
 
               <section id="tp-panel" role="tabpanel" aria-labelledby={`tp-tab-${active}`} className="tp-section">
+                {active === "review" && shelf.length > 0 && (
+                  <p className="tp-sec-note">
+                    {shelf.length === 1 ? "This trip wasn't" : "These trips weren't"} closed off properly.
+                    {" "}{shelf.length === 1 ? "It stays" : "They stay"} here, not in Past, until it&rsquo;s sorted.
+                  </p>
+                )}
                 {shelf.length === 0 ? (
                   <div className="tp-empty">
                     <p className="tp-empty-h">{EMPTY[active].h}</p>
@@ -373,19 +376,29 @@ export default function MyTrips() {
                     <div className="tp-list">
                       {visible.map((e) => <TripCard key={e.ride.id} ride={e.ride} {...cardProps} />)}
                     </div>
-                    {(hidden > 0 || expanded) && (
-                      <button
-                        type="button"
-                        className={`tp-more${expanded ? " open" : ""}`}
-                        aria-expanded={expanded}
-                        onClick={() => setOpenShelf(expanded ? null : active)}
-                      >
-                        {expanded ? "Show fewer" : `Show ${hidden} more`}
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
+                    {shelf.length > SHELF_PAGE && (
+                      <div className="tp-more-row">
+                        {/* Where you are in a long list, so "Show more" is a
+                            choice with a known size rather than a slot machine. */}
+                        <p className="tp-shown" role="status">Showing {visible.length} of {shelf.length}</p>
+                        {remaining > 0 ? (
+                          <button type="button" className="tp-more" onClick={() => setLimit((l) => l + SHELF_STEP)}>
+                            Show {Math.min(SHELF_STEP, remaining)} more
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M6 9l6 6 6-6" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <button type="button" className="tp-more open" onClick={() => setLimit(SHELF_PAGE)}>
+                            Show fewer
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M6 9l6 6 6-6" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </>
                 )}

@@ -1684,6 +1684,10 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-tab-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;
   border-radius:var(--r-pill);background:var(--raised);font-size:var(--t-meta);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
 .tp-tab.on .tp-tab-n{background:var(--on-sheen-wash);color:var(--deep);}
+/* Paging: where you are in a long list, and the next step's size. */
+.tp-more-row{margin-top:16px;display:flex;flex-direction:column;align-items:stretch;gap:8px;}
+.tp-shown{margin:0;text-align:center;font-size:var(--t-meta);color:var(--muted);letter-spacing:.04em;}
+.tp-more-row .tp-more{margin-top:0;}
 /* Three equal tabs in one row on a phone. Wrapped, "Cancelled" stretched
    across a row of its own and read as a different kind of control. */
 @media(max-width:480px){
@@ -1695,6 +1699,12 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .tp-tab{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:4px;
     min-height:60px;padding:6px 4px;letter-spacing:.06em;border-radius:var(--r-md);}
   .tp-tab-n{min-width:22px;height:20px;padding:0 6px;}
+  /* Four categories don't fit one row of a phone at a readable size, so
+     they go two by two — label and count side by side again, since each
+     now has half the width rather than a quarter. */
+  .tp-tabs[data-n="4"]{display:grid;grid-template-columns:1fr 1fr;}
+  .tp-tabs[data-n="4"] .tp-tab{flex-direction:row;min-height:var(--tap);gap:7px;padding:0 8px;
+    letter-spacing:.03em;border-radius:var(--r-pill);white-space:nowrap;}
 }
 .tp-list{display:flex;flex-direction:column;gap:16px;}
 /* the reveal — lighter than a card so it reads as a control, not a trip */
@@ -1905,15 +1915,13 @@ img.tp-driver-ava{object-fit:cover;}
   font-size:var(--t-body);color:var(--silver);line-height:var(--lh-body);}
 .tp-conn .tp-text{margin-top:0;}
 
-/* Needs review — above the tabs, where a tab cannot hide it. Unboxed: the
-   heading and the alert rule on each card carry it, so it reads as urgent
-   without turning the top of the page into a warning banner. */
-.tp-review-sec{margin:0 0 36px;}
-.tp-sec-h{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-weight:500;
-  font-size:var(--t-title);color:var(--ink);margin:0 0 6px;}
-.tp-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;
-  border-radius:var(--r-pill);background:var(--alert-tint);border:1px solid var(--alert-line);color:var(--alert-ink);
-  font-family:var(--sans);font-size:var(--t-meta);font-weight:600;font-variant-numeric:tabular-nums;}
+/* Needs review, as a category: its count in the alert colour, and its
+   pill outlined in it while unselected, so an unresolved trip is visible
+   from the top of the page without its cards taking the page over. */
+.tp-tab.t-review:not(.on){border-color:var(--alert-line);}
+.tp-tab.t-review .tp-tab-n{background:var(--alert-tint);color:var(--alert-ink);}
+.tp-tab.t-review.on{background:var(--alert-ink);border-color:var(--alert-ink);color:var(--deep);}
+.tp-tab.t-review.on .tp-tab-n{background:var(--on-sheen-wash);color:var(--deep);}
 .tp-sec-note{font-size:var(--t-body);color:var(--muted);line-height:var(--lh-body);margin:0 0 16px;}
 
 /* ── receipt / trip summary ── */
