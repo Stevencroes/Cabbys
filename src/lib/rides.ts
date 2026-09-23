@@ -93,10 +93,36 @@ export async function createRide(draft: BookingState): Promise<CreateRideResult>
   return { ride: null, error: lastError, needsAuth: !userId || wall, detail: noGuestId };
 }
 
-export async function cancelRide(rideId: string): Promise<string | null> {
-  const { error } = await supabase
+export type GuestCancelResult = { ok: true } | { ok: false; detail: string };
+
+/**
+ * The guest cancelling their own booking.
+ *
+ * Goes through the "rides: cancel own" RLS policy in docs/schema.sql,
+ * which allows it only from pending, pending_payment, confirmed or
+ * driver_assigned. Outside those, Postgres does not refuse the UPDATE —
+ * it matches ZERO rows and reports success. This function used to return
+ * "no error" for that, the card flipped to Cancelled, and the booking was
+ * still live in the database with a driver about to set off for it.
+ *
+ * So it asks for the updated row back and treats an empty answer as the
+ * refusal it is. A failed write is never reported as a finished one.
+ */
+export async function cancelRide(rideId: string): Promise<GuestCancelResult> {
+  const { data, error } = await supabase
     .from("rides")
     .update({ status: "cancelled" })
-    .eq("id", rideId);
-  return error?.message ?? null;
+    .eq("id", rideId)
+    .select("id");
+
+  if (error) {
+    return { ok: false, detail: "We couldn't cancel this just now. Check your connection and try again, or contact us." };
+  }
+  if (!Array.isArray(data) || data.length === 0) {
+    return {
+      ok: false,
+      detail: "This trip can no longer be cancelled online — it has already moved on. Contact us and we'll help.",
+    };
+  }
+  return { ok: true };
 }

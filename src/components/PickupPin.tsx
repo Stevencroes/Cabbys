@@ -30,9 +30,9 @@ export interface PinnableRide {
   id: string;
   pickup_location: string;
   /** Both shapes, because rides carry the time in both — see pickupInstant. */
-  scheduled_at?: string;
-  scheduled_date?: string;
-  scheduled_time?: string;
+  scheduled_at?: string | null;
+  scheduled_date?: string | null;
+  scheduled_time?: string | null;
   pickup_lat?: number | null;
   pickup_lng?: number | null;
   pickup_note?: string | null;

@@ -1649,21 +1649,29 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* --nav-clear is the rail plus air — the same token anchors scroll to, so a
    page title clears the bar by the same margin a section heading does */
 .tp-main{min-height:100vh;background:var(--ground);padding:var(--nav-clear) 0 4rem;}
-.tp-wrap{max-width:800px;}
+/* 860 wide less the .wrap gutters leaves a ~760px column on desktop: room
+   for a label column beside its value, so a card reads in rows rather than
+   as a narrow stack of wrapped lines, and still one centred column. */
+.tp-wrap{max-width:860px;}
 .tp-title{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,2.7vw,2.1rem);color:var(--ink);letter-spacing:-.01em;}
 .tp-sub{color:var(--muted);font-size:var(--t-body);font-weight:400;letter-spacing:.04em;margin:6px 0 40px;}
 .tp-quiet{color:var(--muted);letter-spacing:.04em;font-weight:400;}
 .tp-claimed{margin:14px 0 0;font-size:var(--t-meta);line-height:1.6;color:var(--signal-ink);font-weight:400;
   background:var(--signal-tint);border:1px solid var(--signal-line);border-radius:var(--r-sm);padding:10px 14px;}
-.tp-unclosed{margin:12px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--muted);font-weight:400;
-  border-left:2px solid var(--line);padding-left:11px;}
 .tp-empty{background:var(--surface);border:1px solid var(--line);padding:2.6rem;text-align:center;box-shadow:var(--shadow-hard);}
-.tp-empty p{color:var(--muted);font-size:var(--t-body);font-weight:400;letter-spacing:.02em;margin-bottom:1.1rem;}
+.tp-empty p{color:var(--muted);font-size:var(--t-body);font-weight:400;letter-spacing:.02em;margin:0 auto 1.1rem;max-width:38em;line-height:var(--lh-body);}
+.tp-empty .tp-empty-h{font-family:var(--serif);font-size:var(--t-title);color:var(--ink);margin-bottom:.5rem;}
 .tp-link{color:var(--silver);font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--silver);padding-bottom:2px;transition:color .25s;min-height:var(--tap);display:inline-flex;align-items:center;}
 .tp-link:hover{color:var(--ink);}
 .tp-skeletons{display:flex;flex-direction:column;gap:14px;}
 /* a loading block, not a swept gradient — the system has only two of those */
-.tp-skeleton{height:150px;border:1px solid var(--line);background:var(--raised);animation:pulse 1.4s ease-in-out infinite;}
+.tp-skeleton{display:flex;flex-direction:column;gap:12px;padding:22px 26px;border:1px solid var(--line);background:var(--surface);}
+.tp-skeleton .sk{display:block;height:12px;border-radius:6px;background:var(--raised);animation:pulse 1.4s ease-in-out infinite;}
+.tp-skeleton .sk-pill{width:128px;height:24px;}
+.tp-skeleton .sk-title{width:58%;height:22px;}
+.tp-skeleton .sk-line{width:84%;}
+.tp-skeleton .sk-line.short{width:46%;}
+@media(prefers-reduced-motion:reduce){.tp-skeleton .sk{animation:none;}}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 .tp-section{margin-bottom:38px;}
 /* the shelf picker — one group at a time, counts on the chip */
@@ -1676,7 +1684,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-tab-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;
   border-radius:var(--r-pill);background:var(--raised);font-size:var(--t-meta);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
 .tp-tab.on .tp-tab-n{background:var(--on-sheen-wash);color:var(--deep);}
-@media(max-width:420px){.tp-tab{flex:1 1 auto;justify-content:center;padding:0 12px;letter-spacing:.08em;}}
+/* Three equal tabs in one row on a phone. Wrapped, "Cancelled" stretched
+   across a row of its own and read as a different kind of control. */
+@media(max-width:480px){
+  /* Three equal tabs in one row, with the count UNDER the label rather
+     than beside it. Side by side, "Cancelled 1" does not fit a third of a
+     phone and the label was clipped — a tab you cannot read is worse than
+     tabs on two rows. Stacked, every label fits whole at the normal size. */
+  .tp-tabs{flex-wrap:nowrap;gap:6px;}
+  .tp-tab{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;gap:4px;
+    min-height:60px;padding:6px 4px;letter-spacing:.06em;border-radius:var(--r-md);}
+  .tp-tab-n{min-width:22px;height:20px;padding:0 6px;}
+}
 .tp-list{display:flex;flex-direction:column;gap:16px;}
 /* the reveal — lighter than a card so it reads as a control, not a trip */
 .tp-more{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:var(--tap);
@@ -1686,25 +1705,64 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-more:hover{border-color:var(--silver-deep);color:var(--ink);background:var(--raised);}
 .tp-more svg{transition:transform .3s var(--ease);}
 .tp-more.open svg{transform:rotate(180deg);}
-.tp-card{position:relative;background:var(--surface);border:1px solid var(--line);padding:20px 24px;box-shadow:var(--shadow-hard);transition:transform .25s var(--ease);}
-.tp-card:hover{transform:translateY(-2px);}
-.tp-card.cancelled{opacity:.55;}
-.tp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
-.tp-ref{font-family:var(--serif);font-size:var(--t-body);color:var(--ink);font-weight:600;letter-spacing:.08em;}
-.tp-status{font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 11px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;}
-/* assigned and en route are live states — the only place signal appears here */
-.tp-status.s-confirmed,.tp-status.s-driver_assigned{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
-.tp-status.s-en_route{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
-.tp-status.s-completed{color:var(--muted);}
-.tp-status.s-cancelled{color:var(--muted);text-decoration:line-through;}
-.tp-route .rr-stop{display:flex;align-items:center;gap:11px;font-size:var(--t-body);color:var(--ink);font-weight:400;}
+/* No hover lift: the card itself is not a link, and a surface that rises
+   under the pointer promises a click that goes nowhere. The actions in it
+   are the things that respond.
+
+   And no fading for cancelled trips. The card used to drop to opacity .55,
+   which took --muted text to 2.4:1 and failed AA on every cancelled trip.
+   The status word says "Cancelled"; it does not need the whole card
+   dimmed to say it again. */
+.tp-card{position:relative;background:var(--surface);border:1px solid var(--line);padding:22px 26px;box-shadow:var(--shadow-hard);}
+.tp-card.p-review{border-color:var(--alert-line);}
+.tp-head{margin:0 0 12px;}
+.tp-status{display:inline-block;font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;font-weight:600;
+  padding:5px 11px;border:1px solid var(--line);color:var(--silver);}
+/* A driver on the trip is a live state — the one place signal appears. */
+.tp-status.s-confirmed,.tp-status.s-driver_assigned,.tp-status.s-en_route,
+.tp-status.s-arrived,.tp-status.s-onboard{background:var(--signal-tint);border-color:var(--signal-line);color:var(--signal-ink);}
+.tp-status.s-completed,.tp-status.s-cancelled,.tp-status.s-received{color:var(--silver);}
+/* Something may have gone wrong — the only other colour a status can take. */
+.tp-status.s-needs_review,.tp-status.s-no_show{background:var(--alert-tint);border-color:var(--alert-line);color:var(--alert-ink);}
+/* When, in the display face — it is the line a guest checks first after
+   the status — with the timezone named beside it, not left implied. */
+.tp-when{font-family:var(--serif);font-weight:500;font-size:clamp(1.2rem,2.1vw,1.45rem);line-height:var(--lh-snug);
+  color:var(--ink);margin:0 0 14px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;}
+.tp-tz{font-family:var(--sans);font-size:var(--t-meta);letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--silver);}
+.tp-review{margin:14px 0 0;font-size:var(--t-body);line-height:var(--lh-body);color:var(--silver);
+  border-left:2px solid var(--alert-line);padding-left:12px;}
+.tp-route .rr-stop{display:flex;align-items:flex-start;gap:11px;font-size:var(--t-body);color:var(--ink);font-weight:400;line-height:var(--lh-snug);}
+.tp-route .rr-stop > span:last-child{min-width:0;overflow-wrap:anywhere;}
+.tp-route .ring,.tp-route .rdiamond{margin-top:5px;}
 .tp-route .rr-line{width:0;height:18px;border-left:1px dashed var(--line);margin:3px 0 3px 5px;}
 .ring{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--silver);flex-shrink:0;}
 .rdiamond{width:11px;height:11px;background:var(--signal);transform:rotate(45deg);flex-shrink:0;margin:0 .5px;}
 .rr-stop{display:flex;align-items:center;gap:11px;}
 .rr-line{width:0;height:18px;border-left:1px dashed var(--line);margin:3px 0 3px 5px;}
-.tp-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--t-meta);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500;}
-.tp-fare{margin-left:auto;font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums;}
+/* Every value gets its label — "TRANSIT · TRANSIT" and a lone "$64" were
+   values with nothing saying what they were.
+
+   One FIXED label column, shared by every facts block in the card. Sized
+   to each block's own longest label, the vehicle rows and the payment
+   rows got different columns and the values jumped sideways halfway down
+   a card. A longer translated label wraps inside the 13rem instead of
+   pushing the column — "Référence de réservation" becomes two lines. */
+.tp-facts{display:grid;grid-template-columns:13rem minmax(0,1fr);gap:10px 22px;
+  margin:16px 0 0;padding-top:14px;border-top:1px solid var(--line);}
+.tp-fact{display:contents;}
+.tp-fact dt{font-size:var(--t-meta);letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--silver);padding-top:3px;}
+.tp-fact dd{margin:0;font-size:var(--t-body);color:var(--ink);overflow-wrap:anywhere;line-height:var(--lh-snug);}
+.tp-pay{display:block;font-weight:500;}
+.tp-pay.pay-failed{color:var(--alert-ink);}
+.tp-pay-d{display:block;margin-top:2px;font-size:var(--t-meta);color:var(--muted);line-height:var(--lh-body);}
+/* the money, set like money */
+.tp-total dd{font-family:var(--serif);font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1;}
+.tp-reffact dd{letter-spacing:.08em;font-variant-numeric:tabular-nums;}
+/* A phone has no room for a label column beside a long address. */
+@media(max-width:480px){
+  .tp-facts{grid-template-columns:minmax(0,1fr);gap:3px;}
+  .tp-fact dd{margin-bottom:11px;}
+}
 /* ── the flight line, guest side ──────────────────────────────────────
    The driver's twin of this (driver.css, .drv-flight) is an operational
    readout. This one is a receipt: it exists to show a guest at a gate
@@ -1749,7 +1807,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .tp-flight.alert{border-color:var(--alert-line);background:var(--alert-tint);}
 .tp-flight.alert .tf-v{color:var(--alert-ink);}
 .tp-flight.alert .tf-d{color:var(--silver);}
-.tp-timeline{display:flex;align-items:flex-start;margin-top:16px;overflow-x:auto;padding-bottom:2px;}
+.tp-timeline{display:flex;align-items:flex-start;margin:16px 0 0;padding:0 0 2px;list-style:none;overflow-x:auto;}
 .tp-tl-step{display:flex;align-items:center;color:var(--muted);}
 .tp-tl-node{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--soft);background:transparent;flex-shrink:0;}
 .tp-tl-bar{width:26px;height:0;border-top:1px dashed var(--line);margin:0 7px;flex-shrink:0;}
@@ -1764,12 +1822,18 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* the step you are on is the tracking state — live */
 .tp-tl-step.now{color:var(--signal-ink);}
 .tp-tl-step.now .tp-tl-node{border-color:var(--signal);background:var(--signal);box-shadow:0 0 0 3px var(--signal-glow);}
-.tp-driver{display:flex;align-items:center;gap:14px;margin-top:16px;padding:15px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
-.tp-driver-ava{width:44px;height:44px;border-radius:50%;background:var(--raised);color:var(--silver);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:20px;font-weight:500;flex-shrink:0;}
+/* No bottom rule: whatever follows draws its own top edge, and two
+   hairlines stacked read as a mistake. Top-aligned so the face sits
+   beside the name it belongs to, not floating mid-block. */
+.tp-driver{display:flex;align-items:flex-start;gap:14px;margin-top:16px;padding:16px 0 4px;border-top:1px solid var(--line);}
+/* 56px: large enough to recognise a face across an arrivals hall, which
+   is what the photo is for. */
+.tp-driver-ava{width:56px;height:56px;border-radius:50%;background:var(--raised);color:var(--silver);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:20px;font-weight:500;flex-shrink:0;border:1px solid var(--line);}
+.tp-initials{letter-spacing:.04em;}
 .tp-driver-info{display:flex;flex-direction:column;min-width:0;}
 .tp-driver-info b{font-family:var(--serif);font-size:18px;color:var(--ink);font-weight:500;}
 .tp-driver-info span{font-size:var(--t-body);color:var(--muted);font-weight:400;margin-top:2px;}
-.tp-driver-wa{margin-left:auto;flex-shrink:0;}
+.tp-driver-info .tp-driver-k{margin-top:0;font-size:var(--t-meta);letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--silver);}
 /* a real face when the driver has uploaded one */
 img.tp-driver-ava{object-fit:cover;}
 /* The plate, set apart from the car it belongs to. Somebody at the kerb
@@ -1779,7 +1843,34 @@ img.tp-driver-ava{object-fit:cover;}
   font-size:var(--t-meta);font-weight:600;letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--ink);background:var(--raised);border:1px solid var(--silver-deep);
   border-radius:var(--r-xs);padding:4px 9px;font-variant-numeric:tabular-nums;}
-.tp-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;}
+/* The actions, set apart by a rule so they read as what you can DO with
+   the trip rather than more facts about it. Every one is at least --tap
+   (46px) tall; labels may wrap to two lines rather than overflow, so a
+   longer translated label grows the button instead of breaking the row. */
+.tp-actions{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
+.tp-actions .btn-ghost,.tp-panel-row .btn-ghost,.tp-empty .btn-ghost{justify-content:center;text-align:center;white-space:normal;line-height:1.3;padding-block:8px;}
+/* The one thing this card most wants done, solid like the chosen tab. */
+.btn-ghost.tp-primary{background:var(--silver);color:var(--deep);border-color:var(--silver);}
+.btn-ghost.tp-primary:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
+.btn-ghost.tp-danger{color:var(--alert-ink);border-color:var(--alert-line);}
+.btn-ghost.tp-danger:hover{background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert-line);}
+/* Cancel is the one action that cannot be undone, so on a wide screen it
+   is the quietest thing in the row and sits apart at the far end — not a
+   fourth equal button wrapping onto a line of its own. Still a full
+   --tap target; only its border goes. */
+@media(min-width:521px){
+  /* A touch less tracking than a standalone button, so an upcoming trip's
+     four actions fit one row of the card instead of missing by a few px. */
+  .tp-actions .btn-ghost{letter-spacing:.08em;padding-inline:13px;}
+  /* Normal case, not spaced capitals: the destructive action reads as a
+     considered secondary choice rather than a fourth equal button, and at
+     ~100px instead of ~170 an upcoming trip's actions fit one row. */
+  .tp-actions .btn-ghost.tp-danger{margin-left:auto;border-color:transparent;padding-inline:6px;
+    text-transform:none;letter-spacing:.01em;font-weight:500;
+    text-decoration:underline;text-underline-offset:4px;}
+  .tp-actions .btn-ghost.tp-danger:hover{background:transparent;border-color:transparent;color:var(--ink);}
+}
+@media(max-width:520px){.tp-actions .btn-ghost{flex:1 1 calc(50% - 5px);}}
 .tp-actions:empty{display:none;}
 .btn-ghost{font-size:var(--t-meta);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);padding:0 18px;min-height:var(--tap);display:inline-flex;align-items:center;border:1px solid var(--silver-deep);transition:.3s var(--ease);background:transparent;}
 .btn-ghost:hover{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
@@ -1787,10 +1878,69 @@ img.tp-driver-ava{object-fit:cover;}
    look inert, not merely refuse the click */
 .btn-ghost:disabled{color:var(--soft);border-color:var(--line);cursor:default;}
 .btn-ghost:disabled:hover{background:transparent;color:var(--soft);border-color:var(--line);}
-.tp-cancel-link{font-size:var(--t-meta);color:var(--muted);font-weight:500;min-height:var(--tap);display:inline-flex;align-items:center;transition:color .25s;}
-.tp-cancel-link:hover{color:var(--ink);}
-.tp-cancel-link.danger{color:var(--alert-ink);}
-.tp-cancel-confirm{display:inline-flex;align-items:center;gap:14px;font-size:var(--t-meta);color:var(--muted);font-weight:400;flex-wrap:wrap;}
+/* What opens under the card: details, a confirmation, a way to reach us.
+   --raised, one step up from the card, so it reads as part of this trip. */
+.tp-panel{margin-top:16px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raised);}
+.tp-panel:focus{outline:none;}
+.tp-panel:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
+.tp-panel-h{font-family:var(--serif);font-size:var(--t-title);color:var(--ink);margin:0 0 4px;}
+/* --muted on --raised is 4.87:1 — AA for body text, which this is. */
+.tp-panel-note{font-size:var(--t-body);color:var(--muted);line-height:var(--lh-body);margin:6px 0 0;}
+.tp-panel-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.tp-confirm{border-color:var(--alert-line);}
+.tp-events{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px;}
+.tp-events li{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;font-size:var(--t-body);color:var(--ink);}
+.tp-events time{color:var(--muted);}
+/* A quiet text-only control — Close, Retry — still a full tap target. */
+.tp-text{min-height:var(--tap);display:inline-flex;align-items:center;padding:0 2px;margin-top:6px;
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--silver);
+  text-decoration:underline;text-underline-offset:4px;background:none;border:0;cursor:pointer;}
+.tp-text:hover{color:var(--ink);}
+.tp-text:disabled{color:var(--soft);cursor:default;}
+.tp-error{margin-top:14px;}
+
+/* How fresh the list is, when it might not be. */
+.tp-conn{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:0 0 22px;padding:12px 16px;
+  border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raised);
+  font-size:var(--t-body);color:var(--silver);line-height:var(--lh-body);}
+.tp-conn .tp-text{margin-top:0;}
+
+/* Needs review — above the tabs, where a tab cannot hide it. Unboxed: the
+   heading and the alert rule on each card carry it, so it reads as urgent
+   without turning the top of the page into a warning banner. */
+.tp-review-sec{margin:0 0 36px;}
+.tp-sec-h{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-weight:500;
+  font-size:var(--t-title);color:var(--ink);margin:0 0 6px;}
+.tp-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 7px;
+  border-radius:var(--r-pill);background:var(--alert-tint);border:1px solid var(--alert-line);color:var(--alert-ink);
+  font-family:var(--sans);font-size:var(--t-meta);font-weight:600;font-variant-numeric:tabular-nums;}
+.tp-sec-note{font-size:var(--t-body);color:var(--muted);line-height:var(--lh-body);margin:0 0 16px;}
+
+/* ── receipt / trip summary ── */
+.tp-receipt{width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:28px;box-shadow:var(--shadow-hard-lg);}
+.tp-receipt::backdrop{background:var(--scrim);}
+.tp-receipt-brand{font-family:var(--serif);font-size:var(--t-meta);letter-spacing:.32em;text-transform:uppercase;color:var(--silver);margin:0;}
+.tp-receipt-h{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,4vw,2rem);margin:6px 0 8px;color:var(--ink);}
+.tp-receipt-note{font-size:var(--t-body);color:var(--muted);line-height:var(--lh-body);margin:0 0 4px;}
+/* Printed on paper, so black on white — the one place this stylesheet
+   leaves the palette, because a navy page wastes a cartridge and prints
+   unreadably grey on most office printers. Everything but the receipt is
+   hidden, so "Save as PDF" is the download. */
+@media print{
+  html.printing-receipt body *{visibility:hidden !important;}
+  html.printing-receipt .tp-receipt,html.printing-receipt .tp-receipt *{visibility:visible !important;}
+  html.printing-receipt .tp-receipt{position:absolute;left:0;top:0;width:100%;max-height:none;overflow:visible;
+    border:0;box-shadow:none;padding:0;background:#fff;}
+  html.printing-receipt .tp-receipt *{color:#000 !important;background:transparent !important;border-color:#bbb !important;}
+  html.printing-receipt .tp-receipt-actions{display:none !important;}
+}
+
+@media(max-width:520px){
+  .tp-card{padding:18px 16px;}
+  .tp-receipt{padding:22px 18px;}
+}
 
 /* ============ AUTH ============ */
 .auth-overlay{position:fixed;inset:0;z-index:var(--z-modal);display:flex;align-items:center;justify-content:center;padding:24px;background:var(--scrim);}

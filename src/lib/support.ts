@@ -92,3 +92,37 @@ export function askToBookByHand(t: TripOutline): string {
 export function askAboutShortNotice(t: TripOutline): string {
   return `${HI} I need a transfer — ${outline(t)}. I know that's short notice; can you take it?`;
 }
+
+// ── trip actions on My Trips ───────────────────────────────────────────
+//
+// Each of these is a question the guest would otherwise have to write
+// from scratch, from a screen that already knows the answer to "which
+// booking". They are sent by email as readily as by WhatsApp: WhatsApp is
+// how the island talks, but it is not how every guest does, and a support
+// path that exists only on one app is a support path some guests do not
+// have.
+
+/** The guest wants something about the booking changed. */
+export function askToChange(ref: string, t: TripOutline): string {
+  return `${HI} I'd like to change booking ${ref} (${outline(t)}). What I need changed:`;
+}
+
+/** Something went wrong, or the trip was never closed off. */
+export function reportIssue(ref: string, t: TripOutline): string {
+  return `${HI} I need to report an issue with booking ${ref} (${outline(t)}). What happened:`;
+}
+
+/** A cancelled booking where money was taken or held. */
+export function askAboutRefund(ref: string): string {
+  return `${HI} booking ${ref} was cancelled. Could you tell me the status of my refund?`;
+}
+
+/**
+ * The same message as an email.
+ *
+ * The subject names the booking so it can be found in an inbox without
+ * opening it; the body is the message itself, ready to finish.
+ */
+export function supportMailto(subject: string, body: string): string {
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}

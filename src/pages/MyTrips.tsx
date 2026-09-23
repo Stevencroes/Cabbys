@@ -1,353 +1,175 @@
-import { useEffect, useState } from "react";
+// ── My Trips ─────────────────────────────────────────────────────────────
+//
+// Three tabs — Upcoming, Past, Cancelled — and above them, when there are
+// any, the trips that need review. Every trip appears exactly once, in the
+// place src/lib/tripStatus.ts decides from the backend row and the clock,
+// and the tab counts are counts of that same decision. Nothing here
+// decides status for itself.
+//
+// Needs-review trips are deliberately NOT a fourth tab and NOT folded into
+// Past. A trip whose pickup came and went without being closed is the one
+// thing on this page that might mean something went wrong, and a tab is a
+// place a problem can be left unopened. Above the tabs it is on screen
+// whichever tab is chosen, until it is resolved.
+//
+// The page also has to be honest about how fresh it is. Statuses change
+// while it is open — a driver taps "on my way" — and the live channel can
+// drop, or the phone can go offline in an arrivals hall. When the list may
+// be out of date, the page says so and says as of when, rather than
+// presenting a stale "Driver assigned" as the present.
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../booking/useAuth";
 import { useBookingOptional } from "../booking/BookingContext";
 import { useStartBooking } from "../booking/useStartBooking";
 import { supabase } from "../lib/supabase";
-import { cancelRide } from "../lib/rides";
 import { claimGuestRides } from "../lib/claimRides";
-import { refFromRideId } from "../lib/bookingRef";
-import { cancellationInfo, scheduledDate } from "../lib/policy";
-import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
-import { askAboutBooking } from "../lib/support";
-import { usd, AWG_PER_USD } from "../lib/quote";
-import { formatDateTime, ARUBA_OFFSET_MINUTES } from "../lib/datetime";
+import { tripState, type TripState } from "../lib/tripStatus";
+import { formatTime, nowInAruba } from "../lib/datetime";
 import { findPlaceByName, selFromPlace } from "../data/places";
-import PickupPin from "../components/PickupPin";
-import TripFlight from "../components/TripFlight";
+import TripCard, { type Ride } from "../components/trips/TripCard";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 import { useAuthModal } from "../components/auth/AuthModal";
 
-interface Ride {
-  id: string;
-  pickup_location: string;
-  dropoff_location: string;
-  scheduled_date?: string;
-  scheduled_time?: string;
-  scheduled_at?: string;
-  vehicle_type?: string;
-  vehicle_class?: string;
-  fare_total?: number | string;
-  price?: number | string;
-  status?: string;
-  created_at?: string;
-  booking_ref?: string;
-  flight_number?: string;
-  driver_name?: string;
-  driver_phone?: string;
-  driver_vehicle?: string;
-  driver_plate?: string;
-  driver_photo?: string;
-  pickup_lat?: number | null;
-  pickup_lng?: number | null;
-  pickup_note?: string | null;
-}
+type Tab = "upcoming" | "past" | "cancelled";
 
-// The journey a ride moves through — synonyms collapse onto these stations.
-const STATUS_FLOW = ["pending", "confirmed", "driver_assigned", "en_route", "completed"] as const;
-const STATUS_LABELS: Record<(typeof STATUS_FLOW)[number], string> = {
-  pending: "Requested",
-  confirmed: "Confirmed",
-  driver_assigned: "Driver assigned",
-  en_route: "On the way",
-  completed: "Completed",
+const TABS: { key: Tab; label: string }[] = [
+  { key: "upcoming", label: "Upcoming" },
+  { key: "past", label: "Past" },
+  { key: "cancelled", label: "Cancelled" },
+];
+
+const EMPTY: Record<Tab, { h: string; p: string }> = {
+  upcoming: { h: "No upcoming trips.", p: "When you book a transfer, it will be here with your driver's details." },
+  past: { h: "No completed trips yet.", p: "Finished rides are kept here, with a summary of each." },
+  cancelled: { h: "No cancelled trips.", p: "Anything you cancel is kept here, with what happened to the payment." },
 };
 
-function canonicalStatus(status: string | undefined): string {
-  const s = (status ?? "pending").toLowerCase();
-  if (s === "pending_payment" || s === "requested") return "pending";
-  if (s === "paid" || s === "accepted") return "confirmed";
-  if (s === "assigned") return "driver_assigned";
-  if (s === "arrived" || s === "on_board" || s === "in_progress") return "en_route";
-  return s;
+/** How many trips a tab shows before it asks to be opened. */
+const SHELF_PAGE = 5;
+
+/**
+ * The clock the whole page reads.
+ *
+ * One value per render, shared by every card and every tab count, so a
+ * trip crossing the review threshold cannot be "upcoming" in the count and
+ * "needs review" on its card. Ticks each minute so a page left open
+ * catches that crossing without a reload.
+ */
+function useMinuteClock(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
 }
 
-function statusIndex(status: string | undefined): number {
-  return STATUS_FLOW.indexOf(canonicalStatus(status) as (typeof STATUS_FLOW)[number]);
+function useOnline(): boolean {
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine !== false));
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
+  return online;
 }
 
-function statusLabel(status: string | undefined): string {
-  const c = canonicalStatus(status);
-  if (c === "cancelled" || c === "canceled") return "Cancelled";
-  const i = statusIndex(status);
-  if (i >= 0) return STATUS_LABELS[STATUS_FLOW[i]];
-  if (!status) return "—";
-  return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+function clockOf(ms: number): string {
+  return formatTime(nowInAruba(ms));
 }
 
-function pickupDate(ride: Ride): Date | null {
-  if (ride.scheduled_date) return scheduledDate(ride.scheduled_date, ride.scheduled_time ?? "");
-  if (ride.scheduled_at) {
-    const d = new Date(ride.scheduled_at);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
+type Entry = { ride: Ride; state: TripState };
 
-function formatTripDate(ride: Ride): string {
-  // same unambiguous shape as the booking flow — never a bare 08/01
-  if (ride.scheduled_date) {
-    return formatDateTime(ride.scheduled_date, ride.scheduled_time ?? "");
-  }
-  const d = pickupDate(ride);
-  if (d) {
-    const iso = new Date(d.getTime() + ARUBA_OFFSET_MINUTES * 60_000).toISOString();
-    return formatDateTime(iso.slice(0, 10), iso.slice(11, 16));
-  }
-  return "—";
-}
+const pickupMs = (e: Entry) => (e.state.pickupAt ? Date.parse(e.state.pickupAt) : NaN);
+/** Soonest first, undated last — the next car is the one that matters. */
+const soonest = (a: Entry, b: Entry) => (pickupMs(a) || Infinity) - (pickupMs(b) || Infinity);
+/** Most recent first, for everything already behind the guest. */
+const latest = (a: Entry, b: Entry) => (pickupMs(b) || 0) - (pickupMs(a) || 0);
 
-// Three shelves: what's ahead, what you called off, what already happened.
-type Bucket = "upcoming" | "cancelled" | "past";
-
-function bucketOf(ride: Ride): Bucket {
-  const c = canonicalStatus(ride.status);
-  if (c === "cancelled" || c === "canceled") return "cancelled";
-  if (c === "completed") return "past";
-  const d = pickupDate(ride);
-  if (!d) return "upcoming"; // undated but active — keep it in front of the traveler
-  return d.getTime() > Date.now() - 6 * 3_600_000 ? "upcoming" : "past"; // grace after pickup
-}
-
-function isUpcoming(ride: Ride): boolean {
-  return bucketOf(ride) === "upcoming";
-}
-
-
-/** Sort key — undated rides sort last. */
-function whenMs(ride: Ride): number {
-  return pickupDate(ride)?.getTime() ?? 0;
-}
-
-function TripTimeline({ status }: { status: string | undefined }) {
-  const idx = Math.max(0, statusIndex(status));
+function Skeletons() {
   return (
-    <div className="tp-timeline" aria-label={`Status: ${statusLabel(status)}`}>
-      {STATUS_FLOW.map((s, i) => (
-        <div key={s} className={`tp-tl-step${i < idx ? " done" : ""}${i === idx ? " now" : ""}`}>
-          {i > 0 && <span className="tp-tl-bar" />}
-          <span className="tp-tl-node" />
-          <span className="tp-tl-lbl">{STATUS_LABELS[s]}</span>
+    <div className="tp-skeletons" role="status" aria-label="Loading your trips">
+      {[0, 1].map((i) => (
+        <div key={i} className="tp-skeleton" aria-hidden="true">
+          <span className="sk sk-pill" /><span className="sk sk-title" />
+          <span className="sk sk-line" /><span className="sk sk-line short" />
         </div>
       ))}
     </div>
   );
 }
 
-function TripCard({
-  ride,
-  onCancelled,
-  onRebook,
-}: {
-  ride: Ride;
-  onCancelled: (id: string) => void;
-  /** reverse=true books the way home; false repeats the same route */
-  onRebook?: (ride: Ride, reverse: boolean) => void;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const c = canonicalStatus(ride.status);
-  const cancelled = c === "cancelled" || c === "canceled";
-  const completed = c === "completed";
-  const upcoming = isUpcoming(ride);
-  // rides rows store florin for the driver dashboard; guests see USD only
-  const fare = usd(Number(ride.fare_total ?? ride.price ?? 0) / AWG_PER_USD);
-  const vehicle = [ride.vehicle_class, ride.vehicle_type].filter(Boolean).join(" · ");
-  const bookingRef = ride.booking_ref ?? refFromRideId(ride.id);
-  const policy = cancellationInfo(pickupDate(ride));
-  const canCancel = upcoming && !cancelled && !completed && c !== "en_route";
-  // Filing is by date once a trip stops being terminal, which is right — the
-  // ride is behind you either way. What was missing is the reason: a trip
-  // still tagged "Driver assigned" sitting under Past looks like a filter bug
-  // until the card admits nobody ever closed it off.
-  const unclosed = !upcoming && !cancelled && !completed;
-  const waHref = whatsappLink(askAboutBooking(bookingRef));
-
-  async function handleCancel() {
-    setBusy(true);
-    setError(null);
-    const err = await cancelRide(ride.id);
-    if (err) {
-      setError("Couldn't cancel just now — try again or message us on WhatsApp.");
-      setBusy(false);
-      return;
-    }
-    onCancelled(ride.id);
-  }
-
-  return (
-    <article className={`tp-card${cancelled ? " cancelled" : ""}`}>
-      <header className="tp-head">
-        <span className="tp-ref">{bookingRef}</span>
-        <span className={`tp-status s-${cancelled ? "cancelled" : c}`}>{statusLabel(ride.status)}</span>
-      </header>
-
-      <div className="tp-route">
-        <div className="rr-stop"><span className="ring" /><span>{ride.pickup_location}</span></div>
-        <div className="rr-line" />
-        <div className="rr-stop"><span className="rdiamond" /><span>{ride.dropoff_location}</span></div>
-      </div>
-
-      <div className="tp-meta">
-        <span>{formatTripDate(ride)}</span>
-        {vehicle && <span>{vehicle}</span>}
-        {ride.flight_number && <span>Flight {ride.flight_number}</span>}
-        <span className="tp-fare">{fare}</span>
-      </div>
-
-      {/* Directly under the meta row, because it is an elaboration of the
-          "Flight KL765" chip that sits in it — the typed number, then
-          what Cabby's can see about it.
-
-          Gated to a live trip for the same reason the pin is, plus one
-          of its own: flight lookups are billed per call, and an open
-          Past shelf is five cards that would each ask a vendor about a
-          plane that landed last month. TripFlight gates the direction
-          (arrival, not departure) itself. */}
-      {upcoming && !cancelled && !completed && <TripFlight ride={ride} />}
-
-      {upcoming && !cancelled && <TripTimeline status={ride.status} />}
-
-      {unclosed && (
-        <p className="tp-unclosed">
-          The pickup time has gone by and this was never marked complete.
-          Message us if that isn't right.
-        </p>
-      )}
-
-      {ride.driver_name && !cancelled && (
-        <div className="tp-driver">
-          {ride.driver_photo
-            ? <img className="tp-driver-ava" src={ride.driver_photo} alt="" />
-            : <div className="tp-driver-ava" aria-hidden="true">{ride.driver_name.charAt(0)}</div>}
-          <div className="tp-driver-info">
-            <b>{ride.driver_name}</b>
-            {/* The car, then the plate on its own — a plate read out of the
-                middle of a sentence is a plate nobody checks. */}
-            <span>{ride.driver_vehicle || "Your driver"}</span>
-            {ride.driver_plate && <span className="tp-plate">{ride.driver_plate}</span>}
-          </div>
-          {ride.driver_phone && (
-            <a
-              className="btn-ghost tp-driver-wa"
-              href={`https://wa.me/${ride.driver_phone.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              WhatsApp
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* Only while there is still a driver to tell. A cancelled or
-          finished trip has nobody on the other end of this. */}
-      {upcoming && !cancelled && !completed && <PickupPin ride={ride} />}
-
-      {error && <div className="pay-error" role="alert" style={{ marginTop: "12px" }}>{error}</div>}
-
-      <footer className="tp-actions">
-        {onRebook && (completed || cancelled) && (
-          <button
-            className="btn-ghost"
-            type="button"
-            onClick={() => onRebook(ride, completed)}
-          >
-            {cancelled ? "Book again" : "Book return"}
-          </button>
-        )}
-        {upcoming && !cancelled && waHref && whatsappEnabled && (
-          <a className="btn-ghost" href={waHref} target="_blank" rel="noreferrer">WhatsApp us</a>
-        )}
-        {canCancel && !confirming && (
-          <button className="tp-cancel-link" type="button" onClick={() => setConfirming(true)}>
-            Cancel trip
-          </button>
-        )}
-        {canCancel && confirming && (
-          <span className="tp-cancel-confirm">
-            {policy.free ? "Free to cancel." : "Inside 24 h — a fee may apply."}
-            <button className="tp-cancel-link danger" type="button" disabled={busy} onClick={handleCancel}>
-              {busy ? "Cancelling…" : "Yes, cancel"}
-            </button>
-            <button className="tp-cancel-link" type="button" onClick={() => setConfirming(false)}>
-              Keep trip
-            </button>
-          </span>
-        )}
-      </footer>
-    </article>
-  );
-}
-
-const FILTERS: { key: Bucket; label: string }[] = [
-  { key: "upcoming", label: "Upcoming" },
-  { key: "cancelled", label: "Cancelled" },
-  { key: "past", label: "Past" },
-];
-
-/** How many trips a shelf shows before it asks to be opened. */
-const SHELF_PAGE = 5;
-
-const EMPTY_COPY: Record<Bucket, string> = {
-  upcoming: "Nothing on the calendar. The island is waiting.",
-  cancelled: "Nothing cancelled — long may it last.",
-  past: "No finished trips yet.",
-};
-
 export default function MyTrips() {
   // `account`, never `user`. Booking as a guest mints an ANONYMOUS Supabase
-  // user and Supabase persists it in localStorage, so every guest booking
-  // made from one browser shares one id — which is why this page looked
-  // like it was full of seed data: it was showing every test booking that
-  // browser had ever made, to nobody in particular.
+  // user persisted in localStorage, so every guest booking from one browser
+  // shares one id — showing those would show every test booking that
+  // browser ever made, to nobody in particular.
   const { account, loading: authLoading } = useAuth();
   const { openAuth } = useAuthModal();
   const booking = useBookingOptional();
   const startBooking = useStartBooking();
   const [params, setParams] = useSearchParams();
-  // Only one shelf can be open at a time, so switching shelves collapses
-  // the previous one without needing an effect to reset it.
-  const [openShelf, setOpenShelf] = useState<Bucket | null>(null);
-  const raw = params.get("show");
-  // null = "no explicit choice yet"; the render picks a sensible shelf.
-  const filter: Bucket | null = FILTERS.some((f) => f.key === raw) ? (raw as Bucket) : null;
+  const now = useMinuteClock();
+  const online = useOnline();
+
   const [rides, setRides] = useState<Ride[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // How many guest bookings this visit pulled onto the account, so the page
-  // can account for trips that were not here the last time they looked.
+  const [syncedAt, setSyncedAt] = useState<number | null>(null);
+  // null until the live channel reports; false once it has failed.
+  const [live, setLive] = useState<boolean | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [claimed, setClaimed] = useState(0);
+  const [openShelf, setOpenShelf] = useState<Tab | null>(null);
+
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     if (!account) return;
-    let live = true;
+    let alive = true;
     setLoading(true);
-    // Claim first, read second. Anything booked as a guest under this
-    // address becomes theirs before the list is fetched, so it arrives in
-    // one pass rather than appearing on the next refresh.
+    setError(null);
+    // Claim first, read second, so a guest booking made under this address
+    // arrives in the same pass instead of on the next refresh.
     void claimGuestRides()
-      .then(({ claimed: n }) => { if (live) setClaimed(n); })
+      .then(({ claimed: n }) => { if (alive) setClaimed(n); })
+      .catch(() => { /* claiming is a bonus; the read below still runs */ })
       .then(() =>
         supabase
           .from("rides")
           .select("*")
           .eq("passenger_id", account.id)
-          .order("created_at", { ascending: false })
-          .then(({ data, error: err }) => {
-            if (!live) return;
-            if (err) setError(err.message);
-            else setRides((data as Ride[]) ?? []);
-            setLoading(false);
-          }),
-      );
-    return () => { live = false; };
-  }, [account]);
+          .order("created_at", { ascending: false }),
+      )
+      .then((res) => {
+        if (!alive || !res) return;
+        // A failed read is reported as a failure — never as "no trips",
+        // which is the house fault this codebase keeps naming. Whatever was
+        // already on screen stays there, marked as not refreshed.
+        if (res.error) setError(res.error.message || "The request failed.");
+        else { setRides((res.data as Ride[]) ?? []); setSyncedAt(Date.now()); }
+        setLoading(false);
+      }, () => {
+        if (!alive) return;
+        setError("The request failed.");
+        setLoading(false);
+      });
+    return () => { alive = false; };
+  }, [account, reloadKey]);
 
-  // Live status: driver assignment / en-route flips arrive without a refresh.
+  // Back online after being offline: fetch again rather than leave the
+  // guest looking at statuses from before the gap.
+  const wasOffline = useRef(false);
+  useEffect(() => {
+    if (!online) { wasOffline.current = true; return; }
+    if (wasOffline.current) { wasOffline.current = false; reload(); }
+  }, [online, reload]);
+
+  // Live status: a driver's "on my way" arrives without a refresh.
   useEffect(() => {
     if (!account) return;
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -359,63 +181,77 @@ export default function MyTrips() {
           { event: "UPDATE", schema: "public", table: "rides", filter: `passenger_id=eq.${account.id}` },
           (payload: { new: Ride }) => {
             setRides((rs) => rs.map((r) => (r.id === payload.new.id ? { ...r, ...payload.new } : r)));
+            setSyncedAt(Date.now());
           },
         )
-        .subscribe();
-    } catch { /* realtime not enabled — page still works on refresh */ }
+        .subscribe((status: string) => {
+          if (status === "SUBSCRIBED") setLive(true);
+          else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setLive(false);
+        });
+    } catch {
+      setLive(false);
+    }
     return () => {
       try { if (channel) supabase.removeChannel(channel); } catch { /* noop */ }
     };
   }, [account]);
 
   function handleCancelled(id: string) {
+    // Only called after cancelRide confirmed the row changed, so this
+    // mirrors the database rather than hoping it agrees.
     setRides((rs) => rs.map((r) => (r.id === id ? { ...r, status: "cancelled" } : r)));
   }
 
-  function handleRebook(ride: Ride, reverse: boolean) {
+  function handleBookAgain(ride: Ride) {
     if (!booking) return;
     booking.reset();
-    // a completed trip rebooks the way home; a cancelled one repeats itself
-    const a = findPlaceByName(reverse ? ride.dropoff_location : ride.pickup_location);
-    const b = findPlaceByName(reverse ? ride.pickup_location : ride.dropoff_location);
-    booking.open({
-      from: a ? selFromPlace(a) : undefined,
-      to: b ? selFromPlace(b) : undefined,
-    });
+    const a = findPlaceByName(ride.pickup_location);
+    const b = findPlaceByName(ride.dropoff_location);
+    booking.open({ from: a ? selFromPlace(a) : undefined, to: b ? selFromPlace(b) : undefined });
   }
 
-  // Upcoming reads soonest-first (the next car is the one you care about);
-  // the two backward-looking shelves read most-recent-first.
-  const allGroups: { key: Bucket; label: string; rides: Ride[] }[] = [
-    {
-      key: "upcoming",
-      label: "Upcoming",
-      rides: rides.filter((r) => bucketOf(r) === "upcoming").sort((a, b) => whenMs(a) - whenMs(b)),
-    },
-    {
-      key: "cancelled",
-      label: "Cancelled",
-      rides: rides.filter((r) => bucketOf(r) === "cancelled").sort((a, b) => whenMs(b) - whenMs(a)),
-    },
-    {
-      key: "past",
-      label: "Past",
-      rides: rides.filter((r) => bucketOf(r) === "past").sort((a, b) => whenMs(b) - whenMs(a)),
-    },
-  ];
-  const ready = !authLoading && account && !loading && !error;
-  // One shelf at a time — the page never stacks all three at once.
-  // With no explicit choice, open on the first shelf that has something,
-  // preferring what's ahead of you.
-  const fallback: Bucket =
-    (["upcoming", "past", "cancelled"] as Bucket[]).find(
-      (k) => allGroups.find((g) => g.key === k)!.rides.length > 0,
-    ) ?? "upcoming";
-  const active: Bucket = filter ?? fallback;
-  const group = allGroups.find((g) => g.key === active)!;
+  const groups = useMemo(() => {
+    const all: Entry[] = rides.map((ride) => ({ ride, state: tripState(ride, now) }));
+    const by = (p: TripState["placement"]) => all.filter((e) => e.state.placement === p);
+    return {
+      upcoming: by("upcoming").sort(soonest),
+      past: by("past").sort(latest),
+      cancelled: by("cancelled").sort(latest),
+      review: by("review").sort(latest),
+    };
+  }, [rides, now]);
+
+  const raw = params.get("show");
+  const chosen: Tab | null = TABS.some((t) => t.key === raw) ? (raw as Tab) : null;
+  // Upcoming when there is anything ahead; otherwise Past.
+  const active: Tab = chosen ?? (groups.upcoming.length > 0 ? "upcoming" : "past");
+  const shelf = groups[active];
   const expanded = openShelf === active;
-  const visible = expanded ? group.rides : group.rides.slice(0, SHELF_PAGE);
-  const hidden = group.rides.length - visible.length;
+  const visible = expanded ? shelf : shelf.slice(0, SHELF_PAGE);
+  const hidden = shelf.length - visible.length;
+
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ upcoming: null, past: null, cancelled: null });
+  function choose(t: Tab, focus = false) {
+    setParams({ show: t });
+    setOpenShelf(null);
+    if (focus) tabRefs.current[t]?.focus();
+  }
+  // The keyboard pattern a screen-reader user expects from a tablist:
+  // arrows move between tabs, Home/End jump to the ends.
+  function onTabKey(e: KeyboardEvent<HTMLButtonElement>) {
+    const i = TABS.findIndex((t) => t.key === active);
+    const go = (j: number) => { e.preventDefault(); choose(TABS[(j + TABS.length) % TABS.length].key, true); };
+    if (e.key === "ArrowRight") go(i + 1);
+    else if (e.key === "ArrowLeft") go(i - 1);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(TABS.length - 1);
+  }
+
+  const hasData = syncedAt !== null;
+  const bookButton = booking && (
+    <button type="button" className="btn-ghost tp-primary" onClick={() => startBooking()}>Book a transfer</button>
+  );
+  const cardProps = { now, onCancelled: handleCancelled, onBookAgain: booking ? handleBookAgain : undefined };
 
   return (
     <>
@@ -423,7 +259,7 @@ export default function MyTrips() {
       <main className="tp-main">
         <div className="wrap tp-wrap">
           <h1 className="tp-title">Your trips</h1>
-          <p className="tp-sub">Every arrival, kept on file.</p>
+          <p className="tp-sub">Every ride, kept in one place.</p>
 
           {claimed > 0 && (
             <p className="tp-claimed" role="status">
@@ -432,94 +268,111 @@ export default function MyTrips() {
             </p>
           )}
 
-          {authLoading && <p className="tp-quiet">Loading…</p>}
+          {/* How fresh this is, whenever it might not be. */}
+          {account && hasData && !online && (
+            <div className="tp-conn" role="status">
+              You&rsquo;re offline. Showing your trips as of {clockOf(syncedAt!)} Aruba time — statuses may have changed since.
+            </div>
+          )}
+          {account && hasData && online && error && (
+            <div className="tp-conn" role="alert">
+              Couldn&rsquo;t refresh your trips. Showing them as of {clockOf(syncedAt!)} Aruba time.
+              <button type="button" className="tp-text" onClick={reload} disabled={loading}>{loading ? "Retrying…" : "Retry"}</button>
+            </div>
+          )}
+          {account && hasData && online && !error && live === false && (
+            <div className="tp-conn" role="status">
+              Live updates are paused. Last updated {clockOf(syncedAt!)} Aruba time.
+              <button type="button" className="tp-text" onClick={reload} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
+            </div>
+          )}
+
+          {authLoading && <Skeletons />}
 
           {!authLoading && !account && (
             <div className="tp-empty">
-              <p>Sign in to see your transfers.</p>
-              <p className="tp-quiet" style={{ marginTop: 8 }}>
-                Booked as a guest? Your confirmation is in your inbox, and your driver
-                has your number. Create an account with the same email and we'll put
-                the trip here.
+              <p className="tp-empty-h">Sign in to see your transfers.</p>
+              <p>
+                Booked as a guest? Your confirmation is in your inbox, and your driver has your number.
+                Create an account with the same email and we&rsquo;ll put the trip here.
               </p>
-              <button type="button" className="tp-link" onClick={openAuth}>Sign in</button>
+              <button type="button" className="btn-ghost tp-primary" onClick={openAuth}>Sign in</button>
             </div>
           )}
 
-          {!authLoading && account && loading && (
-            <div className="tp-skeletons" aria-hidden="true">
-              <div className="tp-skeleton" /><div className="tp-skeleton" />
+          {!authLoading && account && loading && !hasData && <Skeletons />}
+
+          {!authLoading && account && !loading && error && !hasData && (
+            <div className="tp-empty" role="alert">
+              <p className="tp-empty-h">We couldn&rsquo;t load your trips.</p>
+              <p>{online ? "Something went wrong on our side or the connection dropped." : "You're offline."} Your bookings are safe.</p>
+              <button type="button" className="btn-ghost tp-primary" onClick={reload}>Retry</button>
             </div>
           )}
 
-          {!authLoading && account && !loading && error && (
+          {!authLoading && account && hasData && rides.length === 0 && (
             <div className="tp-empty">
-              <p>Unable to load trips.</p>
-              <button type="button" className="tp-link" onClick={() => window.location.reload()}>Try again</button>
+              <p className="tp-empty-h">No trips yet.</p>
+              <p>Book a transfer and it will be here, with your driver&rsquo;s details on the day.</p>
+              {bookButton}
             </div>
           )}
 
-          {!authLoading && account && !loading && !error && rides.length === 0 && (
-            <div className="tp-empty">
-              <p>No trips yet. The island is waiting.</p>
-              {booking && (
-                <button type="button" className="tp-link" onClick={() => startBooking()}>
-                  Book a transfer
-                </button>
-              )}
-            </div>
-          )}
-
-          {ready && rides.length > 0 && (
+          {!authLoading && account && hasData && rides.length > 0 && (
             <>
-              {/* the picker is the heading — one shelf shows at a time */}
-              <div className="tp-tabs" role="group" aria-label="Which trips to show">
-                {FILTERS.map((f) => {
-                  const count = allGroups.find((g) => g.key === f.key)!.rides.length;
+              {groups.review.length > 0 && (
+                <section className="tp-review-sec" aria-labelledby="tp-review-h">
+                  <h2 id="tp-review-h" className="tp-sec-h">
+                    Needs review <span className="tp-count">{groups.review.length}</span>
+                  </h2>
+                  <p className="tp-sec-note">
+                    {groups.review.length === 1 ? "This trip wasn't" : "These trips weren't"} closed off properly.
+                    {" "}{groups.review.length === 1 ? "It stays" : "They stay"} here, not in Past, until it&rsquo;s sorted.
+                  </p>
+                  <div className="tp-list">
+                    {groups.review.map((e) => <TripCard key={e.ride.id} ride={e.ride} {...cardProps} />)}
+                  </div>
+                </section>
+              )}
+
+              <div className="tp-tabs" role="tablist" aria-label="Trips">
+                {TABS.map((t) => {
+                  const on = active === t.key;
+                  const n = groups[t.key].length;
                   return (
                     <button
-                      key={f.key}
+                      key={t.key}
+                      ref={(el) => { tabRefs.current[t.key] = el; }}
                       type="button"
-                      className={`tp-tab${active === f.key ? " on" : ""}`}
-                      aria-pressed={active === f.key}
-                      onClick={() => {
-                        setParams({ show: f.key });
-                        setOpenShelf(null); // a new shelf always opens folded
-                      }}
+                      role="tab"
+                      id={`tp-tab-${t.key}`}
+                      aria-selected={on}
+                      aria-controls="tp-panel"
+                      tabIndex={on ? 0 : -1}
+                      className={`tp-tab${on ? " on" : ""}`}
+                      onClick={() => choose(t.key)}
+                      onKeyDown={onTabKey}
                     >
-                      {f.label}
-                      <span className="tp-tab-n">{count}</span>
+                      {t.label}
+                      <span className="tp-tab-n" aria-hidden="true">{n}</span>
+                      <span className="sr-only">, {n} {n === 1 ? "trip" : "trips"}</span>
                     </button>
                   );
                 })}
               </div>
 
-              <section className="tp-section" aria-label={`${group.label} trips`}>
-                {group.rides.length === 0 ? (
+              <section id="tp-panel" role="tabpanel" aria-labelledby={`tp-tab-${active}`} className="tp-section">
+                {shelf.length === 0 ? (
                   <div className="tp-empty">
-                    <p>{EMPTY_COPY[active]}</p>
-                    {booking && active === "upcoming" && (
-                      <button type="button" className="tp-link" onClick={() => startBooking()}>
-                        Book a transfer
-                      </button>
-                    )}
+                    <p className="tp-empty-h">{EMPTY[active].h}</p>
+                    <p>{EMPTY[active].p}</p>
+                    {bookButton}
                   </div>
                 ) : (
                   <>
                     <div className="tp-list">
-                      {visible.map((ride) => (
-                        <TripCard
-                          key={ride.id}
-                          ride={ride}
-                          onCancelled={handleCancelled}
-                          // rebooking makes sense once a trip is behind you —
-                          // whether it ran or you called it off
-                          onRebook={booking && active !== "upcoming" ? handleRebook : undefined}
-                        />
-                      ))}
+                      {visible.map((e) => <TripCard key={e.ride.id} ride={e.ride} {...cardProps} />)}
                     </div>
-
-                    {/* a long history stays folded away until asked for */}
                     {(hidden > 0 || expanded) && (
                       <button
                         type="button"
@@ -527,10 +380,9 @@ export default function MyTrips() {
                         aria-expanded={expanded}
                         onClick={() => setOpenShelf(expanded ? null : active)}
                       >
-                        {expanded ? "Show less" : `${hidden} more`}
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                          strokeLinejoin="round" aria-hidden="true">
+                        {expanded ? "Show fewer" : `Show ${hidden} more`}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M6 9l6 6 6-6" />
                         </svg>
                       </button>
