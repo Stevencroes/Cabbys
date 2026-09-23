@@ -1145,31 +1145,40 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 
 /* ============ §12 — SOCIAL PROOF ============ */
-/* A rating, one voice, and where that voice is public — centred, and with
-   the voice the largest thing in it.
-
-   The old row was three columns inside the footer and got its hierarchy
-   backwards: the platform wordmarks were 14px/600 and the testimonial
-   14.5px/400 in a dimmer grey, so the loudest thing in a band about what
-   customers said was three logos. The quote carries the display face now
-   and the wordmarks are the quietest line on screen.
+/* Verified reviews only, and absent altogether until there is one — see
+   Reviews.tsx and src/data/reviews.ts. When it renders: the stars, the
+   guest's words in the display face as the largest thing in the band, and
+   one line saying who, where and when, with the "where" linking to the
+   review itself. The rating/count line and the row of platform wordmarks
+   that used to sit here are gone with the claims they made.
 
    NO BORDERS. It sits on --ground between two --deep bands (fleet above,
-   FAQ below), so the change of ground separates it. In the footer it was
-   fenced by a hairline top and bottom, identical in weight to the
-   sitemap's own, which made it read as one more table row in a stack of
-   them. The fix for the fencing is not a better rule — it is no rule. */
+   FAQ below), so the change of ground separates it. When it is absent
+   those two bands meet directly; the seam rule at the top of the FAQ
+   block handles that. */
 .proof{background:var(--ground);}
 .proof-in{max-width:var(--maxw);margin:0 auto;
   padding:clamp(56px,8vh,104px) var(--gutter);
   display:flex;flex-direction:column;align-items:center;text-align:center;}
 
-/* the stars and the number are one claim, so they sit on one line */
-.proof-rate{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;}
+/* One review is one centred column — the band as it was designed. Two or
+   three share a row. auto-fit with a floor rather than a fixed count, so a
+   tablet falls to one column by itself instead of three cramped ones, and
+   a phone never sees more than one voice across. */
+.proof-list{list-style:none;margin:0;padding:0;width:100%;display:grid;
+  gap:clamp(44px,6vh,64px) clamp(28px,4vw,56px);}
+.proof-list.many{grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));align-items:start;}
+.proof-item{margin:0;display:flex;flex-direction:column;align-items:center;}
+
+.proof-rate{display:flex;align-items:center;justify-content:center;}
 .proof-rate .ps-stars{display:flex;gap:3px;color:var(--highlight);
   /* tighter than the section default: five marks 80ms apart take 320ms to
      land, which is long enough that the fifth star reads as late */
   --stagger:70ms;}
+/* A point not given. --soft is the tokens file's "faint icons" colour, and
+   these are decoration over a label that already states the number, so
+   the text contrast floor does not apply to them. */
+.proof-rate .ps-stars .off{color:var(--soft);}
 /* Fill, not rise. The generic staggered child arrives from 16px below,
    which is right for a card and wrong for a 15px star — it would read as
    five things falling in. These grow into place instead. Same specificity
@@ -1178,9 +1187,6 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 @keyframes star-in{from{opacity:0;transform:scale(.5);}to{opacity:1;transform:none;}}
 .ps-stars.in > *{animation-name:star-in;animation-duration:380ms;}
 @media(prefers-reduced-motion:reduce){.ps-stars.in > *{animation:none;}}
-.proof-rate .ps-c{font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;
-  font-weight:500;color:var(--muted);}
-.proof-rate .ps-c strong{font-weight:600;color:var(--silver);}
 
 /* The payload. Serif, --ink, and the biggest thing in the band — but a step
    under h2.sec (clamp(25px,3vw,40px)) so it reads as a voice inside the
@@ -1190,43 +1196,59 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    three-line shape at every width. It was 24ch, which sounds like the same
    idea and is not: ch is the width of "0", and Cormorant's is narrow
    enough that 24ch at 32px came out around 380px — a seven-line column of
-   serif stranded in the middle of a 1440px screen. A pull-quote wants a
-   shorter measure than body copy, not a fifth of one. Below ~700px the
-   container takes over and it settles to four lines on a phone. */
-/* the voice lands after the score it belongs to, not beside it */
+   serif stranded in the middle of a 1440px screen. */
+/* the voice lands after the stars it belongs to, not beside them */
 .proof-quote{margin:clamp(22px,3vh,32px) 0 0;transition-delay:140ms;}
 @media(prefers-reduced-motion:reduce){.proof-quote{transition-delay:0ms;}}
 .proof-quote p{margin:0 auto;max-width:23em;font-family:var(--serif);font-weight:300;
   font-size:clamp(21px,2.5vw,32px);line-height:1.28;letter-spacing:-.012em;color:var(--ink);}
-.proof-quote cite{display:block;margin-top:clamp(14px,2vh,20px);font-style:normal;
-  font-size:var(--t-meta);letter-spacing:.2em;text-transform:uppercase;font-weight:500;color:var(--muted);}
-/* the em dash belongs to the presentation, not to the name */
-.proof-quote cite::before{content:"— ";}
+/* Several voices in a row step the serif down, so three columns still read
+   as quotations and not as a wall of display type. The column sets the
+   measure instead of the em cap. */
+.proof-list.many .proof-quote p{font-size:clamp(19px,1.6vw,23px);max-width:none;}
 
-/* The quietest line on screen, and the one that changed most: these were
-   bold wordmarks that looked like buttons and did nothing. */
-.proof-on{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
-  gap:8px 10px;margin:clamp(26px,4vh,38px) 0 0;font-size:var(--t-meta);color:var(--muted);font-weight:400;}
-/* --muted, not --soft: --soft is 2.39:1 on --ground and the tokens file
-   scopes it to "disabled, faint icons" for exactly that reason. This is
-   real text, so it takes the 4.67:1 colour and clears AA. */
-.proof-on .po-l{letter-spacing:.14em;text-transform:uppercase;font-size:var(--t-meta);color:var(--muted);}
-/* These are credibility marks, not a place for flair, so the whole
-   interaction is one step of opacity. .85 measures 6.5:1 on --ground — the
-   row is still body text and still has to clear 4.5 at rest, which is why
-   this dims by a sixth and not by a third. */
-.proof-on .po-n{letter-spacing:.02em;opacity:.85;
-  transition:opacity var(--dur-ui) var(--ease-ui);}
-.proof-on .po-n:hover{opacity:1;}
-@media(prefers-reduced-motion:reduce){.proof-on .po-n{transition:none;}}
-/* A middot between the names only, never after the label or the last one.
-   It may stay --soft: the names are whitespace-separated without it, so it
-   carries no meaning and the contrast floor does not apply to it. */
-.proof-on .po-n + .po-n::before{content:"·";margin-right:10px;color:var(--soft);}
+/* Who, where, when — the old cite's typography, now a line of three. */
+.proof-by{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;
+  margin-top:clamp(14px,2vh,20px);font-size:var(--t-meta);letter-spacing:.2em;
+  text-transform:uppercase;font-weight:500;color:var(--muted);transition-delay:200ms;}
+@media(prefers-reduced-motion:reduce){.proof-by{transition-delay:0ms;}}
+/* the em dash belongs to the presentation, not to the name */
+.proof-by .pb-n::before{content:"— ";}
+/* The one separator, between who and where — and on the END of the name
+   rather than the start of the link. As a leading ::before on whatever
+   came next it produced "· SEPTEMBER 2026" whenever the line wrapped: a
+   dot opening a line, pointing at nothing. Trailing the name, a wrap
+   leaves it where punctuation belongs. inline-block so no underline runs
+   under it; --soft because it carries no meaning. */
+.proof-by .pb-n::after{content:"·";display:inline-block;margin-left:10px;color:var(--soft);}
+/* When, on a line of its own — always, not only when it fails to fit.
+   Letting it wrap by width meant one review's caption ran on a single line
+   and its neighbour's broke in two, a ragged row made of three captions
+   that were each fine alone. */
+.proof-by time{flex-basis:100%;}
+/* The platform is the one tappable thing on the line, because it is the
+   evidence. --silver at rest clears AA on --ground; the underline is what
+   says "link" in a line that is otherwise all small caps. The padding is
+   hit area, not layout: a meta-size word is a small thing to aim a thumb at. */
+.proof-by a{color:var(--silver);text-decoration:underline;text-underline-offset:4px;
+  text-decoration-thickness:1px;padding-block:6px;
+  transition:color var(--dur-ui) var(--ease-ui);}
+.proof-by a:hover{color:var(--ink);}
+@media(prefers-reduced-motion:reduce){.proof-by a{transition:none;}}
 
 
 /* ============ FAQ — the deep band ============ */
 .faq{background:var(--deep);color:var(--ink);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+/* The seam when there is no review band. Fleet and FAQ are both --deep and
+   each draws a hairline on the edge facing the other, so with nothing
+   between them they would meet on a 2px double rule — the look of a page
+   that lost a section, not one that chose not to have it. This keeps the
+   fleet's line and drops the FAQ's, which is exactly how the FAQ already
+   meets the footer below it: two --deep grounds, one hairline. An adjacent-
+   sibling selector, so it applies only when #reviews is NOT rendered
+   between them — it needs no class or prop to know, and switches itself
+   off the day the first verified review arrives. */
+#fleet + #about .faq{border-top:0;}
 .faq .inner{max-width:var(--maxw);margin:0 auto;padding:clamp(44px,5.8vh,72px) clamp(16px,3vw,40px);}
 .flist{margin-top:36px;}
 .fitem{border-bottom:1px solid var(--line);}

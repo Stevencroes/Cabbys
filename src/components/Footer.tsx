@@ -13,7 +13,8 @@ import { askAnything, SUPPORT_EMAIL } from "../lib/support";
 // The proof row used to sit in here too, between the closer and the
 // sitemap, which gave this band three hairlines of identical weight in
 // ~500px and buried the reviews under the fold. It is its own section now,
-// up between the fleet and the FAQ — see Reviews.tsx.
+// up between the fleet and the FAQ, and it renders only when there is a
+// verified review to show — see Reviews.tsx.
 //
 // The account pages (trips, profile, reset) take the plain footer: nothing
 // there is asking for a booking, so nothing there closes.

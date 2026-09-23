@@ -1,84 +1,104 @@
-// §12 — social proof. One voice, given the room to be heard.
+// §12 — what guests say, and only what they can be shown to have said.
 //
-// This was a three-column row inside the footer: the score at one end, the
-// quote in the middle, the platform names at the other, fenced above and
-// below by hairlines identical in weight to the sitemap's own. Two things
-// were wrong with it.
+// Renders NOTHING until src/data/reviews.ts holds at least one review that
+// passes verifiedOnly(). No heading, no band, no reserved space: the page
+// goes straight from the fleet to the FAQ, and globals.css closes that
+// seam to a single hairline so it reads as designed rather than as a
+// section that went missing.
 //
-// The hierarchy was upside down. "Google Tripadvisor Trustpilot" was set at
-// 14px/600 and the testimonial at 14.5px/400 in a dimmer grey, so the
-// boldest thing in the row was three wordmarks nobody came to read, and the
-// sentence that does the actual persuading was the faintest. The eye landed
-// on the logos and left.
+// This band used to carry a "5.0 from 300+ reviews", a quote from
+// "Jessica M." and three platform wordmarks, none of which could be
+// traced to anything. Every element that remains is one a guest can
+// click through and check.
 //
-// And it was in the FOOTER, under the closing button — the last place on a
-// page where anyone decides anything. It is a section now, between the
-// fleet and the FAQ: after the product, before the objections, which is
-// exactly where someone thinks "do other people trust these guys?".
+// ── Deliberately NOT here: an average ─────────────────────────────────
 //
-// It carries no rules of its own. It sits on --ground between two --deep
-// bands, so the change of ground does the separating that four stacked
-// hairlines were doing badly. That is the fix for the fencing: not a better
-// line, no line.
+// It would be easy to compute "4.9 from 3 reviews" out of the entries
+// below, and it would be a fabricated rating by another route. These are
+// reviews chosen to be displayed; an average of a hand-picked set says
+// nothing about the rating the platform holds, and printing it as though
+// it did is the claim that was just removed. If a platform-wide score is
+// ever wanted, it belongs in its own field with its own source link to
+// the profile that states it — not derived here.
 //
-// Still deliberately brief — a rating, one voice, and where that voice is
-// public. No cards, no carousel, and no invented second testimonial: every
-// claim here is the one that was here before.
-const PLATFORMS = ["Google", "Tripadvisor", "Trustpilot"];
-const RATING = 5;
-const COUNT = "300+";
+// Layout follows count, not a template: one review is a single centred
+// voice in the display face, which is how the band was designed; two or
+// three share a row and step the serif down so three columns still read
+// as quotations rather than as a wall of type. More than three is a
+// carousel's worth, and this page does not have a carousel.
+import { VERIFIED_REVIEWS, verifiedOnly, type Review } from "../data/reviews";
+import { monthLabel } from "../lib/datetime";
 
-export default function Reviews() {
+const MAX_SHOWN = 3;
+
+/** One mark per point, filled to the rating. One role="img" carrying the
+    whole claim, so a screen reader hears "Rated 4 out of 5" once rather
+    than five unlabelled shapes it has to count. */
+function Stars({ rating }: { rating: number }) {
+  return (
+    <span className="ps-stars stagger" role="img" aria-label={`Rated ${rating} out of 5`}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <svg
+          key={i}
+          className={i <= rating ? undefined : "off"}
+          width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+        >
+          <path d="m10 1.6 2.5 5.4 5.9.7-4.4 4 1.2 5.8L10 14.6 4.8 17.5 6 11.7 1.6 7.7l5.9-.7Z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+function ReviewItem({ r }: { r: Review }) {
+  return (
+    <li>
+      <figure className="proof-item">
+        <div className="proof-rate rise"><Stars rating={r.rating} /></div>
+        <blockquote className="proof-quote rise" cite={r.sourceUrl}>
+          <p>&ldquo;{r.text}&rdquo;</p>
+        </blockquote>
+        <figcaption className="proof-by rise">
+          <span className="pb-n">{r.author}</span>
+          {/* The link is the evidence, so it is the one thing on the line
+              that looks tappable. New tab because it leaves the site
+              mid-browse; noopener so the platform's page gets no handle
+              on this window. The label says where it goes and that it
+              opens a tab — and contains the visible word, so a voice
+              user saying "click Google" still lands on it. */}
+          <a
+            href={r.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Read ${r.author}'s review on ${r.platform} (opens in a new tab)`}
+          >
+            {r.platform}
+          </a>
+          <time dateTime={r.date}>{monthLabel(r.date)}</time>
+        </figcaption>
+      </figure>
+    </li>
+  );
+}
+
+export default function Reviews({
+  reviews = VERIFIED_REVIEWS,
+  now = Date.now(),
+}: {
+  /** injectable for tests; the page uses the verified list */
+  reviews?: Review[];
+  now?: number;
+}) {
+  const shown = verifiedOnly(reviews, now).slice(0, MAX_SHOWN);
+  if (shown.length === 0) return null;
+
   return (
     <section className="proof" id="reviews" aria-labelledby="proof-h">
       <div className="proof-in">
         <h2 id="proof-h" className="sr-only">What guests say</h2>
-
-        {/* The stars are a picture of a number that is written out beside
-            them. One role="img" with the whole claim in its label, rather
-            than five hidden SVGs and a "5.0" a screen reader has to infer
-            is a rating at all. */}
-        <div className="proof-rate rise">
-          {/* `stagger` puts the five under the reveal observer, which indexes
-              them and lets CSS fill them 70ms apart. They are one role="img"
-              with the whole claim in its label, so the sequence is decoration
-              over a mark that has already been announced as "rated 5 of 5" —
-              a screen reader never waits for an animation to learn the score. */}
-          <span
-            className="ps-stars stagger"
-            role="img"
-            aria-label={`Rated ${RATING} out of 5, from more than 300 reviews`}
-          >
-            {[0, 1, 2, 3, 4].map((i) => (
-              <svg key={i} width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path d="m10 1.6 2.5 5.4 5.9.7-4.4 4 1.2 5.8L10 14.6 4.8 17.5 6 11.7 1.6 7.7l5.9-.7Z" />
-              </svg>
-            ))}
-          </span>
-          <span className="ps-c" aria-hidden="true">
-            <strong>{RATING.toFixed(1)}</strong> from {COUNT} reviews
-          </span>
-        </div>
-
-        {/* The payload, in the display face. A testimonial set at body size
-            is a caption; set in the serif it is the thing the band is for. */}
-        <blockquote className="proof-quote rise">
-          <p>
-            &ldquo;Cabby&rsquo;s made our trip in Aruba effortless. The driver was on time,
-            super professional and the car was immaculate.&rdquo;
-          </p>
-          <cite>Jessica M.</cite>
-        </blockquote>
-
-        {/* Where it is public. Deliberately NOT links and deliberately not
-            bold: there are no review-profile URLs to point at yet, and a
-            wordmark styled like a button that goes nowhere is a promise the
-            page cannot keep. Give these real profile URLs and they should
-            become anchors — that is the one thing this band is still owed. */}
-        <p className="proof-on rise">
-          <span className="po-l">Reviewed on</span>
-          {PLATFORMS.map((n) => <span key={n} className="po-n">{n}</span>)}
-        </p>
+        <ul className={`proof-list${shown.length > 1 ? " many" : ""}`}>
+          {shown.map((r) => <ReviewItem key={`${r.platform}|${r.sourceUrl}`} r={r} />)}
+        </ul>
       </div>
     </section>
   );
