@@ -12,7 +12,8 @@ const h = vi.hoisted(() => ({
   rows: [] as Record<string, unknown>[],
   readError: null as null | { message: string },
   failNextRead: false,
-  cancel: { data: [{ id: "x" }], error: null } as { data: unknown; error: null | { message: string } },
+  // what cancel_my_ride answers
+  cancel: { data: { ok: true }, error: null } as { data: unknown; error: null | { message: string } },
   reads: 0,
 }));
 
@@ -29,7 +30,10 @@ vi.mock("../lib/supabase", () => {
         update: () => ({ eq: () => ({ select: () => Promise.resolve(h.cancel) }) }),
       }),
       channel: undefined,
-      rpc: vi.fn().mockResolvedValue({ data: 0, error: null }),
+      // routed by name, as PostgREST does: claiming guest rides finds
+      // nothing, cancelling answers with whatever the test set
+      rpc: vi.fn((fn: string) =>
+        Promise.resolve(fn === "cancel_my_ride" ? h.cancel : { data: 0, error: null })),
       auth: {
         getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
         onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
@@ -91,7 +95,7 @@ beforeEach(() => {
   h.rows = standard();
   h.readError = null;
   h.failNextRead = false;
-  h.cancel = { data: [{ id: "x" }], error: null };
+  h.cancel = { data: { ok: true }, error: null };
   h.reads = 0;
 });
 
@@ -341,14 +345,15 @@ describe("cancelling", () => {
     await waitFor(() => expect(screen.getByRole("tab", { name: /^cancelled/i }).textContent).toMatch(/2/));
   });
 
-  // The silent refusal: RLS matches zero rows and reports no error.
+  // The database is the authority: when it refuses, the trip stays live
+  // and the guest is told why, in words they can act on.
   it("keeps the trip live and says why when the database refuses", async () => {
-    h.cancel = { data: [], error: null };
+    h.cancel = { data: { ok: false, error: "already_underway" }, error: null };
     renderTrips();
     const c = await cardOf("CB-FAR");
     fireEvent.click(within(c).getByRole("button", { name: "Cancel booking" }));
     fireEvent.click(within(c).getByRole("button", { name: "Yes, cancel booking" }));
-    expect(await within(c).findByRole("alert")).toHaveTextContent(/can no longer be cancelled online/i);
+    expect(await within(c).findByRole("alert")).toHaveTextContent(/already on the way/i);
     // the status badge still says what the database says
     expect(within(c).getByText("Confirmed", { selector: ".tp-status" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /^cancelled/i }).textContent).toMatch(/1/);

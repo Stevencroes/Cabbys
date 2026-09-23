@@ -97,11 +97,9 @@ export const ACTIVE_LEAD_HOURS = 2;
 /**
  * The raw statuses the database lets a guest cancel from.
  *
- * Mirrors the USING clause of the "rides: cancel own" policy in
- * docs/schema.sql EXACTLY, and must change with it. Offering "Cancel" on
- * a status outside this list is offering a control the database will
- * refuse — and worse, refuse silently, because a blocked UPDATE matches
- * zero rows and returns no error.
+ * Mirrors public.cancel_my_ride in docs/cancel-schema.sql EXACTLY, and
+ * must change with it. Offering "Cancel" on a status outside this list is
+ * offering a control the database will refuse.
  */
 export const CANCELLABLE_RAW = ["pending", "pending_payment", "confirmed", "driver_assigned"] as const;
 

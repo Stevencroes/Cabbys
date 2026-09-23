@@ -49,13 +49,16 @@ create policy "rides: read own" on public.rides
   for select to authenticated
   using (passenger_id = auth.uid());
 
--- Travelers may only cancel their own pending/confirmed rides; every other
--- transition belongs to the driver dashboard (service role bypasses RLS).
+-- Guests cancel through public.cancel_my_ride() — see docs/cancel-schema.sql.
+--
+-- There used to be an UPDATE policy here ("rides: cancel own"). Its WITH
+-- CHECK constrained only the new status, so the same request that
+-- cancelled a booking could rewrite any other column on it, including the
+-- "Cancelled by Cabby's:" note the guest is shown. It is DROPPED here, not
+-- recreated, so that re-running this file — which it says is safe — can
+-- never bring it back. Run docs/cancel-schema.sql after this file on a new
+-- project, or guests will have no way to cancel.
 drop policy if exists "rides: cancel own" on public.rides;
-create policy "rides: cancel own" on public.rides
-  for update to authenticated
-  using  (passenger_id = auth.uid() and status in ('pending', 'pending_payment', 'confirmed', 'driver_assigned'))
-  with check (status = 'cancelled');
 
 -- ── 4. Realtime: live status on My Trips ────────────────────────────
 -- Dashboard → Database → Replication → supabase_realtime → add "rides",

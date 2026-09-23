@@ -603,8 +603,8 @@ grant execute on function public.admin_unassign_ride(uuid, text) to authenticate
 -- The one operator action with nothing behind it, and the last thing
 -- on this board that was still a hand-typed UPDATE.
 --
--- A guest can already cancel their own ride: "rides: cancel own" in
--- docs/schema.sql admits exactly that transition. An operator could
+-- A guest can already cancel their own ride: public.cancel_my_ride in
+-- docs/cancel-schema.sql admits exactly that transition. An operator could
 -- not, which meant a booking called off by WhatsApp — which is how
 -- most of them are called off on this island — sat on the board as
 -- live work, was offered to drivers in the pool, and counted in every

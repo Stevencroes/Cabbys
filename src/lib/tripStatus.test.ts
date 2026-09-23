@@ -96,8 +96,8 @@ describe("when a trip is active", () => {
 });
 
 describe("what a guest may do", () => {
-  // Mirrors the "rides: cancel own" policy. Anything outside it is a
-  // control the database would refuse, silently.
+  // Mirrors cancel_my_ride in docs/cancel-schema.sql. Anything outside it
+  // is a control the database would refuse.
   it("offers cancel only on statuses the database lets a guest cancel", () => {
     for (const raw of ["pending", "pending_payment", "confirmed", "driver_assigned"]) {
       const r = ride(48, { status: raw });

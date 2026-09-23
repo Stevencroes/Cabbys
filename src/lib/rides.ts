@@ -95,29 +95,65 @@ export async function createRide(draft: BookingState): Promise<CreateRideResult>
 
 export type GuestCancelResult = { ok: true } | { ok: false; detail: string };
 
+/** cancel_my_ride's refusals, in words the guest can act on. */
+const CANCEL_WHY: Record<string, string> = {
+  not_yours: "This booking isn't on your account. Contact us and we'll sort it out.",
+  already_driven: "This trip has already been completed, so it can't be cancelled.",
+  already_underway: "Your driver is already on the way, so this can't be cancelled online. Contact us and we'll help.",
+  pickup_passed: "The pickup time has passed, so this can't be cancelled online. Contact us and we'll help.",
+};
+
+const NETWORK = "We couldn't cancel this just now. Check your connection and try again, or contact us.";
+
 /**
  * The guest cancelling their own booking.
  *
- * Goes through the "rides: cancel own" RLS policy in docs/schema.sql,
- * which allows it only from pending, pending_payment, confirmed or
- * driver_assigned. Outside those, Postgres does not refuse the UPDATE —
- * it matches ZERO rows and reports success. This function used to return
- * "no error" for that, the card flipped to Cancelled, and the booking was
- * still live in the database with a driver about to set off for it.
- *
- * So it asks for the updated row back and treats an empty answer as the
- * refusal it is. A failed write is never reported as a finished one.
+ * Through public.cancel_my_ride (docs/cancel-schema.sql), which changes
+ * status and nothing else, and says in a word why when it refuses. It
+ * replaced an RLS UPDATE policy whose WITH CHECK constrained only the new
+ * status — the same request could rewrite any other column on the row,
+ * including the "Cancelled by Cabby's:" note the guest is shown — and
+ * whose refusals were zero-row UPDATEs that Postgres reports as success.
  */
 export async function cancelRide(rideId: string): Promise<GuestCancelResult> {
+  const { data, error } = await supabase.rpc("cancel_my_ride", { p_ride_id: rideId });
+
+  if (error) {
+    // The function not being there yet means the SQL has not been run on
+    // this project. Fall back to the old path so cancelling keeps working
+    // in the meantime, and the order the app and the SQL are deployed in
+    // never matters. Remove once docs/cancel-schema.sql is live everywhere:
+    // with the policy dropped, this path can only ever refuse.
+    if (isMissingFunction(error)) return legacyCancel(rideId);
+    return { ok: false, detail: NETWORK };
+  }
+
+  const row = (data ?? {}) as { ok?: boolean; error?: string };
+  if (row.ok === true) return { ok: true };
+  const why = typeof row.error === "string" ? row.error : "";
+  return { ok: false, detail: CANCEL_WHY[why] ?? "This booking can't be cancelled online. Contact us and we'll help." };
+}
+
+/** PostgREST's answer for a function it has never heard of. */
+function isMissingFunction(error: { code?: string; message?: string }): boolean {
+  return error.code === "PGRST202" || /could not find the function/i.test(error.message ?? "");
+}
+
+/**
+ * The pre-function path, kept only as the fallback above.
+ *
+ * A refused UPDATE matches zero rows and reports success, so it asks for
+ * the row back and treats an empty answer as the refusal it is — never as
+ * a cancellation that happened.
+ */
+async function legacyCancel(rideId: string): Promise<GuestCancelResult> {
   const { data, error } = await supabase
     .from("rides")
     .update({ status: "cancelled" })
     .eq("id", rideId)
     .select("id");
 
-  if (error) {
-    return { ok: false, detail: "We couldn't cancel this just now. Check your connection and try again, or contact us." };
-  }
+  if (error) return { ok: false, detail: NETWORK };
   if (!Array.isArray(data) || data.length === 0) {
     return {
       ok: false,
