@@ -144,12 +144,12 @@ h2.sec em{font-style:italic;}
 
    It runs once and stops. Nothing on this page loops. */
 @keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.045);}}
-.hero-photo{transform-origin:64% 44%;animation:kenburns 20s linear both;}
+.hero-photo::before{transform-origin:64% 44%;animation:kenburns 20s linear both;}
 
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
-  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo{animation:none !important;}
+  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo::before{animation:none !important;}
   .tp-skeleton{animation:none !important;}
 }
 
@@ -593,7 +593,14 @@ h2.sec em{font-style:italic;}
    The radial underneath is not decoration — it is what paints while a 240KB
    photograph is still arriving, and what the section falls back to if it
    never does. */
-.hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;
+/* The box is the frame and the ::before is the picture in it. The drift
+   above used to scale the box itself, and a scaled box is still counted
+   as page content: by the end of it the photo stood 21px past the right
+   edge, which gave the whole page a sideways scroll, and 23px over the
+   hairline that closes the hero. The frame never moves and clips; only
+   the picture inside it grows. */
+.hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.hero-photo::before{content:"";position:absolute;inset:0;
   background-image:
     linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.90) 30%,rgba(2,11,20,.30) 60%,rgba(2,11,20,.50) 100%),
     linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.12) 40%,rgba(2,11,20,.50) 100%),
@@ -604,7 +611,7 @@ h2.sec em{font-style:italic;}
      keeps it rather than centring on empty driveway */
   background-position:center,center,72% center,center;
   background-repeat:no-repeat;}
-@media(max-width:760px){.hero-photo{background-position:center,center,64% center,center;}}
+@media(max-width:760px){.hero-photo::before{background-position:center,center,64% center,center;}}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
   padding:var(--nav-total) 0 150px;
   border-bottom:1px solid var(--line);}
