@@ -78,14 +78,7 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
               <a href="/#about">FAQ</a>
               <a href="/trips">My trips</a>
             </div>
-            {/* "Terms & privacy" was one link to the FAQ. Three documents,
-                three routes, fed only by approved copy — see src/lib/legal.ts. */}
-            <div className="fcol">
-              <h3>Policies</h3>
-              <a href={LEGAL.terms.path}>{LEGAL.terms.title}</a>
-              <a href={LEGAL.cancellation.path}>{LEGAL.cancellation.title}</a>
-              <a href={LEGAL.privacy.path}>{LEGAL.privacy.title}</a>
-            </div>
+
             <div className="fcol">
               <h3>Reach us</h3>
               {/* The address that actually receives mail. What stood here
@@ -103,7 +96,17 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
         </div>
         <div className="fbot">
           <span>© {new Date().getFullYear()} Cabby's · cabbys.aw · 12.5°N 69.9°W</span>
-          <span>Cormorant Garamond · Inter</span>
+          {/* The policies live down here, in the small print, rather than
+              as a fourth column competing with the sitemap: they are where
+              people look for them and nowhere they get in the way. This
+              line used to credit the typefaces, which no guest needs.
+              "Terms & privacy" was once a single link to the FAQ; each now
+              goes to its own page, fed only by approved copy. */}
+          <nav className="flegal" aria-label="Legal">
+            <a href={LEGAL.terms.path}>Terms</a>
+            <a href={LEGAL.privacy.path}>Privacy</a>
+            <a href={LEGAL.cancellation.path}>Cancellation</a>
+          </nav>
         </div>
       </div>
     </footer>

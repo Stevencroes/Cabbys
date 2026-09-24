@@ -28,11 +28,17 @@ describe("the footer's links", () => {
     }
   });
 
-  it("sends each policy to its own page", () => {
+  it("sends each policy to its own page, from the small print", () => {
     renderFooter();
-    expect(screen.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "/terms");
-    expect(screen.getByRole("link", { name: "Cancellation Policy" })).toHaveAttribute("href", "/cancellation");
-    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/privacy");
+    const legal = screen.getByRole("navigation", { name: "Legal" });
+    expect(within(legal).getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
+    expect(within(legal).getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+    expect(within(legal).getByRole("link", { name: "Cancellation" })).toHaveAttribute("href", "/cancellation");
+  });
+
+  it("no longer credits the typefaces", () => {
+    renderFooter();
+    expect(screen.queryByText(/cormorant/i)).toBeNull();
   });
 
   it("no longer advertises hourly hire, which Cabby's does not sell", () => {

@@ -1389,6 +1389,15 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fcol .fplace{display:flex;align-items:center;min-height:44px;font-size:var(--t-meta);color:var(--muted);}
 .fbot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:22px;}
 .fbot span{font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;}
+/* The policy links, set in the same small print as the copyright beside
+   them so the line reads as one band. Still a full tap target on touch,
+   denser under a mouse, like the sitemap above. */
+.flegal{display:flex;flex-wrap:wrap;gap:0 22px;}
+.flegal a{display:inline-flex;align-items:center;min-height:44px;margin-block:-13px;
+  font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);text-decoration:none;
+  transition:color var(--dur-ui) var(--ease-ui);}
+.flegal a:hover,.flegal a:focus-visible{color:var(--ink);}
+@media(pointer:fine){.flegal a{min-height:38px;margin-block:-10px;}}
 
 /* ============ BOOKING MODAL (§3.5) ============ */
 .book{position:fixed;inset:0;z-index:var(--z-modal);background:var(--ground);display:none;flex-direction:column;height:100dvh;}
