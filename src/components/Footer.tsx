@@ -95,7 +95,7 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
           </div>
         </div>
         <div className="fbot">
-          <span>© {new Date().getFullYear()} Cabby's · cabbys.aw · 12.5°N 69.9°W</span>
+          <span>© {new Date().getFullYear()} Cabby's · cabbys.aw</span>
           {/* The policies live down here, in the small print, rather than
               as a fourth column competing with the sitemap: they are where
               people look for them and nowhere they get in the way. This
