@@ -3,6 +3,9 @@ import Closer from "./Closer";
 import { useRevealOnce } from "./motion";
 import { whatsappLink } from "../lib/whatsapp";
 import { askAnything, SUPPORT_EMAIL } from "../lib/support";
+import { useStartBooking } from "../booking/useStartBooking";
+import { AIRPORT, findPlaceByName, selFromPlace } from "../data/places";
+import { LEGAL } from "../lib/legal";
 
 // `closing` makes this the landing page's whole closing band: the CTA and
 // the sitemap used to be two stacked sections in two different grounds,
@@ -37,6 +40,8 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
   // when no number is set, and this one advertised a channel that could
   // not work. Null when unset, so it disappears with the rest.
   const wa = whatsappLink(askAnything());
+  const startBooking = useStartBooking();
+  const cruise = findPlaceByName("Cruise Terminal, Oranjestad");
   return (
     <footer id="contact" className={`site-foot${closing ? " closing" : ""}`}>
       {closing && <Closer />}
@@ -47,19 +52,39 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
             <p>Private fixed-price transfers across Aruba. Sent for you — door to door.</p>
           </div>
           <div className="fcols">
+            {/* These three used to be links to /#services — the "Why
+                Cabby's" band, which describes none of them — and a fourth,
+                "Hourly hire", pointed at the FAQ for a service Cabby's does
+                not sell. Each now does what it names: opens the booking card
+                with that pickup already set, cursor in the next empty field.
+                Hourly hire is gone until it is a product. */}
             <div className="fcol">
               <h3>Transfers</h3>
-              <a href="/#services">Airport pickup</a>
-              <a href="/#services">Resort to resort</a>
-              <a href="/#services">Cruise terminal</a>
-              <a href="/#about">Hourly hire</a>
+              <button type="button" className="flink" onClick={() => startBooking({ from: selFromPlace(AIRPORT) })}>
+                Airport pickup
+              </button>
+              <button type="button" className="flink" onClick={() => startBooking()}>
+                Resort to resort
+              </button>
+              {cruise && (
+                <button type="button" className="flink" onClick={() => startBooking({ from: selFromPlace(cruise) })}>
+                  Cruise terminal
+                </button>
+              )}
             </div>
             <div className="fcol">
               <h3>Company</h3>
               <a href="/#fleet">The fleet</a>
               <a href="/#about">FAQ</a>
               <a href="/trips">My trips</a>
-              <a href="/#about">Terms &amp; privacy</a>
+            </div>
+            {/* "Terms & privacy" was one link to the FAQ. Three documents,
+                three routes, fed only by approved copy — see src/lib/legal.ts. */}
+            <div className="fcol">
+              <h3>Policies</h3>
+              <a href={LEGAL.terms.path}>{LEGAL.terms.title}</a>
+              <a href={LEGAL.cancellation.path}>{LEGAL.cancellation.title}</a>
+              <a href={LEGAL.privacy.path}>{LEGAL.privacy.title}</a>
             </div>
             <div className="fcol">
               <h3>Reach us</h3>
@@ -70,7 +95,9 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
                   reached us and waits. */}
               <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
               {wa && <a href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
-              <a href="/#top">Oranjestad, Aruba</a>
+              {/* A place, not a destination. It was a link to the top of
+                  the page, which is not where Oranjestad is. */}
+              <span className="fplace">Oranjestad, Aruba</span>
             </div>
           </div>
         </div>

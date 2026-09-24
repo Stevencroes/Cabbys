@@ -30,6 +30,7 @@ import TripSchedule, { validateTrip } from "../TripSchedule";
 import { effectivePickupTime, type StepProblem } from "./shared";
 import { whatsappLink } from "../../../lib/whatsapp";
 import { askToBookByHand } from "../../../lib/support";
+import { LEGAL, bookingTermsReady } from "../../../lib/legal";
 
 const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
 
@@ -117,6 +118,14 @@ export default function Step3Details({
   const [brand, setBrand] = useState<string>("unknown");
   const [cardErr, setCardErr] = useState<Record<string, string>>({});
   const [cardName, setCardName] = useState("");
+  // The booking terms, accepted or not. Starts UNCHECKED, always — a box
+  // ticked on the customer's behalf is not their acceptance of anything.
+  // Asked only once the Terms and Cancellation Policy are approved and
+  // published: before that there is nothing real to accept.
+  const termsRequired = bookingTermsReady();
+  const [accepted, setAccepted] = useState(false);
+  const [acceptError, setAcceptError] = useState(false);
+  const acceptRef = useRef<HTMLInputElement>(null);
   const rideRef = useRef<{ id: string; bookingRef: string | null } | null>(null);
   const kickedRef = useRef(false);
   const [, force] = useState(0);
@@ -342,6 +351,15 @@ export default function Step3Details({
   // on step 4, or — with no Stripe key configured — reserving from review.
   useEffect(() => {
     registerConfirm(async () => {
+      // Nothing is paid for or booked until the customer has said yes to
+      // the terms. Checked here, at the one action that commits, rather
+      // than by disabling the button — a disabled button explains nothing,
+      // this says what is missing and puts focus on it.
+      if (termsRequired && !accepted) {
+        setAcceptError(true);
+        acceptRef.current?.focus();
+        return;
+      }
       // With no card to take, the payment step's action is the booking
       // itself — the same path review used to end on.
       if (state.step === PAYMENT && CARD_ENABLED) {
@@ -386,7 +404,7 @@ export default function Step3Details({
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.step, phase, state, pricing, totalUsd]);
+  }, [state.step, phase, state, pricing, totalUsd, accepted, termsRequired]);
 
   const partyLabel = `${state.pax} guest${state.pax === 1 ? "" : "s"} · ${state.bags} bag${state.bags === 1 ? "" : "s"}${state.seats ? ` · ${state.seats} child seat${state.seats > 1 ? "s" : ""}` : ""}`;
   // never a bare 07/08 — the weekday and month name travel with every date
@@ -580,6 +598,52 @@ export default function Step3Details({
               {phase === "creating" && <p className="pay-wait" role="status">Holding your car…</p>}
             </div>
           ) : null}
+
+          {/* Names the exact documents being accepted, each opening in a
+              NEW TAB: the booking lives in this tab's memory, and following
+              a link here in the same tab would throw away everything the
+              customer has typed. */}
+          {termsRequired && (
+            <div className={`accept${acceptError ? " bad" : ""}`}>
+              <input
+                id="accept-terms"
+                ref={acceptRef}
+                type="checkbox"
+                checked={accepted}
+                onChange={(e) => { setAccepted(e.target.checked); if (e.target.checked) setAcceptError(false); }}
+                aria-invalid={acceptError || undefined}
+                aria-describedby={acceptError ? "accept-err" : undefined}
+              />
+              <label htmlFor="accept-terms">
+                I accept Cabby&rsquo;s{" "}
+                <a href={LEGAL.terms.path} target="_blank" rel="noopener noreferrer" aria-describedby="accept-newtab">
+                  {LEGAL.terms.title}
+                </a>{" "}and{" "}
+                <a href={LEGAL.cancellation.path} target="_blank" rel="noopener noreferrer" aria-describedby="accept-newtab">
+                  {LEGAL.cancellation.title}
+                </a>
+                {LEGAL.privacy.published && (
+                  <>
+                    , and I have read the{" "}
+                    <a href={LEGAL.privacy.path} target="_blank" rel="noopener noreferrer" aria-describedby="accept-newtab">
+                      {LEGAL.privacy.title}
+                    </a>
+                  </>
+                )}
+                .
+              </label>
+              {/* "Opens in a new tab" as each link's DESCRIPTION, not text
+                  inside it. Inside, it became part of the checkbox's own
+                  label and a screen reader announced the agreement as
+                  "Terms of Service opens in a new tab and…". */}
+              <span id="accept-newtab" hidden>Opens in a new tab</span>
+              {acceptError && (
+                <p id="accept-err" className="accept-err" role="alert">
+                  To book, please accept the {LEGAL.terms.title} and {LEGAL.cancellation.title}.
+                </p>
+              )}
+            </div>
+          )}
 
           {errorBlock}
           {foot}

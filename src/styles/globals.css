@@ -1371,18 +1371,22 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* the nav's mark, repeated: a rule that grows from the left rather than a
    colour that changes. align-self keeps the box the width of the words and
    not the width of the column, so the underline ends where the text does. */
-.fcol a{position:relative;display:flex;align-self:flex-start;align-items:center;min-height:44px;font-size:var(--t-meta);color:var(--muted);
+.fcol a,.fcol .flink{position:relative;display:flex;align-self:flex-start;align-items:center;min-height:44px;font-size:var(--t-meta);color:var(--muted);
   text-decoration:none;font-weight:400;transition:color var(--dur-ui) var(--ease-ui);}
-.fcol a::after{content:"";position:absolute;left:0;right:0;bottom:11px;height:1px;
+.fcol a::after,.fcol .flink::after{content:"";position:absolute;left:0;right:0;bottom:11px;height:1px;
   background:var(--silver-deep);transform:scaleX(0);transform-origin:left center;
   transition:transform var(--dur-ui) var(--ease-ui);}
-.fcol a:hover,.fcol a:focus-visible{color:var(--ink);}
-.fcol a:hover::after,.fcol a:focus-visible::after{transform:scaleX(1);}
-@media(prefers-reduced-motion:reduce){.fcol a::after{transition:none;}}
+.fcol a:hover,.fcol a:focus-visible,.fcol .flink:hover,.fcol .flink:focus-visible{color:var(--ink);}
+.fcol a:hover::after,.fcol a:focus-visible::after,.fcol .flink:hover::after,.fcol .flink:focus-visible::after{transform:scaleX(1);}
+@media(prefers-reduced-motion:reduce){.fcol a::after,.fcol .flink::after{transition:none;}}
 /* 44px is a thumb target. A mouse is precise, so fine pointers get a
    denser footer — keyed on the pointer, not the width, so a touch laptop
    at 1440px still gets the full 44. */
-@media(pointer:fine){.fcol a{min-height:38px;}}
+@media(pointer:fine){.fcol a,.fcol .flink,.fcol .fplace{min-height:38px;}}
+/* A footer button that opens the booking card, dressed as the links
+   beside it — it does the same kind of job, one tap to somewhere useful. */
+.fcol .flink{background:none;border:0;padding:0;cursor:pointer;text-align:left;font-family:inherit;}
+.fcol .fplace{display:flex;align-items:center;min-height:44px;font-size:var(--t-meta);color:var(--muted);}
 .fbot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:22px;}
 .fbot span{font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;}
 
@@ -2231,3 +2235,91 @@ input.txt{border-radius:var(--r-sm);}
 .tp-pin .pk-ok,.tp-pin .pk-bad{margin:0;font-size:var(--t-meta);line-height:1.55;}
 .tp-pin .pk-ok{color:var(--signal-ink);}
 .tp-pin .pk-bad{color:var(--alert-ink);}
+
+/* ============ POLICIES — /terms, /privacy, /cancellation ============ */
+/* Long-form, set to be read rather than skimmed. The same grounds, faces
+   and tokens as the rest of the site; what changes is the rhythm.
+
+   Body text is --silver rather than --ink. Near-white on a navy ground at
+   length haloes — the letters appear to glow and blur — and a page of
+   legal prose is the one place on this site someone reads for minutes.
+   --silver is ~9:1 on --ground: far past AA, gentler on the eye. */
+.lg-main{min-height:100vh;background:var(--ground);padding:var(--nav-clear) 0 4.5rem;}
+.lg-wrap{max-width:var(--maxw);}
+.lg-head{max-width:var(--measure);margin:0 0 34px;}
+.lg-kick{margin:0 0 10px;font-size:var(--t-meta);letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--silver);}
+.lg-title{font-family:var(--serif);font-weight:300;font-size:clamp(2rem,4.4vw,3rem);line-height:var(--lh-tight);
+  color:var(--ink);letter-spacing:-.012em;margin:0;}
+.lg-title:focus{outline:none;}
+.lg-updated{margin:14px 0 0;font-size:var(--t-body);color:var(--muted);}
+.lg-updated time{color:var(--silver);}
+
+/* On wide screens the contents sit in a sticky column beside the text, so
+   they stay in reach down a long page; below that they come first. */
+.lg-layout{display:block;}
+@media(min-width:1024px){
+  .lg-layout.has-toc{display:grid;grid-template-columns:15rem minmax(0,var(--measure));gap:56px;align-items:start;}
+  .lg-layout.has-toc .lg-toc{position:sticky;top:var(--nav-clear);}
+}
+.lg-toc{margin:0 0 34px;padding:18px 20px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--surface);}
+.lg-toc-h{margin:0 0 10px;font-family:var(--sans);font-size:var(--t-meta);letter-spacing:.14em;text-transform:uppercase;
+  font-weight:600;color:var(--silver);}
+.lg-toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;}
+/* Each entry a full --tap target: the contents are navigation, and they
+   are used with a thumb on a phone as often as with a mouse. */
+.lg-toc a{display:flex;align-items:center;min-height:var(--tap);padding:4px 0;font-size:var(--t-body);
+  line-height:var(--lh-snug);color:var(--silver);text-decoration:none;border-bottom:1px solid transparent;}
+.lg-toc a:hover{color:var(--ink);}
+.lg-toc a:focus-visible{outline:2px solid var(--silver);outline-offset:2px;border-radius:4px;}
+
+/* The text itself: a capped measure, 16px on a phone and 18px from a
+   tablet up, and a line height a notch above the site's 1.6 because
+   legal sentences are long and a reader keeps losing the next line. */
+.lg-body{max-width:var(--measure);font-size:var(--t-body);line-height:1.7;color:var(--silver);}
+@media(min-width:720px){.lg-body{font-size:var(--t-lead);}}
+.lg-body p{margin:0 0 1.1em;}
+.lg-body ul,.lg-body ol{margin:0 0 1.2em;padding-left:1.4em;}
+.lg-body li{margin:0 0 .45em;}
+.lg-body li::marker{color:var(--muted);}
+.lg-body strong{color:var(--ink);font-weight:600;}
+.lg-body a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+.lg-body a:hover{color:var(--highlight);}
+.lg-body section{padding-top:8px;}
+.lg-body section + section{margin-top:26px;padding-top:30px;border-top:1px solid var(--line);}
+/* Headings land below the fixed nav when jumped to, not behind it. */
+.lg-body h2,.lg-body h3{scroll-margin-top:var(--nav-clear);color:var(--ink);font-family:var(--serif);}
+.lg-body h2{font-weight:500;font-size:var(--t-head);line-height:var(--lh-snug);margin:0 0 .6em;}
+.lg-body h2:focus{outline:none;}
+.lg-body h2:focus-visible{outline:2px solid var(--silver);outline-offset:4px;border-radius:4px;}
+.lg-body h3{font-weight:500;font-size:var(--t-title);line-height:var(--lh-snug);margin:1.4em 0 .5em;}
+.lg-back{margin:36px 0 0;font-size:var(--t-body);}
+.lg-back a{display:inline-flex;align-items:center;min-height:var(--tap);}
+
+/* Not yet approved: the page says so, and publishes nothing in its place. */
+.lg-pending{max-width:var(--measure);padding:28px 30px;border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--surface);font-size:var(--t-body);line-height:var(--lh-body);color:var(--silver);}
+.lg-pending p{margin:0 0 1em;}
+.lg-pending .lg-lead{font-family:var(--serif);font-size:var(--t-head);line-height:var(--lh-snug);color:var(--ink);margin-bottom:.5em;}
+.lg-contact{margin:0;}
+.lg-contact a{display:inline-flex;align-items:center;min-height:var(--tap);color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+
+.lg-others{max-width:var(--measure);display:flex;flex-wrap:wrap;gap:6px 22px;margin:44px 0 0;padding-top:22px;border-top:1px solid var(--line);}
+.lg-others a{display:inline-flex;align-items:center;min-height:var(--tap);font-size:var(--t-meta);letter-spacing:.12em;
+  text-transform:uppercase;font-weight:600;color:var(--silver);text-decoration:none;}
+.lg-others a:hover{color:var(--ink);}
+
+@media(max-width:520px){.lg-pending{padding:22px 18px;}}
+
+/* ── accepting the booking terms, at checkout ── */
+/* A native checkbox — it is already keyboard- and screen-reader-correct —
+   made large enough to hit, with the whole sentence as its label so the
+   target is the line rather than a 13px square. Unchecked until the
+   customer checks it; see Step3Details. */
+.accept{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;margin:18px 0 0;
+  padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--raised);}
+.accept input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--signal);cursor:pointer;}
+.accept label{font-size:var(--t-body);line-height:var(--lh-body);color:var(--silver);cursor:pointer;}
+.accept a{color:var(--ink);text-decoration:underline;text-underline-offset:3px;}
+.accept a:hover{color:var(--highlight);}
+.accept.bad{border-color:var(--alert-line);background:var(--alert-tint);}
+.accept-err{grid-column:1 / -1;margin:2px 0 0;font-size:var(--t-body);color:var(--alert-ink);}

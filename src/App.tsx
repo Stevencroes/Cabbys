@@ -9,6 +9,7 @@ import AuthCallback from "./pages/AuthCallback";
 import MyTrips from "./pages/MyTrips";
 import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
+import PolicyPage from "./pages/PolicyPage";
 import DriverPortal from "./driver/DriverPortal";
 import AdminPortal from "./admin/AdminPortal";
 import Confirmation from "./components/Confirmation";
@@ -38,6 +39,11 @@ function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         {/* where the password-recovery mail lands */}
         <Route path="/reset-password" element={<ResetPassword />} />
+        {/* The policies, fed only by approved copy in src/content/legal —
+            see src/lib/legal.ts for why nothing else may fill them. */}
+        <Route path="/terms" element={<PolicyPage slug="terms" />} />
+        <Route path="/privacy" element={<PolicyPage slug="privacy" />} />
+        <Route path="/cancellation" element={<PolicyPage slug="cancellation" />} />
         {/* the driver portal is its own world: dark ground, own shell, own guard */}
         <Route path="/drive/*" element={<DriverPortal />} />
         {/* and so is the board. Same grounds, same identity system, its
