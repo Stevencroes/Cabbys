@@ -121,10 +121,10 @@ grant execute on function public.cancel_my_ride(uuid) to anon;
 
 -- ── 2. retire the policy ─────────────────────────────────────────────
 -- Dropped only now that the function exists, so there is no moment in
--- this file where a guest cannot cancel at all. The app calls the
--- function first and only falls back to the old direct UPDATE if the
--- function is missing, so the order in which the app and this file are
--- deployed does not matter either.
+-- this file where a guest cannot cancel at all. The app no longer has a
+-- direct-UPDATE fallback: it cancels through this function or not at all,
+-- so this file must be run on any new Supabase project before guests can
+-- cancel there.
 
 drop policy if exists "rides: cancel own" on public.rides;
 

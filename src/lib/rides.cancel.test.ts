@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // What each call answers with, per test.
 let rpcAnswer: { data: unknown; error: { code?: string; message?: string } | null };
-let updateAnswer: { data: unknown; error: { message: string } | null };
 const rpc = vi.fn(() => Promise.resolve(rpcAnswer));
-const select = vi.fn(() => Promise.resolve(updateAnswer));
+// Any direct write to the table is a failure of this test: the function
+// is the only way a guest cancels, now the old UPDATE policy is gone.
+const from = vi.fn();
 vi.mock("./supabase", () => ({
   supabase: {
     rpc: (...a: unknown[]) => rpc(...(a as [])),
-    from: () => ({ update: () => ({ eq: () => ({ select }) }) }),
+    from: (...a: unknown[]) => from(...(a as [])),
   },
 }));
 
@@ -16,16 +17,15 @@ import { cancelRide } from "./rides";
 
 beforeEach(() => {
   rpc.mockClear();
-  select.mockClear();
+  from.mockClear();
   rpcAnswer = { data: { ok: true }, error: null };
-  updateAnswer = { data: [{ id: "r1" }], error: null };
 });
 
 describe("a guest cancelling, through cancel_my_ride", () => {
   it("asks the function, with the ride's id", async () => {
     expect(await cancelRide("r1")).toEqual({ ok: true });
     expect(rpc).toHaveBeenCalledWith("cancel_my_ride", { p_ride_id: "r1" });
-    expect(select).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
   });
 
   // Asking twice is not an error: the first attempt landed, the answer
@@ -56,29 +56,18 @@ describe("a guest cancelling, through cancel_my_ride", () => {
     const res = await cancelRide("r1");
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.detail).toMatch(/couldn't cancel/i);
-    expect(select).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
   });
-});
 
-// Before docs/cancel-schema.sql is run, the function does not exist. The
-// app must keep cancelling in that window — so the order the app and the
-// SQL are deployed in never matters.
-describe("before the SQL has been run", () => {
-  beforeEach(() => {
+  // The old fallback wrote to the table directly when the function was
+  // missing. With the policy dropped that write can only be refused, so a
+  // missing function is now what any other failed request is: a failure,
+  // said plainly, and never a quiet retry by another route.
+  it("does not fall back to writing the table when the function is missing", async () => {
     rpcAnswer = { data: null, error: { code: "PGRST202", message: "Could not find the function public.cancel_my_ride" } };
-  });
-
-  it("falls back to the old path and succeeds when the row comes back", async () => {
-    expect(await cancelRide("r1")).toEqual({ ok: true });
-    expect(select).toHaveBeenCalledWith("id");
-  });
-
-  // The original silent failure: a refused UPDATE matches zero rows and
-  // reports success. The fallback must still catch it.
-  it("reports a refusal when the fallback changes zero rows", async () => {
-    updateAnswer = { data: [], error: null };
     const res = await cancelRide("r1");
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.detail).toMatch(/can no longer be cancelled online/);
+    if (!res.ok) expect(res.detail).toMatch(/couldn't cancel/i);
+    expect(from).not.toHaveBeenCalled();
   });
 });

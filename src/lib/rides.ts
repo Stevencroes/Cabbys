@@ -118,47 +118,10 @@ const NETWORK = "We couldn't cancel this just now. Check your connection and try
 export async function cancelRide(rideId: string): Promise<GuestCancelResult> {
   const { data, error } = await supabase.rpc("cancel_my_ride", { p_ride_id: rideId });
 
-  if (error) {
-    // The function not being there yet means the SQL has not been run on
-    // this project. Fall back to the old path so cancelling keeps working
-    // in the meantime, and the order the app and the SQL are deployed in
-    // never matters. Remove once docs/cancel-schema.sql is live everywhere:
-    // with the policy dropped, this path can only ever refuse.
-    if (isMissingFunction(error)) return legacyCancel(rideId);
-    return { ok: false, detail: NETWORK };
-  }
+  if (error) return { ok: false, detail: NETWORK };
 
   const row = (data ?? {}) as { ok?: boolean; error?: string };
   if (row.ok === true) return { ok: true };
   const why = typeof row.error === "string" ? row.error : "";
   return { ok: false, detail: CANCEL_WHY[why] ?? "This booking can't be cancelled online. Contact us and we'll help." };
-}
-
-/** PostgREST's answer for a function it has never heard of. */
-function isMissingFunction(error: { code?: string; message?: string }): boolean {
-  return error.code === "PGRST202" || /could not find the function/i.test(error.message ?? "");
-}
-
-/**
- * The pre-function path, kept only as the fallback above.
- *
- * A refused UPDATE matches zero rows and reports success, so it asks for
- * the row back and treats an empty answer as the refusal it is — never as
- * a cancellation that happened.
- */
-async function legacyCancel(rideId: string): Promise<GuestCancelResult> {
-  const { data, error } = await supabase
-    .from("rides")
-    .update({ status: "cancelled" })
-    .eq("id", rideId)
-    .select("id");
-
-  if (error) return { ok: false, detail: NETWORK };
-  if (!Array.isArray(data) || data.length === 0) {
-    return {
-      ok: false,
-      detail: "This trip can no longer be cancelled online — it has already moved on. Contact us and we'll help.",
-    };
-  }
-  return { ok: true };
 }
