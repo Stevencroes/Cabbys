@@ -6,6 +6,7 @@ import { askAnything, SUPPORT_EMAIL } from "../lib/support";
 import { useStartBooking } from "../booking/useStartBooking";
 import { AIRPORT, findPlaceByName, selFromPlace } from "../data/places";
 import { LEGAL } from "../lib/legal";
+import { SITE_DOMAIN } from "../lib/site";
 
 // `closing` makes this the landing page's whole closing band: the CTA and
 // the sitemap used to be two stacked sections in two different grounds,
@@ -95,7 +96,7 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
           </div>
         </div>
         <div className="fbot">
-          <span>© {new Date().getFullYear()} Cabby's · cabbys.aw</span>
+          <span>© {new Date().getFullYear()} Cabby's · {SITE_DOMAIN}</span>
           {/* The policies live down here, in the small print, rather than
               as a fourth column competing with the sitemap: they are where
               people look for them and nowhere they get in the way. This

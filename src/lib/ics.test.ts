@@ -10,11 +10,11 @@ describe("ics generation", () => {
       date: "2026-07-01",
       time: "14:30",
       durationMinutes: 45,
-      uid: "ride-1@cabbys.aw",
+      uid: "ride-1@cabbystransfer.com",
     });
     expect(ics).toContain("DTSTART:20260701T143000");
     expect(ics).toContain("DTEND:20260701T151500");
-    expect(ics).toContain("UID:ride-1@cabbys.aw");
+    expect(ics).toContain("UID:ride-1@cabbystransfer.com");
     // semicolons/commas escaped per RFC 5545
     expect(ics).toContain("Booking CB-7KM4Q\\; meet at arrivals\\, name board");
     expect(ics.startsWith("BEGIN:VCALENDAR")).toBe(true);

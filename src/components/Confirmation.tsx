@@ -10,6 +10,7 @@ import { refFromRideId } from "../lib/bookingRef";
 import { downloadIcs } from "../lib/ics";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
 import { askAboutTrip } from "../lib/support";
+import { SITE_DOMAIN } from "../lib/site";
 import { VEHICLES } from "../data/vehicles";
 import type { ConfirmedBooking } from "../booking/types";
 
@@ -52,7 +53,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
         date: booking.date,
         time: booking.time || "12:00",
         durationMinutes: 60,
-        uid: `${booking.rideId}@cabbys.aw`,
+        uid: `${booking.rideId}@${SITE_DOMAIN}`,
       },
       `cabbys-${bookingRef}.ics`,
     );

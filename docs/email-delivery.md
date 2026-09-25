@@ -34,10 +34,10 @@ header of that file.
 
 1. Pick a sender. Resend is the least friction; Postmark and SES are
    equally fine.
-2. Verify `cabbys.aw` there — SPF and DKIM records. Needs DNS access,
+2. Verify `cabbystransfer.com` there — SPF and DKIM records. Needs DNS access,
    and propagation is the slow part.
 3. Paste host, port, user and password into SMTP Settings. Sender
-   something like `no-reply@cabbys.aw`.
+   something like `no-reply@cabbystransfer.com`.
 4. Send yourself a reset from the live site. Confirm it lands, and
    confirm it isn't in spam.
 5. Then turn on Authentication → Providers → Email → Confirm email, and

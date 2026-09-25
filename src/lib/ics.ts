@@ -2,6 +2,8 @@
 // Times are written as floating local time: "14:30" means 14:30 in Aruba,
 // which is exactly what the traveler's phone should show once they land.
 
+import { SITE_DOMAIN } from "./site";
+
 export interface IcsEvent {
   title: string;
   description?: string;
@@ -35,7 +37,7 @@ function addMinutes(date: string, time: string, minutes: number): { date: string
 export function buildIcs(ev: IcsEvent): string {
   const duration = ev.durationMinutes ?? 60;
   const end = addMinutes(ev.date, ev.time, duration);
-  const uid = ev.uid ?? `${stamp(ev.date, ev.time)}@cabbys.aw`;
+  const uid = ev.uid ?? `${stamp(ev.date, ev.time)}@${SITE_DOMAIN}`;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
