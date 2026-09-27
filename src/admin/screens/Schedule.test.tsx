@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import type { Board } from "../BoardContext";
 import { makeBoard, makeDriver, makeRide } from "../lib/fixtures";
-import { addDays, todayInAruba } from "../../lib/datetime";
+import { addDays, todayInAruba, weekDays } from "../../lib/datetime";
 
 const state: { board: Board } = { board: makeBoard() };
 vi.mock("../BoardContext", () => ({ useBoard: () => state.board }));
@@ -80,14 +80,19 @@ describe("the schedule", () => {
     expect(screen.getByText("1 open")).toBeInTheDocument();
   });
 
+  // The strip runs Monday to Sunday, so on a Sunday tomorrow is next
+  // week and not on it. This test used to use tomorrow unconditionally
+  // and failed every Sunday; it now takes the neighbour that shares
+  // today's week.
   it("walks to another day and says which one it is", () => {
-    const tomorrow = addDays(today, 1);
-    state.board = makeBoard({ rides: [makeRide({ scheduledAt: at(tomorrow, 9) })] });
+    const sunday = weekDays(today)[6] === today;
+    const other = addDays(today, sunday ? -1 : 1);
+    state.board = makeBoard({ rides: [makeRide({ scheduledAt: at(other, 9) })] });
     renderDay();
-    // today is empty; the strip still shows tomorrow's work
+    // today is empty; the strip still shows the other day's work
     expect(screen.getByText(/nothing booked today/i)).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("1 ride")[0].closest("button")!);
-    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+    expect(screen.getByText(sunday ? "Yesterday" : "Tomorrow")).toBeInTheDocument();
   });
 
   // A ride with no date belongs to no day, so it would appear on none of
