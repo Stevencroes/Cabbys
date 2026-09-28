@@ -12,22 +12,20 @@ has the templates and why. Booking emails (the guest's confirmation and
 the alerts to Cabby's) are a separate path through the same Resend
 account: `api/booking-alerts.ts` and `docs/alerts-schema.sql`.
 
-## What is still open
+**Email confirmation is ON** (28 Sep 2026), and a new signup was tested
+end to end: "Account created. Confirm it from the mail we sent…", the
+branded "Confirm your email" arrives, and its link signs the person in.
 
-**Email confirmation is still OFF.** It could not be turned on without a
-working sender; now it can, and it is the last step below. Until it is
-on, signing up with an address proves nothing about holding it, which
-matters because of the next point.
-
-**Claim-by-email rests on unproven ownership.** `claim_guest_rides()` in
+That is what makes claim-by-email sound. `claim_guest_rides()` in
 `docs/guest-claim.sql` attaches guest bookings to an account by matching
-the address given at checkout. Signing up with an address proves nothing
-about holding it while confirmation is off. The full caveat is in the
-header of that file.
+the address given at checkout; with confirmation on, an account only
+holds an address its owner has proved they receive mail at. Turn
+confirmation off again and that stops being true — the header of that
+file says so.
 
 ## Fixing it
 
-Steps 1 to 4 are done (28 Sep 2026). Step 5 is what remains.
+All five steps are done (28 Sep 2026). Kept as the record of how.
 
 1. Pick a sender. Resend is the least friction; Postmark and SES are
    equally fine.

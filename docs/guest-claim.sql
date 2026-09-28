@@ -8,16 +8,17 @@
 --
 -- Run in the Supabase SQL editor. Idempotent — safe to re-run.
 --
--- ⚠ READ THIS BEFORE RUNNING IT
+-- ⚠ THIS IS ONLY AS SAFE AS EMAIL CONFIRMATION
 -- Claim-by-email is exactly as trustworthy as email ownership. Email
--- confirmation is currently OFF in this project, which means signing up
--- with an address proves nothing about holding it: anyone who knows a
--- customer's email could sign up as them and claim their trips. The
+-- confirmation has been ON since 28 Sep 2026 (Authentication → Providers
+-- → Email → Confirm email, with real SMTP through Resend — see
+-- docs/email-delivery.md), so an account only holds an address its owner
+-- proved they receive mail at. It was OFF before that, and while it was,
+-- anyone who knew a customer's email could sign up as them and claim
+-- their trips. If it is ever switched off again, that is true again: the
 -- function below is deliberately narrow — it only ever takes rides that
 -- belong to nobody, and never takes one from another real account — but
 -- that narrowness is not a substitute for confirmation.
--- Turn confirmations on (Authentication → Providers → Email → Confirm
--- email) once real SMTP is configured, and this becomes sound.
 -- ═══════════════════════════════════════════════════════════════════
 
 -- ── 1. Find guest bookings by the address given at checkout ─────────
