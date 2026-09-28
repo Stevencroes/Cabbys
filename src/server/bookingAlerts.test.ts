@@ -3,13 +3,14 @@
 import { describe, it, expect, vi } from "vitest";
 import handler, {
   CONFIRM_WINDOW_MINUTES, FREE_CANCEL_HOURS, confirmWindowLabel, SUPPORT_EMAIL, VEHICLE_NAMES,
-  MIN_NOTICE_HOURS, buildAlertEmail, buildDriverEmail, buildGuestEmail, countdown, runAlerts,
+  AWG_PER_USD, MIN_NOTICE_HOURS, buildAlertEmail, fareUsd, buildDriverEmail, buildGuestEmail, countdown, runAlerts,
   type ClaimedAlert, type Deps, type Email,
 } from "../../api/booking-alerts";
 import { VEHICLES } from "../data/vehicles";
 import { SITE_DOMAIN } from "../lib/site";
 import * as policy from "../lib/policy";
 import * as derivedTime from "../lib/derivedTime";
+import * as quote from "../lib/quote";
 import * as support from "../lib/support";
 
 // 14:00 in Aruba on Sat 3 Oct 2026 is 18:00 UTC.
@@ -36,7 +37,8 @@ function alert(over: Partial<ClaimedAlert> = {}, ride: Record<string, unknown> =
       contact_phone: "+1 555 010 2030",
       contact_email: "ana@example.com",
       flight_number: "B6 1234",
-      fare_total: 64.5,
+      // florin, as the ride row stores it: US$58 × 1.79
+      fare_total: 103.82,
       ...ride,
     },
     ...over,
@@ -50,7 +52,7 @@ describe("what the alert says", () => {
     expect(e.to).toBe("cabbystransfer@gmail.com");
     expect(e.from).toMatch(/@cabbystransfer\.com>$/);
     expect(e.text).toContain("Vehicle: Luxury SUV");
-    expect(e.text).toContain("Fare: US$65");
+    expect(e.text).toContain("Fare: US$58");
     expect(e.text).toContain("Driver: Nobody yet");
   });
 
@@ -131,7 +133,7 @@ describe("the guest's copy", () => {
     expect(e.text).toContain("From: Queen Beatrix Airport");
     expect(e.text).toContain("Car: Luxury SUV");
     expect(e.text).toContain("Flight: B6 1234, tracked");
-    expect(e.text).toContain("Total: US$65");
+    expect(e.text).toContain("Total: US$58");
     expect(e.text).toContain("Payment: Fixed price, paid to your driver on the day.");
     expect(buildGuestEmail(guest({}, { payment_status: "paid" }), {})!.text).toContain("Payment: Paid by card.");
   });
@@ -188,6 +190,30 @@ describe("the guest's copy", () => {
     expect(FREE_CANCEL_HOURS).toBe(policy.FREE_CANCEL_HOURS);
     expect(SUPPORT_EMAIL).toBe(support.SUPPORT_EMAIL);
     expect(MIN_NOTICE_HOURS).toBe(derivedTime.MIN_NOTICE_HOURS);
+    expect(AWG_PER_USD).toBe(quote.AWG_PER_USD);
+  });
+});
+
+// The fault a guest found on the first real booking: the row's florin
+// printed as dollars. The email's number must be the one My trips and the
+// confirmation screen show for the same row.
+describe("the fare in an email", () => {
+  it("is the stored florin converted to dollars, the same number the site shows", () => {
+    for (const awg of [103.82, 50.12, 179, 71.6, 250.6]) {
+      expect(fareUsd({ fare_total: awg })).toBe(Math.round(quote.awgToUsd(awg)));
+      expect(`$${fareUsd({ fare_total: awg })}`).toBe(quote.usd(quote.awgToUsd(awg)));
+    }
+    expect(fareUsd({ price: "103.82" })).toBe(58);
+    expect(fareUsd({})).toBeNull();
+  });
+
+  it("reads US$58 for a US$58 ride in every email that shows it", () => {
+    expect(buildAlertEmail(alert(), { now: NOW }).text).toContain("Fare: US$58");
+    expect(buildGuestEmail(alert({ kind: "guest_confirmation" }), {})!.text).toContain("Total: US$58");
+    for (const e of [buildAlertEmail(alert(), { now: NOW }), buildGuestEmail(alert({ kind: "guest_confirmation" }), {})!]) {
+      expect(e.text).not.toContain("US$104");
+      expect(e.html).not.toContain("US$104");
+    }
   });
 });
 

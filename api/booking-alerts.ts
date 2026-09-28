@@ -34,6 +34,21 @@ const ALERT_TO_DEFAULT = "cabbystransfer@gmail.com";
 const FROM = "Cabby's Alerts <alerts@cabbystransfer.com>";
 const FROM_GUEST = "Cabby's <bookings@cabbystransfer.com>";
 
+/**
+ * src/lib/quote.ts AWG_PER_USD. The ride row stores the fare in FLORIN
+ * (fare_total and price, because the driver dashboard reads florin), and
+ * every screen divides by this before it shows dollars. The first
+ * version of these emails did not, and told a guest their US$58 ride
+ * cost "US$104".
+ */
+export const AWG_PER_USD = 1.79;
+
+/** The fare as the guest was quoted it: dollars, rounded like usd() on the site. */
+export function fareUsd(r: RideRow): number | null {
+  const awg = num(r, "fare_total") ?? num(r, "price");
+  return awg === null ? null : Math.round(awg / AWG_PER_USD);
+}
+
 /** src/lib/policy.ts CONFIRM_WINDOW_MINUTES. */
 export const CONFIRM_WINDOW_MINUTES = 60;
 
@@ -208,7 +223,7 @@ export function buildAlertEmail(
   const pax = num(r, "passengers_count");
   const bags = num(r, "luggage_count");
   const seats = num(r, "child_seats");
-  const fare = num(r, "fare_total") ?? num(r, "price");
+  const fare = fareUsd(r);
   const flight = str(r, "flight_number");
   const notes = str(r, "notes");
   const retDate = str(r, "return_date");
@@ -236,7 +251,7 @@ export function buildAlertEmail(
       : "");
   add("Email", email, email ? `<a href="mailto:${esc(email)}" style="color:#0B3B5C">${esc(email)}</a>` : "");
   add("Notes", notes);
-  add("Fare", fare !== null ? `US$${Math.round(fare)}` : "");
+  add("Fare", fare !== null ? `US$${fare}` : "");
   add("Driver", needsDriver ? "Nobody yet" : str(r, "driver_name") || "Assigned");
 
   const head = HEAD[alert.kind === "remind_12h" || alert.kind === "remind_2h" ? alert.kind : "new"];
@@ -325,7 +340,7 @@ export function buildGuestEmail(
   const pax = num(r, "passengers_count");
   const bags = num(r, "luggage_count");
   const seats = num(r, "child_seats");
-  const fare = num(r, "fare_total") ?? num(r, "price");
+  const fare = fareUsd(r);
   const retDate = str(r, "return_date");
   const retTime = str(r, "return_time");
   const site = (opts.siteUrl || SITE_URL_DEFAULT).replace(/\/+$/, "");
@@ -351,7 +366,7 @@ export function buildGuestEmail(
   add("Child seats", seats !== null && seats > 0 ? String(seats) : "");
   add("Flight", flight ? `${flight}, tracked` : "");
   add("Return trip", retDate ? `${retDate}${retTime ? `, ${retTime}` : ""}` : "");
-  add("Total", fare !== null ? `US$${Math.round(fare)}` : "");
+  add("Total", fare !== null ? `US$${fare}` : "");
   add("Payment", fare !== null ? paymentLine(r) : "");
 
   // What happens next, in the order it happens. Each line is one the
