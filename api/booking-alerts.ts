@@ -1,13 +1,15 @@
-// Vercel Node function — booking alerts to Cabby's, by email.
+// Vercel Node function — booking emails: alerts to Cabby's, and the
+// guest's own confirmation.
 //
 // Called by the database, never by a browser: once the moment a booking
 // is inserted, and every fifteen minutes by pg_cron. docs/alerts-schema.sql
 // has the whole design; the short version is that the DATABASE decides
 // what is due (claim_booking_alerts) and this only writes and sends it.
 //
-//   new         "New booking" — the moment it is made
-//   remind_12h  "Still no driver" — 12 hours before pickup
-//   remind_2h   "URGENT: no driver" — 2 hours before pickup
+//   new                 to Cabby's: "New booking" — the moment it is made
+//   remind_12h          to Cabby's: "Still no driver" — 12 hours before pickup
+//   remind_2h           to Cabby's: "URGENT: no driver" — 2 hours before pickup
+//   guest_confirmation  to the guest: their booking, in writing
 //
 // Needs one variable in Vercel: RESEND_API_KEY. It reads the database with
 // the public Supabase URL and key the site already has, and proves itself
@@ -18,7 +20,8 @@
 // Vercel runs each api/ file as ESM, where a relative import without an
 // extension fails at runtime and nowhere earlier. Nothing here imports
 // from src/ for that reason; the few things it shares with the site
-// (vehicle names, the domain) are copied and a test holds them equal.
+// (vehicle names, the domain, the confirmation window, the cancellation
+// hours, the support address) are copied and a test holds them equal.
 
 /** Resend's free plan takes two requests a second. */
 const SEND_GAP_MS = 600;
@@ -28,6 +31,14 @@ const PER_RUN = 5;
 const SITE_URL_DEFAULT = "https://cabbystransfer.com";
 const ALERT_TO_DEFAULT = "cabbystransfer@gmail.com";
 const FROM = "Cabby's Alerts <alerts@cabbystransfer.com>";
+const FROM_GUEST = "Cabby's <bookings@cabbystransfer.com>";
+
+/** src/lib/policy.ts CONFIRM_WINDOW_MINUTES. */
+export const CONFIRM_WINDOW_MINUTES = 15;
+/** src/lib/policy.ts FREE_CANCEL_HOURS. */
+export const FREE_CANCEL_HOURS = 24;
+/** src/lib/support.ts SUPPORT_EMAIL — where a guest's reply lands. */
+export const SUPPORT_EMAIL = "cabbystransfer@gmail.com";
 const TZ = "America/Aruba";
 
 /** src/data/vehicles.ts, by id. src/server/bookingAlerts.test.ts keeps them equal. */
@@ -38,7 +49,7 @@ export const VEHICLE_NAMES: Record<string, string> = {
   sprinter: "Luxury Sprinter",
 };
 
-export type AlertKind = "new" | "remind_12h" | "remind_2h";
+export type AlertKind = "new" | "remind_12h" | "remind_2h" | "guest_confirmation";
 
 /** The ride as claim_booking_alerts returns it: the whole row, loosely. */
 export type RideRow = Record<string, unknown>;
@@ -57,6 +68,8 @@ export interface Email {
   subject: string;
   html: string;
   text: string;
+  /** Resend's field name. A guest who hits Reply reaches a person. */
+  reply_to?: string;
 }
 
 // ── reading the row ─────────────────────────────────────────────────────
@@ -136,7 +149,7 @@ function whatsappFor(phone: string): string | null {
   return null;
 }
 
-const HEAD: Record<AlertKind, { tag: string; tone: string }> = {
+const HEAD: Record<Exclude<AlertKind, "guest_confirmation">, { tag: string; tone: string }> = {
   new: { tag: "New booking", tone: "#0B3B5C" },
   remind_12h: { tag: "Still no driver", tone: "#8A5A00" },
   remind_2h: { tag: "URGENT: no driver", tone: "#A1261B" },
@@ -212,7 +225,7 @@ export function buildAlertEmail(
   add("Fare", fare !== null ? `US$${Math.round(fare)}` : "");
   add("Driver", needsDriver ? "Nobody yet" : str(r, "driver_name") || "Assigned");
 
-  const head = HEAD[alert.kind];
+  const head = HEAD[alert.kind === "guest_confirmation" ? "new" : alert.kind];
   const text = [
     `${head.tag} · ${ref}`,
     "",
@@ -251,6 +264,151 @@ ${rows.map(([l, , h]) => `<tr><td style="padding:7px 12px 7px 0;color:#5B6675;wh
   return { from: FROM, to: opts.to || ALERT_TO_DEFAULT, subject, html, text };
 }
 
+// ── the guest's copy ────────────────────────────────────────────────────
+
+/**
+ * What the fare means for this guest. Mirrors paymentState() in
+ * src/lib/tripStatus.ts: an empty payment_status is the normal case while
+ * card payment is off, and it means "pay the driver", not "unpaid".
+ */
+function paymentLine(r: RideRow): string {
+  const p = str(r, "payment_status").toLowerCase();
+  if (!p) return "Fixed price, paid to your driver on the day.";
+  if (p === "paid") return "Paid by card.";
+  if (p === "authorized" || p === "authorised") return "Held on your card, not charged yet.";
+  if (p === "failed") return "Your card didn't go through. Reply to this email and we'll sort it out.";
+  return "";
+}
+
+/** The same test the site uses (isAirportTransfer in src/lib/flight.ts). */
+function fromAirport(r: RideRow): boolean {
+  return str(r, "pickup_location").toLowerCase().includes("airport");
+}
+
+/**
+ * The guest's written copy of their booking.
+ *
+ * It promises exactly what the confirmation screen promises and nothing
+ * more. The screen used to add "driver details sent 12h before", which
+ * nothing in this project does; an email is kept and quoted back, so a
+ * promise in it that nobody keeps is worse than on a screen.
+ */
+export function buildGuestEmail(
+  alert: ClaimedAlert,
+  opts: { siteUrl?: string; whatsapp?: string },
+): Email | null {
+  const r = alert.ride;
+  const to = str(r, "contact_email");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return null;
+
+  const ref = bookingRef(r);
+  const when = arubaWhen(alert.pickup_at);
+  const whenLine = when ? `${when.day}, ${when.time} (Aruba time)` : "Time to be confirmed";
+  const first = str(r, "contact_name").split(/\s+/)[0] ?? "";
+  const from = str(r, "pickup_location");
+  const dest = str(r, "dropoff_location");
+  const flight = str(r, "flight_number");
+  const pax = num(r, "passengers_count");
+  const bags = num(r, "luggage_count");
+  const seats = num(r, "child_seats");
+  const fare = num(r, "fare_total") ?? num(r, "price");
+  const retDate = str(r, "return_date");
+  const retTime = str(r, "return_time");
+  const site = (opts.siteUrl || SITE_URL_DEFAULT).replace(/\/+$/, "");
+  const tripsUrl = `${site}/trips`;
+  const waNumber = (opts.whatsapp ?? "").replace(/\D/g, "");
+  const waUrl = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(
+        `Hi Cabby's — booking ${ref} (${from || "pickup"} → ${dest || "drop-off"}, ${when ? `${when.day}, ${when.time}` : "date to confirm"}).`,
+        // encodeURIComponent leaves ( ) ' alone, and a mail app turning
+        // the plain-text copy into a link stops at the closing bracket
+      ).replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}`
+    : null;
+
+  const rows: [string, string][] = [];
+  const add = (label: string, text: string) => { if (text) rows.push([label, text]); };
+  add("Booking", ref);
+  add("Pickup", whenLine);
+  add("From", from);
+  add("To", dest);
+  add("Car", vehicleName(r));
+  add("Passengers", pax !== null ? String(pax) : "");
+  add("Bags", bags !== null && bags > 0 ? String(bags) : "");
+  add("Child seats", seats !== null && seats > 0 ? String(seats) : "");
+  add("Flight", flight ? `${flight}, tracked` : "");
+  add("Return trip", retDate ? `${retDate}${retTime ? `, ${retTime}` : ""}` : "");
+  add("Total", fare !== null ? `US$${Math.round(fare)}` : "");
+  add("Payment", fare !== null ? paymentLine(r) : "");
+
+  // What happens next, in the order it happens. Each line is one the
+  // confirmation screen also says.
+  const next: string[] = [
+    `We'll confirm on WhatsApp within ${CONFIRM_WINDOW_MINUTES} minutes.`,
+    ...(flight ? ["We're watching your flight. If it moves, we move with it."] : []),
+    ...(fromAirport(r) ? ["Your driver waits inside the arrivals hall with your name."] : []),
+    `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`,
+  ];
+
+  const subject = `Your Cabby's booking ${ref} · ${when ? `${when.day}, ${when.time}` : "time to be confirmed"}`;
+  const hello = first ? `Thanks, ${first}. Your transfer is booked.` : "Thanks. Your transfer is booked.";
+
+  const text = [
+    hello,
+    "",
+    ...rows.map(([l, t]) => `${l}: ${t}`),
+    "",
+    "What happens next",
+    ...next.map((n) => `- ${n}`),
+    "",
+    `Your trips: ${tripsUrl}`,
+    waUrl ? `WhatsApp us: ${waUrl}` : "",
+    "Or just reply to this email.",
+    "",
+    "Cabby's · Private transfers in Aruba · cabbystransfer.com",
+  ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+
+  const link = "color:#0B3B5C;";
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:0;background:#EEF1F4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF1F4;padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:10px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A2330;">
+<tr><td style="background:#020B14;padding:18px 24px;color:#FFFFFF;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Cabby&#39;s</td></tr>
+<tr><td style="padding:26px 24px 6px;">
+<h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;font-weight:600;">${esc(hello)}</h1>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#4A5563;">Keep this email for your trip. Everything we have is below.</p>
+</td></tr>
+<tr><td style="padding:14px 24px 4px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;line-height:1.45;">
+${rows.map(([l, t]) => `<tr><td style="padding:7px 12px 7px 0;color:#5B6675;white-space:nowrap;vertical-align:top;width:1%;">${esc(l)}</td><td style="padding:7px 0;vertical-align:top;">${esc(t)}</td></tr>`).join("\n")}
+</table>
+</td></tr>
+<tr><td style="padding:16px 24px 4px;">
+<h2 style="margin:0 0 8px;font-size:16px;font-weight:600;">What happens next</h2>
+<ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.55;">
+${next.map((n) => `<li style="margin:0 0 4px;">${esc(n)}</li>`).join("\n")}
+</ul>
+</td></tr>
+<tr><td style="padding:18px 24px 26px;">
+<a href="${esc(tripsUrl)}" style="display:inline-block;background:#020B14;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:600;padding:13px 22px;border-radius:6px;">See your trip</a>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.5;">Questions? ${waUrl ? `<a href="${esc(waUrl)}" style="${link}">WhatsApp us</a> or reply` : "Reply"} to this email and a person will answer.</p>
+</td></tr>
+</table>
+<p style="font-family:Arial,sans-serif;font-size:12px;color:#7A8594;margin:14px 0 0;">Cabby&#39;s · Private transfers in Aruba · <a href="${esc(site)}" style="color:#7A8594;">cabbystransfer.com</a></p>
+</td></tr></table>
+</body></html>`;
+
+  return { from: FROM_GUEST, to, subject, html, text, reply_to: SUPPORT_EMAIL };
+}
+
+/** Which email a claimed alert is. Null when there is nobody to send it to. */
+export function buildEmail(
+  alert: ClaimedAlert,
+  opts: { now: number; to?: string; siteUrl?: string; whatsapp?: string },
+): Email | null {
+  return alert.kind === "guest_confirmation" ? buildGuestEmail(alert, opts) : buildAlertEmail(alert, opts);
+}
+
 // ── the run ─────────────────────────────────────────────────────────────
 
 export type RpcResult = { ok: true; data: unknown } | { ok: false; error: string };
@@ -263,6 +421,7 @@ export interface Deps {
   now: () => number;
   to?: string;
   siteUrl?: string;
+  whatsapp?: string;
 }
 
 export interface RunResult {
@@ -295,7 +454,11 @@ export async function runAlerts(secret: string, deps: Deps): Promise<RunResult> 
     const a = alerts[i];
     let result: SendResult;
     try {
-      result = await deps.send(buildAlertEmail(a, { now: deps.now(), to: deps.to, siteUrl: deps.siteUrl }));
+      const email = buildEmail(a, { now: deps.now(), to: deps.to, siteUrl: deps.siteUrl, whatsapp: deps.whatsapp });
+      // The database only claims a guest email for an address that looks
+      // like one, so this is a belt: recorded as failed with the reason,
+      // never sent to nowhere and counted as sent.
+      result = email ? await deps.send(email) : { ok: false, error: "no usable address" };
     } catch (e) {
       result = { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
@@ -387,6 +550,7 @@ export default async function handler(req: Req, res: Res) {
     now: () => Date.now(),
     to: env("ALERT_EMAIL") || undefined,
     siteUrl: env("SITE_URL") || undefined,
+    whatsapp: env("VITE_WHATSAPP_NUMBER") || undefined,
   });
 
   return res.status(result.status).json(result.body);

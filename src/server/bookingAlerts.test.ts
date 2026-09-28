@@ -2,11 +2,14 @@
 // file in api/ is deployed as an endpoint, a test file included.
 import { describe, it, expect, vi } from "vitest";
 import handler, {
-  VEHICLE_NAMES, buildAlertEmail, countdown, runAlerts,
+  CONFIRM_WINDOW_MINUTES, FREE_CANCEL_HOURS, SUPPORT_EMAIL, VEHICLE_NAMES,
+  buildAlertEmail, buildGuestEmail, countdown, runAlerts,
   type ClaimedAlert, type Deps, type Email,
 } from "../../api/booking-alerts";
 import { VEHICLES } from "../data/vehicles";
 import { SITE_DOMAIN } from "../lib/site";
+import * as policy from "../lib/policy";
+import * as support from "../lib/support";
 
 // 14:00 in Aruba on Sat 3 Oct 2026 is 18:00 UTC.
 const PICKUP = "2026-10-03T18:00:00.000Z";
@@ -107,6 +110,76 @@ describe("what the alert says", () => {
   });
 });
 
+describe("the guest's copy", () => {
+  const WA = "2975551234";
+  const guest = (over: Partial<ClaimedAlert> = {}, ride: Record<string, unknown> = {}) =>
+    alert({ kind: "guest_confirmation", ...over }, ride);
+
+  it("goes to the guest, from bookings@, and a reply reaches a person", () => {
+    const e = buildGuestEmail(guest(), { whatsapp: WA })!;
+    expect(e.to).toBe("ana@example.com");
+    expect(e.from).toBe("Cabby's <bookings@cabbystransfer.com>");
+    expect(e.reply_to).toBe("cabbystransfer@gmail.com");
+    expect(e.subject).toBe("Your Cabby's booking CB-7KM4Q · Sat 3 Oct, 2:00 PM");
+  });
+
+  it("has the whole booking, on Aruba's clock, and the fare as the guest will settle it", () => {
+    const e = buildGuestEmail(guest(), {})!;
+    expect(e.text).toContain("Thanks, Ana. Your transfer is booked.");
+    expect(e.text).toContain("Pickup: Sat 3 Oct, 2:00 PM (Aruba time)");
+    expect(e.text).toContain("From: Queen Beatrix Airport");
+    expect(e.text).toContain("Car: Luxury SUV");
+    expect(e.text).toContain("Flight: B6 1234, tracked");
+    expect(e.text).toContain("Total: US$65");
+    expect(e.text).toContain("Payment: Fixed price, paid to your driver on the day.");
+    expect(buildGuestEmail(guest({}, { payment_status: "paid" }), {})!.text).toContain("Payment: Paid by card.");
+  });
+
+  it("promises what the confirmation screen promises, and only when it applies", () => {
+    const airport = buildGuestEmail(guest(), {})!.text;
+    expect(airport).toContain(`confirm on WhatsApp within ${CONFIRM_WINDOW_MINUTES} minutes`);
+    expect(airport).toContain("If it moves, we move with it.");
+    expect(airport).toContain("waits inside the arrivals hall");
+    expect(airport).toContain(`Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`);
+    expect(airport).not.toMatch(/12h before|12 hours before/);
+
+    const hotel = buildGuestEmail(guest({}, {
+      pickup_location: "The Ritz-Carlton, Aruba", dropoff_location: "Queen Beatrix Airport", flight_number: null,
+    }), {})!.text;
+    expect(hotel).not.toContain("arrivals hall");
+    expect(hotel).not.toContain("we move with it");
+  });
+
+  it("links to My trips, and to WhatsApp with the booking already named", () => {
+    const e = buildGuestEmail(guest(), { whatsapp: WA })!;
+    expect(e.html).toContain(`href="https://${SITE_DOMAIN}/trips"`);
+    const wa = /href="(https:\/\/wa\.me\/[^"]+)"/.exec(e.html)![1].replace(/&amp;/g, "&");
+    expect(wa.startsWith(`https://wa.me/${WA}?text=`)).toBe(true);
+    expect(decodeURIComponent(wa.split("text=")[1])).toContain("booking CB-7KM4Q");
+    // no number configured: no dead link, just "reply"
+    const plain = buildGuestEmail(guest(), {})!;
+    expect(plain.html).not.toContain("wa.me");
+    expect(plain.html).toContain("Reply to this email");
+  });
+
+  it("escapes what the guest typed", () => {
+    const e = buildGuestEmail(guest({}, { contact_name: "<b>Ana</b>", dropoff_location: '"><script>x()</script>' }), {})!;
+    expect(e.html).not.toContain("<script>");
+    expect(e.html).not.toContain("<b>Ana");
+  });
+
+  it("is not built at all without an address that looks like one", () => {
+    expect(buildGuestEmail(guest({}, { contact_email: "" }), {})).toBeNull();
+    expect(buildGuestEmail(guest({}, { contact_email: "not-an-email" }), {})).toBeNull();
+  });
+
+  it("keeps its copies of the site's promises equal to the site's", () => {
+    expect(CONFIRM_WINDOW_MINUTES).toBe(policy.CONFIRM_WINDOW_MINUTES);
+    expect(FREE_CANCEL_HOURS).toBe(policy.FREE_CANCEL_HOURS);
+    expect(SUPPORT_EMAIL).toBe(support.SUPPORT_EMAIL);
+  });
+});
+
 function deps(claim: unknown, sends: Array<{ ok: true; id: string } | { ok: false; error: string }> = []) {
   const rpc = vi.fn<Deps["rpc"]>(async (fn) =>
     fn === "claim_booking_alerts" ? (claim as Awaited<ReturnType<Deps["rpc"]>>) : { ok: true, data: { ok: true } });
@@ -131,6 +204,19 @@ describe("a run", () => {
     });
     // Resend's free plan takes two a second
     expect(t.sleep).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the guest's copy to the guest and the alert to Cabby's", async () => {
+    const t = deps({ ok: true, data: { ok: true, alerts: [alert(), alert({ id: "al-g", kind: "guest_confirmation" })] } });
+    await runAlerts("s3cret", t.d);
+    expect(t.sent.map((e) => e.to)).toEqual(["cabbystransfer@gmail.com", "ana@example.com"]);
+  });
+
+  it("records a guest copy with no usable address as failed rather than sending it nowhere", async () => {
+    const t = deps({ ok: true, data: { ok: true, alerts: [alert({ kind: "guest_confirmation" }, { contact_email: "" })] } });
+    const r = await runAlerts("s3cret", t.d);
+    expect(t.send).not.toHaveBeenCalled();
+    expect(r.body).toMatchObject({ sent: 0, failed: ["guest_confirmation CB-7KM4Q: no usable address"] });
   });
 
   it("records a send that threw as failed, so the next run retries it", async () => {

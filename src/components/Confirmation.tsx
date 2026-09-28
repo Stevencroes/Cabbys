@@ -37,6 +37,9 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
   const bookingRef = booking.bookingRef ?? refFromRideId(booking.rideId);
   const vehicleName = VEHICLES.find((v) => v.id === booking.vehicle)?.name ?? booking.vehicle;
   const dateLabel = formatDate(booking.date) || "—";
+  // isAirportTransfer's own test, applied to the pickup end only: a guest
+  // going TO the airport is met at their hotel, not in arrivals.
+  const fromAirport = booking.from.toLowerCase().includes("airport");
   // Through askAboutTrip so the date arrives in the same unambiguous
   // shape the rest of the flow uses. This line used to interpolate the
   // raw ISO date and a bare HH:MM, which is the one format a human
@@ -100,10 +103,17 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
                 <div><div className="tl">Flight</div><div className="tv">{booking.flightNumber} — tracked</div></div>
               )}
             </div>
+            {/* Both of these used to be fixed text. "Met at: Arrivals hall"
+                showed on a resort-to-resort ride too, and "Driver details:
+                Sent 12h before" promised a message nothing in the project
+                sends. The guest's confirmation email repeats what this tag
+                says, so the tag may only say what is true. */}
             <div className="perf">
               <div className="tgrid">
-                <div><div className="tl">Met at</div><div className="tv">Arrivals hall, AUA</div></div>
-                <div><div className="tl">Driver details</div><div className="tv">Sent 12h before</div></div>
+                {fromAirport && (
+                  <div><div className="tl">Met at</div><div className="tv">Arrivals hall, AUA</div></div>
+                )}
+                <div><div className="tl">Driver details</div><div className="tv">In My trips once assigned</div></div>
               </div>
             </div>
           </div>

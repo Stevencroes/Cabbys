@@ -47,6 +47,22 @@ describe("Confirmation", () => {
     ).toBeInTheDocument();
   });
 
+  it("says where the guest is met only when that is the airport, and promises nothing it doesn't send", () => {
+    const { unmount } = render(
+      <MemoryRouter><BookingProvider><Confirmation booking={booking} /></BookingProvider></MemoryRouter>,
+    );
+    expect(screen.getByText(/In My trips once assigned/)).toBeInTheDocument();
+    expect(screen.queryByText(/Sent 12h before/)).toBeNull();
+    unmount();
+    render(
+      <MemoryRouter><BookingProvider>
+        <Confirmation booking={{ ...booking, from: "The Ritz-Carlton Aruba", to: "Eagle Beach", flightNumber: undefined }} />
+      </BookingProvider></MemoryRouter>,
+    );
+    expect(screen.queryByText(/Arrivals hall/)).toBeNull();
+    expect(screen.queryByText("Met at")).toBeNull();
+  });
+
   it("renders nothing without a booking", () => {
     const { container } = render(
       <MemoryRouter>

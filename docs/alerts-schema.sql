@@ -1,13 +1,21 @@
 -- ═══════════════════════════════════════════════════════════════════════
---  Cabby's — booking alerts: nobody drives a booking nobody knows about
+--  Cabby's — booking emails: nobody drives a booking nobody knows about,
+--  and every guest gets their booking in writing
 --  Run this whole file in the Supabase SQL editor. It is idempotent.
 -- ═══════════════════════════════════════════════════════════════════════
 --
--- Three emails to Cabby's, sent by api/booking-alerts.ts through Resend:
+-- Four emails, sent by api/booking-alerts.ts through Resend. Three to
+-- Cabby's:
 --
 --   new         the moment a booking is made
 --   remind_12h  12 hours before pickup, if nobody is driving it yet
 --   remind_2h    2 hours before pickup, if STILL nobody is driving it
+--
+-- and one to the guest, at the address they gave:
+--
+--   guest_confirmation  the moment it is made — their booking in writing.
+--                       The confirmation screen has said "a copy is on its
+--                       way to your email" since before anything sent one.
 --
 -- A single email is easy to miss, and a missed one is a guest standing
 -- at the airport. The reminders are what turn "we sent an alert" into
@@ -94,7 +102,7 @@ revoke all on function private.alerts_secret() from public, anon, authenticated;
 create table if not exists public.ride_alerts (
   id          uuid primary key default gen_random_uuid(),
   ride_id     uuid not null references public.rides (id) on delete cascade,
-  kind        text not null check (kind in ('new', 'remind_12h', 'remind_2h')),
+  kind        text not null,
   status      text not null default 'sending' check (status in ('sending', 'sent', 'failed')),
   attempts    integer not null default 0,
   claimed_at  timestamptz,
@@ -104,6 +112,14 @@ create table if not exists public.ride_alerts (
   created_at  timestamptz not null default now(),
   unique (ride_id, kind)
 );
+
+-- Named, and replaced rather than declared inline, so that re-running
+-- this file after a new kind is added widens the check on a table that
+-- already exists. `create table if not exists` alone would leave the old
+-- list in place and every new kind would fail to claim.
+alter table public.ride_alerts drop constraint if exists ride_alerts_kind_check;
+alter table public.ride_alerts add constraint ride_alerts_kind_check
+  check (kind in ('new', 'remind_12h', 'remind_2h', 'guest_confirmation'));
 
 -- RLS on and no policies: nobody reads or writes this through the API.
 -- The two functions below are definers and are the only way in.
@@ -146,6 +162,12 @@ $$;
 --             later than that got its 'new' email a moment ago, and a
 --             reminder straight after it would be noise.
 -- remind_2h   inside 2 hours and before pickup, same rule.
+-- guest_confirmation
+--             the same window as 'new', and only for an address that at
+--             least looks like one. Checkout requires a valid email, but
+--             rows from before it did, or from the admin side, may not
+--             carry one, and a send to "" is a failure Resend reports five
+--             times over.
 --
 -- A claimed row that is never finished (the function crashed mid-send)
 -- is reclaimable after ten minutes. A failed one is retried on later
@@ -169,7 +191,7 @@ begin
   end if;
 
   with open_rides as (
-    select r.id, r.status, r.driver_id, r.created_at,
+    select r.id, r.status, r.driver_id, r.created_at, r.contact_email,
            private.pickup_at(r.scheduled_at, r.scheduled_date::text, r.scheduled_time::text) as pickup
       from public.rides r
      where r.status not in ('cancelled', 'canceled', 'completed')
@@ -178,6 +200,11 @@ begin
     select id as ride_id, 'new'::text as kind, pickup
       from open_rides
      where created_at > now() - interval '2 hours'
+    union all
+    select id, 'guest_confirmation', pickup
+      from open_rides
+     where created_at > now() - interval '2 hours'
+       and btrim(coalesce(contact_email, '')) ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
     union all
     select id, 'remind_12h', pickup
       from open_rides
