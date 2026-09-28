@@ -1,28 +1,23 @@
 # Email delivery
 
-**Status as of 18 Aug 2026: custom SMTP is OFF.** Confirmed from the
-Supabase dashboard, Authentication → Emails → SMTP Settings.
+**Status as of 28 Sep 2026: custom SMTP is ON, through Resend.**
+Supabase → Authentication → Emails → SMTP Settings sends as
+`no-reply@cabbystransfer.com` via `smtp.resend.com`. The domain is
+verified in Resend and SPF, DKIM and DMARC all pass at Gmail. Sign-in
+links and password resets were tested from the live site and arrive.
 
-Every auth email this project sends — password reset, and email
-confirmation if it were switched on — goes through Supabase's built-in
-sandbox sender. That sender is development-only: heavily rate-limited
-(the project's exact number is on Authentication → Rate Limits) and
-carrying no deliverability guarantee. Mail to a real customer will
-usually not arrive.
+The account emails are branded and link to `/auth/confirm` on
+cabbystransfer.com rather than to supabase.co; `docs/email-templates/`
+has the templates and why. Booking emails (the guest's confirmation and
+the alerts to Cabby's) are a separate path through the same Resend
+account: `api/booking-alerts.ts` and `docs/alerts-schema.sql`.
 
-## What this blocks
+## What is still open
 
-**Password reset does not work for customers.** `resetPasswordForEmail`
-in `src/booking/useAuth.ts` returns success either way, and the forgot
-screen in `src/components/auth/AuthForm.tsx` deliberately shows a neutral
-"a reset link is on its way" so it can't be used to probe which addresses
-have accounts. That message is currently untrue for most people. Treat
-"Forgot password?" as decorative until step 4 below passes.
-
-**Email confirmation cannot be turned on.** With no working sender,
-confirmations-on means nobody completes a signup at all. Confirmations
-being off is the only reason signup works today — it is why `signUp`
-returns a session immediately and the user lands signed in.
+**Email confirmation is still OFF.** It could not be turned on without a
+working sender; now it can, and it is the last step below. Until it is
+on, signing up with an address proves nothing about holding it, which
+matters because of the next point.
 
 **Claim-by-email rests on unproven ownership.** `claim_guest_rides()` in
 `docs/guest-claim.sql` attaches guest bookings to an account by matching
@@ -31,6 +26,8 @@ about holding it while confirmation is off. The full caveat is in the
 header of that file.
 
 ## Fixing it
+
+Steps 1 to 4 are done (28 Sep 2026). Step 5 is what remains.
 
 1. Pick a sender. Resend is the least friction; Postmark and SES are
    equally fine.
