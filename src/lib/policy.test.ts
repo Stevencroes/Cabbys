@@ -25,3 +25,14 @@ describe("cancellation policy", () => {
     expect(cancellationInfo(null, now).free).toBe(true);
   });
 });
+
+describe("the confirmation window, as a person says it", () => {
+  it("reads in hours when it is whole hours, in minutes otherwise", async () => {
+    const { confirmWindowLabel, CONFIRM_WINDOW_MINUTES } = await import("./policy");
+    expect(CONFIRM_WINDOW_MINUTES).toBe(60);
+    expect(confirmWindowLabel()).toBe("1 hour");
+    expect(confirmWindowLabel(120)).toBe("2 hours");
+    expect(confirmWindowLabel(45)).toBe("45 minutes");
+    expect(confirmWindowLabel(90)).toBe("90 minutes");
+  });
+});

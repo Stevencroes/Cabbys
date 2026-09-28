@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { BookingProvider } from "../booking/BookingContext";
 import Confirmation from "./Confirmation";
-import { CONFIRM_WINDOW_MINUTES } from "../lib/policy";
+import { confirmWindowLabel } from "../lib/policy";
 
 const booking = {
   rideId: "9f3c2a1e-77aa-4bde-9c11-52e6d0aa91aa",
@@ -43,7 +43,7 @@ describe("Confirmation", () => {
     expect(screen.getByText(/if it moves, we move with it/i)).toBeInTheDocument();
     // Phase 4 — what happens next, and when
     expect(
-      screen.getByText(new RegExp(`confirm on WhatsApp within ${CONFIRM_WINDOW_MINUTES} minutes`, "i")),
+      screen.getByText(new RegExp(`confirm on WhatsApp within ${confirmWindowLabel()}`, "i")),
     ).toBeInTheDocument();
   });
 

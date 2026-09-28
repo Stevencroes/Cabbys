@@ -34,7 +34,16 @@ const FROM = "Cabby's Alerts <alerts@cabbystransfer.com>";
 const FROM_GUEST = "Cabby's <bookings@cabbystransfer.com>";
 
 /** src/lib/policy.ts CONFIRM_WINDOW_MINUTES. */
-export const CONFIRM_WINDOW_MINUTES = 15;
+export const CONFIRM_WINDOW_MINUTES = 60;
+
+/** src/lib/policy.ts confirmWindowLabel, same rule. */
+export function confirmWindowLabel(minutes: number = CONFIRM_WINDOW_MINUTES): string {
+  if (minutes % 60 === 0) {
+    const h = minutes / 60;
+    return h === 1 ? "1 hour" : `${h} hours`;
+  }
+  return `${minutes} minutes`;
+}
 /** src/lib/policy.ts FREE_CANCEL_HOURS. */
 export const FREE_CANCEL_HOURS = 24;
 /** src/lib/support.ts SUPPORT_EMAIL — where a guest's reply lands. */
@@ -343,7 +352,7 @@ export function buildGuestEmail(
   // What happens next, in the order it happens. Each line is one the
   // confirmation screen also says.
   const next: string[] = [
-    `We'll confirm on WhatsApp within ${CONFIRM_WINDOW_MINUTES} minutes.`,
+    `We'll confirm on WhatsApp within ${confirmWindowLabel()}.`,
     ...(flight ? ["We're watching your flight. If it moves, we move with it."] : []),
     ...(fromAirport(r) ? ["Your driver waits inside the arrivals hall with your name."] : []),
     `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`,

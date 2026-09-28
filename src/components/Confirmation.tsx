@@ -1,7 +1,7 @@
 // Confirmation — the v3 tag. Cocoa header bar, perforated tear line,
 // hard offset shadow. USD only.
 import { useEffect, useState } from "react";
-import { CONFIRM_WINDOW_MINUTES } from "../lib/policy";
+import { confirmWindowLabel } from "../lib/policy";
 import { useNavigate } from "react-router-dom";
 import { useBooking } from "../booking/BookingContext";
 import { usd } from "../lib/quote";
@@ -119,10 +119,10 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
           </div>
         </div>
 
-        {/* what happens next, and when. TODO: confirm timing with client —
-            the window is CONFIRM_WINDOW_MINUTES in src/lib/policy.ts */}
+        {/* what happens next, and when — the window is
+            CONFIRM_WINDOW_MINUTES in src/lib/policy.ts */}
         <p className="conf-note">
-          <b>We'll confirm on WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes.</b>{" "}
+          <b>We'll confirm on WhatsApp within {confirmWindowLabel()}.</b>{" "}
           A copy is on its way to your email.
           {booking.flightNumber ? " We're watching your flight — if it moves, we move with it." : ""} Nothing else to do.
         </p>

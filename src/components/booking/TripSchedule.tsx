@@ -18,7 +18,7 @@ import TimeField from "./TimeField";
 import FieldError from "./FieldError";
 import { formatDate, formatTime, todayInAruba } from "../../lib/datetime";
 import { driverWaitsFrom, collectAt, insideMinNotice, MIN_NOTICE_HOURS } from "../../lib/derivedTime";
-import { CONFIRM_WINDOW_MINUTES } from "../../lib/policy";
+import { confirmWindowLabel } from "../../lib/policy";
 import { AIRPORT_ID } from "../../data/places";
 import { effectivePickupTime, type StepProblem } from "./steps/shared";
 import { whatsappLink } from "../../lib/whatsapp";
@@ -135,7 +135,7 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
       {shortNotice && (
         <div className="notice" role="status">
           Rides inside {MIN_NOTICE_HOURS} hours need a human. Book it here and we&rsquo;ll confirm on
-          WhatsApp within {CONFIRM_WINDOW_MINUTES} minutes
+          WhatsApp within {confirmWindowLabel()}
           {soonHref ? (
             /* "message us first if you'd rather" offered a route and no
                way onto it — on the screen where the clock is the whole

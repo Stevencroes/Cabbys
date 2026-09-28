@@ -2,7 +2,7 @@
 // file in api/ is deployed as an endpoint, a test file included.
 import { describe, it, expect, vi } from "vitest";
 import handler, {
-  CONFIRM_WINDOW_MINUTES, FREE_CANCEL_HOURS, SUPPORT_EMAIL, VEHICLE_NAMES,
+  CONFIRM_WINDOW_MINUTES, FREE_CANCEL_HOURS, confirmWindowLabel, SUPPORT_EMAIL, VEHICLE_NAMES,
   buildAlertEmail, buildGuestEmail, countdown, runAlerts,
   type ClaimedAlert, type Deps, type Email,
 } from "../../api/booking-alerts";
@@ -137,7 +137,7 @@ describe("the guest's copy", () => {
 
   it("promises what the confirmation screen promises, and only when it applies", () => {
     const airport = buildGuestEmail(guest(), {})!.text;
-    expect(airport).toContain(`confirm on WhatsApp within ${CONFIRM_WINDOW_MINUTES} minutes`);
+    expect(airport).toContain("confirm on WhatsApp within 1 hour.");
     expect(airport).toContain("If it moves, we move with it.");
     expect(airport).toContain("waits inside the arrivals hall");
     expect(airport).toContain(`Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`);
@@ -175,6 +175,7 @@ describe("the guest's copy", () => {
 
   it("keeps its copies of the site's promises equal to the site's", () => {
     expect(CONFIRM_WINDOW_MINUTES).toBe(policy.CONFIRM_WINDOW_MINUTES);
+    for (const m of [15, 45, 60, 90, 120]) expect(confirmWindowLabel(m)).toBe(policy.confirmWindowLabel(m));
     expect(FREE_CANCEL_HOURS).toBe(policy.FREE_CANCEL_HOURS);
     expect(SUPPORT_EMAIL).toBe(support.SUPPORT_EMAIL);
   });
