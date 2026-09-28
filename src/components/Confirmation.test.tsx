@@ -41,17 +41,17 @@ describe("Confirmation", () => {
     expect(screen.getByRole("button", { name: /add to calendar/i })).toBeInTheDocument();
     // flight moves → we move with it (only promised when a flight exists)
     expect(screen.getByText(/if it moves, we move with it/i)).toBeInTheDocument();
-    // Phase 4 — what happens next, and when
-    expect(
-      screen.getByText(new RegExp(`confirm on WhatsApp within ${confirmWindowLabel()}`, "i")),
-    ).toBeInTheDocument();
+    // what happens next: a booking this far out hears about its driver by
+    // email, and is not promised a WhatsApp confirmation
+    expect(screen.getByText(/email you your driver's name, car and plate/i)).toBeInTheDocument();
+    expect(screen.queryByText(/confirm on WhatsApp/i)).toBeNull();
   });
 
   it("says where the guest is met only when that is the airport, and promises nothing it doesn't send", () => {
     const { unmount } = render(
       <MemoryRouter><BookingProvider><Confirmation booking={booking} /></BookingProvider></MemoryRouter>,
     );
-    expect(screen.getByText(/In My trips once assigned/)).toBeInTheDocument();
+    expect(screen.getByText(/By email once assigned/)).toBeInTheDocument();
     expect(screen.queryByText(/Sent 12h before/)).toBeNull();
     unmount();
     render(
@@ -61,6 +61,18 @@ describe("Confirmation", () => {
     );
     expect(screen.queryByText(/Arrivals hall/)).toBeNull();
     expect(screen.queryByText("Met at")).toBeNull();
+  });
+
+  it("promises a WhatsApp confirmation only for a short-notice ride", () => {
+    // an hour from now on the island's clock
+    const soon = new Date(Date.now() + 60 * 60_000 - 4 * 3_600_000).toISOString();
+    render(
+      <MemoryRouter><BookingProvider>
+        <Confirmation booking={{ ...booking, date: soon.slice(0, 10), time: soon.slice(11, 16) }} />
+      </BookingProvider></MemoryRouter>,
+    );
+    expect(screen.getByText(new RegExp(`confirm on WhatsApp within ${confirmWindowLabel()}`, "i"))).toBeInTheDocument();
+    expect(screen.queryByText(/email you your driver's name/i)).toBeNull();
   });
 
   it("renders nothing without a booking", () => {

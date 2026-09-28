@@ -3,12 +3,13 @@
 import { describe, it, expect, vi } from "vitest";
 import handler, {
   CONFIRM_WINDOW_MINUTES, FREE_CANCEL_HOURS, confirmWindowLabel, SUPPORT_EMAIL, VEHICLE_NAMES,
-  buildAlertEmail, buildGuestEmail, countdown, runAlerts,
+  MIN_NOTICE_HOURS, buildAlertEmail, buildDriverEmail, buildGuestEmail, countdown, runAlerts,
   type ClaimedAlert, type Deps, type Email,
 } from "../../api/booking-alerts";
 import { VEHICLES } from "../data/vehicles";
 import { SITE_DOMAIN } from "../lib/site";
 import * as policy from "../lib/policy";
+import * as derivedTime from "../lib/derivedTime";
 import * as support from "../lib/support";
 
 // 14:00 in Aruba on Sat 3 Oct 2026 is 18:00 UTC.
@@ -136,8 +137,9 @@ describe("the guest's copy", () => {
   });
 
   it("promises what the confirmation screen promises, and only when it applies", () => {
-    const airport = buildGuestEmail(guest(), {})!.text;
-    expect(airport).toContain("confirm on WhatsApp within 1 hour.");
+    const airport = buildGuestEmail(guest({}, { created_at: "2026-09-28T12:00:00Z" }), {})!.text;
+    expect(airport).toContain("We'll email you your driver's name, car and plate once a driver is assigned.");
+    expect(airport).not.toContain("WhatsApp within");
     expect(airport).toContain("If it moves, we move with it.");
     expect(airport).toContain("waits inside the arrivals hall");
     expect(airport).toContain(`Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`);
@@ -148,6 +150,13 @@ describe("the guest's copy", () => {
     }), {})!.text;
     expect(hotel).not.toContain("arrivals hall");
     expect(hotel).not.toContain("we move with it");
+  });
+
+  it("promises a person on WhatsApp only when the booking is short notice", () => {
+    // booked 2 hours before a 14:00 pickup
+    const late = buildGuestEmail(guest({}, { created_at: "2026-10-03T16:00:00Z" }), {})!.text;
+    expect(late).toContain("short notice, so a person checks it: we'll confirm on WhatsApp within 1 hour.");
+    expect(late).not.toContain("once a driver is assigned");
   });
 
   it("links to My trips, and to WhatsApp with the booking already named", () => {
@@ -178,6 +187,60 @@ describe("the guest's copy", () => {
     for (const m of [15, 45, 60, 90, 120]) expect(confirmWindowLabel(m)).toBe(policy.confirmWindowLabel(m));
     expect(FREE_CANCEL_HOURS).toBe(policy.FREE_CANCEL_HOURS);
     expect(SUPPORT_EMAIL).toBe(support.SUPPORT_EMAIL);
+    expect(MIN_NOTICE_HOURS).toBe(derivedTime.MIN_NOTICE_HOURS);
+  });
+});
+
+describe("the driver email", () => {
+  const assigned = (over: Partial<ClaimedAlert> = {}, ride: Record<string, unknown> = {}) =>
+    alert({ kind: "driver_assigned", ...over }, {
+      driver_id: "d1", driver_name: "Ruben Croes", driver_vehicle: "Mercedes E-Class, black",
+      driver_plate: "A-1234", driver_phone: "+297 555 9876", ...ride,
+    });
+
+  it("tells the guest who, in what car, with which plate", () => {
+    const e = buildDriverEmail(assigned(), {})!;
+    expect(e.to).toBe("ana@example.com");
+    expect(e.reply_to).toBe("cabbystransfer@gmail.com");
+    expect(e.subject).toBe("Your driver for Sat 3 Oct, 2:00 PM: Ruben Croes · CB-7KM4Q");
+    expect(e.text).toContain("Ruben Croes is your driver.");
+    expect(e.text).toContain("Car: Mercedes E-Class, black");
+    expect(e.text).toContain("Plate: A-1234");
+  });
+
+  // Decided: My trips shows it two hours out; an email would keep it forever.
+  it("never includes the driver's phone number", () => {
+    const e = buildDriverEmail(assigned(), {})!;
+    for (const body of [e.text, e.html]) {
+      expect(body).not.toContain("555 9876");
+      expect(body).not.toContain("5559876");
+    }
+    expect(e.text).toContain("Your driver's phone number appears in My trips 2 hours before pickup.");
+  });
+
+  it("says where to meet: arrivals for the airport, the pickup address otherwise", () => {
+    expect(buildDriverEmail(assigned(), {})!.text).toContain("inside the arrivals hall with a sign with your name");
+    const hotel = buildDriverEmail(assigned({}, { pickup_location: "The Ritz-Carlton, Aruba", flight_number: null }), {})!.text;
+    expect(hotel).toContain("meets you at the pickup address");
+    expect(hotel).not.toContain("arrivals");
+    expect(hotel).not.toContain("flight");
+  });
+
+  it("words a second driver as a change", () => {
+    const e = buildDriverEmail(assigned({ changed: true }), {})!;
+    expect(e.subject).toBe("Your driver has changed: Ruben Croes · CB-7KM4Q");
+    expect(e.text.startsWith("Your driver has changed. Ruben Croes is now driving you.")).toBe(true);
+    expect(e.html).toContain("Driver changed");
+  });
+
+  it("escapes what came from the driver's profile too", () => {
+    const e = buildDriverEmail(assigned({}, { driver_vehicle: "<script>x()</script>" }), {})!;
+    expect(e.html).not.toContain("<script>");
+  });
+
+  it("is not built without an address, or without a driver's name to give", () => {
+    expect(buildDriverEmail(assigned({}, { contact_email: "" }), {})).toBeNull();
+    expect(buildDriverEmail(assigned({}, { driver_name: null }), {})).toBeNull();
   });
 });
 
@@ -217,7 +280,7 @@ describe("a run", () => {
     const t = deps({ ok: true, data: { ok: true, alerts: [alert({ kind: "guest_confirmation" }, { contact_email: "" })] } });
     const r = await runAlerts("s3cret", t.d);
     expect(t.send).not.toHaveBeenCalled();
-    expect(r.body).toMatchObject({ sent: 0, failed: ["guest_confirmation CB-7KM4Q: no usable address"] });
+    expect(r.body).toMatchObject({ sent: 0, failed: ["guest_confirmation CB-7KM4Q: no usable address or driver"] });
   });
 
   it("records a send that threw as failed, so the next run retries it", async () => {

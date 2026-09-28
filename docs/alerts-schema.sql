@@ -11,11 +11,19 @@
 --   remind_12h  12 hours before pickup, if nobody is driving it yet
 --   remind_2h    2 hours before pickup, if STILL nobody is driving it
 --
--- and one to the guest, at the address they gave:
+-- and two to the guest, at the address they gave:
 --
 --   guest_confirmation  the moment it is made — their booking in writing.
 --                       The confirmation screen has said "a copy is on its
 --                       way to your email" since before anything sent one.
+--   driver_assigned     when a driver takes the ride — who, in what car,
+--                       with which plate. Once per ASSIGNMENT, not per
+--                       ride: a driver who hands a ride back and a second
+--                       who takes it means a guest told the wrong name,
+--                       so the second assignment sends "your driver has
+--                       changed". Never the driver's phone number: My trips
+--                       shows it from two hours before pickup, and an email
+--                       would hand it out days early and keep it forever.
 --
 -- A single email is easy to miss, and a missed one is a guest standing
 -- at the airport. The reminders are what turn "we sent an alert" into
@@ -103,14 +111,17 @@ create table if not exists public.ride_alerts (
   id          uuid primary key default gen_random_uuid(),
   ride_id     uuid not null references public.rides (id) on delete cascade,
   kind        text not null,
+  -- which occurrence of the kind this is. '' for the once-per-ride kinds;
+  -- for driver_assigned, the assignment's own assigned_at, so a second
+  -- assignment is a second row rather than a duplicate of the first.
+  ref         text not null default '',
   status      text not null default 'sending' check (status in ('sending', 'sent', 'failed')),
   attempts    integer not null default 0,
   claimed_at  timestamptz,
   sent_at     timestamptz,
   provider_id text,
   last_error  text,
-  created_at  timestamptz not null default now(),
-  unique (ride_id, kind)
+  created_at  timestamptz not null default now()
 );
 
 -- Named, and replaced rather than declared inline, so that re-running
@@ -119,7 +130,16 @@ create table if not exists public.ride_alerts (
 -- list in place and every new kind would fail to claim.
 alter table public.ride_alerts drop constraint if exists ride_alerts_kind_check;
 alter table public.ride_alerts add constraint ride_alerts_kind_check
-  check (kind in ('new', 'remind_12h', 'remind_2h', 'guest_confirmation'));
+  check (kind in ('new', 'remind_12h', 'remind_2h', 'guest_confirmation', 'driver_assigned'));
+
+-- One row per (ride, kind, occurrence). The first version of this file
+-- made it (ride, kind) with no occurrence, which a table built by it still
+-- carries under Postgres's generated name; it is dropped here so a
+-- reassignment can be claimed at all.
+alter table public.ride_alerts add column if not exists ref text not null default '';
+alter table public.ride_alerts drop constraint if exists ride_alerts_ride_id_kind_key;
+alter table public.ride_alerts drop constraint if exists ride_alerts_once;
+alter table public.ride_alerts add constraint ride_alerts_once unique (ride_id, kind, ref);
 
 -- RLS on and no policies: nobody reads or writes this through the API.
 -- The two functions below are definers and are the only way in.
@@ -168,6 +188,14 @@ $$;
 --             rows from before it did, or from the admin side, may not
 --             carry one, and a send to "" is a failure Resend reports five
 --             times over.
+-- driver_assigned
+--             a driver is on the ride, the assignment is under two hours
+--             old (the same retry window, and how switching this on does
+--             not email about every assignment ever made), the pickup is
+--             still ahead, and the address looks like one. The occurrence
+--             is the assignment's assigned_at in microseconds, written as
+--             a number so it reads the same whatever timezone the session
+--             is set to.
 --
 -- A claimed row that is never finished (the function crashed mid-send)
 -- is reclaimable after ten minutes. A failed one is retried on later
@@ -191,29 +219,36 @@ begin
   end if;
 
   with open_rides as (
-    select r.id, r.status, r.driver_id, r.created_at, r.contact_email,
+    select r.id, r.status, r.driver_id, r.created_at, r.contact_email, r.assigned_at,
            private.pickup_at(r.scheduled_at, r.scheduled_date::text, r.scheduled_time::text) as pickup
       from public.rides r
      where r.status not in ('cancelled', 'canceled', 'completed')
   ),
   due as (
-    select id as ride_id, 'new'::text as kind, pickup
+    select id as ride_id, 'new'::text as kind, ''::text as ref, pickup
       from open_rides
      where created_at > now() - interval '2 hours'
     union all
-    select id, 'guest_confirmation', pickup
+    select id, 'driver_assigned', (extract(epoch from assigned_at) * 1000000)::bigint::text, pickup
+      from open_rides
+     where driver_id is not null
+       and assigned_at > now() - interval '2 hours'
+       and (pickup is null or pickup > now())
+       and btrim(coalesce(contact_email, '')) ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
+    union all
+    select id, 'guest_confirmation', '', pickup
       from open_rides
      where created_at > now() - interval '2 hours'
        and btrim(coalesce(contact_email, '')) ~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'
     union all
-    select id, 'remind_12h', pickup
+    select id, 'remind_12h', '', pickup
       from open_rides
      where driver_id is null and status in ('pending', 'confirmed')
        and now() >= pickup - interval '12 hours'
        and now() <  pickup - interval '2 hours'
        and created_at < pickup - interval '12 hours'
     union all
-    select id, 'remind_2h', pickup
+    select id, 'remind_2h', '', pickup
       from open_rides
      where driver_id is null and status in ('pending', 'confirmed')
        and now() >= pickup - interval '2 hours'
@@ -222,7 +257,7 @@ begin
   ),
   pending as (
     select d.* from due d
-      left join public.ride_alerts a on a.ride_id = d.ride_id and a.kind = d.kind
+      left join public.ride_alerts a on a.ride_id = d.ride_id and a.kind = d.kind and a.ref = d.ref
      where a.id is null
         or (a.status = 'failed' and a.attempts < 5)
         or (a.status = 'sending' and a.claimed_at < now() - interval '10 minutes')
@@ -230,18 +265,24 @@ begin
      limit greatest(1, least(coalesce(p_limit, 5), 20))
   ),
   claimed as (
-    insert into public.ride_alerts as a (ride_id, kind, status, attempts, claimed_at)
-    select ride_id, kind, 'sending', 1, now() from pending
-    on conflict (ride_id, kind) do update
+    insert into public.ride_alerts as a (ride_id, kind, ref, status, attempts, claimed_at)
+    select ride_id, kind, ref, 'sending', 1, now() from pending
+    on conflict (ride_id, kind, ref) do update
        set status = 'sending', attempts = a.attempts + 1, claimed_at = now()
      where (a.status = 'failed' and a.attempts < 5)
         or (a.status = 'sending' and a.claimed_at < now() - interval '10 minutes')
-    returning a.id, a.ride_id, a.kind, a.attempts
+    returning a.id, a.ride_id, a.kind, a.ref, a.attempts
   )
   select coalesce(json_agg(json_build_object(
            'id', c.id,
            'kind', c.kind,
            'attempts', c.attempts,
+           -- a driver email for a ride whose guest was already told
+           -- about a different assignment: "your driver has changed"
+           'changed', c.kind = 'driver_assigned' and exists (
+             select 1 from public.ride_alerts x
+              where x.ride_id = c.ride_id and x.kind = 'driver_assigned'
+                and x.status = 'sent' and x.ref <> c.ref),
            'pickup_at', private.pickup_at(r.scheduled_at, r.scheduled_date::text, r.scheduled_time::text),
            -- the whole row, so a column this project adds later reaches
            -- the email without this function changing, and one it never

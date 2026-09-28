@@ -10,6 +10,7 @@
 //   remind_12h          to Cabby's: "Still no driver" — 12 hours before pickup
 //   remind_2h           to Cabby's: "URGENT: no driver" — 2 hours before pickup
 //   guest_confirmation  to the guest: their booking, in writing
+//   driver_assigned     to the guest: who is driving, in what car, which plate
 //
 // Needs one variable in Vercel: RESEND_API_KEY. It reads the database with
 // the public Supabase URL and key the site already has, and proves itself
@@ -46,6 +47,8 @@ export function confirmWindowLabel(minutes: number = CONFIRM_WINDOW_MINUTES): st
 }
 /** src/lib/policy.ts FREE_CANCEL_HOURS. */
 export const FREE_CANCEL_HOURS = 24;
+/** src/lib/derivedTime.ts MIN_NOTICE_HOURS — inside it, a person confirms by hand. */
+export const MIN_NOTICE_HOURS = 3;
 /** src/lib/support.ts SUPPORT_EMAIL — where a guest's reply lands. */
 export const SUPPORT_EMAIL = "cabbystransfer@gmail.com";
 const TZ = "America/Aruba";
@@ -58,7 +61,7 @@ export const VEHICLE_NAMES: Record<string, string> = {
   sprinter: "Luxury Sprinter",
 };
 
-export type AlertKind = "new" | "remind_12h" | "remind_2h" | "guest_confirmation";
+export type AlertKind = "new" | "remind_12h" | "remind_2h" | "guest_confirmation" | "driver_assigned";
 
 /** The ride as claim_booking_alerts returns it: the whole row, loosely. */
 export type RideRow = Record<string, unknown>;
@@ -68,6 +71,8 @@ export interface ClaimedAlert {
   kind: AlertKind;
   attempts: number;
   pickup_at: string | null;
+  /** driver_assigned only: the guest was already told about a different driver */
+  changed?: boolean;
   ride: RideRow;
 }
 
@@ -158,7 +163,7 @@ function whatsappFor(phone: string): string | null {
   return null;
 }
 
-const HEAD: Record<Exclude<AlertKind, "guest_confirmation">, { tag: string; tone: string }> = {
+const HEAD: Record<"new" | "remind_12h" | "remind_2h", { tag: string; tone: string }> = {
   new: { tag: "New booking", tone: "#0B3B5C" },
   remind_12h: { tag: "Still no driver", tone: "#8A5A00" },
   remind_2h: { tag: "URGENT: no driver", tone: "#A1261B" },
@@ -234,7 +239,7 @@ export function buildAlertEmail(
   add("Fare", fare !== null ? `US$${Math.round(fare)}` : "");
   add("Driver", needsDriver ? "Nobody yet" : str(r, "driver_name") || "Assigned");
 
-  const head = HEAD[alert.kind === "guest_confirmation" ? "new" : alert.kind];
+  const head = HEAD[alert.kind === "remind_12h" || alert.kind === "remind_2h" ? alert.kind : "new"];
   const text = [
     `${head.tag} · ${ref}`,
     "",
@@ -350,9 +355,18 @@ export function buildGuestEmail(
   add("Payment", fare !== null ? paymentLine(r) : "");
 
   // What happens next, in the order it happens. Each line is one the
-  // confirmation screen also says.
+  // confirmation screen also says. A normal booking is confirmed by this
+  // email and hears about its driver by the next one; only a ride inside
+  // the minimum notice needs a person to check it can be done, and that
+  // is the one that is promised a WhatsApp reply.
+  const created = Date.parse(str(r, "created_at"));
+  const pickupMs = alert.pickup_at ? Date.parse(alert.pickup_at) : NaN;
+  const shortNotice = Number.isFinite(created) && Number.isFinite(pickupMs)
+    && pickupMs - created < MIN_NOTICE_HOURS * 3_600_000;
   const next: string[] = [
-    `We'll confirm on WhatsApp within ${confirmWindowLabel()}.`,
+    shortNotice
+      ? `This is short notice, so a person checks it: we'll confirm on WhatsApp within ${confirmWindowLabel()}.`
+      : "We'll email you your driver's name, car and plate once a driver is assigned.",
     ...(flight ? ["We're watching your flight. If it moves, we move with it."] : []),
     ...(fromAirport(r) ? ["Your driver waits inside the arrivals hall with your name."] : []),
     `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`,
@@ -410,12 +424,123 @@ ${next.map((n) => `<li style="margin:0 0 4px;">${esc(n)}</li>`).join("\n")}
   return { from: FROM_GUEST, to, subject, html, text, reply_to: SUPPORT_EMAIL };
 }
 
+/**
+ * Who is coming. Sent when a driver takes the ride, and again, worded as a
+ * change, if a second driver takes it after the first handed it back.
+ *
+ * No phone number, by decision: My trips shows the driver's number from
+ * two hours before pickup (canContactDriver in src/lib/tripStatus.ts), and
+ * an email would hand a driver's personal number out days early and keep
+ * it in an inbox for good. The guest reaches Cabby's; the driver, who has
+ * the guest's number, calls if they need to.
+ */
+export function buildDriverEmail(
+  alert: ClaimedAlert,
+  opts: { siteUrl?: string; whatsapp?: string },
+): Email | null {
+  const r = alert.ride;
+  const to = str(r, "contact_email");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return null;
+  const driver = str(r, "driver_name");
+  if (!driver) return null;
+
+  const ref = bookingRef(r);
+  const when = arubaWhen(alert.pickup_at);
+  const whenShort = when ? `${when.day}, ${when.time}` : "";
+  const car = str(r, "driver_vehicle");
+  const plate = str(r, "driver_plate");
+  const flight = str(r, "flight_number");
+  const from = str(r, "pickup_location");
+  const site = (opts.siteUrl || SITE_URL_DEFAULT).replace(/\/+$/, "");
+  const tripsUrl = `${site}/trips`;
+  const waNumber = (opts.whatsapp ?? "").replace(/\D/g, "");
+  const waUrl = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Hi Cabby's — booking ${ref}, my driver is ${driver}.`)
+        .replace(/[()']/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)}`
+    : null;
+
+  const changed = alert.changed === true;
+  const subject = changed
+    ? `Your driver has changed: ${driver} · ${ref}`
+    : `Your driver${whenShort ? ` for ${whenShort}` : ""}: ${driver} · ${ref}`;
+  const hello = changed ? `Your driver has changed. ${driver} is now driving you.` : `${driver} is your driver.`;
+
+  const rows: [string, string][] = [];
+  const add = (label: string, text: string) => { if (text) rows.push([label, text]); };
+  add("Driver", driver);
+  add("Car", car);
+  add("Plate", plate);
+  add("Pickup", when ? `${when.day}, ${when.time} (Aruba time)` : "");
+  add("From", from);
+  add("To", str(r, "dropoff_location"));
+  add("Booking", ref);
+
+  // Full name where the guest is told who; first name after that, as a
+  // person would say it the second time.
+  const first = driver.split(/\s+/)[0] || driver;
+  const meet = fromAirport(r)
+    ? `${first} waits for you inside the arrivals hall with a sign with your name on it.`
+    : `${first} meets you at the pickup address at your pickup time.`;
+  const notes: string[] = [
+    meet,
+    ...(flight ? [`We're watching flight ${flight}. If it lands late, ${first} will be there when it does.`] : []),
+    "Your driver's phone number appears in My trips 2 hours before pickup.",
+  ];
+
+  const text = [
+    hello,
+    "",
+    ...rows.map(([l, t]) => `${l}: ${t}`),
+    "",
+    ...notes,
+    "",
+    `Your trips: ${tripsUrl}`,
+    waUrl ? `WhatsApp us: ${waUrl}` : "",
+    "Or just reply to this email.",
+    "",
+    "Cabby's · Private transfers in Aruba · cabbystransfer.com",
+  ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+
+  const link = "color:#0B3B5C;";
+  const html = `<!doctype html>
+<html><body style="margin:0;padding:0;background:#EEF1F4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF1F4;padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:10px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1A2330;">
+<tr><td style="background:#020B14;padding:18px 24px;color:#FFFFFF;font-size:13px;letter-spacing:.18em;text-transform:uppercase;">Cabby&#39;s</td></tr>
+<tr><td style="padding:26px 24px 6px;">
+${changed ? `<div style="display:inline-block;background:#8A5A00;color:#FFFFFF;font-size:13px;font-weight:600;padding:5px 10px;border-radius:4px;margin-bottom:12px;">Driver changed</div>` : ""}
+<h1 style="margin:0 0 8px;font-size:22px;line-height:1.3;font-weight:600;">${esc(hello)}</h1>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#4A5563;">${esc(whenShort ? `For your pickup on ${whenShort}.` : "For your upcoming pickup.")}</p>
+</td></tr>
+<tr><td style="padding:14px 24px 4px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;line-height:1.45;">
+${rows.map(([l, t]) => `<tr><td style="padding:7px 12px 7px 0;color:#5B6675;white-space:nowrap;vertical-align:top;width:1%;">${esc(l)}</td><td style="padding:7px 0;vertical-align:top;${l === "Plate" ? "font-weight:600;letter-spacing:.06em;" : ""}">${esc(t)}</td></tr>`).join("\n")}
+</table>
+</td></tr>
+<tr><td style="padding:14px 24px 4px;">
+${notes.map((n) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.55;">${esc(n)}</p>`).join("\n")}
+</td></tr>
+<tr><td style="padding:10px 24px 26px;">
+<a href="${esc(tripsUrl)}" style="display:inline-block;background:#020B14;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:600;padding:13px 22px;border-radius:6px;">See your trip</a>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.5;">Questions? ${waUrl ? `<a href="${esc(waUrl)}" style="${link}">WhatsApp us</a> or reply` : "Reply"} to this email and a person will answer.</p>
+</td></tr>
+</table>
+<p style="font-family:Arial,sans-serif;font-size:12px;color:#7A8594;margin:14px 0 0;">Cabby&#39;s · Private transfers in Aruba · <a href="${esc(site)}" style="color:#7A8594;">cabbystransfer.com</a></p>
+</td></tr></table>
+</body></html>`;
+
+  return { from: FROM_GUEST, to, subject, html, text, reply_to: SUPPORT_EMAIL };
+}
+
 /** Which email a claimed alert is. Null when there is nobody to send it to. */
 export function buildEmail(
   alert: ClaimedAlert,
   opts: { now: number; to?: string; siteUrl?: string; whatsapp?: string },
 ): Email | null {
-  return alert.kind === "guest_confirmation" ? buildGuestEmail(alert, opts) : buildAlertEmail(alert, opts);
+  if (alert.kind === "guest_confirmation") return buildGuestEmail(alert, opts);
+  if (alert.kind === "driver_assigned") return buildDriverEmail(alert, opts);
+  return buildAlertEmail(alert, opts);
 }
 
 // ── the run ─────────────────────────────────────────────────────────────
@@ -467,7 +592,7 @@ export async function runAlerts(secret: string, deps: Deps): Promise<RunResult> 
       // The database only claims a guest email for an address that looks
       // like one, so this is a belt: recorded as failed with the reason,
       // never sent to nowhere and counted as sent.
-      result = email ? await deps.send(email) : { ok: false, error: "no usable address" };
+      result = email ? await deps.send(email) : { ok: false, error: "no usable address or driver" };
     } catch (e) {
       result = { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
