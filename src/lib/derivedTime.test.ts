@@ -18,7 +18,7 @@ describe("derived pickup times (§3.6)", () => {
     expect(shiftTime("nope", 30)).toBe("nope");
   });
 
-  it("min-notice flags pickups inside 3 hours without flagging far-future rides", () => {
+  it("min-notice flags pickups inside the window without flagging far-future rides", () => {
     // 10:00 in Aruba, written as the instant it is
     const now = new Date("2026-07-20T10:00:00-04:00");
     expect(insideMinNotice("2026-07-20", "11:30", now)).toBe(true);
@@ -55,14 +55,15 @@ describe("minimum notice is measured on Aruba's clock", () => {
     expect(insideMinNotice("2026-08-07", "20:00", noonAruba)).toBe(false);
   });
 
-  it("does warn a guest booking 2 PM, 2 hours away (the California case)", () => {
-    // read in California time, 2 PM was 5 PM on the island — 5 hours away
-    expect(insideMinNotice("2026-08-07", "14:00", noonAruba)).toBe(true);
+  it("does warn a guest booking 1:30 PM, 90 minutes away (the California case)", () => {
+    // read in California time, 1:30 PM was 4:30 PM on the island — 4½ hours away
+    expect(insideMinNotice("2026-08-07", "13:30", noonAruba)).toBe(true);
   });
 
-  it("puts the edge of the window exactly MIN_NOTICE_HOURS out on the island", () => {
-    expect(insideMinNotice("2026-08-07", "14:59", noonAruba)).toBe(true);
-    expect(insideMinNotice("2026-08-07", "15:00", noonAruba)).toBe(false);
+  it("puts the edge of the window exactly MIN_NOTICE_HOURS (2) out on the island", () => {
+    expect(MIN_NOTICE_HOURS).toBe(2);
+    expect(insideMinNotice("2026-08-07", "13:59", noonAruba)).toBe(true);
+    expect(insideMinNotice("2026-08-07", "14:00", noonAruba)).toBe(false);
   });
 
   it("stays quiet on half-typed input rather than guessing or throwing", () => {

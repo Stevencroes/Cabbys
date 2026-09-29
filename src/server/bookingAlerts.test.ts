@@ -155,8 +155,8 @@ describe("the guest's copy", () => {
   });
 
   it("promises a person on WhatsApp only when the booking is short notice", () => {
-    // booked 2 hours before a 14:00 pickup
-    const late = buildGuestEmail(guest({}, { created_at: "2026-10-03T16:00:00Z" }), {})!.text;
+    // booked 90 minutes before a 14:00 pickup
+    const late = buildGuestEmail(guest({}, { created_at: "2026-10-03T16:30:00Z" }), {})!.text;
     expect(late).toContain("short notice, so a person checks it: we'll confirm on WhatsApp within 1 hour.");
     expect(late).not.toContain("once a driver is assigned");
   });

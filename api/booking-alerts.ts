@@ -63,7 +63,7 @@ export function confirmWindowLabel(minutes: number = CONFIRM_WINDOW_MINUTES): st
 /** src/lib/policy.ts FREE_CANCEL_HOURS. */
 export const FREE_CANCEL_HOURS = 24;
 /** src/lib/derivedTime.ts MIN_NOTICE_HOURS — inside it, a person confirms by hand. */
-export const MIN_NOTICE_HOURS = 3;
+export const MIN_NOTICE_HOURS = 2;
 /** src/lib/support.ts SUPPORT_EMAIL — where a guest's reply lands. */
 export const SUPPORT_EMAIL = "cabbystransfer@gmail.com";
 const TZ = "America/Aruba";

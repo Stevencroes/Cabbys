@@ -25,9 +25,10 @@ export function collectAt(departure: string, flyingToUS: boolean): string {
 }
 
 // ── Minimum lead time ────────────────────────────────────────────────
-// TODO: set the real number. 3 hours is a placeholder — change MIN_NOTICE_HOURS
-// and every message and check follows, there is no second copy of it.
-export const MIN_NOTICE_HOURS = 3;
+// Two hours, set by the owner (it was a 3-hour placeholder). Change
+// MIN_NOTICE_HOURS and every message and check on the site follows; the
+// email's copy in api/booking-alerts.ts is held equal by a test.
+export const MIN_NOTICE_HOURS = 2;
 /**
  * Rides inside the window are shown a notice but are NOT blocked: a late
  * booking is still a booking, and the dispatcher confirms it by hand.
