@@ -155,7 +155,10 @@ export function dayOfMonth(iso: string): number {
  * depending on where it was made. Anchoring to −04:00 removes the drift.
  */
 export function arubaInstant(date: string, time: string): string {
-  const t = isHhmm(time) ? time : "00:00";
+  // isHhmm accepts "9:30", but an ISO string needs "09:30": without the
+  // pad the Date is invalid and toISOString throws — here, and in the
+  // booking insert that calls this.
+  const t = isHhmm(time) ? time.padStart(5, "0") : "00:00";
   return new Date(`${date}T${t}:00-04:00`).toISOString();
 }
 

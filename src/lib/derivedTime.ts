@@ -1,5 +1,6 @@
 // §3.6 — derived pickup times. The guest knows their flight, not the
 // dispatch maths; the form reshapes itself around the route.
+import { arubaInstant, isHhmm, isIsoDate } from "./datetime";
 
 /** "HH:MM" + minutes → "HH:MM" (wraps midnight). */
 export function shiftTime(hhmm: string, minutes: number): string {
@@ -32,10 +33,23 @@ export const MIN_NOTICE_HOURS = 3;
  * booking is still a booking, and the dispatcher confirms it by hand.
  */
 export const MIN_NOTICE_MS = MIN_NOTICE_HOURS * 3_600_000;
+
+/**
+ * Whether a pickup is inside the minimum notice, measured on ARUBA's clock.
+ *
+ * The date and time a guest picks are island time. This used to read them
+ * with `new Date(`${date}T${time}:00`)`, which takes the string in the
+ * BROWSER's timezone — the fault bookingPayload.ts and arubaInstant exist
+ * to avoid, left standing here. A guest in the Netherlands, six hours
+ * ahead, booking at noon for 8 PM was told the ride needed a human; one in
+ * California, three hours behind, booking at noon for 2 PM was not. Most
+ * guests book from home, before they fly, so most guests were on the
+ * wrong side of it.
+ */
 export function insideMinNotice(date: string, time: string, now: Date = new Date()): boolean {
-  if (!date || !time) return false;
-  const d = new Date(`${date}T${time}:00`);
-  if (isNaN(d.getTime())) return false;
-  const delta = d.getTime() - now.getTime();
+  // arubaInstant turns a bad time into midnight and throws on a bad date;
+  // a half-typed field here should mean "no notice yet", not either.
+  if (!isIsoDate(date) || !isHhmm(time)) return false;
+  const delta = Date.parse(arubaInstant(date, time)) - now.getTime();
   return delta > -12 * 3_600_000 && delta < MIN_NOTICE_MS;
 }

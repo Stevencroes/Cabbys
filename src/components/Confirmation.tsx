@@ -5,8 +5,8 @@ import { confirmWindowLabel } from "../lib/policy";
 import { useNavigate } from "react-router-dom";
 import { useBooking } from "../booking/BookingContext";
 import { usd } from "../lib/quote";
-import { formatDate, formatTime, ARUBA_TZ_LABEL, arubaInstant } from "../lib/datetime";
-import { MIN_NOTICE_HOURS } from "../lib/derivedTime";
+import { formatDate, formatTime, ARUBA_TZ_LABEL } from "../lib/datetime";
+import { insideMinNotice } from "../lib/derivedTime";
 import { refFromRideId } from "../lib/bookingRef";
 import { downloadIcs } from "../lib/ics";
 import { whatsappEnabled, whatsappLink } from "../lib/whatsapp";
@@ -41,15 +41,9 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
   // isAirportTransfer's own test, applied to the pickup end only: a guest
   // going TO the airport is met at their hotel, not in arrivals.
   const fromAirport = booking.from.toLowerCase().includes("airport");
-  // Measured on the island's clock, as the email measures it. The booking
-  // form's insideMinNotice reads the time in the BROWSER's zone, which for
-  // a guest booking from Amsterdam is six hours out.
-  const pickupMs = booking.date ? Date.parse(arubaInstant(booking.date, booking.time)) : NaN;
-  // Same bounds as insideMinNotice: a pickup more than 12 hours gone is a
-  // stale screen, not a rush job.
-  const untilPickup = pickupMs - Date.now();
-  const shortNotice = Number.isFinite(untilPickup)
-    && untilPickup > -12 * 3_600_000 && untilPickup < MIN_NOTICE_HOURS * 3_600_000;
+  // The booking form's rule, on the island's clock — the same answer the
+  // guest saw on the form, and the one the confirmation email gives.
+  const shortNotice = insideMinNotice(booking.date, booking.time);
   // Through askAboutTrip so the date arrives in the same unambiguous
   // shape the rest of the flow uses. This line used to interpolate the
   // raw ISO date and a bare HH:MM, which is the one format a human
@@ -132,7 +126,7 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
         {/* What happens next — the same lines as the guest's confirmation
             email (api/booking-alerts.ts), which is kept and quoted back.
             A normal booking is confirmed by that email and hears about its
-            driver by the next one. Only a ride inside MIN_NOTICE_HOURS needs
+            driver by the next one. Only a ride inside the minimum notice (MIN_NOTICE_HOURS) needs
             a person to check it can be done, and only that one is promised
             a WhatsApp reply: promising it to every booking meant somebody
             answering within the hour at 3am for rides weeks away. */}

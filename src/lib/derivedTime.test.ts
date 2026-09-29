@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { MIN_NOTICE_HOURS, MIN_NOTICE_MS, collectAt, driverWaitsFrom, insideMinNotice, shiftTime } from "./derivedTime";
+import { arubaInstant } from "./datetime";
 
 describe("derived pickup times (§3.6)", () => {
   it("driver waits from landing + 30", () => {
@@ -18,7 +19,8 @@ describe("derived pickup times (§3.6)", () => {
   });
 
   it("min-notice flags pickups inside 3 hours without flagging far-future rides", () => {
-    const now = new Date("2026-07-20T10:00:00");
+    // 10:00 in Aruba, written as the instant it is
+    const now = new Date("2026-07-20T10:00:00-04:00");
     expect(insideMinNotice("2026-07-20", "11:30", now)).toBe(true);
     expect(insideMinNotice("2026-07-20", "16:00", now)).toBe(false);
     expect(insideMinNotice("", "", now)).toBe(false);
@@ -31,12 +33,47 @@ describe("minimum lead time (Phase 4)", () => {
   });
 
   it("flags a late booking without refusing it", () => {
-    const now = new Date("2026-08-07T12:00:00");
+    const now = new Date("2026-08-07T12:00:00-04:00");
     // an hour away — inside the window, so the notice shows
     expect(insideMinNotice("2026-08-07", "13:00", now)).toBe(true);
     // comfortably ahead — no notice
     expect(insideMinNotice("2026-08-09", "13:00", now)).toBe(false);
     // the notice is advisory: nothing here returns a validation failure,
     // so the booking still goes through (see BookingOverlay for the funnel)
+  });
+});
+
+// The pickup a guest picks is island time, wherever they are when they
+// pick it. These instants are written out in UTC so nothing here depends
+// on the timezone the tests happen to run in.
+describe("minimum notice is measured on Aruba's clock", () => {
+  // noon in Aruba on 7 Aug 2026 = 16:00 UTC (Aruba is UTC−4 all year)
+  const noonAruba = new Date("2026-08-07T16:00:00Z");
+
+  it("does not warn a guest booking 8 PM tonight, 8 hours away (the Amsterdam case)", () => {
+    // read in Dutch time, 8 PM was 2 PM on the island — 2 hours away
+    expect(insideMinNotice("2026-08-07", "20:00", noonAruba)).toBe(false);
+  });
+
+  it("does warn a guest booking 2 PM, 2 hours away (the California case)", () => {
+    // read in California time, 2 PM was 5 PM on the island — 5 hours away
+    expect(insideMinNotice("2026-08-07", "14:00", noonAruba)).toBe(true);
+  });
+
+  it("puts the edge of the window exactly MIN_NOTICE_HOURS out on the island", () => {
+    expect(insideMinNotice("2026-08-07", "14:59", noonAruba)).toBe(true);
+    expect(insideMinNotice("2026-08-07", "15:00", noonAruba)).toBe(false);
+  });
+
+  it("stays quiet on half-typed input rather than guessing or throwing", () => {
+    expect(insideMinNotice("2026-08-07", "", noonAruba)).toBe(false);
+    expect(insideMinNotice("2026-08-07", "soon", noonAruba)).toBe(false);
+    expect(insideMinNotice("2026-13-45", "14:00", noonAruba)).toBe(false);
+    expect(insideMinNotice("", "14:00", noonAruba)).toBe(false);
+  });
+
+  it("reads a time written without its leading zero", () => {
+    expect(insideMinNotice("2026-08-07", "9:30", new Date("2026-08-07T12:00:00Z"))).toBe(true);
+    expect(arubaInstant("2026-08-07", "9:30")).toBe("2026-08-07T13:30:00.000Z");
   });
 });
