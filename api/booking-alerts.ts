@@ -22,7 +22,8 @@
 // extension fails at runtime and nowhere earlier. Nothing here imports
 // from src/ for that reason; the few things it shares with the site
 // (vehicle names, the domain, the confirmation window, the cancellation
-// hours, the support address) are copied and a test holds them equal.
+// hours, the support address, the child seat price) are copied and a test
+// holds them equal.
 
 /** Resend's free plan takes two requests a second. */
 const SEND_GAP_MS = 600;
@@ -60,6 +61,23 @@ export function confirmWindowLabel(minutes: number = CONFIRM_WINDOW_MINUTES): st
   }
   return `${minutes} minutes`;
 }
+/**
+ * src/lib/quote.ts CHILD_SEAT_USD — per seat, per one-way ride. Already
+ * inside fare_total; copied only so the seat row can name the price.
+ */
+export const CHILD_SEAT_USD = 10;
+
+/**
+ * The seat row, as both emails show it: "2 · US$10 per seat each way".
+ * The count alone said nothing about the seats being a paid add-on, so a
+ * guest comparing the total with the price they first saw on the site
+ * had no line to explain the difference.
+ */
+export function seatsLine(seats: number | null, tail = "included in the total"): string {
+  if (seats === null || seats <= 0) return "";
+  return `${seats} · US$${CHILD_SEAT_USD} per seat each way, ${tail}`;
+}
+
 /** src/lib/policy.ts FREE_CANCEL_HOURS. */
 export const FREE_CANCEL_HOURS = 24;
 /** src/lib/derivedTime.ts MIN_NOTICE_HOURS — inside it, a person confirms by hand. */
@@ -240,7 +258,7 @@ export function buildAlertEmail(
   add("Vehicle", vehicleName(r));
   add("Passengers", pax !== null ? String(pax) : "");
   add("Bags", bags !== null && bags > 0 ? String(bags) : "");
-  add("Child seats", seats !== null && seats > 0 ? String(seats) : "");
+  add("Child seats", seatsLine(seats, "in the fare"));
   add("Flight", flight);
   add("Return trip", retDate ? `${retDate}${retTime ? `, ${retTime}` : ""}` : "");
   add("Guest", name || "No name given");
@@ -299,10 +317,15 @@ ${rows.map(([l, , h]) => `<tr><td style="padding:7px 12px 7px 0;color:#5B6675;wh
  * What the fare means for this guest. Mirrors paymentState() in
  * src/lib/tripStatus.ts: an empty payment_status is the normal case while
  * card payment is off, and it means "pay the driver", not "unpaid".
+ *
+ * "Paid to your driver on the day" left the guest to find out at the
+ * kerb whether the driver took cards. The owner set it — cash, in dollars
+ * or florins, tips on top and optional — and this email is the one a
+ * guest keeps, so it says all of it.
  */
-function paymentLine(r: RideRow): string {
+export function paymentLine(r: RideRow): string {
   const p = str(r, "payment_status").toLowerCase();
-  if (!p) return "Fixed price, paid to your driver on the day.";
+  if (!p) return "Pay your driver in cash (USD or florins) at the end of the ride. Tips aren't included and are up to you.";
   if (p === "paid") return "Paid by card.";
   if (p === "authorized" || p === "authorised") return "Held on your card, not charged yet.";
   if (p === "failed") return "Your card didn't go through. Reply to this email and we'll sort it out.";
@@ -363,7 +386,7 @@ export function buildGuestEmail(
   add("Car", vehicleName(r));
   add("Passengers", pax !== null ? String(pax) : "");
   add("Bags", bags !== null && bags > 0 ? String(bags) : "");
-  add("Child seats", seats !== null && seats > 0 ? String(seats) : "");
+  add("Child seats", seatsLine(seats));
   add("Flight", flight ? `${flight}, tracked` : "");
   add("Return trip", retDate ? `${retDate}${retTime ? `, ${retTime}` : ""}` : "");
   add("Total", fare !== null ? `US$${fare}` : "");
@@ -383,10 +406,10 @@ export function buildGuestEmail(
       ? `This is short notice, so a person checks it: we'll confirm on WhatsApp within ${confirmWindowLabel()}.`
       : "We'll email you your driver's name, car and plate once a driver is assigned.",
     ...(flight ? ["We're watching your flight. If it moves, we move with it."] : []),
-    // "…with your name" read as a name sign, which Cabby's has not
-    // confirmed it provides. The arrivals hall is what the confirmation
-    // screen promises ("Met at: Arrivals hall"), so that is all this says.
-    ...(fromAirport(r) ? ["Your driver meets you inside the arrivals hall."] : []),
+    // 1d173f2 cut this to "meets you inside the arrivals hall" because a
+    // name sign was not confirmed. The owner has confirmed it, and the
+    // sign is the one thing a guest scanning arrivals looks for.
+    ...(fromAirport(r) ? ["Your driver waits inside the arrivals hall with a sign with your name on it."] : []),
     `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`,
   ];
 
@@ -496,10 +519,11 @@ export function buildDriverEmail(
   // Full name where the guest is told who; first name after that, as a
   // person would say it the second time.
   const first = driver.split(/\s+/)[0] || driver;
-  // No sign: a name sign is not confirmed, and this email is the one a
-  // guest reads standing in arrivals, looking for it.
+  // The sign is back: 1d173f2 took it out as unconfirmed, the owner has
+  // confirmed it. This email is the one a guest reads standing in
+  // arrivals, looking for exactly that.
   const meet = fromAirport(r)
-    ? `${first} meets you inside the arrivals hall.`
+    ? `${first} waits for you inside the arrivals hall with a sign with your name on it.`
     : `${first} meets you at the pickup address at your pickup time.`;
   const notes: string[] = [
     meet,

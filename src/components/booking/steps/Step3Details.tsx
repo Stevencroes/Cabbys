@@ -12,7 +12,9 @@ import { useBooking } from "../../../booking/BookingContext";
 import { useAuth } from "../../../booking/useAuth";
 import { fullNameOf, phoneOf } from "../../../lib/displayName";
 import { VEHICLES } from "../../../data/vehicles";
-import { quote, usd, usdToAwg } from "../../../lib/quote";
+import { quote, usd, storedFare, CHILD_SEAT_USD } from "../../../lib/quote";
+import { FREE_CANCEL_HOURS } from "../../../lib/policy";
+import { seatNote } from "../../../lib/childSeats";
 import type { Pricing } from "../../../lib/pricing";
 import { collectAt } from "../../../lib/derivedTime";
 import { formatDateTime, formatTime, ARUBA_TZ_LABEL } from "../../../lib/datetime";
@@ -147,11 +149,17 @@ export default function Step3Details({
   const vehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
   const fromAirport = state.from?.id === AIRPORT_ID;
   const toAirport = state.to?.id === AIRPORT_ID;
-  const airportTrip = fromAirport || toAirport;
+  // Whether a driver will stand in arrivals holding a sign for this
+  // booking: an airport pickup, or a return whose way back starts at the
+  // airport. The owner confirmed drivers hold a name sign in arrivals, so
+  // the name field says what it is for — but a one-way run TO the airport
+  // is collected at a hotel door, where nobody holds a sign, and telling
+  // that guest "the sign reads…" would promise a sign that never appears.
+  const signTrip = fromAirport || (toAirport && state.journey === "return");
   const time = effectivePickupTime(state);
 
   const q = state.from && state.to
-    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing, pickupTime: time })
+    ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing, pickupTime: time, seats: state.seats })
     : null;
   const totalUsd = q?.totalUsd ?? 0;
 
@@ -163,18 +171,19 @@ export default function Step3Details({
     // The schedule reads above the contact fields, so it is checked first.
     const trip = validateTrip(state, { byId: focusById });
     if (trip) return trip;
-    // One line for every trip. The airport version said the name was for
-    // "the right sign", and a name sign is not something Cabby's has
-    // confirmed it provides — see the name field below.
+    // The sign is back. 1d173f2 made this one line for every trip because
+    // a name sign was not confirmed; the owner has since confirmed drivers
+    // hold one in arrivals, so a guest who will be met there is told what
+    // the name is for.
     if (state.contactName.trim().length < 2)
-      return { field: "name", message: "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
+      return { field: "name", message: signTrip ? "A name lets the driver hold the right sign." : "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
     if (!isValidEmail(state.contactEmail))
       return { field: "email", message: "We need an email to send your confirmation.", focus: () => emailRef.current?.focus() };
     if (!isValidPhone(state.contactPhone))
       return { field: "phone", message: "A WhatsApp number lets your driver reach you on the day.", focus: () => phoneRef.current?.focus() };
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state]);
+  }, [state, signTrip]);
   useEffect(() => registerValidator(validate), [validate, registerValidator]);
 
   const err = (f: string) => (problem?.field === f ? problem.message : undefined);
@@ -185,7 +194,9 @@ export default function Step3Details({
     const noteParts = [
       state.from?.custom ? `Pickup address: ${state.from.name}${state.from.note ? ` (${state.from.note})` : ""} · area ${state.from.area}` : "",
       state.to?.custom ? `Drop-off address: ${state.to.name}${state.to.note ? ` (${state.to.note})` : ""} · area ${state.to.area}` : "",
-      state.seats > 0 ? `Child seats: ${state.seats}${state.seatAges ? ` (ages ${state.seatAges})` : ""}` : "",
+      // "Child seats: 2 (ages 2 and 5)" — one readable line, the shape it
+      // has always had, now built from one required age per seat.
+      seatNote(state.seats, state.seatAges),
       state.journey === "return" ? `Return: ${formatDateTime(state.returnDate, state.returnTime)}${fromAirport ? ` (flight departs — collect ${formatTime(collectAt(state.returnTime, state.returnDestUS))})` : ""}` : "",
       fromAirport && state.flightLanding ? `Flight lands ${formatTime(state.flightLanding)} AST` : "",
       toAirport && state.depTime ? `Flight departs ${formatTime(state.depTime)} AST (${state.destUS ? "US pre-clearance" : "international"})` : "",
@@ -200,8 +211,9 @@ export default function Step3Details({
       passengers: state.pax,
       luggage: state.bags,
       vehicle: state.vehicle,
-      fareBase: usdToAwg(q?.oneWayUsd ?? 0),
-      fareTotal: usdToAwg(totalUsd),
+      // From the same quote as the total on screen, seats included — see
+      // storedFare in lib/quote.ts.
+      ...storedFare({ oneWayUsd: q?.oneWayUsd ?? 0, totalUsd }),
       addonKeys: [] as string[],
       bookingRef: generateBookingRef(),
       contactName: state.contactName.trim(),
@@ -459,7 +471,16 @@ export default function Step3Details({
       {state.flightNumber && <div><dt>Flight</dt><dd>{formatFlightNumber(state.flightNumber)} — tracked</dd></div>}
       <div><dt>Party</dt><dd>{partyLabel}</dd></div>
       <div><dt>Car</dt><dd>{vehicle.name}</dd></div>
-      {full && state.contactName && <div><dt>Driver asks for</dt><dd>{state.contactName}</dd></div>}
+      {/* The seats are a line of their own wherever the total is, so the
+          total is never a number that grew without saying why. On the
+          details step too, where the foot carries the total. */}
+      {q && state.seats > 0 && (
+        <div>
+          <dt>Child seat{state.seats > 1 ? "s" : ""} ×{state.seats}</dt>
+          <dd>{usd(q.seatsUsd)}<span className="rv-zone">{usd(CHILD_SEAT_USD)} per seat, each way</span></dd>
+        </div>
+      )}
+      {full && state.contactName && <div><dt>{signTrip ? "Sign reads" : "Driver asks for"}</dt><dd>{state.contactName}</dd></div>}
       {full && state.contactPhone && <div><dt>WhatsApp</dt><dd>{state.contactPhone}</dd></div>}
       {/* on the details step the running total is already in the foot, a
           finger's width below — saying it twice reads as two numbers */}
@@ -473,8 +494,8 @@ export default function Step3Details({
       <div className="panel">
         <div className="phead">
           <h2>Who are we <em>meeting?</em></h2>
-          <p className="psub">{airportTrip
-            ? "Your flight, and the name your driver asks for."
+          <p className="psub">{signTrip
+            ? "The flight, and the name on the sign."
             : "Three lines, and your driver knows exactly who to look for."}</p>
         </div>
 
@@ -483,12 +504,11 @@ export default function Step3Details({
           <TripSchedule problem={problem} lateNight={!!q?.lateNight} />
 
           <div className="fld">
-            {/* "Name for the driver's sign" on an airport trip, until the
-                meeting was written down. The driver email and the
-                confirmation promise the arrivals hall, not a sign: a name
-                sign is not confirmed, so the form does not promise one
-                either. The name is still what the driver asks for. */}
-            <label htmlFor="b-name">Name for the driver</label>
+            {/* 1d173f2 dropped "sign" from this label because a name sign
+                was not confirmed. The owner has confirmed it: a driver in
+                arrivals holds a sign with this name, so a guest met there
+                is told what they are typing it for. */}
+            <label htmlFor="b-name">{signTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
             <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName}
               aria-invalid={!!err("name") || undefined} aria-describedby={errId("name")}
               onChange={(e) => setField("contactName", e.target.value)} />
@@ -536,9 +556,21 @@ export default function Step3Details({
   if (state.step === PAYMENT) {
     return (
       <div className="panel">
+        {/* With no card to take, "the card" and "Charged in US dollars"
+            told a cash guest they were about to be charged. The heading
+            names what this step is either way. */}
         <div className="phead">
-          <h2>Last thing — <em>the card.</em></h2>
-          <p className="psub">Charged in US dollars. Free cancellation up to 24 hours before pickup.</p>
+          {CARD_ENABLED ? (
+            <>
+              <h2>Last thing — <em>the card.</em></h2>
+              <p className="psub">Charged in US dollars. Free cancellation up to {FREE_CANCEL_HOURS} hours before pickup.</p>
+            </>
+          ) : (
+            <>
+              <h2>Last thing — <em>how you pay.</em></h2>
+              <p className="psub">Cash, to your driver. Free cancellation up to {FREE_CANCEL_HOURS} hours before pickup.</p>
+            </>
+          )}
         </div>
 
         <div className="pcols pcols-map">
@@ -548,15 +580,19 @@ export default function Step3Details({
               iframe lands. An empty box is only worth that when something is
               still coming — a failed reservation shows its reason instead. */}
           {!CARD_ENABLED ? (
-            /* No key, so no card — and saying so is better than a dead
-               field or a step that quietly vanishes. The fare is still a
-               fixed price; it is simply settled at the end of the ride. */
+            /* No key, so no card. This said "Card payment isn't switched
+               on yet" and "settle the fare with your driver", which named
+               what was missing and left how to pay as a guess. The owner
+               has set it: cash, to the driver, in dollars or florins, tips
+               on top and optional. Said in full here, because this is the
+               last screen before the booking is made. */
             <div className="pay-off">
-              <h3>Card payment isn't switched on yet.</h3>
+              <h3>You pay your driver in cash.</h3>
               <p>
-                Reserve now and settle the fare with your driver — the price is fixed
-                and won't change. Nothing is charged today.
+                At the end of the ride, in US dollars or Aruban florins. The price is
+                fixed at {usd(totalUsd)} and won&rsquo;t change, and nothing is charged today.
               </p>
+              <p>Tips aren&rsquo;t included — they&rsquo;re always up to you.</p>
             </div>
           ) : phase !== "review" ? (
             <div className="cardform">
@@ -658,8 +694,8 @@ export default function Step3Details({
 
           <div className="secure">
             {CARD_ENABLED
-              ? "Secured by Stripe · charged in US dollars · free cancellation up to 24h before pickup"
-              : "Fixed price · settled with your driver · free cancellation up to 24h before pickup"}
+              ? `Secured by Stripe · charged in US dollars · free cancellation up to ${FREE_CANCEL_HOURS}h before pickup`
+              : `Fixed price · cash to your driver, in US dollars or florins · free cancellation up to ${FREE_CANCEL_HOURS}h before pickup`}
           </div>
         </div>
 
@@ -677,7 +713,11 @@ export default function Step3Details({
     <div className="panel">
       <div className="phead">
         <h2>Does this look <em>right?</em></h2>
-        <p className="psub">Nothing is charged until you say so — and every line here can still change.</p>
+        {/* "until you say so" implied a charge was coming. With card
+            payment off there is none — the guest pays the driver. */}
+        <p className="psub">{STRIPE_KEY
+          ? "Nothing is charged until you say so — and every line here can still change."
+          : "Nothing is charged today — and every line here can still change."}</p>
       </div>
 
       <div className="pcols pcols-map pcols-review">
@@ -691,8 +731,8 @@ export default function Step3Details({
 
         <div className="secure">
           {STRIPE_KEY
-            ? "Secured by Stripe · charged in US dollars · free cancellation up to 24h before pickup"
-            : "No charge today — the fixed fare is settled with your driver, in US dollars. Free cancellation up to 24h before pickup."}
+            ? `Secured by Stripe · charged in US dollars · free cancellation up to ${FREE_CANCEL_HOURS}h before pickup`
+            : `No charge today — you pay your driver in cash at the end of the ride, in US dollars or florins. Free cancellation up to ${FREE_CANCEL_HOURS}h before pickup.`}
         </div>
       </div>
 

@@ -145,17 +145,30 @@ describe("Earnings", () => {
   // them. A driver asking "what did the month come to" had to walk back
   // four weeks and add it up themselves.
   it("totals a whole month, not only a week", async () => {
-    // one ride in this week, one earlier in the same month
-    const monthStart = `${todayInAruba().slice(0, 7)}-02`;
-    state.completed = [ride("a", thisWeek(0), "16:00", 48), ride("z", monthStart, "16:00", 100)];
-    const v = mount();
-    await waitFor(() => expect(v.total()).toBe("$36"));   // the week alone
+    // Pinned to a mid-month Thursday. Run on the real clock this failed in
+    // the first days of every month: on Thu 1 October the "earlier in the
+    // month" ride on the 2nd fell inside THIS week (so the week read $111),
+    // and this week's Monday fell in September (so the month could not
+    // hold it). The premise — a ride this week and another earlier in the
+    // same month — only exists once the month is a week old. Only Date is
+    // faked, so waitFor's timers still run.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-16T16:00:00Z"));
+    try {
+      // one ride in this week, one earlier in the same month
+      const monthStart = `${todayInAruba().slice(0, 7)}-02`;
+      state.completed = [ride("a", thisWeek(0), "16:00", 48), ride("z", monthStart, "16:00", 100)];
+      const v = mount();
+      await waitFor(() => expect(v.total()).toBe("$36"));   // the week alone
 
-    fireEvent.click(screen.getByRole("button", { name: /^Month$/ }));
-    // 75% of $48 + 75% of $100 = $36 + $75
-    await waitFor(() => expect(v.total()).toBe("$111"));
-    expect(v.caption()).toMatch(/whole month/i);
-    expect(v.caption()).toMatch(/2 jobs/);
+      fireEvent.click(screen.getByRole("button", { name: /^Month$/ }));
+      // 75% of $48 + 75% of $100 = $36 + $75
+      await waitFor(() => expect(v.total()).toBe("$111"));
+      expect(v.caption()).toMatch(/whole month/i);
+      expect(v.caption()).toMatch(/2 jobs/);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("narrows to a single day without leaving the screen", async () => {

@@ -1498,6 +1498,20 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .fld input:focus,.fld select:focus,.fld textarea:focus{background:var(--surface);}
 .fld input::placeholder,.fld textarea::placeholder{color:var(--placeholder);}
 .fld textarea{resize:vertical;min-height:64px;line-height:1.55;}
+/* appearance:none above took the native arrow off every .fld select, and
+   the first one on a form (a child seat's age) then read as a text box
+   nobody could type in. The chevron is --silver, drawn inline because a
+   background image cannot read a custom property. Restated on :focus,
+   whose `background` shorthand would otherwise wipe it. */
+.fld select,.fld select:focus{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23A7ADB4' stroke-width='1.6'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;padding-right:44px;}
+/* Child seats: the age fields, then the line that prices them. */
+.seatbox{margin-top:16px;}
+.seatbox .fld{margin-bottom:10px;}
+.seatfee{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 14px;margin:0 0 4px;
+  padding:12px 16px;border:1px solid var(--line);background:var(--raised);font-size:var(--t-meta);line-height:var(--lh-body);}
+.seatfee .sf-l{color:var(--ink);font-weight:600;}
+.seatfee .sf-r{color:var(--muted);}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media(max-width:480px){.frow{grid-template-columns:1fr;}}
 .qtoggle{display:flex;border:1px solid var(--line);background:var(--raised);}
@@ -1612,6 +1626,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .pay-off{border:1px solid var(--line);background:var(--raised);padding:20px;}
 .pay-off h3{font-family:var(--serif);font-weight:400;font-size:21px;margin:0 0 8px;color:var(--ink);}
 .pay-off p{margin:0;font-size:var(--t-body);line-height:1.6;color:var(--silver);}
+.pay-off p + p{margin-top:8px;}
 /* review's two ways back — each to the screen that owns the line */
 .rv-edit{display:flex;flex-direction:column;gap:2px;margin-top:12px;}
 .rv-edit button{display:flex;align-items:center;text-align:left;padding:0 2px;border:none;
@@ -2091,6 +2106,7 @@ input.txt:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 /* booking modal */
 .fld input,.fld select,.fld textarea,.cardbox{border-radius:var(--r-sm);}
 .pay-off{border-radius:var(--r-md);}
+.seatfee{border-radius:var(--r-sm);}
 .qtoggle{border-radius:var(--r-pill);overflow:hidden;}
 .stepper{border-radius:var(--r-pill);overflow:hidden;}
 .timing,.notice{border-radius:var(--r-md);}

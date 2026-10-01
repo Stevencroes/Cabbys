@@ -55,14 +55,17 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
     downloadIcs(
       {
         title: `Cabby's transfer — ${booking.from} → ${booking.to}`,
-        // The meeting line follows the pickup end, as the tag above does.
-        // It said "waits inside arrivals with your name" on every booking:
-        // wrong for a guest collected at their hotel, and "with your name"
-        // promised a name sign nobody has confirmed. The words match the
-        // driver email's (api/booking-alerts.ts).
+        // The meeting line follows the pickup end, as the tag above does:
+        // it once said "waits inside arrivals with your name" on every
+        // booking, wrong for a guest collected at their hotel. The sign is
+        // back on the airport line — 1d173f2 took it out as unconfirmed,
+        // and the owner has since confirmed drivers hold one. The words
+        // match the driver email's (api/booking-alerts.ts). The cash line
+        // rides along because a calendar entry is what a guest opens on
+        // the day, with the fare still to pay.
         description: `Booking ${bookingRef}. ${booking.flightNumber ? `Flight ${booking.flightNumber}. ` : ""}${fromAirport
-          ? "Your driver meets you inside the arrivals hall."
-          : "Your driver meets you at the pickup address."}`,
+          ? "Your driver waits inside the arrivals hall with a sign with your name on it."
+          : "Your driver meets you at the pickup address."}${booking.paid ? "" : " Pay your driver in cash (USD or florins) at the end of the ride."}`,
         location: booking.from,
         date: booking.date,
         time: booking.time || "12:00",
@@ -143,6 +146,10 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
           ) : (
             <><b>We'll email you your driver's name, car and plate once a driver is assigned.</b>{" "}</>
           )}
+          {/* Card payment is off, so a guest leaving this screen needs to
+              know they still owe the fare, and in what. Not said when a
+              card was charged. */}
+          {booking.paid ? "" : "Pay your driver in cash (USD or florins) at the end of the ride. "}
           A copy of this booking is on its way to your email.
           {booking.flightNumber ? " We're watching your flight — if it moves, we move with it." : ""} Nothing else to do.
         </p>

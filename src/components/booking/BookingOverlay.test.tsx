@@ -128,17 +128,22 @@ describe("BookingOverlay — the booking flow", () => {
     // moment that sells the service reads back from the card's landing time.
     expect(screen.getByText(/Who are we/)).toBeInTheDocument();
     expect(await screen.findByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/^name for the driver$/i), { target: { value: "Ada Lovelace" } });
+    fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
     fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/whatsapp \/ phone/i), { target: { value: "+1 555 123 4567" } });
     toReview();
 
     // Step 3 — a last look, with the same total the bar has been showing
     expect(screen.getByText(/Does this look/)).toBeInTheDocument();
-    // With no key there is still a payment step — it explains that the
-    // fare is settled with the driver, and carries the booking action.
+    // With no key there is still a payment step — it says how the guest
+    // pays (cash to the driver, dollars or florins, tip not included), and
+    // carries the booking action. It must not talk about a card at all.
     fireEvent.click(screen.getByRole("button", { name: /continue to payment/i }));
-    expect(await screen.findByText(/card payment isn't switched on/i)).toBeInTheDocument();
+    expect(await screen.findByText(/you pay your driver in cash/i)).toBeInTheDocument();
+    expect(screen.getByText(/in US dollars or Aruban florins/)).toBeInTheDocument();
+    expect(screen.getByText(/Tips aren.t included/)).toBeInTheDocument();
+    expect(screen.queryByText(/the card\./)).toBeNull();
+    expect(screen.queryByText(/Charged in US dollars/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /reserve your car/i }));
     await waitFor(() =>
       expect(onConfirmed).toHaveBeenCalledWith(
@@ -185,11 +190,11 @@ describe("BookingOverlay — the booking flow", () => {
       fireEvent.click(screen.getByText("launch"));
       toDetails();
 
-      expect(await screen.findByLabelText(/^name for the driver$/i)).toHaveValue("Greta Croes");
+      expect(await screen.findByLabelText(/name for the driver's sign/i)).toHaveValue("Greta Croes");
       expect(screen.getByLabelText(/whatsapp \/ phone/i)).toHaveValue("+2971234567");
 
       // and it is a prefill, not a lock: whoever is travelling may not be you
-      const name = screen.getByLabelText(/^name for the driver$/i);
+      const name = screen.getByLabelText(/name for the driver's sign/i);
       fireEvent.change(name, { target: { value: "Someone Else" } });
       expect(name).toHaveValue("Someone Else");
     } finally {
@@ -221,7 +226,7 @@ describe("BookingOverlay — the booking flow", () => {
     await waitFor(() => expect(label()).toHaveTextContent("Step two of four · Your details"));
     expect(fill()).toBe("50%");
 
-    fireEvent.change(screen.getByLabelText(/^name for the driver$/i), { target: { value: "Ada Lovelace" } });
+    fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
     fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "ada@example.com" } });
     fireEvent.change(screen.getByLabelText(/whatsapp \/ phone/i), { target: { value: "+1 555 123 4567" } });
     toReview();
@@ -245,7 +250,7 @@ describe("BookingOverlay — the booking flow", () => {
     expect(screen.queryByRole("button", { name: /^back$/i })).toBeNull();
 
     toDetails();
-    expect(await screen.findByLabelText(/^name for the driver$/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/name for the driver's sign/i)).toBeInTheDocument();
 
     // Back is one step, not out of the modal
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
@@ -299,10 +304,10 @@ describe("BookingOverlay — the booking flow", () => {
 
     // the sentence is announced, not just a red border
     const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent(/a name lets the driver greet you/i);
+    expect(alert).toHaveTextContent(/a name lets the driver hold the right sign/i);
 
     // and the control points at it, so the reason is read with the field
-    const name = screen.getByLabelText(/^name for the driver$/i);
+    const name = screen.getByLabelText(/name for the driver's sign/i);
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(name).toHaveAttribute("aria-describedby", alert.id);
     expect(alert.id).toBeTruthy();
@@ -320,10 +325,10 @@ describe("BookingOverlay — the booking flow", () => {
     toReview();
     expect(screen.getByRole("alert")).toHaveTextContent(/a name lets the driver/i);
 
-    fireEvent.change(screen.getByLabelText(/^name for the driver$/i), { target: { value: "Ada Lovelace" } });
+    fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
     // the NEXT gap is not promoted to the screen — nobody has walked into it
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(screen.getByLabelText(/^name for the driver$/i)).not.toHaveAttribute("aria-invalid");
+    expect(screen.getByLabelText(/name for the driver's sign/i)).not.toHaveAttribute("aria-invalid");
   });
 
   it("refuses a return date that precedes the outbound date (Phase 4)", () => {
@@ -354,6 +359,6 @@ describe("BookingOverlay — the booking flow", () => {
     const cont = screen.getByRole("button", { name: /^review$/i });
     expect(cont).toBeEnabled();
     fireEvent.click(cont);
-    expect(screen.getByText(/a name lets the driver greet you/i)).toBeInTheDocument();
+    expect(screen.getByText(/a name lets the driver hold the right sign/i)).toBeInTheDocument();
   });
 });

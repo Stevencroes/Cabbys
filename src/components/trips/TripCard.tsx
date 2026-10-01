@@ -25,7 +25,7 @@ import {
   vehicleName, formatUsd, STATUS_LABEL, JOURNEY, PAYMENT_LABEL, PAYMENT_DETAIL,
   TOTAL_LABEL, type TripRow, type TripStatus,
 } from "../../lib/tripStatus";
-import { cancellationInfo } from "../../lib/policy";
+import { cancellationInfo, FREE_CANCEL_HOURS } from "../../lib/policy";
 import { AWG_PER_USD } from "../../lib/quote";
 import { formatDateTime, formatDate, formatTime, todayInAruba, nowInAruba } from "../../lib/datetime";
 import { whatsappLink } from "../../lib/whatsapp";
@@ -383,9 +383,13 @@ export default function TripCard({
           <p id={`${ids.panel}-h`} className="tp-panel-h">Cancel this booking?</p>
           <div id={`${ids.panel}-d`}>
             <p className="tp-panel-note">
-              {policy.free
-                ? "You're more than 24 hours from pickup, so cancelling is free."
-                : "You're inside 24 hours of pickup — under our cancellation policy a fee may apply."}
+              {/* The second line said "a fee may apply" while the late fee
+                  was undecided. It is decided — none, while payment is
+                  cash (src/lib/policy.ts) — so inside the window this
+                  says free, and thanks the guest for telling us early. */}
+              {policy.late
+                ? `You're inside ${FREE_CANCEL_HOURS} hours of pickup. Cancelling is still free — thank you for telling us now, so a driver isn't sent for nothing.`
+                : `You're more than ${FREE_CANCEL_HOURS} hours from pickup, so cancelling is free.`}
             </p>
             <p className="tp-panel-note">{moneyOnCancel}</p>
           </div>

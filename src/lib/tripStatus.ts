@@ -280,7 +280,9 @@ export const PAYMENT_DETAIL: Record<PaymentState, string> = {
   pending: "Held on your card, not charged yet.",
   failed: "Your card didn't go through. Contact us to sort it out.",
   refunded: "Returned to your card.",
-  with_driver: "Fixed price, settled with your driver on the day.",
+  // "Settled with your driver on the day" left how to pay as a guess.
+  // The owner set it: cash, in dollars or florins, at the end of the ride.
+  with_driver: "In cash at the end of the ride, in US dollars or florins.",
   unknown: "Contact us and we'll confirm it.",
 };
 

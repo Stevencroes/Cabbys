@@ -262,3 +262,74 @@ describe("florin and dollars round-trip", () => {
     expect(driverPayoutUsd(storedAwg)).toBeCloseTo(38.25, 2);
   });
 });
+
+// Child seats became a paid add-on: CHILD_SEAT_USD per seat, per one-way
+// ride. Before this, the stepper added seats and no number moved.
+import { CHILD_SEAT_USD, MAX_CHILD_SEATS, seatsUsd, storedFare } from "./quote";
+import { fareUsd } from "../../api/booking-alerts";
+
+describe("child seats — priced inside the one quote", () => {
+  const ride = (seats: number | undefined, isReturn = false) =>
+    quote({ from: airport, to: sel("ritz"), vehicle: saloon, isReturn, pricing: null, seats });
+
+  it("is the owner's price: $10 a seat, two at most", () => {
+    expect(CHILD_SEAT_USD).toBe(10);
+    expect(MAX_CHILD_SEATS).toBe(2);
+  });
+
+  it("adds nothing for no seats, and leaves the ride fare alone", () => {
+    const bare = ride(undefined);
+    expect(ride(0).totalUsd).toBe(bare.totalUsd);
+    expect(ride(0).seatsUsd).toBe(0);
+    expect(bare.totalUsd).toBe(bare.oneWayUsd);
+  });
+
+  it.each([
+    [1, 10],
+    [2, 20],
+  ])("one way · %i seat(s) adds $%i to the total", (seats, extra) => {
+    const bare = ride(0);
+    const q = ride(seats);
+    expect(q.seatsUsd).toBe(extra);
+    expect(q.totalUsd).toBe(bare.totalUsd + extra);
+    // the ride's own fare does not move — the seat is a line of its own
+    expect(q.oneWayUsd).toBe(bare.oneWayUsd);
+  });
+
+  it("charges every leg: one seat on a return is +$20, two is +$40", () => {
+    const bare = ride(0, true);
+    expect(ride(1, true).seatsUsd).toBe(20);
+    expect(ride(1, true).totalUsd).toBe(bare.totalUsd + 20);
+    expect(ride(2, true).totalUsd).toBe(bare.totalUsd + 40);
+    // and the return is still the ride doubled, plus the seats both ways
+    expect(ride(1, true).totalUsd).toBe(ride(1, false).oneWayUsd * 2 + 2 * CHILD_SEAT_USD);
+  });
+
+  it("puts the seat on every car the same — it is not scaled by the class", () => {
+    for (const v of VEHICLES) {
+      const bare = quote({ from: airport, to: sel("ritz"), vehicle: v, isReturn: false, pricing: null });
+      const seated = quote({ from: airport, to: sel("ritz"), vehicle: v, isReturn: false, pricing: null, seats: 1 });
+      expect(seated.totalUsd - bare.totalUsd).toBe(CHILD_SEAT_USD);
+    }
+  });
+
+  it("never prices a seat the car would not carry", () => {
+    expect(seatsUsd(3, false)).toBe(MAX_CHILD_SEATS * CHILD_SEAT_USD);
+    expect(seatsUsd(-1, true)).toBe(0);
+  });
+
+  // The total on the review IS the stored fare: fare_total is what My
+  // trips, the emails, the driver portal and (with a card) Stripe read.
+  it.each([
+    [0, false], [1, false], [2, false], [0, true], [1, true], [2, true],
+  ])("stores the total shown · %i seat(s), return %s", (seats, isReturn) => {
+    const q = ride(seats, isReturn);
+    const { fareTotal, fareBase } = storedFare(q);
+    expect(fareTotal).toBe(usdToAwg(q.totalUsd));
+    expect(Math.round(awgToUsd(fareTotal))).toBe(q.totalUsd);
+    // and the guest's email reads the same dollars back off the row
+    expect(fareUsd({ fare_total: fareTotal })).toBe(q.totalUsd);
+    // fare_base stays the one-way ride alone, seats or not
+    expect(fareBase).toBe(usdToAwg(q.oneWayUsd));
+  });
+});

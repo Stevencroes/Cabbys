@@ -149,7 +149,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
   const vehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
   const q = state.from && state.to && state.from.id !== state.to.id
     ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing,
-              pickupTime: effectivePickupTime(state) })
+              pickupTime: effectivePickupTime(state), seats: state.seats })
     : null;
 
   function handlePrimary() {
@@ -194,7 +194,9 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
     <StepFoot
       // review and payment carry the total in the facts table beside them
       total={state.step < 3 ? (q ? usd(q.totalUsd) : "—") : undefined}
-      meta={q ? `${q.minutes} min · ${vehicle.name}${state.journey === "return" ? " · return" : ""}` : "Route sets the fare"}
+      // The seats are named under the total they are part of, so the number
+      // that grew when one was added says why it grew.
+      meta={q ? `${q.minutes} min · ${vehicle.name}${state.journey === "return" ? " · return" : ""}${state.seats ? ` · ${state.seats} child seat${state.seats > 1 ? "s" : ""}` : ""}` : "Route sets the fare"}
       primaryLabel={primaryLabel}
       onPrimary={handlePrimary}
       onBack={state.step > 1 ? () => history.back() : undefined}
@@ -230,7 +232,7 @@ export default function BookingOverlay({ onConfirmed }: BookingOverlayProps) {
           the last choice — no pinned bar stealing a fifth of the viewport */}
       <div className="bbody" ref={bodyRef}>
         {state.step === 1 ? (
-          <Step2Car pricing={pricing} registerValidator={registerValidator} foot={foot} />
+          <Step2Car pricing={pricing} problem={problem} registerValidator={registerValidator} foot={foot} />
         ) : (
           <Step3Details
             pricing={pricing}

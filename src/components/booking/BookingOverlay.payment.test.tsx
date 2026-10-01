@@ -101,7 +101,7 @@ function Opener() {
 const next = (label: RegExp) => fireEvent.click(screen.getByRole("button", { name: label }));
 
 function fillContact() {
-  fireEvent.change(screen.getByLabelText(/^name for the driver$/i), { target: { value: "Ada Lovelace" } });
+  fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
   fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "ada@example.com" } });
   fireEvent.change(screen.getByLabelText(/whatsapp \/ phone/i), { target: { value: "+1 555 123 4567" } });
 }
@@ -171,7 +171,7 @@ describe("BookingOverlay — four steps, with a card at the end", () => {
       );
       fireEvent.click(screen.getByText("launch"));
       next(/^your details$/i);
-      await screen.findByLabelText(/^name for the driver$/i);
+      await screen.findByLabelText(/name for the driver's sign/i);
       fillContact();
       next(/^review$/i);
       await screen.findByText(/Does this look/);

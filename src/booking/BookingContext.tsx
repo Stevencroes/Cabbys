@@ -39,7 +39,10 @@ export interface BookingState {
   pax: number;
   bags: number;
   seats: number;          // child seats
-  seatAges: string;       // revealed when seats > 0 (the FAQ's promise)
+  // One age per seat, as SEAT_AGE_OPTIONS values ("0" is under 1, "" is
+  // not chosen yet). Required for every seat — see src/lib/childSeats.ts.
+  // Written to the ride as one readable string ("2 and 5"), never as this.
+  seatAges: string[];
   vehicle: string;        // vehicle id
   // you
   contactName: string;
@@ -68,7 +71,7 @@ const initialState: BookingState = {
   pax: 2,
   bags: 2,
   seats: 0,
-  seatAges: "",
+  seatAges: [],
   vehicle: "sedan",
   contactName: "",
   contactEmail: "",

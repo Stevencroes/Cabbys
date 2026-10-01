@@ -2,6 +2,7 @@
 // and a great deal of air: the premium reads as restraint, not decoration.
 import { useEffect, useState } from "react";
 import { SplitHeading } from "./motion";
+import { AIRPORT_FREE_WAIT_MINUTES } from "../lib/policy";
 
 /** The mockup gives the pillars two forms: four columns on a desktop, and a
     list you open one at a time on a phone. That is a change of COMPONENT,
@@ -38,7 +39,13 @@ function useIsPhone(): boolean {
    is deliberately left out of it and shown in My trips two hours before
    pickup instead. "We track your flight from takeoff" overstated it too:
    the flight's status is checked a few times as the pickup approaches
-   (src/lib/flightStatus.ts), and shown to the driver (FlightLine). */
+   (src/lib/flightStatus.ts), and shown to the driver (FlightLine).
+
+   "There before you are" then said only that the flight was followed,
+   because no waiting time had been set. The owner has set one: the
+   driver goes by the actual landing and waits AIRPORT_FREE_WAIT_MINUTES
+   after it, free (src/lib/policy.ts) — the number a guest worried about
+   a delay actually wants, read from the same constant as the FAQ. */
 const PILLARS = [
   {
     title: "Private, start to finish",
@@ -52,7 +59,7 @@ const PILLARS = [
   },
   {
     title: "There before you are",
-    body: "We take your flight number and follow its status, and your driver sees what we see.",
+    body: `We follow your flight and go by when it actually lands. Your driver waits up to ${AIRPORT_FREE_WAIT_MINUTES} minutes after that, free.`,
     icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></>,
   },
   {

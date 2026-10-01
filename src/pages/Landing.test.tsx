@@ -3,7 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Landing from "./Landing";
 import { BookingProvider } from "../booking/BookingContext";
-import { FREE_CANCEL_HOURS } from "../lib/policy";
+import { FREE_CANCEL_HOURS, AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES } from "../lib/policy";
+import { CHILD_SEAT_USD, MAX_CHILD_SEATS, usd } from "../lib/quote";
 import indexHtml from "../../index.html?raw";
 
 // The quote card + fleet read pricing from Supabase; stub it for the render.
@@ -85,15 +86,16 @@ describe("Landing — only promises what is true", () => {
     return el!.textContent!.replace(/\s+/g, " ");
   }
 
-  // Each of these was on the page, and each is either untrue or a policy
-  // the owner has not set.
+  // Each of these was on the page, and each is untrue or was never the
+  // owner's word. The sign, the waiting times and the seat price came off
+  // this list when the owner decided them; they are pinned below instead.
   const NEVER: [string, RegExp][] = [
     ["a driver photo", /photo/i],
     ["a message the morning you travel", /\bthe morning\b/i],
     ["being met at the gate", /\bat the gate\b/i],
-    ["a name sign", /\bsign\b/i],
-    ["a late-cancel fee of half", /\bhalf\b/i],
-    ["a waiting time", /three hours|sixty minutes|60 minutes/i],
+    ["a late-cancel fee", /a fee may apply/i],
+    ["a late-cancel fee of half", /charge half|\bhalf\b/i],
+    ["a waiting time nobody set", /three hours|sixty minutes/i],
     ["free child seats", /no extra charge/i],
     ["a legal claim", /\blaw\b/i],
     ["free changes", /changes[^.]*\bfree\b/i],
@@ -114,12 +116,35 @@ describe("Landing — only promises what is true", () => {
     const faq = copyOf("#about");
     expect(faq).toMatch(/name, car and plate/);
     expect(faq).toMatch(/phone number appears in My trips two hours before pickup/);
-    expect(faq).toMatch(/inside the arrivals hall/);
-    // the cancel rule, from the one constant, and the fee left undecided
-    expect(faq).toContain(`free up to ${FREE_CANCEL_HOURS} hours before pickup`);
-    expect(faq).toMatch(/a fee may apply/);
+    // the owner confirmed the name sign, in the arrivals hall
+    expect(faq).toMatch(/waits in the arrivals hall holding a sign with your name/);
     // no online change exists; a person does it
     expect(faq).toMatch(/Changes aren't made online/);
+  });
+
+  it("states the owner's decisions, from the constants that hold them", () => {
+    const faq = copyOf("#about");
+    // child seats: the price, per seat, per ride, and the cap
+    expect(faq).toContain(`${usd(CHILD_SEAT_USD)} per seat each way`);
+    expect(MAX_CHILD_SEATS).toBe(2);
+    expect(faq).toMatch(/up to two per ride/);
+    expect(faq).toMatch(/each child's age/);
+    // paying: cash, to the driver, in either currency; the tip is extra
+    expect(faq).toMatch(/In cash, to your driver/);
+    expect(faq).toMatch(/US dollars or Aruban florins/);
+    expect(faq).toMatch(/Tips aren't included/);
+    // waiting: by the actual landing, and both numbers
+    expect(faq).toMatch(/actually lands/);
+    expect(faq).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes after you land`);
+    expect(faq).toContain(`${ADDRESS_FREE_WAIT_MINUTES} minutes at a hotel or other address`);
+    expect(faq).toMatch(/no-show/);
+    // cancelling: free, and still free inside the window
+    expect(faq).toContain(`free up to ${FREE_CANCEL_HOURS} hours before pickup`);
+    expect(faq).toMatch(/still free/);
+    expect(faq).toMatch(/airline cancels your flight, cancelling is always free/);
+
+    const pillars = copyOf("#services");
+    expect(pillars).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
   });
 
   it("keeps the link previews to the same facts", () => {

@@ -12,6 +12,13 @@
 //
 // The UI is USD-only. AWG exists ONLY here, at the boundary with the
 // engine (whose tables are florin-denominated) and the rides payload.
+//
+// Child seats are priced here too, after the leg and outside it. They
+// used to be free — the stepper added seats and no number anywhere
+// moved — and when the owner set a price, the one rule above is why it
+// lives in this file and not in the screen that sells it: a seat charge
+// added in Step2Car alone would have put one total on the vehicle rows
+// and another in the review and the stored fare.
 // ─────────────────────────────────────────────────────────────────────
 import { computeFare, type Pricing } from "./pricing";
 import { AIRPORT_ID, type PlaceSel } from "../data/places";
@@ -21,13 +28,35 @@ import type { Vehicle } from "../data/vehicles";
 export const AWG_PER_USD = 1.79;
 const TAX_RATE = 0.06; // government & facility tax — always included
 
+/**
+ * What one child seat costs, per seat, per one-way ride, in US dollars.
+ *
+ * Set by the owner. All in: no tax goes on top, so the guest pays exactly
+ * the number shown. A return booking carries the seat both ways and pays
+ * for it both ways — one seat on a return is twice this.
+ *
+ * It is a flat dollar amount, deliberately NOT a pricing_addons row run
+ * through computeFare: that path is florin-denominated, taxed and scaled
+ * by the vehicle class, and every one of those would have turned "$10" on
+ * the screen into some other number on the bill. api/booking-alerts.ts
+ * keeps a copy, held equal by src/server/bookingAlerts.test.ts.
+ */
+export const CHILD_SEAT_USD = 10;
+
+/** Child seats carried on one run. A third belongs in a second car, and
+    a stepper that counts to three would promise one we cannot fit. The
+    FAQ says "up to two"; Landing.test pins it. */
+export const MAX_CHILD_SEATS = 2;
+
 /** The single money formatter (§3.9). */
 export const usd = (n: number): string => "$" + Math.round(n);
 
 export interface Quote {
-  /** one-way, selected vehicle, all-in USD */
+  /** one-way RIDE fare, selected vehicle, all-in USD — no seats */
   oneWayUsd: number;
-  /** doubled when return — the number shown EVERYWHERE */
+  /** child seats, every leg, all-in USD (0 when none) */
+  seatsUsd: number;
+  /** ride × legs + seats — the number shown EVERYWHERE, and stored */
   totalUsd: number;
   minutes: number;
   source: "engine" | "model";
@@ -126,16 +155,28 @@ export interface QuoteInput {
   pricing: Pricing | null;
   /** Pickup time as "HH:MM" in Aruba. Omit while it is still unknown. */
   pickupTime?: string | null;
+  /** Child seats on the booking. Omitted (the Fleet section, which
+      prices a car before anyone has said who is coming) means none. */
+  seats?: number;
 }
 
-export function quote({ from, to, vehicle, isReturn, pricing, pickupTime }: QuoteInput): Quote {
+/** The seat charge for a booking: per seat, per leg. Clamped to what one
+    car carries, so no input can price a seat we would not bring. */
+export function seatsUsd(seats: number | undefined, isReturn: boolean): number {
+  const n = Math.max(0, Math.min(MAX_CHILD_SEATS, Math.floor(seats ?? 0)));
+  return n * CHILD_SEAT_USD * (isReturn ? 2 : 1);
+}
+
+export function quote({ from, to, vehicle, isReturn, pricing, pickupTime, seats }: QuoteInput): Quote {
   const { base, source, lateNight } = legBaseUsd(from, to, pricing, arubaHour(pickupTime) ?? NEUTRAL_HOUR);
   // Vehicle class scales the leg (the rate card's shape), rounded ONCE so
   // hero, vehicle rows and review can never drift by a cent.
   const oneWayUsd = Math.round(base * vehicle.mult);
+  const seatCharge = seatsUsd(seats, isReturn);
   return {
     oneWayUsd,
-    totalUsd: oneWayUsd * (isReturn ? 2 : 1),
+    seatsUsd: seatCharge,
+    totalUsd: oneWayUsd * (isReturn ? 2 : 1) + seatCharge,
     minutes: legDuration(from, to),
     source,
     lateNight,
@@ -145,6 +186,20 @@ export function quote({ from, to, vehicle, isReturn, pricing, pickupTime }: Quot
 /** AWG value stored on the ride row (driver dashboard reads florin). */
 export function usdToAwg(usdAmount: number): number {
   return Math.round(usdAmount * AWG_PER_USD * 100) / 100;
+}
+
+/**
+ * The two fare columns a booking writes, from the quote the guest saw.
+ *
+ * fare_total is the guest's whole bill — seats included — because it is
+ * what everything downstream reads as "the fare": the emails, My trips,
+ * the driver portal and, when card payment is on, the amount
+ * create-payment-intent charges. fare_base stays the one-way ride alone.
+ * One function so the review and the row cannot disagree; quote.test
+ * holds awgToUsd(fareTotal) to the total on screen.
+ */
+export function storedFare(q: Pick<Quote, "oneWayUsd" | "totalUsd">): { fareBase: number; fareTotal: number } {
+  return { fareBase: usdToAwg(q.oneWayUsd), fareTotal: usdToAwg(q.totalUsd) };
 }
 
 /** Back the other way — the ride row stores florin, drivers are shown USD. */

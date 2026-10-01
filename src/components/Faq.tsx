@@ -2,37 +2,41 @@ import { useState } from "react";
 import { SplitHeading } from "./motion";
 import { whatsappLink } from "../lib/whatsapp";
 import { askAnything, SUPPORT_EMAIL } from "../lib/support";
-import { FREE_CANCEL_HOURS } from "../lib/policy";
+import { FREE_CANCEL_HOURS, AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES } from "../lib/policy";
+import { CHILD_SEAT_USD, usd } from "../lib/quote";
 
-/* Four of these answers were written before the guest emails and the
-   booking rules existed, and promised what neither does:
-   - Delays: "sixty minutes of waiting included" and "land three hours
-     late and your driver is still there" were numbers the owner never
-     set. What is true is that the flight number is taken and its status
-     followed (src/lib/flightStatus.ts), and that the fare was fixed at
-     booking, so a late flight cannot move it.
-   - Finding the driver: there is no photo and no "morning you land"
-     message. The driver email goes out on assignment, and again if the
-     driver changes, with name, car and plate; the phone number is kept
-     out of it and appears in My trips two hours before pickup
-     (api/booking-alerts.ts). The name sign is not confirmed, so it is not
-     promised, and a driver is never "he".
-   - Cancelling: free until FREE_CANCEL_HOURS, done by the guest in My
-     trips. The fee inside that window is undecided, so this says what
-     the cancel panel says — a fee may apply — and not "half". There is
-     no online change; "changes are free" promised a price for something
-     that is done by a person, on WhatsApp or email.
-   - Child seats: the seat price lives in Supabase, not here, so "no
-     extra charge" was not ours to say, and neither was a legal claim.
-   Each stays near its old length, so an open answer does not reflow. */
+/* 1d173f2 cut these answers back to what the product did at the time,
+   and said less wherever the owner had not decided. The owner has now
+   decided, so each answer says the decision — from the constant that
+   holds it, so the FAQ cannot drift from the booking form or My trips:
+   - Delays: the driver goes by the ACTUAL landing time, waits free for
+     AIRPORT_FREE_WAIT_MINUTES after it (ADDRESS_FREE_WAIT_MINUTES at a
+     hotel or address), and there are no waiting charges. After that the
+     driver calls and WhatsApps, then may leave as a no-show.
+   - Finding the driver: the name sign is confirmed and back. The driver
+     email still goes out on assignment with name, car and plate; the
+     phone number still waits for My trips, two hours before pickup. A
+     driver is "they", never "he".
+   - Paying: cash to the driver, dollars or florins, tips extra and
+     optional. Card payment is off in production, and the payment step
+     says the same.
+   - Cancelling: free up to FREE_CANCEL_HOURS, and — while payment is cash
+     — still free inside it, with an ask to cancel early. "A fee may
+     apply" was the undecided version and is gone. There is still no
+     online change; a person does it.
+   - Child seats: CHILD_SEAT_USD per seat per ride, each child's age
+     required. "No extra charge" was never ours to say, and is not true
+     now; neither was a legal claim.
+   Each stays tight: one open answer should not push the next question
+   off a phone screen. */
 const ITEMS = [
   {
     q: "What if my flight is delayed?",
-    a: "We take your flight number when you book and follow its status, and your driver sees what we see. A late landing doesn't change the fare — it was fixed when you booked, and it stays fixed. If a delay changes your plans, message us on WhatsApp or by email.",
+    a: `Your driver goes by when your flight actually lands, and a late flight never costs extra. They wait up to ${AIRPORT_FREE_WAIT_MINUTES} minutes after you land, or ${ADDRESS_FREE_WAIT_MINUTES} minutes at a hotel or other address, and there are no waiting charges. After that they call and WhatsApp you; if they still can't reach you, they may leave, and the ride counts as a no-show. Flight cancelled or moved to another day? Cancel for free, or message us and we'll move your booking to the new flight if a driver is free.`,
   },
   {
     q: "How will I find my driver at Queen Beatrix?",
-    a: "Once a driver is assigned, we email you their name, car and plate — and again if your driver changes. Their phone number appears in My trips two hours before pickup. Your driver meets you inside the arrivals hall, so there's no car park to find.",
+    a: "Your driver waits in the arrivals hall holding a sign with your name, so there's no car park to find. Once a driver is assigned, we email you their name, car and plate — and again if your driver changes. Their phone number appears in My trips two hours before pickup.",
   },
   {
     q: "Can you pick me up from my hotel?",
@@ -43,12 +47,16 @@ const ITEMS = [
     a: "Not always, and we won't pretend otherwise. A metered taxi may come in lower on a quiet afternoon. What you're paying for is that the price cannot move, the car is booked before you land, and nobody is negotiating with you in a queue at midnight with tired children.",
   },
   {
+    q: "How do I pay?",
+    a: "In cash, to your driver at the end of the ride — US dollars or Aruban florins. You pay the price you were quoted when you booked, nothing more. Tips aren't included and are always up to you.",
+  },
+  {
     q: "Can I cancel or change my booking?",
-    a: `Cancelling is free up to ${FREE_CANCEL_HOURS} hours before pickup, and you do it yourself in My trips — no phone call, no reason needed. Inside ${FREE_CANCEL_HOURS} hours, a fee may apply. Changes aren't made online: to move a time or a place, message us on WhatsApp or by email and a person will look at it.`,
+    a: `Cancelling is free up to ${FREE_CANCEL_HOURS} hours before pickup, and you do it yourself in My trips — no phone call, no reason needed. Inside ${FREE_CANCEL_HOURS} hours it's still free; just cancel as soon as you know, so a driver isn't sent for nothing. If the airline cancels your flight, cancelling is always free. Changes aren't made online: to move a time or a place, message us on WhatsApp or by email and a person will look at it.`,
   },
   {
     q: "Are child seats available?",
-    a: "Yes, up to two per booking. Add them when you choose your car and tell us the children's ages, so we bring the right seats. Need more than two? Message us before you book.",
+    a: `Yes, up to two per ride, at ${usd(CHILD_SEAT_USD)} per seat each way. Add them when you choose your car and tell us each child's age, so the seat fits. Need more than two? Message us before you book.`,
   },
 ];
 
@@ -100,8 +108,8 @@ export default function Faq() {
               );
             })}
           </div>
-          {/* Six answers and then nothing. A guest whose question is the
-              seventh had no way out of the one section built for what
+          {/* The answers and then nothing. A guest whose question was not
+              among them had no way out of the one section built for what
               they are worried about — and two of these answers (changes,
               cancellations) are the kind that produce a follow-up by
               design. Deliberately quiet: a way out for the few, not a

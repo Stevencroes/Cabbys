@@ -13,34 +13,42 @@ import Stepper from "../../Stepper";
 import LiveMap from "../LiveMap";
 import VehiclePhoto from "../VehiclePhoto";
 import { MAX_BAGS, MAX_PAX, VEHICLES, fitsParty } from "../../../data/vehicles";
-import { quote, usd } from "../../../lib/quote";
+import { quote, usd, CHILD_SEAT_USD, MAX_CHILD_SEATS } from "../../../lib/quote";
 import type { Pricing } from "../../../lib/pricing";
+import { SEAT_AGE_OPTIONS, firstMissingSeatAge } from "../../../lib/childSeats";
+import FieldError from "../FieldError";
 import { effectivePickupTime, type StepProblem } from "./shared";
 
 /** The rail map's height, mirrored by .pcol-rail .tripmap .lmap in
     globals.css — change both. */
 const MAP_H = 340;
 
-/** Child seats we carry on one run. A third belongs in a second car, and
-    a stepper that counts to four promises one we cannot fit. */
-const MAX_SEATS = 2;
+/** Ordinals for the age fields' labels. MAX_CHILD_SEATS is two, so two
+    words; a third seat would need a third word here, and a test. */
+const NTH = ["First", "Second"] as const;
 
 interface Step2Props {
   pricing: Pricing | null;
+  /** the blocked field, if any — only a seat's age can block this step */
+  problem: StepProblem | null;
   registerValidator: (fn: () => StepProblem | null) => void;
   /** the total + primary action, rendered flat under the map rail */
   foot: React.ReactNode;
 }
 
-export default function Step2Car({ pricing, registerValidator, foot }: Step2Props) {
+export default function Step2Car({ pricing, problem, registerValidator, foot }: Step2Props) {
   const { state, setField } = useBooking();
   const carsRef = useRef<HTMLDivElement>(null);
 
   const time = effectivePickupTime(state);
   const selVehicle = VEHICLES.find((v) => v.id === state.vehicle) ?? VEHICLES[0];
   const routed = !!(state.from && state.to && state.from.id !== state.to.id);
+  const isReturn = state.journey === "return";
+  // Seats go INTO each row's quote, so the number beside every car is the
+  // whole bill for that car — never a ride price with the seats left for
+  // the review to spring on the guest.
   const selQuote = routed
-    ? quote({ from: state.from!, to: state.to!, vehicle: selVehicle, isReturn: state.journey === "return", pricing, pickupTime: time })
+    ? quote({ from: state.from!, to: state.to!, vehicle: selVehicle, isReturn, pricing, pickupTime: time, seats: state.seats })
     : null;
 
   // Party comes before cars; cars that don't fit render dashed and dead.
@@ -53,10 +61,37 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
     }
   }, [selectedFits, state.pax, state.bags, setField]);
 
-  // Nothing on this screen can be left blank. The party can never exceed
-  // what the largest vehicle carries, an unfittable car cannot be selected,
-  // and the route arrived answered — so nothing here can block the way on.
-  useEffect(() => registerValidator(() => null), [registerValidator]);
+  // One thing on this screen can be left blank: a child seat's age. The
+  // party can never exceed what the largest vehicle carries, an unfittable
+  // car cannot be selected, and the route arrived answered. The ages were
+  // optional until seats became a paid add-on sold on fitting the child —
+  // a seat with no age is a seat the driver has to guess at.
+  useEffect(() => registerValidator(() => {
+    const i = firstMissingSeatAge(state.seats, state.seatAges);
+    if (i < 0) return null;
+    return {
+      field: `seat-age-${i}`,
+      message: state.seats === 1
+        ? "Choose your child's age, so we bring a seat that fits."
+        : `Choose the ${NTH[i].toLowerCase()} child's age, so we bring a seat that fits.`,
+      focus: () => document.getElementById(`b-age-${i}`)?.focus(),
+    };
+  }), [registerValidator, state.seats, state.seatAges]);
+
+  const err = (f: string) => (problem?.field === f ? problem.message : undefined);
+  const errId = (f: string) => (problem?.field === f ? `err-${f}` : undefined);
+
+  /** Seats and their ages move together: dropping to one seat drops the
+      second age, so a stale age can never come back with a new seat. */
+  function setSeats(n: number) {
+    setField("seats", n);
+    if (state.seatAges.length > n) setField("seatAges", state.seatAges.slice(0, n));
+  }
+  function setAge(i: number, value: string) {
+    const next = Array.from({ length: state.seats }, (_, k) => state.seatAges[k] ?? "");
+    next[i] = value;
+    setField("seatAges", next);
+  }
 
   // cars — real radio group with roving tabindex
   function onCarsKeyDown(e: React.KeyboardEvent) {
@@ -83,7 +118,11 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
             back when the route was on it — the flight moved to the details
             step with the name it gets printed beside. */}
         <h2>Who's coming, and in <em>what?</em></h2>
-        <p className="psub">Every fare below is all in — the route already set it.</p>
+        {/* "the route already set it" stopped being the whole story once a
+            seat had a price; with seats on, the line says they are in. */}
+        <p className="psub">{state.seats > 0
+          ? "Every fare below is all in — the route and your child seats."
+          : "Every fare below is all in — the route already set it."}</p>
       </div>
 
       <div className="pcols pcols-rail">
@@ -99,14 +138,47 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
         </div>
         <div className="stw">
           <label>Child seats</label>
-          <Stepper value={state.seats} min={0} max={MAX_SEATS} onChange={(v) => setField("seats", v)} />
+          <Stepper value={state.seats} min={0} max={MAX_CHILD_SEATS} onChange={setSeats} />
         </div>
       </div>
 
+      {/* The seats' ages, then what they cost — the moment a seat is
+          added, not at review. The cost line names the per-seat price and
+          what it adds to THIS booking, because the rows below already
+          include it and a total that grows with no line explaining it
+          reads as a price that moved. */}
       {state.seats > 0 && (
-        <div className="fld" style={{ marginTop: 16 }}>
-          <label htmlFor="b-ages">Children's ages <span className="soft">— so we bring the right seats</span></label>
-          <input id="b-ages" type="text" inputMode="text" placeholder="e.g. 2 and 5" value={state.seatAges} onChange={(e) => setField("seatAges", e.target.value)} />
+        <div className="seatbox">
+          <div className={state.seats > 1 ? "frow" : undefined}>
+            {Array.from({ length: state.seats }, (_, i) => {
+              const f = `seat-age-${i}`;
+              return (
+                <div className="fld" key={i}>
+                  <label htmlFor={`b-age-${i}`}>
+                    {state.seats === 1 ? "Child's age" : `${NTH[i]} child's age`}
+                  </label>
+                  <select id={`b-age-${i}`} value={state.seatAges[i] ?? ""} required
+                    aria-invalid={!!err(f) || undefined} aria-describedby={errId(f)}
+                    onChange={(e) => setAge(i, e.target.value)}>
+                    <option value="" disabled>Choose an age</option>
+                    {SEAT_AGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  <FieldError id={`err-${f}`} message={err(f)} />
+                </div>
+              );
+            })}
+          </div>
+          <p className="seatfee">
+            {/* "×2 · $10 each way" could be read as $10 for both seats */}
+            <span className="sf-l">
+              Child seat{state.seats > 1 ? "s" : ""} ×{state.seats} · {usd(CHILD_SEAT_USD)} {state.seats > 1 ? "per seat, each way" : "each way"}
+            </span>
+            {selQuote && (
+              <span className="sf-r">
+                +{usd(selQuote.seatsUsd)}{isReturn ? " for both ways" : ""}, already in every fare below
+              </span>
+            )}
+          </p>
         </div>
       )}
 
@@ -116,7 +188,7 @@ export default function Step2Car({ pricing, registerValidator, foot }: Step2Prop
           const fits = fitsParty(v, state.pax, state.bags);
           const selected = state.vehicle === v.id;
           const q = routed
-            ? quote({ from: state.from!, to: state.to!, vehicle: v, isReturn: state.journey === "return", pricing, pickupTime: time })
+            ? quote({ from: state.from!, to: state.to!, vehicle: v, isReturn, pricing, pickupTime: time, seats: state.seats })
             : null;
           return (
             <button
