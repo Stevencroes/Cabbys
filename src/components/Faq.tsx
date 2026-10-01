@@ -2,15 +2,37 @@ import { useState } from "react";
 import { SplitHeading } from "./motion";
 import { whatsappLink } from "../lib/whatsapp";
 import { askAnything, SUPPORT_EMAIL } from "../lib/support";
+import { FREE_CANCEL_HOURS } from "../lib/policy";
 
+/* Four of these answers were written before the guest emails and the
+   booking rules existed, and promised what neither does:
+   - Delays: "sixty minutes of waiting included" and "land three hours
+     late and your driver is still there" were numbers the owner never
+     set. What is true is that the flight number is taken and its status
+     followed (src/lib/flightStatus.ts), and that the fare was fixed at
+     booking, so a late flight cannot move it.
+   - Finding the driver: there is no photo and no "morning you land"
+     message. The driver email goes out on assignment, and again if the
+     driver changes, with name, car and plate; the phone number is kept
+     out of it and appears in My trips two hours before pickup
+     (api/booking-alerts.ts). The name sign is not confirmed, so it is not
+     promised, and a driver is never "he".
+   - Cancelling: free until FREE_CANCEL_HOURS, done by the guest in My
+     trips. The fee inside that window is undecided, so this says what
+     the cancel panel says — a fee may apply — and not "half". There is
+     no online change; "changes are free" promised a price for something
+     that is done by a person, on WhatsApp or email.
+   - Child seats: the seat price lives in Supabase, not here, so "no
+     extra charge" was not ours to say, and neither was a legal claim.
+   Each stays near its old length, so an open answer does not reflow. */
 const ITEMS = [
   {
     q: "What if my flight is delayed?",
-    a: "We track it from takeoff. If you land three hours late at two in the morning, your driver is still there — and the fare doesn't change. Sixty minutes of waiting is included as standard; beyond that we simply adjust. We don't bill you for the airline's mistake.",
+    a: "We take your flight number when you book and follow its status, and your driver sees what we see. A late landing doesn't change the fare — it was fixed when you booked, and it stays fixed. If a delay changes your plans, message us on WhatsApp or by email.",
   },
   {
     q: "How will I find my driver at Queen Beatrix?",
-    a: "The morning you land we send the driver's name, photo, phone number and licence plate. He waits inside the arrivals hall with a sign showing your name — past customs, before the exit doors. You don't need to call anyone or find a car park.",
+    a: "Once a driver is assigned, we email you their name, car and plate — and again if your driver changes. Their phone number appears in My trips two hours before pickup. Your driver meets you inside the arrivals hall, so there's no car park to find.",
   },
   {
     q: "Can you pick me up from my hotel?",
@@ -22,11 +44,11 @@ const ITEMS = [
   },
   {
     q: "Can I cancel or change my booking?",
-    a: "Free cancellation up to 24 hours before pickup — one click, no phone call, no reason required. Inside 24 hours we charge half, because a driver has already turned down other work to hold your slot. Changes to time or destination are free whenever we can accommodate them.",
+    a: `Cancelling is free up to ${FREE_CANCEL_HOURS} hours before pickup, and you do it yourself in My trips — no phone call, no reason needed. Inside ${FREE_CANCEL_HOURS} hours, a fee may apply. Changes aren't made online: to move a time or a place, message us on WhatsApp or by email and a person will look at it.`,
   },
   {
     q: "Are child seats available?",
-    a: "Yes, and at no extra charge — just tell us ages when you book. Aruban law requires them for young children, and we'd rather bring one you don't need than arrive without one you do.",
+    a: "Yes, up to two per booking. Add them when you choose your car and tell us the children's ages, so we bring the right seats. Need more than two? Message us before you book.",
   },
 ];
 

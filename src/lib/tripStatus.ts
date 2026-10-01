@@ -77,10 +77,12 @@ export interface TripRow {
  * How long after the pickup time an unclosed trip is still believable.
  *
  * Six hours, and deliberately generous, because the pickup time on a
- * booking does not move when a flight does. The FAQ promises that a guest
- * who lands three hours late still has a driver waiting; a trip that is
- * three hours past its booked time and still "Driver assigned" may be
- * exactly that promise being kept. Past six hours, no delay explains it:
+ * booking does not move when a flight does. A guest whose flight lands
+ * hours late is a trip hours past its booked time and still "Driver
+ * assigned", and that is a trip in progress, not a lost one. (This used
+ * to cite the FAQ's "three hours late and your driver is still waiting";
+ * that number was never the owner's and is gone from the FAQ, but the
+ * late flight it described is still real.) Past six hours, no delay explains it:
  * the trip happened or it did not, and either way nobody recorded which.
  */
 export const CLOSE_GRACE_HOURS = 6;

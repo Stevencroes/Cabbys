@@ -63,8 +63,8 @@ describe("a trip whose pickup time has gone by", () => {
     }
   });
 
-  // The FAQ promises a driver still waits for a flight three hours late,
-  // and the booking's pickup time does not move with the flight.
+  // A flight can land hours late, and the booking's pickup time does not
+  // move with it — so a trip three hours past its time is still live.
   it("stays live inside the grace window, for the delayed flight", () => {
     const s = tripState(ride(-3, { status: "driver_assigned" }), NOW);
     expect(s.status).toBe("driver_assigned");

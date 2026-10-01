@@ -76,7 +76,7 @@ async function toLastStep(onConfirmed = vi.fn()) {
   fireEvent.click(screen.getByText("launch"));
   next(/^your details$/i);
   await screen.findByText(/Your driver waits from/);
-  fireEvent.change(screen.getByLabelText(/name for the driver's sign/i), { target: { value: "Ada Lovelace" } });
+  fireEvent.change(screen.getByLabelText(/^name for the driver$/i), { target: { value: "Ada Lovelace" } });
   fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "ada@example.com" } });
   fireEvent.change(screen.getByLabelText(/whatsapp \/ phone/i), { target: { value: "+1 555 123 4567" } });
   next(/^review$/i);

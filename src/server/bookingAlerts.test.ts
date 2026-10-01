@@ -143,7 +143,9 @@ describe("the guest's copy", () => {
     expect(airport).toContain("We'll email you your driver's name, car and plate once a driver is assigned.");
     expect(airport).not.toContain("WhatsApp within");
     expect(airport).toContain("If it moves, we move with it.");
-    expect(airport).toContain("waits inside the arrivals hall");
+    expect(airport).toContain("Your driver meets you inside the arrivals hall.");
+    // a name sign is not confirmed, so neither email may promise one
+    expect(airport).not.toMatch(/\bsign\b|with your name/i);
     expect(airport).toContain(`Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`);
     expect(airport).not.toMatch(/12h before|12 hours before/);
 
@@ -245,7 +247,9 @@ describe("the driver email", () => {
   });
 
   it("says where to meet: arrivals for the airport, the pickup address otherwise", () => {
-    expect(buildDriverEmail(assigned(), {})!.text).toContain("inside the arrivals hall with a sign with your name");
+    const airport = buildDriverEmail(assigned(), {})!;
+    expect(airport.text).toContain("meets you inside the arrivals hall.");
+    for (const body of [airport.text, airport.html]) expect(body).not.toMatch(/\bsign\b/i);
     const hotel = buildDriverEmail(assigned({}, { pickup_location: "The Ritz-Carlton, Aruba", flight_number: null }), {})!.text;
     expect(hotel).toContain("meets you at the pickup address");
     expect(hotel).not.toContain("arrivals");

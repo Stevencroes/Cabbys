@@ -55,7 +55,14 @@ export default function Confirmation({ booking, onDone }: ConfirmationProps) {
     downloadIcs(
       {
         title: `Cabby's transfer — ${booking.from} → ${booking.to}`,
-        description: `Booking ${bookingRef}. ${booking.flightNumber ? `Flight ${booking.flightNumber}. ` : ""}Your driver waits inside arrivals with your name.`,
+        // The meeting line follows the pickup end, as the tag above does.
+        // It said "waits inside arrivals with your name" on every booking:
+        // wrong for a guest collected at their hotel, and "with your name"
+        // promised a name sign nobody has confirmed. The words match the
+        // driver email's (api/booking-alerts.ts).
+        description: `Booking ${bookingRef}. ${booking.flightNumber ? `Flight ${booking.flightNumber}. ` : ""}${fromAirport
+          ? "Your driver meets you inside the arrivals hall."
+          : "Your driver meets you at the pickup address."}`,
         location: booking.from,
         date: booking.date,
         time: booking.time || "12:00",

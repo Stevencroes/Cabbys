@@ -3,6 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Landing from "./Landing";
 import { BookingProvider } from "../booking/BookingContext";
+import { FREE_CANCEL_HOURS } from "../lib/policy";
+import indexHtml from "../../index.html?raw";
 
 // The quote card + fleet read pricing from Supabase; stub it for the render.
 vi.mock("../lib/supabase", () => {
@@ -58,5 +60,75 @@ describe("Landing", () => {
     expect(screen.queryByRole("button", { name: /reverse pickup and drop-off/i })).toBeNull();
     // certainty needs no exclamation mark
     expect(container.textContent).not.toContain("!");
+  });
+});
+
+// The pillars and the FAQ were written before the guest emails and the
+// booking rules, and promised a driver photo sent "the morning you
+// travel", a driver "at the gate" with a sign, sixty minutes of waiting,
+// "three hours late and your driver is still there", half the fare for a
+// late cancel, free changes and free child seats "because the law
+// requires them". None of it was built or decided. These pin the page to
+// what the product does (api/booking-alerts.ts, src/lib/policy.ts), so
+// the old promises cannot drift back in with a copy edit.
+describe("Landing — only promises what is true", () => {
+  function copyOf(selector: string): string {
+    const { container } = render(
+      <MemoryRouter>
+        <BookingProvider>
+          <Landing />
+        </BookingProvider>
+      </MemoryRouter>,
+    );
+    const el = container.querySelector(selector);
+    expect(el, selector).not.toBeNull();
+    return el!.textContent!.replace(/\s+/g, " ");
+  }
+
+  // Each of these was on the page, and each is either untrue or a policy
+  // the owner has not set.
+  const NEVER: [string, RegExp][] = [
+    ["a driver photo", /photo/i],
+    ["a message the morning you travel", /\bthe morning\b/i],
+    ["being met at the gate", /\bat the gate\b/i],
+    ["a name sign", /\bsign\b/i],
+    ["a late-cancel fee of half", /\bhalf\b/i],
+    ["a waiting time", /three hours|sixty minutes|60 minutes/i],
+    ["free child seats", /no extra charge/i],
+    ["a legal claim", /\blaw\b/i],
+    ["free changes", /changes[^.]*\bfree\b/i],
+    ["the fare settled in advance", /settled in advance/i],
+  ];
+
+  it.each([["the pillars", "#services"], ["the FAQ", "#about"]])(
+    "nothing in %s promises what the product does not do",
+    (_, selector) => {
+      const text = copyOf(selector);
+      for (const [what, pattern] of NEVER) expect(text, what).not.toMatch(pattern);
+      // A driver is "your driver", or "they" — never "he".
+      expect(text).not.toMatch(/\b(he|him|his)\b/i);
+    },
+  );
+
+  it("says what the driver email and My trips actually carry", () => {
+    const faq = copyOf("#about");
+    expect(faq).toMatch(/name, car and plate/);
+    expect(faq).toMatch(/phone number appears in My trips two hours before pickup/);
+    expect(faq).toMatch(/inside the arrivals hall/);
+    // the cancel rule, from the one constant, and the fee left undecided
+    expect(faq).toContain(`free up to ${FREE_CANCEL_HOURS} hours before pickup`);
+    expect(faq).toMatch(/a fee may apply/);
+    // no online change exists; a person does it
+    expect(faq).toMatch(/Changes aren't made online/);
+  });
+
+  it("keeps the link previews to the same facts", () => {
+    const metas = [...indexHtml.matchAll(/<meta[^>]+(?:name|property)="(?:description|og:description|twitter:description)"[^>]*>/g)]
+      .map((m) => m[0]);
+    expect(metas).toHaveLength(3);
+    for (const m of metas) {
+      expect(m).not.toMatch(/\bgate\b|settled|in advance|photo/i);
+      expect(m).toMatch(/arrivals hall/);
+    }
   });
 });

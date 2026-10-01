@@ -383,7 +383,10 @@ export function buildGuestEmail(
       ? `This is short notice, so a person checks it: we'll confirm on WhatsApp within ${confirmWindowLabel()}.`
       : "We'll email you your driver's name, car and plate once a driver is assigned.",
     ...(flight ? ["We're watching your flight. If it moves, we move with it."] : []),
-    ...(fromAirport(r) ? ["Your driver waits inside the arrivals hall with your name."] : []),
+    // "…with your name" read as a name sign, which Cabby's has not
+    // confirmed it provides. The arrivals hall is what the confirmation
+    // screen promises ("Met at: Arrivals hall"), so that is all this says.
+    ...(fromAirport(r) ? ["Your driver meets you inside the arrivals hall."] : []),
     `Free cancellation until ${FREE_CANCEL_HOURS} hours before pickup.`,
   ];
 
@@ -493,8 +496,10 @@ export function buildDriverEmail(
   // Full name where the guest is told who; first name after that, as a
   // person would say it the second time.
   const first = driver.split(/\s+/)[0] || driver;
+  // No sign: a name sign is not confirmed, and this email is the one a
+  // guest reads standing in arrivals, looking for it.
   const meet = fromAirport(r)
-    ? `${first} waits for you inside the arrivals hall with a sign with your name on it.`
+    ? `${first} meets you inside the arrivals hall.`
     : `${first} meets you at the pickup address at your pickup time.`;
   const notes: string[] = [
     meet,

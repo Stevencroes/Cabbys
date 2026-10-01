@@ -163,15 +163,18 @@ export default function Step3Details({
     // The schedule reads above the contact fields, so it is checked first.
     const trip = validateTrip(state, { byId: focusById });
     if (trip) return trip;
+    // One line for every trip. The airport version said the name was for
+    // "the right sign", and a name sign is not something Cabby's has
+    // confirmed it provides — see the name field below.
     if (state.contactName.trim().length < 2)
-      return { field: "name", message: airportTrip ? "A name lets the driver hold the right sign." : "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
+      return { field: "name", message: "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
     if (!isValidEmail(state.contactEmail))
       return { field: "email", message: "We need an email to send your confirmation.", focus: () => emailRef.current?.focus() };
     if (!isValidPhone(state.contactPhone))
       return { field: "phone", message: "A WhatsApp number lets your driver reach you on the day.", focus: () => phoneRef.current?.focus() };
     return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, airportTrip]);
+  }, [state]);
   useEffect(() => registerValidator(validate), [validate, registerValidator]);
 
   const err = (f: string) => (problem?.field === f ? problem.message : undefined);
@@ -456,7 +459,7 @@ export default function Step3Details({
       {state.flightNumber && <div><dt>Flight</dt><dd>{formatFlightNumber(state.flightNumber)} — tracked</dd></div>}
       <div><dt>Party</dt><dd>{partyLabel}</dd></div>
       <div><dt>Car</dt><dd>{vehicle.name}</dd></div>
-      {full && state.contactName && <div><dt>{airportTrip ? "Sign reads" : "Driver asks for"}</dt><dd>{state.contactName}</dd></div>}
+      {full && state.contactName && <div><dt>Driver asks for</dt><dd>{state.contactName}</dd></div>}
       {full && state.contactPhone && <div><dt>WhatsApp</dt><dd>{state.contactPhone}</dd></div>}
       {/* on the details step the running total is already in the foot, a
           finger's width below — saying it twice reads as two numbers */}
@@ -471,7 +474,7 @@ export default function Step3Details({
         <div className="phead">
           <h2>Who are we <em>meeting?</em></h2>
           <p className="psub">{airportTrip
-            ? "The flight, and the name on the sign."
+            ? "Your flight, and the name your driver asks for."
             : "Three lines, and your driver knows exactly who to look for."}</p>
         </div>
 
@@ -480,7 +483,12 @@ export default function Step3Details({
           <TripSchedule problem={problem} lateNight={!!q?.lateNight} />
 
           <div className="fld">
-            <label htmlFor="b-name">{airportTrip ? "Name for the driver's sign" : "Name for the driver"}</label>
+            {/* "Name for the driver's sign" on an airport trip, until the
+                meeting was written down. The driver email and the
+                confirmation promise the arrivals hall, not a sign: a name
+                sign is not confirmed, so the form does not promise one
+                either. The name is still what the driver asks for. */}
+            <label htmlFor="b-name">Name for the driver</label>
             <input id="b-name" ref={nameRef} type="text" autoComplete="name" placeholder="Who are we meeting?" value={state.contactName}
               aria-invalid={!!err("name") || undefined} aria-describedby={errId("name")}
               onChange={(e) => setField("contactName", e.target.value)} />

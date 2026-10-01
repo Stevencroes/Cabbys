@@ -325,7 +325,10 @@ export default function MyTrips() {
           {!authLoading && account && hasData && rides.length === 0 && (
             <div className="tp-empty">
               <p className="tp-empty-h">No trips yet.</p>
-              <p>Book a transfer and it will be here, with your driver&rsquo;s details on the day.</p>
+              {/* "…on the day" was wrong: the driver's name, car and plate
+                  appear once a driver is assigned, which can be days ahead,
+                  and only the phone number waits for the last two hours. */}
+              <p>Book a transfer and it will be here, with your driver&rsquo;s details once one is assigned.</p>
               {bookButton}
             </div>
           )}

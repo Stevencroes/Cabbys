@@ -26,7 +26,19 @@ function useIsPhone(): boolean {
    Customer Support": four claims any transfer company could make, and
    PRIVATE, the one thing that separates this from a taxi rank, was not
    among them. It appeared nowhere on the page.
-   Every claim below is one the FAQ further down already stands behind. */
+   Every claim below is one the FAQ further down already stands behind.
+
+   The last two were rewritten once the guest emails existed, because
+   they promised things nothing sends. "Land three hours late and your
+   driver is still waiting" was a waiting time the owner never set, and
+   "name, photo, plate and phone number, sent the morning you travel"
+   described a message that does not exist: the driver email
+   (api/booking-alerts.ts, buildDriverEmail) goes out when a driver is
+   ASSIGNED, carries name, car and plate, no photo — and the phone number
+   is deliberately left out of it and shown in My trips two hours before
+   pickup instead. "We track your flight from takeoff" overstated it too:
+   the flight's status is checked a few times as the pickup approaches
+   (src/lib/flightStatus.ts), and shown to the driver (FlightLine). */
 const PILLARS = [
   {
     title: "Private, start to finish",
@@ -40,12 +52,12 @@ const PILLARS = [
   },
   {
     title: "There before you are",
-    body: "We track your flight from takeoff. Land three hours late and your driver is still waiting.",
+    body: "We take your flight number and follow its status, and your driver sees what we see.",
     icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></>,
   },
   {
     title: "You know who's coming",
-    body: "Your driver's name, photo, plate and phone number, sent the morning you travel.",
+    body: "Name, car and plate by email once your driver is assigned. Their number shows in My trips two hours before pickup.",
     icon: <><path d="M12 3.2 4.6 6.2v5.3c0 4.2 3 8 7.4 9.3 4.4-1.3 7.4-5.1 7.4-9.3V6.2Z" /><path d="M9.2 12.2l2 2 3.6-3.8" /></>,
   },
 ];
