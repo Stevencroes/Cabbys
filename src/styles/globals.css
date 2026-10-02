@@ -1090,11 +1090,10 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    is drawn left to right a beat after the step it leaves, so the order is
    something you see happen once rather than decoration. */
 .steps-band{background:var(--deep);border-bottom:1px solid var(--line);}
-/* The last column a little wider: "on the day" is four facts where the
-   others are one sentence, and at equal widths it ran twice the height of
-   its neighbours, a long tail hanging off the end of the strip. */
+/* Four equal columns. The last was wider while "on the day" was a
+   four-item list; every step is one line now, so the strip is even. */
 .steps{--steps-gap:clamp(24px,3vw,44px);list-style:none;margin:clamp(38px,5vw,60px) 0 0;padding:0;
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.3fr);gap:var(--steps-gap);}
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--steps-gap);}
 /* "What happens after you / book." left one word alone on a phone. */
 .steps-band h2.sec{text-wrap:balance;}
 .step{position:relative;min-width:0;}
@@ -1119,24 +1118,11 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .steps.in .step::after{animation:steps-rule 620ms var(--ease-reveal) backwards;
   animation-delay:calc(var(--i,0) * var(--stagger) + 240ms);}
 /* The pillars' title and paragraph, so the two sections set the same way.
-   Two lines' room on the title for the same reason as there: one long
-   title must not drop its paragraph below its neighbours'. */
+   No reserved second line, as the pillars have: these titles are two or
+   three words and never wrap, so the room only pushed every line down. */
 .step h3{font-family:var(--sans);font-size:var(--t-body);font-weight:600;letter-spacing:.01em;
-  margin:0 0 10px;line-height:1.3;min-height:2.6em;color:var(--ink);}
+  margin:0 0 10px;line-height:1.3;color:var(--ink);}
 .step p{font-size:var(--t-body);color:var(--muted);line-height:1.72;margin:0;}
-/* The sender, in the colour a value takes rather than body copy, because
-   it is the thing to remember. It breaks after the @ (a <wbr> in
-   Steps.tsx); break-word is only the last resort for a column narrower
-   than "cabbystransfer.com" itself. NOT anywhere, which is what this
-   first carried: it breaks wherever the line ends, and at desktop widths
-   that printed "cabbystransfer.c" with "om" on the next line. */
-.steps-addr{color:var(--silver);overflow-wrap:break-word;}
-/* On the day: four separate facts, each looked for on its own, so they are
-   a list with the system's diamond for a marker rather than one sentence. */
-.sday{list-style:none;margin:0;padding:0;display:grid;gap:10px;}
-.sday li{position:relative;padding-left:18px;font-size:var(--t-body);color:var(--muted);line-height:1.6;}
-.sday li::before{content:"";position:absolute;left:1px;top:.62em;width:5px;height:5px;
-  background:var(--silver-deep);transform:rotate(45deg);}
 /* Two by two: the rules join 1 to 2 and 3 to 4 along each row, and the
    one that would run off the right edge from step 2 is dropped. */
 @media(max-width:900px){

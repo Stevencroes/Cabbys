@@ -4,10 +4,6 @@ import { MemoryRouter } from "react-router-dom";
 import Steps, { STEPS_ID } from "./Steps";
 import Landing from "../pages/Landing";
 import { BookingProvider } from "../booking/BookingContext";
-import { MIN_NOTICE_HOURS, durationLabel } from "../lib/derivedTime";
-import { AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES, confirmWindowLabel } from "../lib/policy";
-import { ACTIVE_LEAD_HOURS } from "../lib/tripStatus";
-import { BOOKINGS_EMAIL } from "../lib/site";
 
 // Landing's quote card and fleet read pricing from Supabase; stub it so the
 // whole page can render for the link checks at the bottom.
@@ -56,14 +52,14 @@ describe("the step strip", () => {
     for (const n of section.querySelectorAll(".snum")) expect(n).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("states every number from the constant that decides it", () => {
+  // One line a step, at the owner's word: the strip is a glance, and the
+  // detail lives in the FAQ, the emails and the flow.
+  it("keeps every step to one short line", () => {
     render(<Steps />);
-    const strip = text(document.getElementById(STEPS_ID)!);
-    expect(strip).toContain(BOOKINGS_EMAIL);
-    expect(strip).toContain(`Booking less than ${durationLabel(MIN_NOTICE_HOURS * 60)} ahead?`);
-    expect(strip).toContain(`confirms on WhatsApp within ${confirmWindowLabel()}`);
-    expect(strip).toContain(`Waiting is free: ${AIRPORT_FREE_WAIT_MINUTES} minutes after you actually land, ${ADDRESS_FREE_WAIT_MINUTES} at an address`);
-    expect(strip).toContain(`My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup`);
+    const ps = [...document.getElementById(STEPS_ID)!.querySelectorAll(".step p")];
+    expect(ps).toHaveLength(4);
+    for (const p of ps) expect(text(p).length).toBeLessThanOrEqual(110);
+    expect(document.getElementById(STEPS_ID)!.querySelector("ul")).toBeNull();
   });
 
   it("never promises a photo, a morning message, a late fee or a card charge", () => {

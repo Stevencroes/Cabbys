@@ -1,81 +1,28 @@
 // How it works — what happens after you book, in the order it happens.
 //
 // The page sold the benefits ("Why Cabby's", HowItWorks.tsx — misnamed,
-// it holds the pillars) and never walked a guest through the process, so
-// the one question a person hovering over the booking card is actually
-// asking — "and if I press this, then what?" — had no answer until they
-// had already pressed it. Every step below now exists, and each sentence
-// is one the product keeps:
+// it holds the pillars) and never said what happens after a guest presses
+// Book. Each step is one the product keeps: the fixed price with nothing
+// taken up front (cash, src/lib/rides.ts books guest-first), the
+// confirmation email (buildGuestEmail), the driver email (buildDriverEmail)
+// and the arrivals-hall sign.
 //
-//   1. the card and the flow: route, car and time, the fixed price shown
-//      before anything is committed, no account, nothing taken up front
-//      (src/lib/rides.ts books guest-first; the payment step says cash)
-//   2. buildGuestEmail (api/booking-alerts.ts), sent from BOOKINGS_EMAIL
-//      the moment the row lands; inside MIN_NOTICE_HOURS the same email
-//      promises a WhatsApp reply within confirmWindowLabel()
-//   3. buildDriverEmail: name, car and plate on assignment, and again,
-//      worded as a change, if the driver changes. My trips is an ACCOUNT
-//      screen (MyTrips.tsx renders nothing for a guest), and a guest's
-//      bookings join an account made with the same email
-//      (docs/guest-claim.sql) — so the step says how to get there rather
-//      than implying every guest already has it
-//   4. the sign is arrivals-only (Step3Details' signTrip: a hotel pickup
-//      gets no sign), the waits are policy.ts's, the phone number is
-//      canContactDriver's ACTIVE_LEAD_HOURS window, and the fare is cash
-//
-// Every number is read from the constant that decides it. The pillars and
-// the FAQ once promised a photo "the morning you travel", a late-cancel
-// fee and a card charge; Landing.test pins this strip against the same
-// list, so none of them can come back through here.
+// One short line a step, at the owner's word ("keep it minimal — a lot of
+// typing"). The first version spelled out the sender address, the
+// short-notice WhatsApp window, both waiting times and the My trips phone
+// number; those live in the FAQ, the emails and the booking flow, where a
+// guest meets them when they matter. Landing.test pins this strip against
+// the promises the page once made and the product never kept.
 import { SplitHeading } from "./motion";
-import { MIN_NOTICE_HOURS, durationLabel } from "../lib/derivedTime";
-import { AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES, confirmWindowLabel } from "../lib/policy";
-import { ACTIVE_LEAD_HOURS } from "../lib/tripStatus";
-import { BOOKINGS_EMAIL } from "../lib/site";
-
-const [mailbox, domain] = BOOKINGS_EMAIL.split("@");
 
 /** The section's anchor — the nav and the footer sitemap both point here. */
 export const STEPS_ID = "how-it-works";
 
-interface Step {
-  title: string;
-  body?: React.ReactNode;
-  /** a short checklist instead of a sentence — "on the day" is four
-      separate things a guest will look for one at a time */
-  list?: React.ReactNode[];
-}
-
-const STEPS: Step[] = [
-  {
-    title: "Book in a couple of minutes",
-    body: "Choose the route, the car and the time, and see the fixed price before you book. No account needed, and nothing is charged up front.",
-  },
-  {
-    title: "Confirmed by email, straight away",
-    // The address is the useful part: it is what a guest searches their
-    // inbox, and their spam, for. A 27-character address has no spaces, so
-    // at a desktop column's width the browser broke it as "cabbystransfer.c
-    // / om"; the <wbr> offers the one break a reader expects, after the @.
-    body: <>
-      It comes from <span className="steps-addr">{mailbox}@<wbr />{domain}</span>. Booking less
-      than {durationLabel(MIN_NOTICE_HOURS * 60)} ahead? A person checks it as well, and confirms on
-      WhatsApp within {confirmWindowLabel()}.
-    </>,
-  },
-  {
-    title: "Your driver's name, car and plate",
-    body: "By email, once a driver is assigned — and again if your driver changes. Create an account with the email you booked with and the trip appears in My trips.",
-  },
-  {
-    title: "On the day",
-    list: [
-      "At the airport, your driver waits inside the arrivals hall with a sign with your name.",
-      `Waiting is free: ${AIRPORT_FREE_WAIT_MINUTES} minutes after you actually land, ${ADDRESS_FREE_WAIT_MINUTES} at an address.`,
-      `Their phone number shows in My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup.`,
-      "You pay in cash at the end of the ride — US dollars or florins.",
-    ],
-  },
+const STEPS: { title: string; body: string }[] = [
+  { title: "Book", body: "Pick your route, car and time. See the fixed price, and pay nothing now." },
+  { title: "Get confirmed", body: "Your confirmation email arrives straight away." },
+  { title: "Meet your driver", body: "We email their name, car and plate. At the airport they wait in arrivals with your name on a sign." },
+  { title: "Ride and pay", body: "Pay your driver in cash at the end, in US dollars or florins." },
 ];
 
 export default function Steps() {
@@ -100,12 +47,7 @@ export default function Steps() {
               <span className="snum" aria-hidden="true">{i + 1}</span>
               <div className="sbody">
                 <h3>{s.title}</h3>
-                {s.body && <p>{s.body}</p>}
-                {s.list && (
-                  <ul className="sday" role="list">
-                    {s.list.map((line, j) => <li key={j}>{line}</li>)}
-                  </ul>
-                )}
+                <p>{s.body}</p>
               </div>
             </li>
           ))}
