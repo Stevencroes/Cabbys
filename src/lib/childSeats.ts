@@ -10,10 +10,14 @@
 // on "the right seat for your child", so the age is required, and asked as
 // one choice per seat, which cannot be answered vaguely.
 
-/** "under 1", then 1 to 12. Past 12 a child rides on the car's own belt. */
+/** The oldest child a seat is booked for. The owner's number: it was 12,
+    which offered a seat for children Cabby's does not carry one for. */
+export const MAX_SEAT_AGE = 5;
+
+/** "under 1", then 1 to MAX_SEAT_AGE. */
 export const SEAT_AGE_OPTIONS: readonly { value: string; label: string }[] = [
   { value: "0", label: "Under 1" },
-  ...Array.from({ length: 12 }, (_, i) => ({
+  ...Array.from({ length: MAX_SEAT_AGE }, (_, i) => ({
     value: String(i + 1),
     label: `${i + 1} year${i === 0 ? "" : "s"} old`,
   })),

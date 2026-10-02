@@ -160,7 +160,11 @@ with (security_invoker = true) as
     r.scheduled_date, r.scheduled_time, r.scheduled_at,
     r.vehicle_type, r.vehicle_class,
     r.passengers_count, r.luggage_count, r.child_seats,
-    r.price, r.fare_total
+    r.price, r.fare_total,
+    -- v9 — a return is one row carrying both legs, and child seats are
+    -- charged per leg. Without this the pool could not tell a return from
+    -- a one-way, and an offer's payout counted the seat money once.
+    r.return_date
   from public.rides r
   where r.driver_id is null
     and r.status in ('confirmed', 'pending');

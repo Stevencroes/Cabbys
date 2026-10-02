@@ -34,7 +34,7 @@ import { AREAS, PLACES } from "../../data/places";
 import { VEHICLES } from "../../data/vehicles";
 import { DRIVER_DOCUMENTS } from "../../driver/lib/documents";
 import { FREE_CANCEL_HOURS } from "../../lib/policy";
-import { AWG_PER_USD, COMMISSION_RATE } from "../../lib/quote";
+import { AWG_PER_USD, CHILD_SEAT_USD, COMMISSION_RATE, usd } from "../../lib/quote";
 import { loadPricing, type Pricing } from "../../lib/pricing";
 import { whatsappEnabled } from "../../lib/whatsapp";
 import { Fact, Head } from "../ui";
@@ -98,6 +98,11 @@ export default function Settings() {
             )}
             <Fact k="Cabby's share">
               {Math.round(COMMISSION_RATE * 100)}% <span className="q">COMMISSION_RATE, in code</span>
+            </Fact>
+            {/* The seat rule changes what a driver is paid, so the board
+                says it where the commission is read, not only in code. */}
+            <Fact k="Child seats">
+              {usd(CHILD_SEAT_USD)} per seat, each way <span className="q">CHILD_SEAT_USD, in code — all of it goes to the driver, no commission</span>
             </Fact>
             <Fact k="Florin per dollar">
               {AWG_PER_USD} <span className="q">AWG_PER_USD, in code — the rate card is in florin, every screen is in dollars</span>

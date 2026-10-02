@@ -5,6 +5,7 @@ import Landing from "./Landing";
 import { BookingProvider } from "../booking/BookingContext";
 import { FREE_CANCEL_HOURS, AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES } from "../lib/policy";
 import { CHILD_SEAT_USD, MAX_CHILD_SEATS, usd } from "../lib/quote";
+import { MAX_SEAT_AGE } from "../lib/childSeats";
 import indexHtml from "../../index.html?raw";
 
 // The quote card + fleet read pricing from Supabase; stub it for the render.
@@ -126,6 +127,7 @@ describe("Landing — only promises what is true", () => {
     const faq = copyOf("#about");
     // child seats: the price, per seat, per ride, and the cap
     expect(faq).toContain(`${usd(CHILD_SEAT_USD)} per seat each way`);
+    expect(faq).toContain(`children up to ${MAX_SEAT_AGE}`);
     expect(MAX_CHILD_SEATS).toBe(2);
     expect(faq).toMatch(/up to two per ride/);
     expect(faq).toMatch(/each child's age/);

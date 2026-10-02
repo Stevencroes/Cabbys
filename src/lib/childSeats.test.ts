@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest";
 import { SEAT_AGE_OPTIONS, seatAgesLabel, seatNote, firstMissingSeatAge } from "./childSeats";
 
 describe("child seat ages", () => {
-  it("offers under 1, then 1 to 12", () => {
+  it("offers under 1, then 1 to 5", () => {
     expect(SEAT_AGE_OPTIONS[0]).toEqual({ value: "0", label: "Under 1" });
-    expect(SEAT_AGE_OPTIONS[SEAT_AGE_OPTIONS.length - 1]).toEqual({ value: "12", label: "12 years old" });
-    expect(SEAT_AGE_OPTIONS).toHaveLength(13);
+    expect(SEAT_AGE_OPTIONS[SEAT_AGE_OPTIONS.length - 1]).toEqual({ value: "5", label: "5 years old" });
+    expect(SEAT_AGE_OPTIONS).toHaveLength(6);
   });
 
   it("reads the ages as one string, the way they are stored", () => {

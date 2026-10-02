@@ -233,6 +233,24 @@ export const COMMISSION_RATE = 0.25;
  * "$91", against a true payout of $38.25. Nothing in the app could have
  * caught it, because nothing in the app knew what a driver was owed.
  */
-export function driverPayoutUsd(fareTotalAwg: number): number {
-  return awgToUsd(fareTotalAwg) * (1 - COMMISSION_RATE);
+export function driverPayoutUsd(fareTotalAwg: number, seatUsd = 0): number {
+  const fareUsd = awgToUsd(fareTotalAwg);
+  // Child seat money goes to the driver whole: the driver carries the
+  // seat, fits it to the child's age and cleans it, and the commission
+  // pays for finding the ride, which the seat adds nothing to. Clamped to
+  // the fare, so a row whose fare predates the seat charge can never pay
+  // out more than the guest was asked for.
+  const seat = Math.min(Math.max(0, seatUsd), fareUsd);
+  return (fareUsd - seat) * (1 - COMMISSION_RATE) + seat;
+}
+
+/**
+ * The seat money inside a stored ride's fare: per seat, per leg, the same
+ * rule quote() charged it by. A return is one ride row carrying both legs,
+ * marked by return_date. Reads the raw row, so the driver portal and the
+ * admin board work it out from the same columns.
+ */
+export function rowSeatsUsd(row: { child_seats?: unknown; return_date?: unknown }): number {
+  const n = Number(row.child_seats);
+  return seatsUsd(Number.isFinite(n) ? n : 0, typeof row.return_date === "string" && row.return_date !== "");
 }

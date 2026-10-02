@@ -83,7 +83,7 @@ export function total(rides: AdminRide[]): Money {
   for (const r of rides) {
     if (r.status !== "completed" || r.fareAwg == null) continue;
     grossUsd += awgToUsd(r.fareAwg);
-    payoutUsd += driverPayoutUsd(r.fareAwg);
+    payoutUsd += driverPayoutUsd(r.fareAwg, r.seatsUsd);
     count += 1;
   }
   return { grossUsd, payoutUsd, feeUsd: grossUsd - payoutUsd, rides: count };
@@ -118,7 +118,7 @@ export function lines(rides: AdminRide[]): Line[] {
     .sort((a, b) => String(b.completedAt ?? b.scheduledAt ?? "").localeCompare(String(a.completedAt ?? a.scheduledAt ?? "")))
     .map((r) => {
       const grossUsd = awgToUsd(r.fareAwg as number);
-      const payoutUsd = driverPayoutUsd(r.fareAwg as number);
+      const payoutUsd = driverPayoutUsd(r.fareAwg as number, r.seatsUsd);
       return { ride: r, grossUsd, payoutUsd, feeUsd: grossUsd - payoutUsd };
     });
 }

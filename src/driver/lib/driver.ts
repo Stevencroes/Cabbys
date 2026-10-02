@@ -7,7 +7,7 @@
 //  · accepting calls the claim_ride RPC, never an update, so two drivers
 //    tapping at the same moment cannot both win.
 import { supabase } from "../../lib/supabase";
-import { driverPayoutUsd } from "../../lib/quote";
+import { driverPayoutUsd, rowSeatsUsd } from "../../lib/quote";
 import { arubaInstant } from "../../lib/datetime";
 import {
   DOC_MAX_BYTES, documentPath,
@@ -60,7 +60,8 @@ export interface OpenJob {
       were the driver's own money in dollars. It is neither. */
   fareAwg: number | null;
   /** what this job pays the DRIVER, in USD, after Cabby's commission —
-      the only money figure a driver screen should ever show */
+      the only money figure a driver screen should ever show. Child seat
+      money is in it whole; see driverPayoutUsd. */
   payoutUsd: number | null;
   bookingRef: string | null;
 }
@@ -128,7 +129,7 @@ function toOpen(r: Row): OpenJob {
     luggage: nNum(r.luggage_count),
     childSeats: nNum(r.child_seats),
     fareAwg: fare,
-    payoutUsd: fare == null ? null : driverPayoutUsd(fare),
+    payoutUsd: fare == null ? null : driverPayoutUsd(fare, rowSeatsUsd(r)),
     bookingRef: nStr(r.booking_ref),
   };
 }

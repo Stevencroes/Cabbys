@@ -265,7 +265,7 @@ describe("florin and dollars round-trip", () => {
 
 // Child seats became a paid add-on: CHILD_SEAT_USD per seat, per one-way
 // ride. Before this, the stepper added seats and no number moved.
-import { CHILD_SEAT_USD, MAX_CHILD_SEATS, seatsUsd, storedFare } from "./quote";
+import { CHILD_SEAT_USD, MAX_CHILD_SEATS, seatsUsd, storedFare, rowSeatsUsd } from "./quote";
 import { fareUsd } from "../../api/booking-alerts";
 
 describe("child seats — priced inside the one quote", () => {
@@ -331,5 +331,40 @@ describe("child seats — priced inside the one quote", () => {
     expect(fareUsd({ fare_total: fareTotal })).toBe(q.totalUsd);
     // fare_base stays the one-way ride alone, seats or not
     expect(fareBase).toBe(usdToAwg(q.oneWayUsd));
+  });
+});
+
+// The owner's call: the seat money is the driver's, whole. The commission
+// is for finding the ride; the seat is the driver's own work and kit.
+describe("driver payout with child seats", () => {
+  it("keeps the commission off the seat money", () => {
+    // $50 ride + one $10 seat = $60 fare → 75% of $50 + $10
+    expect(driverPayoutUsd(usdToAwg(60), 10)).toBeCloseTo(47.5, 2);
+    expect(driverPayoutUsd(usdToAwg(60))).toBeCloseTo(45, 2);
+  });
+
+  it("never pays out more than the fare", () => {
+    expect(driverPayoutUsd(usdToAwg(5), 20)).toBeCloseTo(5, 2);
+    expect(driverPayoutUsd(usdToAwg(50), -10)).toBeCloseTo(37.5, 2);
+  });
+
+  it("reads the seat money off a stored row, per seat, per leg", () => {
+    expect(rowSeatsUsd({ child_seats: 0 })).toBe(0);
+    expect(rowSeatsUsd({ child_seats: 2 })).toBe(2 * CHILD_SEAT_USD);
+    expect(rowSeatsUsd({ child_seats: 1, return_date: "2026-11-02" })).toBe(2 * CHILD_SEAT_USD);
+    expect(rowSeatsUsd({ child_seats: 1, return_date: "" })).toBe(CHILD_SEAT_USD);
+    expect(rowSeatsUsd({ child_seats: null, return_date: null })).toBe(0);
+    expect(rowSeatsUsd({})).toBe(0);
+  });
+
+  it("pays the driver every seat dollar quote() charged the guest", () => {
+    for (const isReturn of [false, true]) {
+      for (const seats of [0, 1, 2]) {
+        const ride = 40 * (isReturn ? 2 : 1);
+        const seat = seatsUsd(seats, isReturn);
+        const row = { child_seats: seats, return_date: isReturn ? "2026-11-02" : null };
+        expect(driverPayoutUsd(usdToAwg(ride + seat), rowSeatsUsd(row))).toBeCloseTo(ride * 0.75 + seat, 2);
+      }
+    }
   });
 });

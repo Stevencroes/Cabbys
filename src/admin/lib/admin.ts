@@ -21,6 +21,7 @@ import {
 } from "../../driver/lib/driver";
 import type { DocumentRecord } from "../../driver/lib/documents";
 import { addDays, todayInAruba } from "../../lib/datetime";
+import { rowSeatsUsd } from "../../lib/quote";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const nStr = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
@@ -106,6 +107,10 @@ export interface AdminRide {
   childSeats: number | null;
   /** the GUEST's fare, in florin, exactly as the ride row stores it */
   fareAwg: number | null;
+  /** the child seat money inside fareAwg, in USD, which the driver keeps
+      whole (driverPayoutUsd). Optional only so hand-built test rides need
+      not spell out 0; toRide always sets it. */
+  seatsUsd?: number;
   bookingRef: string | null;
   guestName: string | null;
   guestPhone: string | null;
@@ -169,6 +174,7 @@ function toRide(r: Row): AdminRide {
     luggage: nNum(r.luggage_count),
     childSeats: nNum(r.child_seats),
     fareAwg: nNum(r.fare_total) ?? nNum(r.price),
+    seatsUsd: rowSeatsUsd(r),
     bookingRef: nStr(r.booking_ref),
     guestName: nStr(r.contact_name),
     guestPhone: nStr(r.contact_phone),

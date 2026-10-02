@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SplitHeading } from "./motion";
 import { whatsappLink } from "../lib/whatsapp";
 import { askAnything, SUPPORT_EMAIL } from "../lib/support";
+import { MAX_SEAT_AGE } from "../lib/childSeats";
 import { FREE_CANCEL_HOURS, AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES } from "../lib/policy";
 import { CHILD_SEAT_USD, usd } from "../lib/quote";
 
@@ -56,7 +57,7 @@ const ITEMS = [
   },
   {
     q: "Are child seats available?",
-    a: `Yes, up to two per ride, at ${usd(CHILD_SEAT_USD)} per seat each way. Add them when you choose your car and tell us each child's age, so the seat fits. Need more than two? Message us before you book.`,
+    a: `Yes, for children up to ${MAX_SEAT_AGE}: up to two per ride, at ${usd(CHILD_SEAT_USD)} per seat each way. Add them when you choose your car and tell us each child's age, so the seat fits. Need more than two? Message us before you book.`,
   },
 ];
 
