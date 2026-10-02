@@ -102,7 +102,7 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
           <b>Your driver waits from {formatTime(derived.at)}</b>
           <p>
             {state.flightNumber ? `${state.flightNumber.toUpperCase().replace(/\s+/g, "")} lands` : "Your flight lands"} at {formatTime(state.flightLanding)} Aruba time.
-            He's inside arrivals 30 minutes later — and if the flight moves, we move with it. Waiting is free.
+            Your driver is inside arrivals 30 minutes later — and if the flight moves, we move with it. Waiting is free.
           </p>
         </div>
       )}

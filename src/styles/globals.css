@@ -6,10 +6,13 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 /* the pill floats — keep anchored headings clear of it */
 /* dark-only: native scrollbars, selects and date controls follow the ground */
-html{scroll-behavior:smooth;scroll-padding-top:var(--nav-clear);color-scheme:dark;}
-/* belt-and-braces: scroll-padding on the scroller covers same-page jumps,
-   scroll-margin on the target covers arriving with the hash already set
-   (a shared /#fleet link), where the scroller has no say. */
+html{scroll-behavior:smooth;color-scheme:dark;}
+/* One offset, on the target. There were two: scroll-padding-top on html as
+   well as this, "belt-and-braces". But the two ADD — a jump honours the
+   scroller's padding and the target's margin together — so every anchor,
+   clicked or shared, landed a whole nav-height too low (192px, not 96).
+   scroll-margin alone covers both cases: a same-page link and
+   HashScroll's scrollIntoView on arrival with the hash already set. */
 [id]{scroll-margin-top:var(--nav-clear);}
 /* Weight 300 was the other half of "not readable", and the harder half to
    see in a mockup. Inter Light on a near-black ground optically thins —
