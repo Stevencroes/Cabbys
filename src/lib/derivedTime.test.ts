@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIN_NOTICE_HOURS, MIN_NOTICE_MS, collectAt, driverWaitsFrom, durationLabel, insideMinNotice, shiftTime } from "./derivedTime";
+import { MIN_NOTICE_HOURS, MIN_NOTICE_MS, collectAt, collectDate, driverWaitsFrom, durationLabel, insideMinNotice, shiftTime } from "./derivedTime";
 import { arubaInstant } from "./datetime";
 
 describe("derived pickup times (§3.6)", () => {
@@ -12,6 +12,25 @@ describe("derived pickup times (§3.6)", () => {
     expect(collectAt("14:00", true)).toBe("11:00");
     expect(collectAt("14:00", false)).toBe("11:45");
     expect(collectAt("01:30", true)).toBe("22:30"); // wraps midnight
+  });
+
+  // The owner: the lead is time AT the airport, so the drive comes off too.
+  // Without it a guest 30 minutes out walked in at 2½ hours for a US flight.
+  it("takes the drive off as well as the airport lead", () => {
+    expect(collectAt("14:00", true, 30)).toBe("10:30");
+    expect(collectAt("14:00", false, 25)).toBe("11:20");
+    expect(collectAt("14:00", true, -5)).toBe("11:00"); // a nonsense drive is no drive
+  });
+
+  // shiftTime wraps the clock; the date has to follow, or a 01:30 flight
+  // is collected at 22:05 on the flight's own day — after it has gone.
+  it("collects an early take-off on the evening before", () => {
+    expect(collectDate("2026-11-03", "01:30", true, 25)).toBe("2026-11-02");
+    expect(collectDate("2026-11-03", "03:25", true, 25)).toBe("2026-11-03"); // 00:00, same day
+    expect(collectDate("2026-11-03", "03:24", true, 25)).toBe("2026-11-02");
+    expect(collectDate("2026-03-01", "02:00", false, 20)).toBe("2026-02-28");
+    expect(collectDate("2026-11-03", "14:00", true, 30)).toBe("2026-11-03");
+    expect(collectDate("2026-11-03", "", true, 30)).toBe("2026-11-03");
   });
 
   it("shiftTime tolerates junk", () => {

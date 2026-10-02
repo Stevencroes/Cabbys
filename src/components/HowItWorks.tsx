@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { SplitHeading } from "./motion";
 import { AIRPORT_FREE_WAIT_MINUTES } from "../lib/policy";
-import { durationLabel } from "../lib/derivedTime";
-import { ACTIVE_LEAD_HOURS } from "../lib/tripStatus";
 
 /** The mockup gives the pillars two forms: four columns on a desktop, and a
     list you open one at a time on a phone. That is a change of COMPONENT,
@@ -47,28 +45,30 @@ function useIsPhone(): boolean {
    because no waiting time had been set. The owner has set one: the
    driver goes by the actual landing and waits AIRPORT_FREE_WAIT_MINUTES
    after it, free (src/lib/policy.ts) — the number a guest worried about
-   a delay actually wants, read from the same constant as the FAQ. */
+   a delay actually wants, read from the same constant as the FAQ.
+
+   Then one short line each, at the owner's word ("keep it minimal"). The
+   steps above now carry the process (the driver email, the phone number
+   in My trips), so these say only why Cabby's, not how. */
 const PILLARS = [
   {
     title: "Private, start to finish",
-    body: "Your group and your driver. No sharing, and no detour to drop someone else off.",
+    body: "Just your group. No sharing, no detours.",
     icon: <><circle cx="9.2" cy="9.4" r="3.1" /><path d="M3.4 19c.6-3.4 2.9-5.2 5.8-5.2s5.2 1.8 5.8 5.2" /><path d="M15.8 7.4a3 3 0 0 1 0 5.5" /><path d="M17.6 19c-.25-1.6-.9-3-1.9-3.9" /></>,
   },
   {
     title: "The price is the price",
-    body: "Quoted before you book, and it does not move — not for traffic, not for a late flight.",
+    body: "Fixed when you book. Traffic or a late flight won't change it.",
     icon: <><path d="M11.4 3.4 3.6 11.2a1.6 1.6 0 0 0 0 2.3l6.9 6.9a1.6 1.6 0 0 0 2.3 0l7.8-7.8V3.4Z" /><circle cx="16.4" cy="7.6" r="1.5" /></>,
   },
   {
     title: "There before you are",
-    body: `We follow your flight and go by when it actually lands. Your driver waits up to ${AIRPORT_FREE_WAIT_MINUTES} minutes after that, free.`,
+    body: `We follow your flight, then wait up to ${AIRPORT_FREE_WAIT_MINUTES} minutes after you land, free.`,
     icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></>,
   },
   {
     title: "You know who's coming",
-    // The hours from ACTIVE_LEAD_HOURS, the window canContactDriver uses —
-    // it was typed out as "two", beside a constant that could change.
-    body: `Name, car and plate by email once your driver is assigned. Their number shows in My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup.`,
+    body: "Your driver's name, car and plate, by email before you travel.",
     icon: <><path d="M12 3.2 4.6 6.2v5.3c0 4.2 3 8 7.4 9.3 4.4-1.3 7.4-5.1 7.4-9.3V6.2Z" /><path d="M9.2 12.2l2 2 3.6-3.8" /></>,
   },
 ];

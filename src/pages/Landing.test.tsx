@@ -7,7 +7,6 @@ import { FREE_CANCEL_HOURS, AIRPORT_FREE_WAIT_MINUTES } from "../lib/policy";
 import { CHILD_SEAT_USD, MAX_CHILD_SEATS, usd } from "../lib/quote";
 import { MAX_SEAT_AGE } from "../lib/childSeats";
 import { MIN_NOTICE_HOURS, durationLabel } from "../lib/derivedTime";
-import { ACTIVE_LEAD_HOURS } from "../lib/tripStatus";
 import indexHtml from "../../index.html?raw";
 
 // The quote card + fleet read pricing from Supabase; stub it for the render.
@@ -150,7 +149,7 @@ describe("Landing — only promises what is true", () => {
 
     const pillars = copyOf("#services");
     expect(pillars).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
-    expect(pillars).toContain(`My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup`);
+    expect(pillars).toMatch(/name, car and plate/);
   });
 
   it("keeps the link previews to the same facts", () => {

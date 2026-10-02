@@ -16,7 +16,7 @@ import { quote, usd, storedFare, CHILD_SEAT_USD } from "../../../lib/quote";
 import { FREE_CANCEL_HOURS } from "../../../lib/policy";
 import { seatNote } from "../../../lib/childSeats";
 import type { Pricing } from "../../../lib/pricing";
-import { collectAt } from "../../../lib/derivedTime";
+import { collectAt, collectDate } from "../../../lib/derivedTime";
 import { formatDateTime, formatTime, ARUBA_TZ_LABEL } from "../../../lib/datetime";
 import { AIRPORT_ID } from "../../../data/places";
 import { generateBookingRef } from "../../../lib/bookingRef";
@@ -29,7 +29,7 @@ import type { ConfirmedBooking } from "../../../booking/types";
 import LiveMap from "../LiveMap";
 import FieldError from "../FieldError";
 import TripSchedule, { validateTrip } from "../TripSchedule";
-import { effectivePickupTime, type StepProblem } from "./shared";
+import { driveToAirport, effectivePickupDate, effectivePickupTime, type StepProblem } from "./shared";
 import { whatsappLink } from "../../../lib/whatsapp";
 import { askToBookByHand } from "../../../lib/support";
 import { LEGAL, bookingTermsReady } from "../../../lib/legal";
@@ -157,6 +157,9 @@ export default function Step3Details({
   // that guest "the sign reads…" would promise a sign that never appears.
   const signTrip = fromAirport || (toAirport && state.journey === "return");
   const time = effectivePickupTime(state);
+  // the pickup's own day: a flight home just after midnight is collected
+  // the evening before, so state.date (the flight's) is not always it
+  const date = effectivePickupDate(state);
 
   const q = state.from && state.to
     ? quote({ from: state.from, to: state.to, vehicle, isReturn: state.journey === "return", pricing, pickupTime: time, seats: state.seats })
@@ -197,7 +200,7 @@ export default function Step3Details({
       // "Child seats: 2 (ages 2 and 5)" — one readable line, the shape it
       // has always had, now built from one required age per seat.
       seatNote(state.seats, state.seatAges),
-      state.journey === "return" ? `Return: ${formatDateTime(state.returnDate, state.returnTime)}${fromAirport ? ` (flight departs — collect ${formatTime(collectAt(state.returnTime, state.returnDestUS))})` : ""}` : "",
+      state.journey === "return" ? `Return: ${formatDateTime(state.returnDate, state.returnTime)}${fromAirport ? ` (flight departs — collect ${formatTime(collectAt(state.returnTime, state.returnDestUS, driveToAirport(state)))}${collectDate(state.returnDate, state.returnTime, state.returnDestUS, driveToAirport(state)) !== state.returnDate ? " the evening before" : ""})` : ""}` : "",
       fromAirport && state.flightLanding ? `Flight lands ${formatTime(state.flightLanding)} AST` : "",
       toAirport && state.depTime ? `Flight departs ${formatTime(state.depTime)} AST (${state.destUS ? "US pre-clearance" : "international"})` : "",
       state.notes.trim(),
@@ -206,7 +209,7 @@ export default function Step3Details({
     const draft = {
       from: state.from?.name ?? "",
       to: state.to?.name ?? "",
-      date: state.date,
+      date,
       time,
       passengers: state.pax,
       luggage: state.bags,
@@ -254,7 +257,7 @@ export default function Step3Details({
       bookingRef: rideRef.current?.bookingRef ?? null,
       from: state.from?.name ?? "",
       to: state.to?.name ?? "",
-      date: state.date,
+      date,
       time,
       vehicle: state.vehicle,
       total: totalUsd, // USD — the only currency in the UI
@@ -424,7 +427,7 @@ export default function Step3Details({
   const partyLabel = `${state.pax} guest${state.pax === 1 ? "" : "s"} · ${state.bags} bag${state.bags === 1 ? "" : "s"}${state.seats ? ` · ${state.seats} child seat${state.seats > 1 ? "s" : ""}` : ""}`;
   // never a bare 07/08 — the weekday and month name travel with every date
   const whenLabel = [
-    formatDateTime(state.date, time),
+    formatDateTime(date, time),
     state.journey === "return"
       ? `returns ${formatDateTime(state.returnDate, state.returnTime)}`
       : "",
@@ -444,7 +447,7 @@ export default function Step3Details({
   // refuse, pointing the other way. Null when no number is configured,
   // and then the sentence does not mention a channel that isn't there.
   const byHand = whatsappLink(askToBookByHand({
-    from: state.from?.name ?? "", to: state.to?.name ?? "", date: state.date, time,
+    from: state.from?.name ?? "", to: state.to?.name ?? "", date, time,
   }));
 
   const errorBlock = error && (

@@ -17,10 +17,10 @@ import DateField from "./DateField";
 import TimeField from "./TimeField";
 import FieldError from "./FieldError";
 import { formatDate, formatTime, todayInAruba } from "../../lib/datetime";
-import { driverWaitsFrom, collectAt, insideMinNotice, MIN_NOTICE_HOURS } from "../../lib/derivedTime";
+import { driverWaitsFrom, collectAt, collectDate, insideMinNotice, durationLabel, LEAD_US_MIN, LEAD_INTL_MIN, MIN_NOTICE_HOURS } from "../../lib/derivedTime";
 import { confirmWindowLabel } from "../../lib/policy";
 import { AIRPORT_ID } from "../../data/places";
-import { effectivePickupTime, type StepProblem } from "./steps/shared";
+import { driveToAirport, effectivePickupDate, effectivePickupTime, type StepProblem } from "./steps/shared";
 import { whatsappLink } from "../../lib/whatsapp";
 import { askAboutShortNotice } from "../../lib/support";
 
@@ -38,7 +38,7 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
 
   const soonHref = whatsappLink(askAboutShortNotice({
     from: state.from?.name ?? "", to: state.to?.name ?? "",
-    date: state.date, time: effectivePickupTime(state),
+    date: effectivePickupDate(state), time: effectivePickupTime(state),
   }));
 
   const err = (f: string) => (problem?.field === f ? problem.message : undefined);
@@ -48,10 +48,18 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
   const derived = fromAirport && state.flightLanding
     ? { at: driverWaitsFrom(state.flightLanding), kind: "arrive" as const }
     : toAirport && state.depTime
-    ? { at: collectAt(state.depTime, state.destUS), kind: "depart" as const }
+    ? { at: effectivePickupTime(state), kind: "depart" as const }
     : null;
   const effective = derived?.at ?? (fromAirport || toAirport ? "" : state.pickupTime);
-  const shortNotice = insideMinNotice(state.date, effective || state.flightLanding || state.depTime);
+  const shortNotice = insideMinNotice(effectivePickupDate(state), effective || state.flightLanding || state.depTime);
+  // A flight home works back from take-off by the airport lead AND the
+  // drive; past midnight that lands on the evening before, which the guest
+  // must be told in words, not left to notice from a clock time.
+  const drive = driveToAirport(state);
+  const collectsDayBefore = derived?.kind === "depart" && effectivePickupDate(state) !== state.date;
+  const returnCollect = state.returnTime ? collectAt(state.returnTime, state.returnDestUS, drive) : "";
+  const returnDayBefore = !!state.returnTime && !!state.returnDate
+    && collectDate(state.returnDate, state.returnTime, state.returnDestUS, drive) !== state.returnDate;
 
   const returnTimeLabel = fromAirport ? "Return flight departs"
     : toAirport ? "Return flight lands"
@@ -108,17 +116,16 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
       )}
       {derived?.kind === "depart" && (
         <div className="timing" role="status">
-          <b>We collect you at {formatTime(derived.at)}</b>
+          <b>We collect you at {formatTime(derived.at)}{collectsDayBefore ? ", the evening before" : ""}</b>
           <p>
-            {state.destUS
-              ? `Aruba clears US immigration before you fly, so you need 3 hours at the airport. We've worked backwards from ${formatTime(state.depTime)}.`
-              : `International check-in wants 2 hours 15. We've worked backwards from ${formatTime(state.depTime)}.`}
+            {durationLabel(state.destUS ? LEAD_US_MIN : LEAD_INTL_MIN)} at the airport
+            {state.destUS ? " for US flights" : ""}, plus {durationLabel(drive)} to get there.
           </p>
         </div>
       )}
       {state.journey === "return" && fromAirport && state.returnTime && (
         <div className="timing" role="status">
-          <b>We collect you at {formatTime(collectAt(state.returnTime, state.returnDestUS))}</b>
+          <b>We collect you at {formatTime(returnCollect)}{returnDayBefore ? ", the evening before" : ""}</b>
           <p>
             <button type="button" className={`qtoggle-inline${state.returnDestUS ? " on" : ""}`}
               style={{ textDecoration: "underline" }} onClick={() => setField("returnDestUS", !state.returnDestUS)}>

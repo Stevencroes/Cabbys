@@ -1,6 +1,6 @@
 // §3.6 — derived pickup times. The guest knows their flight, not the
 // dispatch maths; the form reshapes itself around the route.
-import { arubaInstant, isHhmm, isIsoDate } from "./datetime";
+import { addDays, arubaInstant, isHhmm, isIsoDate } from "./datetime";
 
 /** "HH:MM" + minutes → "HH:MM" (wraps midnight). */
 export function shiftTime(hhmm: string, minutes: number): string {
@@ -17,11 +17,40 @@ export function driverWaitsFrom(landing: string): string {
   return shiftTime(landing, ARRIVAL_BUFFER_MIN);
 }
 
-/** Departure lead: Aruba pre-clears US immigration on the island → 3 h. */
+/** Departure lead: Aruba pre-clears US immigration on the island → 3 h
+    AT THE AIRPORT. */
 export const LEAD_US_MIN = 180;
 export const LEAD_INTL_MIN = 135; // 2h15 everywhere else
-export function collectAt(departure: string, flyingToUS: boolean): string {
-  return shiftTime(departure, -(flyingToUS ? LEAD_US_MIN : LEAD_INTL_MIN));
+
+/**
+ * When the car collects a guest flying out: the airport lead plus the
+ * drive, back from take-off.
+ *
+ * It used to take off the lead alone, while the form said "you need 3
+ * hours at the airport. We've worked backwards…" — so a guest 30 minutes
+ * away was collected 3 hours before take-off and walked into the terminal
+ * at 2½. The owner: take off the drive time too.
+ */
+export function collectAt(departure: string, flyingToUS: boolean, driveMinutes = 0): string {
+  return shiftTime(departure, -collectLeadMinutes(flyingToUS, driveMinutes));
+}
+
+function collectLeadMinutes(flyingToUS: boolean, driveMinutes: number): number {
+  return (flyingToUS ? LEAD_US_MIN : LEAD_INTL_MIN) + Math.max(0, Math.round(driveMinutes));
+}
+
+/**
+ * The collection DATE, for a flight on `date`. Working back from a
+ * take-off just after midnight lands on the evening before — a 01:30
+ * flight to the US, 25 minutes away, is collected at 22:05 the day
+ * before. shiftTime wraps the clock but knows nothing of dates, so the
+ * ride was stored for 22:05 on the flight's own date: a whole day after
+ * the plane had gone.
+ */
+export function collectDate(date: string, departure: string, flyingToUS: boolean, driveMinutes = 0): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(departure.trim());
+  if (!m || !isIsoDate(date)) return date;
+  return +m[1] * 60 + +m[2] - collectLeadMinutes(flyingToUS, driveMinutes) < 0 ? addDays(date, -1) : date;
 }
 
 /**
