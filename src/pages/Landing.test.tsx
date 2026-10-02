@@ -6,6 +6,9 @@ import { BookingProvider } from "../booking/BookingContext";
 import { FREE_CANCEL_HOURS, AIRPORT_FREE_WAIT_MINUTES, ADDRESS_FREE_WAIT_MINUTES } from "../lib/policy";
 import { CHILD_SEAT_USD, MAX_CHILD_SEATS, usd } from "../lib/quote";
 import { MAX_SEAT_AGE } from "../lib/childSeats";
+import { MIN_NOTICE_HOURS, LEAD_US_MIN, LEAD_INTL_MIN, durationLabel } from "../lib/derivedTime";
+import { confirmWindowLabel } from "../lib/policy";
+import { ACTIVE_LEAD_HOURS } from "../lib/tripStatus";
 import indexHtml from "../../index.html?raw";
 
 // The quote card + fleet read pricing from Supabase; stub it for the render.
@@ -103,7 +106,7 @@ describe("Landing — only promises what is true", () => {
     ["the fare settled in advance", /settled in advance/i],
   ];
 
-  it.each([["the pillars", "#services"], ["the FAQ", "#about"]])(
+  it.each([["the step strip", "#how-it-works"], ["the pillars", "#services"], ["the FAQ", "#faq"]])(
     "nothing in %s promises what the product does not do",
     (_, selector) => {
       const text = copyOf(selector);
@@ -113,10 +116,25 @@ describe("Landing — only promises what is true", () => {
     },
   );
 
+  // The strip is the page's account of what happens after booking, so it
+  // carries the promises most likely to drift: when you hear, from whom,
+  // and what you pay with. Card payment is off; nothing is taken online.
+  it("walks through the steps without promising a card charge or a late fee", () => {
+    const steps = copyOf("#how-it-works");
+    expect(steps).not.toMatch(/\bcard\b/i);
+    expect(steps).not.toMatch(/\bfee\b|late charge/i);
+    expect(steps).toMatch(/nothing is charged/i);
+    expect(steps).toMatch(/pay in cash at the end of the ride — US dollars or florins/);
+    // the sign is an airport thing — a hotel pickup gets no sign
+    expect(steps).toMatch(/At the airport, your driver waits inside the arrivals hall with a sign with your name/);
+    // My trips is an account screen; the strip says how a guest gets there
+    expect(steps).toMatch(/Create an account with the email you booked with/);
+  });
+
   it("says what the driver email and My trips actually carry", () => {
-    const faq = copyOf("#about");
+    const faq = copyOf("#faq");
     expect(faq).toMatch(/name, car and plate/);
-    expect(faq).toMatch(/phone number appears in My trips two hours before pickup/);
+    expect(faq).toContain(`phone number appears in My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup`);
     // the owner confirmed the name sign, in the arrivals hall
     expect(faq).toMatch(/waits in the arrivals hall holding a sign with your name/);
     // no online change exists; a person does it
@@ -124,7 +142,7 @@ describe("Landing — only promises what is true", () => {
   });
 
   it("states the owner's decisions, from the constants that hold them", () => {
-    const faq = copyOf("#about");
+    const faq = copyOf("#faq");
     // child seats: the price, per seat, per ride, and the cap
     expect(faq).toContain(`${usd(CHILD_SEAT_USD)} per seat each way`);
     expect(faq).toContain(`children up to ${MAX_SEAT_AGE}`);
@@ -147,6 +165,28 @@ describe("Landing — only promises what is true", () => {
 
     const pillars = copyOf("#services");
     expect(pillars).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
+    expect(pillars).toContain(`My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup`);
+  });
+
+  // The three answers the step strip made obvious, each pinned to what the
+  // code does rather than to what a transfer company usually says.
+  it("answers notice, accounts and the flight home from the code that decides them", () => {
+    const faq = copyOf("#faq");
+    // short notice is flagged, never refused, and a person confirms it
+    expect(faq).toContain(`At least ${durationLabel(MIN_NOTICE_HOURS * 60)} before pickup`);
+    expect(faq).toMatch(/you can still book here/);
+    expect(faq).toContain(`confirms on WhatsApp within ${confirmWindowLabel()}`);
+    // booking is guest-first; My trips is what an account adds
+    expect(faq).toMatch(/Do I need an account\?\W*No\. You book as a guest/);
+    expect(faq).toMatch(/Create one with the email you booked with/);
+    // a guest without an account is not sent to a screen they cannot open
+    expect(faq).toMatch(/booked as a guest, message us and we'll cancel it/);
+    // the card asks for the departure and works back — it is not our rule
+    // how early an airline wants you, so the answer says check yours
+    expect(faq).toMatch(/asks for your flight's departure time/);
+    expect(faq).toContain(`${durationLabel(LEAD_US_MIN)} before take-off for flights to the US`);
+    expect(faq).toContain(`${durationLabel(LEAD_INTL_MIN)} for anywhere else`);
+    expect(faq).toMatch(/check yours/);
   });
 
   it("keeps the link previews to the same facts", () => {

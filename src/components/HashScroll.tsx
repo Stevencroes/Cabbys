@@ -12,6 +12,16 @@ import { useLocation } from "react-router-dom";
 /** The booking modal owns #step-1 … #step-3; they are state, not places. */
 const NOT_A_PLACE = /^#step/;
 
+/**
+ * Old anchors, and the id each one lives at now.
+ *
+ * The FAQ's id was "about" — a name promising a company story the page
+ * does not tell — and it is "faq" now. /#about is still out there in
+ * shared links, bookmarks and the emails already sent, and a renamed id
+ * must not turn those into a link to the top of the page.
+ */
+const MOVED: Record<string, string> = { about: "faq" };
+
 /** Frames to keep looking before giving up — ~half a second at 60fps. */
 const MAX_FRAMES = 30;
 
@@ -20,7 +30,8 @@ export default function HashScroll() {
 
   useEffect(() => {
     if (!hash || NOT_A_PLACE.test(hash)) return;
-    const id = decodeURIComponent(hash.slice(1));
+    const named = decodeURIComponent(hash.slice(1));
+    const id = MOVED[named] ?? named;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     let frames = 0;
     let raf = 0;

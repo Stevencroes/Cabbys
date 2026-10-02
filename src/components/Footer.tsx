@@ -75,8 +75,11 @@ export default function Footer({ closing = false }: { closing?: boolean }) {
             </div>
             <div className="fcol">
               <h3>Company</h3>
+              {/* /#faq, not /#about: the FAQ's id used to be "about",
+                  an anchor naming a section the page does not have. */}
+              <a href="/#how-it-works">How it works</a>
               <a href="/#fleet">The fleet</a>
-              <a href="/#about">FAQ</a>
+              <a href="/#faq">FAQ</a>
               <a href="/trips">My trips</a>
             </div>
 

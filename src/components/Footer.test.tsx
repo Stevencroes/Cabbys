@@ -11,8 +11,9 @@ function renderFooter() {
 // Where each in-page target actually is. A footer link may point at one of
 // these only if the section is ABOUT what the link names.
 const RELATED: Record<string, RegExp> = {
+  "/#how-it-works": /^how it works$/i, // the step strip (Steps.tsx)
   "/#fleet": /fleet/i,
-  "/#about": /^faq$/i,        // #about is the FAQ section
+  "/#faq": /^faq$/i,
 };
 
 describe("the footer's links", () => {

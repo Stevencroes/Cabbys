@@ -5,15 +5,22 @@ import { useAuth } from "../booking/useAuth";
 import { displayNameOf, initialsOf } from "../lib/displayName";
 import { lockBody, unlockBody } from "../lib/bodyLock";
 
-// §06 — the four the mockup names. "My trips" leaves the rail: it is an
+// §06 — the four the mockup names, and the step strip ahead of them. "My trips" leaves the rail: it is an
 // account destination, and it now sits with the account itself on the right.
 const LINKS = [
   // Each label names what it actually opens. "Services" landed on four
   // reasons to book and "About Us" on the FAQ — a company story the page
   // does not tell, which is a promise broken one click in.
+  //
+  // In page order, so the rail is also a table of contents. "How it works"
+  // is the step strip (Steps.tsx) — the process, which the page had never
+  // shown; "Why Cabby's" stays the pillars. The FAQ link pointed at
+  // /#about, the FAQ's old id, which promised an About section the page
+  // does not have; it is /#faq now, and HashScroll still answers /#about.
+  { label: "How it works", href: "/#how-it-works" },
   { label: "Why Cabby's", href: "/#services" },
   { label: "Vehicles", href: "/#fleet" },
-  { label: "FAQ", href: "/#about" },
+  { label: "FAQ", href: "/#faq" },
   { label: "Contact", href: "/#contact" },
 ];
 
@@ -180,7 +187,7 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
         <button type="button" className="nbtn" onClick={() => startBooking()}>
           Book now
         </button>
-        {/* below 1040px the links collapse in here — without this,
+        {/* below 1100px the links collapse in here — without this,
             My trips and Sign in are unreachable on a phone */}
         <button
           ref={triggerRef}

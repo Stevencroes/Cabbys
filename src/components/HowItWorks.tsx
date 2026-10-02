@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { SplitHeading } from "./motion";
 import { AIRPORT_FREE_WAIT_MINUTES } from "../lib/policy";
+import { durationLabel } from "../lib/derivedTime";
+import { ACTIVE_LEAD_HOURS } from "../lib/tripStatus";
 
 /** The mockup gives the pillars two forms: four columns on a desktop, and a
     list you open one at a time on a phone. That is a change of COMPONENT,
@@ -64,7 +66,9 @@ const PILLARS = [
   },
   {
     title: "You know who's coming",
-    body: "Name, car and plate by email once your driver is assigned. Their number shows in My trips two hours before pickup.",
+    // The hours from ACTIVE_LEAD_HOURS, the window canContactDriver uses —
+    // it was typed out as "two", beside a constant that could change.
+    body: `Name, car and plate by email once your driver is assigned. Their number shows in My trips ${durationLabel(ACTIVE_LEAD_HOURS * 60)} before pickup.`,
     icon: <><path d="M12 3.2 4.6 6.2v5.3c0 4.2 3 8 7.4 9.3 4.4-1.3 7.4-5.1 7.4-9.3V6.2Z" /><path d="M9.2 12.2l2 2 3.6-3.8" /></>,
   },
 ];

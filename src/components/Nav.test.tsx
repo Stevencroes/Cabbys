@@ -51,8 +51,8 @@ describe("Nav", () => {
     fireEvent.click(burger);
     const sheet = screen.getByRole("dialog", { name: /menu/i });
     const items = within(sheet);
-    // §06's four, and nothing promised that isn't there
-    for (const label of [/why cabby/i, /vehicles/i, /faq/i, /contact/i]) {
+    // §06's four and the step strip, and nothing promised that isn't there
+    for (const label of [/how it works/i, /why cabby/i, /vehicles/i, /faq/i, /contact/i]) {
       expect(items.getByRole("link", { name: label })).toBeInTheDocument();
     }
     expect(items.getByRole("button", { name: /sign in/i })).toBeInTheDocument();

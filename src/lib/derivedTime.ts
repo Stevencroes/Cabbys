@@ -24,6 +24,26 @@ export function collectAt(departure: string, flyingToUS: boolean): string {
   return shiftTime(departure, -(flyingToUS ? LEAD_US_MIN : LEAD_INTL_MIN));
 }
 
+/**
+ * A span of minutes as a person says it: "3 hours", "2 hours 15 minutes",
+ * "1 hour", "45 minutes".
+ *
+ * For copy that states one of the numbers in this file. The landing page
+ * and the FAQ used to type "two hours" and "3 hours" out by hand beside
+ * the constants that decide them, and a number typed next to its constant
+ * is a number that stops matching it the day the owner changes one.
+ * confirmWindowLabel (policy.ts) only speaks whole hours or bare minutes,
+ * and LEAD_INTL_MIN is 135, which it would read out as "135 minutes".
+ */
+export function durationLabel(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = h === 1 ? "1 hour" : `${h} hours`;
+  const mins = m === 1 ? "1 minute" : `${m} minutes`;
+  if (!h) return mins;
+  return m ? `${hours} ${mins}` : hours;
+}
+
 // ── Minimum lead time ────────────────────────────────────────────────
 // Two hours, set by the owner (it was a 3-hour placeholder). Change
 // MIN_NOTICE_HOURS and every message and check on the site follows; the

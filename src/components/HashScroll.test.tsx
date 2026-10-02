@@ -39,6 +39,17 @@ describe("HashScroll", () => {
     await waitFor(() => expect(faq.scrollIntoView).toHaveBeenCalled());
   });
 
+  it("still lands /#about on the FAQ, which is #faq now", async () => {
+    // The FAQ's id was "about"; links that carry it are already out there.
+    const faq = section("faq");
+    render(
+      <MemoryRouter initialEntries={["/#about"]}>
+        <HashScroll />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(faq.scrollIntoView).toHaveBeenCalled());
+  });
+
   it("leaves the booking modal's own hashes alone", async () => {
     const step = section("step-1");
     render(

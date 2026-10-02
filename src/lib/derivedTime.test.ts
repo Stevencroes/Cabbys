@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MIN_NOTICE_HOURS, MIN_NOTICE_MS, collectAt, driverWaitsFrom, insideMinNotice, shiftTime } from "./derivedTime";
+import { MIN_NOTICE_HOURS, MIN_NOTICE_MS, collectAt, driverWaitsFrom, durationLabel, insideMinNotice, shiftTime } from "./derivedTime";
 import { arubaInstant } from "./datetime";
 
 describe("derived pickup times (§3.6)", () => {
@@ -76,5 +76,16 @@ describe("minimum notice is measured on Aruba's clock", () => {
   it("reads a time written without its leading zero", () => {
     expect(insideMinNotice("2026-08-07", "9:30", new Date("2026-08-07T12:00:00Z"))).toBe(true);
     expect(arubaInstant("2026-08-07", "9:30")).toBe("2026-08-07T13:30:00.000Z");
+  });
+});
+
+describe("durationLabel", () => {
+  it("says a span the way a person would", () => {
+    expect(durationLabel(180)).toBe("3 hours");
+    expect(durationLabel(135)).toBe("2 hours 15 minutes");
+    expect(durationLabel(60)).toBe("1 hour");
+    expect(durationLabel(61)).toBe("1 hour 1 minute");
+    expect(durationLabel(45)).toBe("45 minutes");
+    expect(durationLabel(MIN_NOTICE_HOURS * 60)).toBe(`${MIN_NOTICE_HOURS} hours`);
   });
 });

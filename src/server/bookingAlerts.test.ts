@@ -7,7 +7,7 @@ import handler, {
   type ClaimedAlert, type Deps, type Email,
 } from "../../api/booking-alerts";
 import { VEHICLES } from "../data/vehicles";
-import { SITE_DOMAIN } from "../lib/site";
+import { SITE_DOMAIN, BOOKINGS_EMAIL } from "../lib/site";
 import * as policy from "../lib/policy";
 import * as derivedTime from "../lib/derivedTime";
 import * as quote from "../lib/quote";
@@ -210,6 +210,15 @@ describe("the guest's copy", () => {
     expect(MIN_NOTICE_HOURS).toBe(derivedTime.MIN_NOTICE_HOURS);
     expect(AWG_PER_USD).toBe(quote.AWG_PER_USD);
     expect(CHILD_SEAT_USD).toBe(quote.CHILD_SEAT_USD);
+  });
+
+  // The landing page's step strip tells guests which address to look for.
+  // If the sender moves, that sentence sends them hunting for the wrong one.
+  it("sends guest mail from the address the landing page names", () => {
+    const guest = buildGuestEmail(alert({ kind: "guest_confirmation" }), {})!;
+    const driver = buildDriverEmail(alert({ kind: "driver_assigned" }, { driver_name: "Ruben Croes" }), {})!;
+    expect(guest.from).toContain(`<${BOOKINGS_EMAIL}>`);
+    expect(driver.from).toContain(`<${BOOKINGS_EMAIL}>`);
   });
 });
 
