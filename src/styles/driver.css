@@ -749,7 +749,8 @@
    ══════════════════════════════════════════════════════════════════════ */
 /* the wordmark stands in for the mark circle where the screen is ours
    rather than a state: the hold, and the sign-in */
-.drv-mark.gate{font-size:19px;margin-bottom:26px;text-align:center;}
+/* 19px raw before; the wordmark is 16px wherever it stands */
+.drv-mark.gate{margin-bottom:26px;text-align:center;}
 .drv-mark.gate small{font-size:var(--t-micro);letter-spacing:var(--ls-micro);margin-top:5px;}
 
 /* The first thing seen on every cold open, and it was a grey line on a

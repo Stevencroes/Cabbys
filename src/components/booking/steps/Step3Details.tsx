@@ -28,7 +28,7 @@ import { getStripe } from "../../../lib/stripe";
 import type { ConfirmedBooking } from "../../../booking/types";
 import LiveMap from "../LiveMap";
 import FieldError from "../FieldError";
-import TripSchedule, { validateTrip } from "../TripSchedule";
+import TripSchedule, { tripLost, validateReturnLeg } from "../TripSchedule";
 import { driveToAirport, effectivePickupDate, effectivePickupTime, type StepProblem } from "./shared";
 import { whatsappLink } from "../../../lib/whatsapp";
 import { askToBookByHand } from "../../../lib/support";
@@ -171,15 +171,23 @@ export default function Step3Details({
   const focusById = (id: string) => () => document.getElementById(id)?.focus();
   const validate = useMemo(() => () => {
     if (state.step !== DETAILS) return null;
-    // The schedule reads above the contact fields, so it is checked first.
-    const trip = validateTrip(state, { byId: focusById });
-    if (trip) return trip;
+    // Checked in the order the step reads, so Continue sends focus to the
+    // first gap on the page and never past one: a lost route first (it has
+    // no field, and stops everything), then the name, which now leads the
+    // form, then the return leg under it, then email and phone. When the
+    // schedule moved below the name its check had to move with it — left
+    // first, an empty return date was reported, and focused, under a name
+    // the guest had also skipped.
+    const lost = tripLost(state);
+    if (lost) return lost;
     // The sign is back. 1d173f2 made this one line for every trip because
     // a name sign was not confirmed; the owner has since confirmed drivers
     // hold one in arrivals, so a guest who will be met there is told what
     // the name is for.
     if (state.contactName.trim().length < 2)
       return { field: "name", message: signTrip ? "A name lets the driver hold the right sign." : "A name lets the driver greet you.", focus: () => nameRef.current?.focus() };
+    const leg = validateReturnLeg(state, { byId: focusById });
+    if (leg) return leg;
     if (!isValidEmail(state.contactEmail))
       return { field: "email", message: "We need an email to send your confirmation.", focus: () => emailRef.current?.focus() };
     if (!isValidPhone(state.contactPhone))
@@ -498,14 +506,18 @@ export default function Step3Details({
         <div className="phead">
           <h2>Who are we <em>meeting?</em></h2>
           <p className="psub">{signTrip
-            ? "The flight, and the name on the sign."
+            ? "The name on the sign, and the flight."
             : "Three lines, and your driver knows exactly who to look for."}</p>
         </div>
 
         <div className="pcols pcols-map">
         <div className="pcol pcol-form">
-          <TripSchedule problem={problem} lateNight={!!q?.lateNight} />
-
+          {/* The name leads, at the owner's word: the heading asks "who
+              are we meeting?" and the first field now answers it. The
+              flight and the moment the driver waits from follow it, still
+              together, so the waits card stays under the number it reads
+              back. Every variant of the step takes this order, sign or no
+              sign, so the name is always the first thing typed. */}
           <div className="fld">
             {/* 1d173f2 dropped "sign" from this label because a name sign
                 was not confirmed. The owner has confirmed it: a driver in
@@ -517,6 +529,9 @@ export default function Step3Details({
               onChange={(e) => setField("contactName", e.target.value)} />
             <FieldError id="err-name" message={err("name")} />
           </div>
+
+          <TripSchedule problem={problem} lateNight={!!q?.lateNight} />
+
           <div className="frow">
             <div className="fld">
               <label htmlFor="b-email">Email</label>
