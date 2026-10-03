@@ -157,13 +157,16 @@ export default function TripSchedule({ problem, lateNight }: TripScheduleProps) 
   );
 }
 
-/** What the flow still has to check. The card guarantees a route, a day and
-    an hour before it opens the flow at all, so those are a backstop here
-    rather than a question — there is no field on this screen to send anyone
-    to, because there is no longer a screen that asks them. */
-export function validateTrip(
+/** What the flow still has to check, in two halves, because they sit in
+    two different places in the order the guest is asked.
+
+    The first is a backstop. The card guarantees a route, a day and an hour
+    before it opens the flow at all, so these are not a question — there is
+    no field on this screen to send anyone to, because there is no longer a
+    screen that asks them. Losing one stops everything, so it is checked
+    before any field on the step. */
+export function tripLost(
   state: ReturnType<typeof useBooking>["state"],
-  focus: { byId: (id: string) => () => void },
 ): StepProblem | null {
   const fromAirport = state.from?.id === AIRPORT_ID;
   const toAirport = state.to?.id === AIRPORT_ID;
@@ -177,11 +180,22 @@ export function validateTrip(
     return { field: "dep", message: "We've lost your flight time. Close this and start again from the booking card." };
   if (!fromAirport && !toAirport && !state.pickupTime)
     return { field: "time", message: "We've lost your pickup time. Close this and start again from the booking card." };
-  if (state.journey === "return") {
-    if (!state.returnDate) return { field: "retdate", message: "When are we bringing you back?", focus: focus.byId("b-retdate") };
-    if (state.date && state.returnDate < state.date)
-      return { field: "retdate", message: `The way back can't be before ${formatDate(state.date)}.`, focus: focus.byId("b-retdate") };
-    if (!state.returnTime) return { field: "rettime", message: "And at what time?", focus: focus.byId("b-rettime") };
-  }
+  return null;
+}
+
+/** The second half: the fields this component draws. The name now reads
+    above it on the details step, so the caller checks the name between
+    tripLost and this — one function covering both halves would have
+    reported the way back as wrong while the empty name above it went
+    unremarked, and Continue would send focus down the page past it. */
+export function validateReturnLeg(
+  state: ReturnType<typeof useBooking>["state"],
+  focus: { byId: (id: string) => () => void },
+): StepProblem | null {
+  if (state.journey !== "return") return null;
+  if (!state.returnDate) return { field: "retdate", message: "When are we bringing you back?", focus: focus.byId("b-retdate") };
+  if (state.date && state.returnDate < state.date)
+    return { field: "retdate", message: `The way back can't be before ${formatDate(state.date)}.`, focus: focus.byId("b-retdate") };
+  if (!state.returnTime) return { field: "rettime", message: "And at what time?", focus: focus.byId("b-rettime") };
   return null;
 }

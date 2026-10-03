@@ -124,7 +124,7 @@ describe("BookingOverlay — the booking flow", () => {
     // Continue is never disabled; nothing here can block it
     toDetails();
 
-    // Step 2 — the flight, then who the driver is looking for. The derived
+    // Step 2 — who the driver is looking for, then the flight. The derived
     // moment that sells the service reads back from the card's landing time.
     expect(screen.getByText(/Who are we/)).toBeInTheDocument();
     expect(await screen.findByText(/Your driver waits from 2:35 PM/)).toBeInTheDocument();
@@ -340,11 +340,54 @@ describe("BookingOverlay — the booking flow", () => {
     );
     fireEvent.click(screen.getByText("launch"));
     toDetails();
+    // the name reads above the way back now, and is checked first — fill
+    // it so the date is the gap this test is about
+    fireEvent.change(screen.getByLabelText(/name for the driver/i), { target: { value: "Ada Lovelace" } });
     toReview();
 
     expect(screen.getByRole("alert")).toHaveTextContent(/can't be before Thu 10 Sep 2026/i);
     // still on the details step — the review never appears
     expect(screen.queryByText(/Does this look/)).toBeNull();
+  });
+
+  it("asks the name first, then the flight, and checks them in that order", () => {
+    render(
+      <BookingProvider>
+        <Opener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    toDetails();
+
+    // the owner's order: the sign, then the flight it is held up for
+    const name = screen.getByLabelText(/name for the driver's sign/i);
+    const flight = screen.getByLabelText(/flight number/i);
+    expect(name.compareDocumentPosition(flight) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // and the waits card still sits under the number it reads back
+    const waits = screen.getByText(/Your driver waits from/);
+    expect(flight.compareDocumentPosition(waits) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("The name on the sign, and the flight.")).toBeInTheDocument();
+
+    // Continue lands on the first gap on the page, which is the name
+    toReview();
+    expect(document.activeElement).toBe(name);
+  });
+
+  it("reports the empty name before a wrong way back, because it reads above it", () => {
+    render(
+      <BookingProvider>
+        <ReturnOpener />
+        <BookingOverlay />
+      </BookingProvider>,
+    );
+    fireEvent.click(screen.getByText("launch"));
+    toDetails();
+    toReview();
+
+    // both are wrong; the one higher on the screen is the one named
+    expect(screen.getByRole("alert")).toHaveTextContent(/a name lets the driver/i);
+    expect(document.activeElement).toBe(screen.getByLabelText(/name for the driver/i));
   });
 
   it("blocks with a reason instead of a disabled button", () => {
