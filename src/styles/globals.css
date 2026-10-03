@@ -200,8 +200,19 @@ h2.sec em{font-style:italic;}
 .nav-left{display:flex;align-items:center;gap:52px;min-width:0;}
 /* The wordmark is also the link home, and as a bare inline it was a 22px
    tall target. The padding is vertical only so the mark does not move. */
-.brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);
-  padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;
+/* The bar had no lead. The wordmark was 16px and every link beside it
+   14px, so at arm's length the rail read as seven words of nearly one
+   size and CABBY'S was one of them — the owner's "everything just seems
+   too big". It takes the h2 rung now and the rest of the bar steps down
+   to the label rung below, so the hierarchy is a ratio of two, not of
+   eight-sevenths. Tracking comes down as the size goes up (see the
+   tracking note in tokens.css): .28em at 26px is 7px of air between
+   capitals, and the word falls apart into letters. Cormorant's capitals
+   sit small on their em, which is why the h2 rung and not the h3 — at
+   21px it still read as level with the button. The padding-left follows
+   the tracking, as it always has. */
+.brand{font-family:var(--serif);font-weight:500;letter-spacing:.2em;text-transform:uppercase;font-size:var(--t-head);
+  line-height:1;padding-left:.2em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;
   display:inline-flex;align-items:center;min-height:var(--tap);}
 .brand .ap{color:var(--silver);}
 .nlinks{display:flex;gap:30px;align-items:center;}
@@ -210,7 +221,13 @@ h2.sec em{font-style:italic;}
    is a state change where the eye expects a gesture. A pseudo-element
    scaling from transform-origin:left is the same mark, arriving the way a
    pen would draw it. See .fcol a, which takes the identical treatment. */
-.nlinks a{position:relative;font-family:var(--sans);font-weight:400;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+/* --t-micro, and on purpose: the 14px floor is for text a person reads,
+   and these are one- and two-word uppercase labels, letterspaced — the
+   exact family the micro rung was made for. They were set at the meta
+   rung and matched the wordmark for size, which left the bar with no
+   lead (see .brand). --nav-dim on the rail clears 8:1, so the step down
+   costs size, not legibility. Never lower than this. */
+.nlinks a{position:relative;font-family:var(--sans);font-weight:400;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color var(--dur-ui) var(--ease-ui);}
 .nlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
   background:var(--nav-underline);transform:scaleX(0);transform-origin:left center;
@@ -220,15 +237,22 @@ h2.sec em{font-style:italic;}
 @media(prefers-reduced-motion:reduce){.nlinks a::after{transition:none;}}
 .nright{display:flex;align-items:center;gap:24px;}
 /* 36px tall before — the one button in the rail, and under the floor. */
-.nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:12px 24px;min-height:var(--tap);
+/* Quieter, not smaller to touch: the label drops to the micro rung with
+   the links and loses 4px of side padding a side, so the silver block
+   stops out-weighing the wordmark — but min-height stays on --tap, and
+   the box is never shorter than a thumb. The vertical padding went
+   because min-height and align-items already centre the label; 12px of
+   it only made the box taller than the tap floor on a wrap. */
+.nbtn{background:var(--sheen);color:var(--on-sheen);border:none;padding:0 20px;min-height:var(--tap);
   display:inline-flex;align-items:center;justify-content:center;
-  font-weight:500;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+  font-weight:500;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   white-space:nowrap;border-radius:3px;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
              filter var(--dur-ui) var(--ease-ui);}
 .nbtn:hover{transform:translateY(-1px);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
 .nbtn:active{transform:translateY(0);transition-duration:var(--dur-press);}
-.nsign{font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;font-weight:500;color:var(--nav-dim);
+/* steps down with the links: it is an uppercase label in the same bar */
+.nsign{font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;font-weight:500;color:var(--nav-dim);
   text-decoration:none;display:inline-flex;align-items:center;background:none;border:none;
   transition:color var(--dur-ui) var(--ease-ui);}
 .nsign:hover{color:var(--nav-ink);}
@@ -239,7 +263,9 @@ h2.sec em{font-style:italic;}
 .nacct-wrap{position:relative;display:flex;}
 .navatar{flex:none;width:30px;height:30px;border-radius:50%;background:transparent;color:var(--nav-dim);
   border:1px solid rgba(201,211,223,.24);display:flex;align-items:center;justify-content:center;
-  font-size:var(--t-meta);font-weight:600;transition:.2s var(--ease);}
+  /* two uppercase initials — a label, and it sits beside Sign in's slot,
+     so it takes the same rung rather than out-sizing the links */
+  font-size:var(--t-micro);font-weight:600;letter-spacing:.04em;transition:.2s var(--ease);}
 .navatar:hover,.navatar.on{color:var(--nav-ink);border-color:var(--nav-underline);}
 .nmenu{position:absolute;top:calc(100% + 12px);right:0;min-width:236px;z-index:var(--z-sheet);
   display:flex;flex-direction:column;padding:8px;
@@ -352,15 +378,24 @@ h2.sec em{font-style:italic;}
 /* at phone widths the sheet carries the account; the bar keeps brand + CTA */
 @media(max-width:560px){.nacct-wrap{display:none;}}
 /* the bar must still hold brand + CTA + burger at 375px */
+/* The wordmark keeps the lead on a phone too — it is the one thing on a
+   60px bar that says whose site this is, and the silver button beside it
+   is a 46px block that out-weighs any type set smaller than the desktop's.
+   So it holds the h2 rung down to 380, with only the tracking tightened,
+   and steps one rung to --t-title below that, never to the button's size.
+   Under 380 it used to drop to 14px, level with the button: the flatness
+   the owner asked to be rid of. The button gives up side padding first;
+   its height is --tap at every width. Measured at 320, 360 and 390 with
+   the real faces loaded: no overlap, no horizontal scroll. */
 @media(max-width:560px){
   .nright{gap:14px;}
-  .brand{font-size:var(--t-body);letter-spacing:.22em;}
-  .nbtn{padding:11px 16px;letter-spacing:.12em;}
+  .brand{letter-spacing:.18em;padding-left:.18em;}
+  .nbtn{padding:0 16px;}
 }
 @media(max-width:380px){
   .nright{gap:10px;}
-  .brand{font-size:var(--t-meta);letter-spacing:var(--ls-label);}
-  .nbtn{padding:10px 12px;letter-spacing:.06em;}
+  .brand{font-size:var(--t-title);letter-spacing:.14em;padding-left:.14em;}
+  .nbtn{padding:0 12px;letter-spacing:var(--ls-label);}
 }
 @media(min-width:1100px){.nav-sheet,.nav-scrim{display:none;}}
 
