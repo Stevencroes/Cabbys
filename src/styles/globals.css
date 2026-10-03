@@ -373,8 +373,8 @@ h2.sec em{font-style:italic;}
 @media(max-width:560px){.nacct-wrap{display:none;}}
 /* the bar must still hold brand + CTA + burger at 375px */
 /* The button gives up side padding first; its height is --tap at every
-   width. The wordmark stays a rung above the 12px button label all the
-   way down, even at 14px under 380. */
+   width. The wordmark holds 16px at every width — under 380 it used to
+   drop to 14px; it gives up tracking instead, never size. */
 @media(max-width:560px){
   .nright{gap:14px;}
   .brand{font-size:var(--t-body);letter-spacing:.22em;padding-left:.22em;}
@@ -382,7 +382,7 @@ h2.sec em{font-style:italic;}
 }
 @media(max-width:380px){
   .nright{gap:10px;}
-  .brand{font-size:var(--t-meta);letter-spacing:var(--ls-label);padding-left:var(--ls-label);}
+  .brand{letter-spacing:.16em;padding-left:.16em;}
   .nbtn{padding:0 12px;letter-spacing:var(--ls-label);}
 }
 @media(min-width:1100px){.nav-sheet,.nav-scrim{display:none;}}
@@ -1476,7 +1476,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .site-foot.closing{background:var(--ground);padding-top:0;}
 .site-foot.closing .ftop{padding-top:44px;border-top:1px solid var(--line);}
 .ftop{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;padding-bottom:38px;border-bottom:1px solid var(--line);}
-.fbrand{font-family:var(--serif);font-weight:500;letter-spacing:.26em;text-transform:uppercase;font-size:18px;color:var(--ink);padding-left:.26em;}
+/* 18px raw, a size off the scale and a step larger than the wordmark in
+   the bar. The mark is one size wherever it stands: --t-body, 16px. */
+.fbrand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);color:var(--ink);padding-left:.28em;}
 .fbrand .ap{color:var(--silver);}
 .ftop p{margin:14px 0 0;font-size:var(--t-body);max-width:30ch;line-height:1.6;font-weight:400;}
 .fcols{display:flex;gap:50px;flex-wrap:wrap;}
@@ -1527,7 +1529,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    .panel rules that set them, so the two cannot drift apart. */
 .bhead-inner{max-width:620px;height:100%;margin:0 auto;padding:0 var(--gutter);
   display:flex;align-items:center;justify-content:space-between;gap:16px;}
-.bstep{margin:0;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+/* steps down with the nav links (see .nlinks a): the labels beside the
+   16px wordmark sit on the 12px rung so the mark leads in both bars */
+.bstep{margin:0;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   color:var(--nav-dim);font-weight:400;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0;}
 /* the numeral is the part that changes, so it is the part that is lit */
@@ -1542,7 +1546,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .bclose{background:none;border:none;color:var(--nav-dim);
   display:inline-flex;align-items:center;min-height:44px;
   padding-inline:12px;margin-inline:-12px;
-  font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;font-weight:500;
+  font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;font-weight:500;
   white-space:nowrap;transition:color .15s linear;}
 .bclose:hover{color:var(--nav-ink);}
 /* on a phone the row keeps the wordmark and the way out; the line carries
@@ -2070,7 +2074,7 @@ img.tp-driver-ava{object-fit:cover;}
   background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-md);
   padding:28px;box-shadow:var(--shadow-hard-lg);}
 .tp-receipt::backdrop{background:var(--scrim);}
-.tp-receipt-brand{font-family:var(--serif);font-size:var(--t-meta);letter-spacing:.32em;text-transform:uppercase;color:var(--silver);margin:0;}
+.tp-receipt-brand{font-family:var(--serif);font-size:var(--t-body);letter-spacing:.28em;text-transform:uppercase;color:var(--silver);margin:0;}
 .tp-receipt-h{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,4vw,2rem);margin:6px 0 8px;color:var(--ink);}
 .tp-receipt-note{font-size:var(--t-body);color:var(--muted);line-height:var(--lh-body);margin:0 0 4px;}
 /* Printed on paper, so black on white — the one place this stylesheet
@@ -2096,7 +2100,8 @@ img.tp-driver-ava{object-fit:cover;}
 .auth-panel{position:relative;width:100%;max-width:400px;border:1px solid var(--line);background:var(--surface);padding:34px 30px 30px;box-shadow:var(--shadow-hard-lg);}
 .auth-close{position:absolute;top:12px;right:12px;width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;border:1px solid var(--line);color:var(--silver);background:transparent;transition:.3s var(--ease);}
 .auth-close:hover{background:var(--raised);color:var(--ink);}
-.auth-brand{font-family:var(--serif);font-weight:500;font-size:18px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink);text-align:center;padding-left:.32em;}
+/* was 18px raw — see .fbrand: the wordmark is 16px everywhere */
+.auth-brand{font-family:var(--serif);font-weight:500;font-size:var(--t-body);letter-spacing:.28em;text-transform:uppercase;color:var(--ink);text-align:center;padding-left:.28em;}
 .auth-sub{margin:8px 0 4px;font-size:var(--t-body);line-height:1.6;color:var(--muted);font-weight:400;text-align:center;}
 .oauth{display:flex;flex-direction:column;gap:12px;margin-top:26px;}
 .oauth-btn{display:flex;align-items:center;justify-content:center;gap:13px;padding:14px;min-height:var(--tap);border:1px solid var(--silver-deep);background:transparent;font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;color:var(--silver);transition:.3s var(--ease);}
