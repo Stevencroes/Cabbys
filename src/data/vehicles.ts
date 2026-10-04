@@ -20,7 +20,7 @@ export type Vehicle = {
 //   Luxury Sprinter   Mercedes Sprinter   12          $82
 //
 // The first rung was briefly filed as "Executive Van, 1-6, Mercedes V-Class".
-// The photograph settles it: fleet/sedan.png is a four-door Mercedes saloon,
+// The photograph settles it: fleet/sedan.webp is a four-door Mercedes saloon,
 // not an MPV, so the tier is a sedan and seats three. Trusting the picture
 // over the label is the rule that has caught every one of these.
 //
@@ -33,10 +33,10 @@ export type Vehicle = {
 // written before this keep their old strings, which those screens render as
 // plain text.
 export const VEHICLES: Vehicle[] = [
-  { id: "sedan",    name: "Executive Sedan", pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: "/fleet/sedan.png" },
-  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: "/fleet/suv.png" },
-  { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: "/fleet/transit.png" },
-  { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: "/fleet/sprinter.png" },
+  { id: "sedan",    name: "Executive Sedan", pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: "/fleet/sedan.webp" },
+  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: "/fleet/suv.webp" },
+  { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: "/fleet/transit.webp" },
+  { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: "/fleet/sprinter.webp" },
 ];
 
 /** The largest party and load the fleet can take — what the guest and bag

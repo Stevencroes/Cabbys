@@ -1192,15 +1192,28 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
              box-shadow var(--dur-slow-ui) var(--ease-ui);}
 .fcard:hover{transform:translateY(-2px);border-color:var(--silver-deep);box-shadow:var(--shadow-hard);}
 .fcard:active{transform:translateY(0);transition-duration:var(--dur-press);}
-.fshot{display:block;aspect-ratio:4/3;background:
-  radial-gradient(120% 90% at 50% 38%,#14293A 0%,#0A1927 52%,var(--surface) 88%);
-  padding:9% 10%;}
-/* cover, not contain: the shots are square with air above and below the car,
-   so fitting the whole square into a 4:3 frame leaves a car a third of the
-   card wide. Cover crops the empty bands and the car fills its frame the way
-   an automotive card should. */
-.fshot img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;
-  filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));
+/* The car was 64% of the card's width and black on navy, so the section
+   read as four dark cards with something small in each. Two causes, two
+   fixes. SIZE: the PNGs carried their own empty margins (the car was 80% of
+   its frame, by convention) and the frame added 9-10% padding on top, so
+   the margins compounded. The files are now cropped to the car, and the
+   frame's content box is 1.67:1 — the Sprinter's own ratio, the tallest of
+   the four — so every car spans the card's full inner width, and the lower
+   ones simply leave sky above them. Bottom-aligned, so all four stand on
+   one ground line. VISIBILITY: a black car needs light BEHIND it to have an
+   edge. A soft --highlight backlight sits behind the body and a pale floor
+   pool under the wheels; both are light, so the silhouette separates from
+   the card without a plate or an outline around the car. */
+.fshot{display:block;aspect-ratio:3/2;padding:7% 6% 9%;
+  background:
+    radial-gradient(46% 30% at 50% 88%,rgba(215,217,216,.16) 0%,rgba(215,217,216,0) 100%),
+    radial-gradient(70% 62% at 50% 52%,rgba(215,217,216,.13) 0%,rgba(215,217,216,0) 100%),
+    radial-gradient(120% 90% at 50% 38%,#17304A 0%,#0C1D2D 52%,var(--surface) 92%);}
+/* contain, not cover: the files are cut to the car now, so there are no
+   empty bands left to crop — cover would take the bumpers instead. */
+.fshot img{width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;
+  filter:drop-shadow(0 12px 16px rgba(0,0,0,.6));
+  transform-origin:50% 100%;
   transition:transform var(--dur-slow-ui) var(--ease-ui);}
 .fcard:hover .fshot img{transform:scale(1.04);}
 @media(prefers-reduced-motion:reduce){
@@ -1210,14 +1223,13 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 .fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);}
 .fname{display:block;font-size:var(--t-body);font-weight:600;letter-spacing:.01em;color:var(--ink);}
-/* The price is absolutely positioned bottom-right, so the line beside it
-   has to be told to stop. "1–3 Passengers" happened to be short enough to
-   clear it; "Up to 12 guests · 12 bags" is not, and ran straight under the
-   figure. ch units because what it must clear is a price, and a price is
-   digits: room for "From $1,234" and the 18px inset it sits in. */
-.fpax{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:5px;
-  padding-right:9ch;}
-.ffrom{position:absolute;right:18px;bottom:18px;display:flex;align-items:baseline;gap:6px;}
+/* The price used to sit absolutely bottom-right with the line beside it
+   padded to clear it — and in a four-across card "12 guests · 12 bags" did
+   not fit the room left, wrapped, and made the Sprinter's card the one card
+   in the row with a different height. The price has its own row now, so
+   nothing has to be told where to stop. */
+.fpax{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:5px;}
+.ffrom{display:flex;align-items:baseline;gap:6px;padding:0 18px 18px;margin-top:-6px;}
 .ffrom .fl{font-size:var(--t-meta);color:var(--muted);}
 .ffrom .fv{font-size:17px;font-weight:600;color:var(--ink);}
 @media(max-width:1040px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -1664,12 +1676,10 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* the car's portrait — cut-out PNG, no plate behind it. Fixed box so all
    four rows line their names up whatever the shot's aspect ratio is. */
 .vopt .vthumb{flex:none;width:88px;height:52px;display:flex;align-items:center;justify-content:center;}
-/* The shots are square canvases with the car centred and air above and
-   below it. `contain` would fit that whole square into a 46px-tall box and
-   leave a car the size of a stamp, so cover it instead: the crop eats the
-   empty bands, not the car. README.md in public/fleet holds the framing up
-   its end. */
-.vopt .vthumb img{width:100%;height:100%;object-fit:cover;object-position:center;display:block;
+/* The files are cut to the car (see public/fleet/README.md), so `contain`
+   now fits the car itself to the box. `cover` was right while the shots
+   carried empty bands to crop; on a tight cut it would take the bumpers. */
+.vopt .vthumb img{width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;
   filter:drop-shadow(0 5px 10px rgba(0,0,0,.5));transition:transform .3s var(--ease);}
 .vopt:hover:not(.unfit) .vthumb img{transform:scale(1.05);}
 .vopt.unfit .vthumb img{filter:grayscale(1);}
