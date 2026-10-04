@@ -206,10 +206,10 @@ export default function Step2Car({ pricing, problem, registerValidator, foot }: 
               <VehiclePhoto vehicle={v} />
               <span className="vmain">
                 <span className="vn">{v.name}</span>
-                {/* No make and model line ("Mercedes E-Class or similar").
-                    Drivers come in their own cars, and once the photos became
-                    generic renders the named model no longer matched the
-                    picture beside it. The photo and the tier name carry it. */}
+                {/* the class label lived here until the car had a photo; the
+                    picture says "van" faster than the words did, and the line
+                    now fits on a phone without wrapping */}
+                <span className="vm">{v.desc}</span>
                 <span className="vs">{fits ? `Up to ${v.pax} guests · ${v.bags} bags` : `Seats ${v.pax} · your party doesn't fit`}</span>
               </span>
               {/* return already doubled here — the price cannot move at review */}
