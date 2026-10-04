@@ -36,27 +36,28 @@ Shoot/source them the same way:
   glaring on a dark card, which is how it shipped once.
   Check any new cut BOTH ways before shipping: on magenta, where a breach in
   glass is unmissable, and on the card's own dark ground, where a pale rim is.
-- **Car centred, at 80% of the frame width**, front three-quarter view facing
-  left, with the wheels 14.5% of the frame height off the bottom — so the
-  four rows read as one set. That fraction is the whole convention: it is
-  what makes a Sprinter and an E-Class sit at a comparable size in the row
-  whatever the source shot was framed like.
+- **Cropped to the car.** Trim the frame to the car's own bounding box
+  plus a 2% margin (of the car's width) on every side, so the file holds the
+  car and nothing else. Front three-quarter view facing left.
 
-  This was written as "square canvas, car centred" and none of the four
-  files were square — they were 700×395, and the car ran from 60.3% of the
-  frame (transit, sprinter) to 81.0% (suv). The two largest vehicles filled
-  the least frame, so the row read as though a Sprinter were smaller than a
-  sedan. They were re-cropped, not rescaled: each frame was pulled in around
-  its own car until the fraction matched, so the car pixels are untouched
-  and only the window changed. Frames are therefore no longer all one size
-  (528×298 to 709×400) — they do not need to be, because they share an
-  aspect ratio and a content fraction, which is what the card renders on.
-- The frame ratio is ~1.77. `.fshot` renders at ~1.40 with `object-fit:cover`,
-  which trims about a pixel off each bumper — uniform across all four, and
-  invisible. Change the ratio and check that again.
-- They render into 291×208 CSS px on a phone, so a 3× screen wants ~873px of
-  width. At 528px the two vans are already under-resolved: new source shots
-  are the only real fix, and 1280 wide would be the target.
+  This replaced a convention of "car at 80% of the frame width, wheels 14.5%
+  off the bottom". That kept the four cars in proportion to each other, but
+  the margin it built into every file stacked on top of the card's own
+  padding, and on the landing page the cars came out at 64% of the card's
+  width — black on navy, and small enough that the section read as four dark
+  cards. The cards now do the framing (`.fshot` in globals.css): its content
+  box is 1.67:1, the Sprinter's ratio and the tallest of the four, so with
+  `object-fit:contain` every car spans the full inner width and the lower
+  ones stand on the same ground line with sky above them. The booking step's
+  `.vthumb` does the same at 88×52.
+
+  A new file with a different ratio still works — `contain` never crops —
+  but one taller than 1.67:1 will be height-bound and come out narrower than
+  the other three. Check the row after adding one.
+- Current sizes: sedan 577×245, suv 589×271, transit 438×253,
+  sprinter 438×263. The cards render up to ~290 CSS px wide on a phone, so a
+  3× screen wants ~870px of width: the two vans are under-resolved, and new
+  source shots at 1280 wide are the only real fix.
 
 ## How the current four were made
 
