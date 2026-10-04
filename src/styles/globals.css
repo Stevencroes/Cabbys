@@ -132,7 +132,7 @@ h2.sec em{font-style:italic;}
 .hero .hero-trust > *{animation-delay:calc(470ms + var(--i,0) * 70ms);}
 .hero .quote{animation-delay:560ms;}
 
-/* ---- the scene is alive, not moving ------------------------------
+/* ---- the photograph is alive, not moving ---------------------------
    One background move, not two: a slow scale and no parallax. The parallax
    that used to live here drove `.par`, and `.par` had not been on an
    element in this page for some time — it was a scroll listener doing
@@ -147,12 +147,12 @@ h2.sec em{font-style:italic;}
 
    It runs once and stops. Nothing on this page loops. */
 @keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.045);}}
-.hero-sea-pic{transform-origin:72% 30%;animation:kenburns 20s linear both;}
+.hero-photo::before{transform-origin:64% 44%;animation:kenburns 20s linear both;}
 
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
-  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-sea-pic{animation:none !important;}
+  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo::before{animation:none !important;}
   .tp-skeleton{animation:none !important;}
 }
 
@@ -171,7 +171,7 @@ h2.sec em{font-style:italic;}
 
    It is back, deliberately and on a different rule. The old one keyed off a
    fixed 24px, which is nothing in particular — it fired over the hero, where
-   the bar floats on a scene that needs no line drawn under it. This one
+   the bar floats on a photograph that needs no line drawn under it. This one
    keys off the hero's own bottom edge, past which the bar sits on scrolling
    text and does need to be held off it. So .tight (set in Nav.tsx) fades the
    hairline in and takes 8px off the height in one 300ms move. Height on a
@@ -617,42 +617,32 @@ h2.sec em{font-style:italic;}
 /* Asymmetric on purpose: the grid centres itself in whatever is left
    between these, so a heavier bottom pad lifts the whole block above
    the optical middle. The phone override below keeps its own values. */
-/* §07 — the hero's ground. A scene the copy sits on, not a picture in a
-   box: HeroSea draws it (sky, moon, the island on the horizon, the moon's
-   path on the water) and two scrims ride over it here, one pulling the left
-   side down to the navy so the headline has something to sit on, one pulling
-   the foot down so the scene ends IN the page rather than on a line.
-   It was a photograph until October 2026 — a villa driveway that said
-   nothing about Aruba. The scrims are the same ones the photo had. */
-/* The box is the frame and .hero-sea-pic is the picture in it. The drift
-   used to scale the box itself, and a scaled box is still counted as page
-   content: by the end of it the picture stood 21px past the right edge,
-   which gave the whole page a sideways scroll, and 23px over the hairline
-   that closes the hero. The frame never moves and clips; only the picture
-   inside it grows. */
-.hero-sea{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--ground);}
-.hero-sea-pic{position:absolute;inset:0;}
-.hero-sea svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
-.hero-sea::after{content:"";position:absolute;inset:0;
+/* §07 — the hero photograph. A ground the copy sits on, not a picture in a
+   box: two scrims ride over it, one pulling the left side down to the navy so
+   the headline has something to sit on, one pulling the foot down so the
+   image ends IN the page rather than on a line.
+   The radial underneath is not decoration — it is what paints while a 240KB
+   photograph is still arriving, and what the section falls back to if it
+   never does. */
+/* The box is the frame and the ::before is the picture in it. The drift
+   above used to scale the box itself, and a scaled box is still counted
+   as page content: by the end of it the photo stood 21px past the right
+   edge, which gave the whole page a sideways scroll, and 23px over the
+   hairline that closes the hero. The frame never moves and clips; only
+   the picture inside it grows. */
+.hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.hero-photo::before{content:"";position:absolute;inset:0;
   background-image:
-    linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.84) 30%,rgba(2,11,20,0) 62%),
-    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,0) 34%);}
-/* On a phone the hero is far taller than it is wide, and a centred `slice`
-   crop keeps the middle of the scene — open water, no moon. So the picture
-   is laid out at the scene's own 16:10, slid so the moon (72% across the
-   viewBox, see HeroSea) lands at 74% of the screen, and hung from the
-   hero's FOOT in px rather than sized in %: the card and the copy stack
-   from the bottom (.hero-grid is justify-content:flex-end), so the foot is
-   the only edge whose distance to them holds on every phone. At 1000px the
-   horizon falls behind the card's upper half and the moon rides above the
-   eyebrow — earlier tries in % put the moon on the eyebrow, then the
-   horizon and the moon's glints through the subtitle. */
-@media(max-width:760px){
-  .hero-sea-pic{top:auto;bottom:-10px;left:74%;right:auto;height:1000px;aspect-ratio:1600/1000;
-    translate:-72% 0;}
-  .hero-sea::after{background-image:
-    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.2) 45%,rgba(2,11,20,0) 70%);}
-}
+    linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.90) 30%,rgba(2,11,20,.30) 60%,rgba(2,11,20,.50) 100%),
+    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.12) 40%,rgba(2,11,20,.50) 100%),
+    url("/hero.jpg"),
+    radial-gradient(120% 90% at 74% 34%,#12293C 0%,#081726 46%,var(--ground) 78%);
+  background-size:cover,cover,cover,cover;
+  /* the car sits right of centre in the frame; on a narrow screen the crop
+     keeps it rather than centring on empty driveway */
+  background-position:center,center,72% center,center;
+  background-repeat:no-repeat;}
+@media(max-width:760px){.hero-photo::before{background-position:center,center,64% center,center;}}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
   padding:var(--nav-total) 0 150px;
   border-bottom:1px solid var(--line);}
@@ -677,17 +667,17 @@ body.locked .hero-grid{z-index:auto;}
 body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* §07/§08 — the card is not a column beside the copy any more; it is a wide
    panel across the foot of the hero, the way the mockup composes it. So the
-   grid becomes a stack that hangs from the bottom, and the scene gets
+   grid becomes a stack that hangs from the bottom, and the photograph gets
    the whole right-hand side to itself. */
 .hero-grid{position:relative;z-index:var(--z-content);flex:1;display:flex;flex-direction:column;
   justify-content:flex-end;gap:clamp(26px,3.4vw,44px);max-width:var(--maxw);margin:0 auto;width:100%;
   padding:clamp(90px,11vh,150px) var(--gutter) clamp(26px,4vh,44px);}
 .hero-copy{max-width:min(560px,58%);}
 @media(max-width:900px){
-  /* MARGIN, not padding. .hero-sea is position:absolute;inset:0 on this
-     box, so padding insets the words and leaves the scene sitting
+  /* MARGIN, not padding. .hero-photo is position:absolute;inset:0 on this
+     box, so padding insets the words and leaves the photograph sitting
      behind the bar — which is the desktop intent and the wrong one here,
-     where the bar is opaque and the scene is only ever hidden by it. A
+     where the bar is opaque and the photo is only ever hidden by it. A
      margin starts the whole hero, backdrop included, below the bar, so
      there is nothing under the header to begin with. */
   .hero{padding:0 0 22px;margin-top:var(--nav-total-sm);
@@ -697,7 +687,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 
 .hero-eyebrow .eyebrow{font-size:var(--t-micro);font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}
 /* 500, not 300: at hero size the light cut read as delicate. The mockup's
-   headline is architectural — it has to hold the scene down. */
+   headline is architectural — it has to hold the photograph down. */
 .hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,74px);line-height:1.02;
   letter-spacing:-.02em;margin:0;color:var(--ink);}
 .hero h1 em{font-style:normal;color:var(--ink);}

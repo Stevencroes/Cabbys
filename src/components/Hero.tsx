@@ -1,6 +1,5 @@
 import { SplitHeading } from "./motion";
 import QuoteCard from "./booking/QuoteCard";
-import HeroSea from "./HeroSea";
 
 /** §07 — the trust row's three marks. Line icons on a 20px grid, one weight. */
 const TRUST = [
@@ -12,11 +11,10 @@ const TRUST = [
 export default function Hero() {
   return (
     <header className="hero" id="top">
-      {/* The scene is the hero's ground, not an element inside it: the copy
-          and the booking card sit over it, and it fades into the navy rather
-          than ending on an edge. It replaced a photograph of a villa
-          driveway that could have been anywhere — see HeroSea. */}
-      <HeroSea />
+      {/* The photograph is the hero's ground, not an element inside it: the
+          copy and the booking card sit over it, and it fades into the navy
+          rather than ending on an edge. */}
+      <div className="hero-photo" aria-hidden="true" />
 
       <div className="hero-grid">
         <div className="hero-copy">
