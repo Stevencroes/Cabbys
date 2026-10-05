@@ -1,59 +1,83 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import Journey, { JOURNEY_ID } from "./Journey";
+import Journey, { JOURNEY_ID, routeAt } from "./Journey";
 import { AIRPORT_FREE_WAIT_MINUTES, FREE_CANCEL_HOURS } from "../lib/policy";
 
 const mount = () => render(<MemoryRouter><Journey /></MemoryRouter>);
 const text = () => (document.getElementById(JOURNEY_ID)!.textContent ?? "").replace(/\s+/g, " ");
 
-describe("the route", () => {
-  it("is four real tabs, one selected, each with its own panel", () => {
-    mount();
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Book", "Get confirmed", "Meet your driver", "Ride and pay"]);
-    expect(tabs.filter((t) => t.getAttribute("aria-selected") === "true")).toHaveLength(1);
-    // roving tabindex: one stop in the tab order, the arrows do the rest
-    expect(tabs.filter((t) => t.tabIndex === 0)).toHaveLength(1);
-    for (const t of tabs) {
-      const panel = document.getElementById(t.getAttribute("aria-controls")!);
-      expect(panel).toHaveAttribute("role", "tabpanel");
-      expect(panel).toHaveAttribute("aria-labelledby", t.id);
+describe("routeAt — scroll to car", () => {
+  it("starts at the start, on the first stop, and ends at the arrival dot", () => {
+    expect(routeAt(0)).toEqual({ car: 0, active: 0, arrived: false });
+    const end = routeAt(1);
+    expect(end.car).toBeCloseTo(1);
+    expect(end.active).toBe(3);
+    expect(end.arrived).toBe(true);
+  });
+
+  it("only ever moves the car forward as the page scrolls down", () => {
+    let last = -1;
+    for (let p = 0; p <= 1.0001; p += 0.005) {
+      const { car } = routeAt(p);
+      expect(car).toBeGreaterThanOrEqual(last - 1e-9);
+      last = car;
     }
   });
 
-  it("moves along the route with the arrow keys, Home and End", () => {
-    mount();
-    const tabs = screen.getAllByRole("tab");
-    const selected = () => tabs.findIndex((t) => t.getAttribute("aria-selected") === "true");
-    fireEvent.keyDown(tabs[0], { key: "ArrowRight" });
-    expect(selected()).toBe(1);
-    expect(document.activeElement).toBe(tabs[1]);
-    fireEvent.keyDown(tabs[1], { key: "End" });
-    expect(selected()).toBe(3);
-    fireEvent.keyDown(tabs[3], { key: "ArrowRight" });
-    expect(selected()).toBe(3);
-    fireEvent.keyDown(tabs[3], { key: "ArrowUp" });
-    expect(selected()).toBe(2);
-    fireEvent.keyDown(tabs[2], { key: "Home" });
-    expect(selected()).toBe(0);
+  it("visits every stop in order, and parks at each long enough to read", () => {
+    const seen: number[] = [];
+    for (let p = 0; p <= 1; p += 0.005) {
+      const { active } = routeAt(p);
+      if (seen[seen.length - 1] !== active) seen.push(active);
+    }
+    expect(seen).toEqual([0, 1, 2, 3]);
+    // half of each stop's stretch the car is standing still
+    expect(routeAt(0.2).car).toBeCloseTo(routeAt(0.12).car);
   });
 
-  it("asks to book only at the end of the route, and has no back button at its start", () => {
+  it("clamps scroll outside the section", () => {
+    expect(routeAt(-0.4)).toEqual(routeAt(0));
+    expect(routeAt(1.7)).toEqual(routeAt(1));
+  });
+});
+
+describe("the route", () => {
+  it("is an ordered list of four stops, the first one current", () => {
     mount();
-    // scoped to the shown panel: jsdom loads no stylesheet, so the hidden
-    // panels' visibility:hidden never applies here
-    expect(document.querySelector(".jpanel.on .jprev")).toBeNull();
-    expect(document.querySelector(".jpanel.on")!.textContent).not.toContain("Book your ride");
-    fireEvent.click(screen.getByRole("tab", { name: "Ride and pay" }));
-    const last = document.querySelector(".jpanel.on")!;
-    expect(last.textContent).toContain("Book your ride");
-    expect(last.querySelector('[aria-label="Back: Meet your driver"]')).not.toBeNull();
+    const list = screen.getByRole("list", { name: /step by step/i });
+    expect(list.tagName).toBe("OL");
+    const stops = screen.getAllByRole("button").filter((b) => b.classList.contains("jstop"));
+    expect(stops.map((s) => s.textContent)).toEqual(["Book", "Get confirmed", "Meet your driver", "Ride and pay"]);
+    expect(stops.filter((s) => s.getAttribute("aria-current") === "step")).toEqual([stops[0]]);
   });
 
-  // Every panel stays in the DOM, so the whole sequence is there for a
-  // crawler and a screen reader's browse mode — and the promises the step
-  // strip and the pillars were pinned to are pinned here too.
+  it("keeps every stop's words in the DOM, in order, one heading each", () => {
+    mount();
+    const titles = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    expect(titles).toEqual(["Book", "Get confirmed", "Meet your driver", "Ride and pay"]);
+    expect(document.querySelectorAll(".jpanel.on")).toHaveLength(1);
+  });
+
+  // The CTA sits in the last panel, which is faded rather than removed, so
+  // it must be out of the tab order until that panel is the one showing.
+  it("keeps the booking button out of the tab order until the last stop", () => {
+    mount();
+    expect(screen.getByRole("button", { name: /book your ride/i })).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("scrolls to a stop when it is clicked, rather than skipping the road", () => {
+    mount();
+    const calls: ScrollToOptions[] = [];
+    const orig = window.scrollTo;
+    window.scrollTo = ((o: ScrollToOptions) => { calls.push(o); }) as typeof window.scrollTo;
+    fireEvent.click(screen.getByRole("button", { name: "Meet your driver" }));
+    window.scrollTo = orig;
+    expect(calls).toHaveLength(1);
+  });
+
+  // The promises the step strip and the pillars were pinned to are pinned
+  // here too, read from the same constants.
   it("carries every step and every reason, from the constants that decide them", () => {
     mount();
     const t = text();
