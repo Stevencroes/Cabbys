@@ -1,0 +1,386 @@
+/* ==========================================================================
+   THE TWO MOTION SECTIONS — How it works (Steps.tsx) and Why Cabby's
+   (HowItWorks.tsx), with the scenes and tiles they draw
+   (components/journey/).
+
+   Night Sea only. Nothing new enters the palette: the stage and tiles are
+   --surface on the --deep / --ground bands, every rule is --line, the
+   things that are "yours" are --highlight or --sheen (silver as material),
+   and teal appears exactly once — the live flight dot — because it is the
+   one live state on either section.
+
+   Motion obeys tokens.css: --ease-reveal for anything arriving, --ease-ui
+   for anything answering the pointer, no overshoot anywhere. Nothing
+   loops: each scene plays once each time its step comes up, each tile
+   once on arrival and again on hover.
+   ========================================================================== */
+
+/* ── the dot field behind the stage and the tiles ───────────────────────
+   A pattern, not a gradient — the system has exactly two gradients and
+   this is not a third. 1px dots at 18px, --line at 70%: a surface that
+   reads as engineered paper without becoming texture to look at. */
+.hiw-stage,.pvis{
+  background-color:var(--surface);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18'%3E%3Ccircle cx='1' cy='1' r='1' fill='%2323313D' fill-opacity='.7'/%3E%3C/svg%3E");
+  background-position:9px 9px;
+}
+
+/* ── Fit: a fixed-size drawing scaled to its box (journey/fit.tsx) ────── */
+.fit{position:relative;width:100%;}
+.fit-in{position:absolute;top:0;left:50%;transform-origin:top center;}
+
+/* =========================================================================
+   MOTION PRIMITIVES
+   Declared state is the FINAL frame. An animation only ever supplies the
+   way in, with `both` fill so the first frame holds through its delay.
+   That one rule is what makes reduced motion free: strip the animations
+   and every scene is simply shown finished.
+
+   Each primitive runs only under a gate — `.sc-play` on a scene, or the
+   page sweep's `.in` on the pillar row. --d is the element's own offset;
+   --i (the pillar's index, written by the sweep) staggers whole tiles.
+   ========================================================================= */
+@keyframes j-rise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+@keyframes j-drop{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:none;}}
+@keyframes j-in{from{opacity:0;}to{opacity:1;}}
+@keyframes j-out{from{opacity:1;}to{opacity:0;}}
+@keyframes j-draw{from{stroke-dashoffset:1;}to{stroke-dashoffset:0;}}
+@keyframes j-pop{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:none;}}
+@keyframes j-grow{from{transform:scaleY(0);}to{transform:none;}}
+@keyframes j-latch{from{transform:translateY(-3.5px);}to{transform:none;}}
+@keyframes j-press{0%,100%{transform:none;}45%{transform:scale(.965);}}
+@keyframes j-drive{from{offset-distance:0%;}to{offset-distance:100%;}}
+@keyframes j-type{from{opacity:0;}to{opacity:1;}}
+@keyframes j-caret{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+@keyframes j-hold{from{opacity:0;transform:translateY(16px) rotate(-2.5deg);}to{opacity:1;transform:none;}}
+@keyframes j-arrive{0%{box-shadow:0 0 0 0 rgba(215,217,216,.5);}100%{box-shadow:0 0 0 14px rgba(215,217,216,0);}}
+@keyframes j-recede{from{opacity:1;}to{opacity:.26;}}
+@keyframes j-drift{0%{opacity:0;transform:translateX(0);}18%{opacity:1;}62%{opacity:1;transform:translateX(64px);}100%{opacity:0;transform:translateX(84px);}}
+@keyframes j-approach{from{opacity:0;transform:translateY(-10px) scale(.6);}to{opacity:1;transform:none;}}
+@keyframes j-lamp{from{fill:transparent;}to{fill:#EFEDE9;}}
+@keyframes j-pulse{0%{box-shadow:0 0 0 0 var(--signal-halo);}100%{box-shadow:0 0 0 8px rgba(79,165,165,0);}}
+@keyframes j-cursor{
+  0%{opacity:0;transform:translate(330px,370px);}
+  14%{opacity:1;}
+  58%,72%{transform:translate(300px,288px) scale(1);}
+  80%{transform:translate(300px,288px) scale(.84);}
+  90%,100%{opacity:1;transform:translate(300px,288px) scale(1);}
+}
+
+:is(.sc-play,.pillars.in) :is(.a-rise,.a-drop,.a-fade-in,.a-fade-out,.a-draw,.a-draw-slow,.a-pop,.a-grow,
+  .a-latch,.a-drive,.a-drive-fast,.a-type,.a-caret,.a-hold,.a-arrive,.a-recede,.a-recede-tag,.a-drift,
+  .a-fly,.a-approach,.a-lamp,.a-cursor){
+  animation-duration:560ms;animation-timing-function:var(--ease-reveal);animation-fill-mode:both;
+  animation-delay:calc(var(--d,0ms) + var(--i,0) * var(--stagger));
+}
+:is(.sc-play,.pillars.in) .a-rise{animation-name:j-rise;}
+:is(.sc-play,.pillars.in) .a-drop{animation-name:j-drop;animation-duration:620ms;}
+:is(.sc-play,.pillars.in) .a-fade-in{animation-name:j-in;animation-duration:280ms;}
+:is(.sc-play,.pillars.in) .a-fade-out{animation-name:j-out;animation-duration:200ms;}
+:is(.sc-play,.pillars.in) .a-draw{animation-name:j-draw;animation-duration:820ms;}
+:is(.sc-play,.pillars.in) .a-draw-slow{animation-name:j-draw;animation-duration:1500ms;animation-timing-function:cubic-bezier(.45,0,.25,1);}
+:is(.sc-play,.pillars.in) .a-pop{animation-name:j-pop;animation-duration:420ms;}
+:is(.sc-play,.pillars.in) .a-grow{animation-name:j-grow;animation-duration:420ms;}
+:is(.sc-play,.pillars.in) .a-latch{animation-name:j-latch;animation-duration:260ms;animation-timing-function:var(--ease-ui);}
+/* the drive is one even pull with a gentle start and stop — a car, not a
+   reveal, so it takes the symmetric curve rather than the long-tail one */
+:is(.sc-play,.pillars.in) .a-drive{animation-name:j-drive;animation-duration:1500ms;animation-timing-function:cubic-bezier(.45,0,.25,1);}
+:is(.sc-play,.pillars.in) .a-drive-fast{animation-name:j-drive;animation-duration:820ms;animation-timing-function:cubic-bezier(.45,0,.25,1);}
+:is(.sc-play,.pillars.in) .a-fly{animation-name:j-drive;animation-duration:1500ms;animation-timing-function:cubic-bezier(.45,0,.25,1);}
+:is(.sc-play,.pillars.in) .a-type{animation-name:j-type;animation-duration:1ms;animation-timing-function:linear;}
+/* three blinks and out: the sign is finished, not waiting */
+:is(.sc-play,.pillars.in) .a-caret{animation-name:j-caret;animation-duration:520ms;animation-timing-function:steps(1);
+  animation-iteration-count:5;animation-fill-mode:backwards;}
+:is(.sc-play,.pillars.in) .a-hold{animation-name:j-hold;animation-duration:700ms;}
+:is(.sc-play,.pillars.in) .a-arrive{animation-name:j-arrive;animation-duration:900ms;animation-timing-function:ease-out;animation-fill-mode:none;}
+:is(.sc-play,.pillars.in) :is(.a-recede,.a-recede-tag){animation-name:j-recede;animation-duration:500ms;}
+:is(.sc-play,.pillars.in) .a-drift{animation-name:j-drift;animation-duration:1300ms;animation-timing-function:cubic-bezier(.45,0,.25,1);}
+:is(.sc-play,.pillars.in) .a-approach{animation-name:j-approach;animation-duration:900ms;}
+:is(.sc-play,.pillars.in) .a-lamp{animation-name:j-lamp;animation-duration:400ms;animation-timing-function:var(--ease-ui);}
+:is(.sc-play,.pillars.in) .a-cursor{animation-name:j-cursor;animation-duration:1500ms;animation-timing-function:cubic-bezier(.45,0,.25,1);}
+/* The Book button arrives and is later pressed: two animations on one
+   transform. The press has NO fill — with `both`, its first frame would
+   hold transform:none through its 2s delay and cancel the arrival. */
+.sc-play .a-press{animation-name:j-rise,j-press;animation-duration:560ms,260ms;
+  animation-timing-function:var(--ease-reveal),var(--ease-ui);animation-fill-mode:both,none;
+  animation-delay:var(--d,0ms),var(--dp,0ms);}
+
+/* final frames that are not simply "visible" */
+.a-fade-out,.a-type + .a-caret,.a-caret{opacity:0;}
+.a-draw,.a-draw-slow{stroke-dasharray:1;stroke-dashoffset:0;}
+.a-recede,.a-recede-tag{opacity:.26;}
+.a-drift{opacity:0;}
+.a-drive,.a-drive-fast,.a-fly{offset-distance:100%;offset-rotate:auto;}
+.a-grow{transform-origin:center top;}
+svg .a-pop,svg .a-latch{transform-box:fill-box;transform-origin:center;}
+
+/* =========================================================================
+   HOW IT WORKS — the pinned journey (≥901px wide, ≥700px tall, motion on)
+   ========================================================================= */
+.steps-band{background:var(--deep);border-bottom:1px solid var(--line);}
+.steps-band h2.sec{text-wrap:balance;}
+.steps{list-style:none;margin:0;padding:0;}
+
+/* Rings. The pillars no longer carry circles, so the ring is this section's
+   own mark — a hairline ring with a serif numeral, "sequence". */
+.snum{position:relative;z-index:var(--z-content);display:flex;align-items:center;justify-content:center;
+  width:46px;height:46px;border:1px solid var(--line);border-radius:50%;background:var(--deep);
+  font-family:var(--serif);font-size:var(--t-title);font-weight:500;line-height:1;color:var(--silver);
+  font-variant-numeric:lining-nums;
+  transition:background-color var(--dur-slow-ui) var(--ease-ui),border-color var(--dur-slow-ui) var(--ease-ui),
+             color var(--dur-slow-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui);}
+.step h3{font-family:var(--sans);font-size:var(--t-body);font-weight:600;letter-spacing:.01em;
+  margin:0 0 8px;line-height:1.3;color:var(--ink);}
+.step p{font-size:var(--t-body);color:var(--muted);line-height:1.72;margin:0;}
+
+/* --hiw-h is the stage; --hiw-run is the scroll it stays pinned through —
+   50vh a step, so a step is one comfortable flick of a trackpad, not a
+   chore and not a blur. */
+.steps-band[data-mode="pin"]{--hiw-h:488px;--hiw-run:200vh;}
+.hiw-track{position:relative;height:calc(var(--hiw-h) + var(--hiw-run));margin-top:clamp(38px,5vw,56px);
+  --p:0;--car:0;}
+/* Pinned at the middle of what is left under the nav, never closer than
+   28px to it. The nav is the tightened one by the time anyone is here. */
+.hiw-stick{position:sticky;height:var(--hiw-h);
+  top:calc(var(--nav-total-tight) + max(28px, (100vh - var(--nav-total-tight) - var(--hiw-h)) / 2));
+  display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(36px,5vw,80px);}
+
+/* the rail: a road from ring 1 to ring 4, filled behind the car */
+.hiw-rail-col{position:relative;height:100%;}
+.hiw-rail{position:absolute;left:22.5px;top:23px;width:1px;height:calc(var(--hiw-h) * .75);background:var(--line);}
+.hiw-rail-fill{position:absolute;inset:0;background:var(--silver-deep);transform-origin:center top;transform:scaleY(var(--car));}
+/* The car runs UNDER the rings (they sit at z-content with an opaque
+   ground), so it is seen on the road between stops and disappears into
+   the ring it arrives at — which lights up as it does. */
+.hiw-car{position:absolute;left:50%;top:calc(var(--car) * 100%);width:10px;height:18px;margin:-9px 0 0 -5px;
+  border-radius:5px;background:var(--sheen);
+  box-shadow:0 0 0 3px var(--deep),0 0 16px rgba(239,237,233,.35);}
+
+/* Rows are a quarter of the stage EXACTLY, not 1fr: the rail and the car
+   are placed by the same arithmetic, and a row that grew to fit a third
+   line of text put ring 4 below the end of the road. */
+.hiw-steps{display:grid;grid-template-rows:repeat(4,calc(var(--hiw-h) / 4));height:var(--hiw-h);}
+.hiw-steps .step{display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:20px;align-content:start;min-height:0;}
+.hiw-steps .step h3{margin:0;padding-top:calc((46px - 1.3em) / 2);}
+.hiw-steps .step h3 button{font:inherit;color:inherit;letter-spacing:inherit;text-align:left;padding:4px 0;margin:-4px 0;
+  color:var(--muted);transition:color var(--dur-ui) var(--ease-ui);}
+.hiw-steps .step h3 button:hover{color:var(--ink);}
+.hiw-steps .step h3 button:focus-visible{outline:2px solid var(--silver);outline-offset:4px;border-radius:4px;}
+/* One line on show at a time. The others are in the document, at opacity 0
+   — read in order by a screen reader, kept out of the eye's way. */
+.hiw-steps .step p{margin-top:6px;max-width:40ch;opacity:0;transform:translateY(6px);
+  transition:opacity 420ms var(--ease-reveal),transform 420ms var(--ease-reveal);}
+.hiw-steps .step.past .snum{border-color:var(--silver-deep);color:var(--highlight);}
+.hiw-steps .step.past h3 button{color:var(--silver);}
+.hiw-steps .step.on .snum{background:#EFEDE9;background-image:var(--sheen);border-color:transparent;color:var(--on-sheen);
+  box-shadow:0 0 0 6px rgba(239,237,233,.06),0 0 28px rgba(239,237,233,.14);}
+.hiw-steps .step.on h3 button{color:var(--ink);}
+.hiw-steps .step.on p{opacity:1;transform:none;transition-delay:120ms;}
+
+/* the stage */
+.hiw-stage{position:relative;height:100%;border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:var(--shadow-hard);}
+.hiw-stage::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:var(--hairline);opacity:.35;}
+/* progress along the stage's foot: the whole journey, continuous */
+.hiw-stage::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--silver);
+  transform-origin:left center;transform:scaleX(var(--p));opacity:.7;}
+.hiw-stage .scene{position:absolute;inset:0;display:grid;place-items:center;padding:24px;
+  opacity:0;transform:translateY(14px);pointer-events:none;
+  transition:opacity 420ms var(--ease-reveal),transform 520ms var(--ease-reveal);}
+.hiw-stage .scene.is-past{transform:translateY(-14px);}
+.hiw-stage .scene.is-on{opacity:1;transform:none;transition-delay:80ms;}
+.hiw-stage .scene .fit{max-width:440px;}
+.hiw-count{position:absolute;right:22px;bottom:16px;display:flex;align-items:baseline;gap:6px;
+  font-variant-numeric:lining-nums tabular-nums;}
+.hiw-count-n{font-family:var(--serif);font-size:var(--t-head);font-weight:500;line-height:1;color:var(--ink);}
+.hiw-count-of{font-size:var(--t-meta);color:var(--muted);}
+
+/* =========================================================================
+   HOW IT WORKS — the list (tablet, phone, short windows, reduced motion)
+   ========================================================================= */
+.hiw-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:44px 32px;margin-top:clamp(38px,5vw,56px);}
+.hiw-list .step{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:16px;align-content:start;
+  opacity:0;transform:translateY(16px);
+  transition:opacity var(--dur-reveal) var(--ease-reveal),transform var(--dur-reveal) var(--ease-reveal);}
+.hiw-list .step.seen{opacity:1;transform:none;}
+.hiw-list .step h3{padding-top:calc((46px - 1.3em) / 2);}
+.hiw-list .snum{color:var(--ink);}
+.hiw-list .scene-card{grid-column:1 / -1;margin-top:18px;padding:14px 12px;border:1px solid var(--line);border-radius:var(--r-md);
+  background-color:var(--surface);overflow:hidden;}
+.hiw-list .scene-card .fit-in{transition:opacity 400ms var(--ease-reveal);}
+.hiw-list .scene-card:not(.sc-play) .fit-in{opacity:0;}
+@media(max-width:560px){
+  .hiw-list{grid-template-columns:1fr;gap:0;}
+  .hiw-list .step{padding-bottom:36px;}
+  .hiw-list .step:last-child{padding-bottom:0;}
+  /* the road, turned to run down the page: ring to ring, past the scene */
+  .hiw-list .step:not(:last-child)::after{content:"";position:absolute;left:22.5px;top:54px;bottom:8px;width:1px;background:var(--line);}
+  .hiw-list .scene-card{grid-column:2;margin-top:14px;padding:10px 6px;}
+}
+
+/* =========================================================================
+   SCENES (journey/StepScenes.tsx) — drawn at 440×340
+   ========================================================================= */
+.sc{position:relative;width:440px;height:340px;color:var(--ink);font-size:var(--t-meta);line-height:1.3;}
+.sc b{font-weight:600;}
+
+/* 1 · Book — the quote panel */
+.mq{position:absolute;left:60px;top:12px;width:320px;padding:16px 20px;border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--raised);box-shadow:var(--shadow-hard);}
+.mq-route{position:relative;}
+.mq-row{display:flex;align-items:center;gap:10px;height:40px;}
+.mq-ic{display:flex;align-items:center;justify-content:center;width:28px;height:28px;flex:none;border:1px solid var(--line);
+  border-radius:50%;color:var(--silver);background:var(--surface);}
+.mq-k{color:var(--muted);width:44px;flex:none;}
+.mq-v{color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mq-meta{margin-left:auto;color:var(--muted);}
+/* the leg between the two stops, icon edge to icon edge */
+.mq-link{position:absolute;left:13.5px;top:34px;width:1px;height:20px;background:var(--silver-deep);}
+.mq-route .mq-row + .mq-row{margin-top:8px;}
+.mq-car{margin-top:10px;padding-top:10px;height:51px;border-top:1px solid var(--line);}
+.mq-car .mq-v{flex:1;}
+.mq-fare{margin-top:10px;padding-top:12px;border-top:1px solid var(--line);}
+.mq-fixed,.mq-due{display:flex;align-items:center;justify-content:space-between;height:28px;}
+.mq-fixed .mq-k,.mq-due .mq-k{width:auto;}
+.mq-tag{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border:1px solid var(--silver-deep);border-radius:var(--r-pill);
+  color:var(--highlight);font-weight:500;}
+.mq-sum{font-family:var(--serif);font-size:var(--t-title);font-weight:500;color:var(--ink);font-variant-numeric:lining-nums tabular-nums;}
+.mq-btn{position:relative;display:grid;place-items:center;height:42px;margin-top:14px;border-radius:var(--r-xs);
+  background:#EFEDE9;background-image:var(--sheen);color:var(--on-sheen);font-weight:600;letter-spacing:.02em;}
+.mq-btn > span{grid-area:1 / 1;display:inline-flex;align-items:center;gap:6px;}
+.cursor{position:absolute;left:0;top:0;transform:translate(300px,288px);filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));}
+
+/* 2 · Get confirmed */
+.sc-confirm{display:flex;flex-direction:column;align-items:center;padding-top:14px;}
+.cf-ring{display:block;overflow:visible;}
+.cf-track{fill:none;stroke:var(--line);stroke-width:1.2;}
+.cf-arc{fill:none;stroke:var(--highlight);stroke-width:1.4;transform:rotate(-90deg);transform-origin:center;transform-box:fill-box;}
+.cf-tick{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.cf-title{margin-top:18px;font-family:var(--serif);font-size:var(--t-head);font-weight:500;letter-spacing:var(--ls-display);}
+.cf-stack{position:relative;width:340px;margin-top:26px;}
+.cf-note{position:relative;z-index:1;display:flex;gap:14px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--raised);box-shadow:var(--shadow-hard);}
+.cf-ghost{position:absolute;z-index:0;left:14px;right:14px;top:12px;height:100%;opacity:.5;box-shadow:none;background:var(--surface);}
+.cf-ic{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex:none;border:1px solid var(--line);
+  border-radius:50%;color:var(--silver);background:var(--surface);}
+.cf-body{flex:1;min-width:0;}
+.cf-top{display:flex;justify-content:space-between;align-items:baseline;}
+.cf-top span{color:var(--muted);}
+.cf-sub{margin-top:3px;color:var(--highlight);}
+.cf-ref{margin-top:8px;color:var(--muted);}
+.cf-ref span{color:var(--ink);letter-spacing:.06em;font-variant-numeric:tabular-nums;}
+
+/* 3 · Meet your driver */
+.dv-mail{position:absolute;left:50px;top:6px;width:340px;padding:14px 18px 10px;border:1px solid var(--line);border-radius:var(--r-md);
+  background:var(--raised);box-shadow:var(--shadow-hard);}
+.dv-head{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+.dv-head .cf-ic{width:30px;height:30px;}
+.dv-from{margin-left:auto;color:var(--muted);}
+.dv-row{display:flex;align-items:center;justify-content:space-between;height:32px;}
+.dv-row + .dv-row{border-top:1px solid var(--line-soft);}
+.dv-k{color:var(--muted);}
+.dv-v{display:grid;justify-items:end;}
+.dv-v > *{grid-area:1 / 1;}
+.dv-val{color:var(--ink);font-weight:500;}
+.dv-sk{width:92px;height:9px;border-radius:5px;background:var(--line);}
+.dv-plate{letter-spacing:.12em;color:var(--highlight);}
+.dv-arrivals{position:absolute;left:0;right:0;top:188px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--silver);}
+.dv-sign{position:absolute;left:90px;top:218px;width:260px;height:88px;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--r-xs);background:#EFEDE9;background-image:var(--sheen);color:var(--on-sheen);
+  box-shadow:var(--shadow-hard-lg);}
+.dv-name{font-family:var(--serif);font-size:var(--t-display-sm);font-size:2.1rem;font-weight:600;letter-spacing:var(--ls-display);line-height:1;}
+.dv-caret{display:inline-block;width:2px;height:30px;margin-left:3px;background:var(--on-sheen);}
+
+/* 4 · Ride and pay */
+.rd-map{position:absolute;left:0;top:0;width:440px;height:236px;}
+.rd-map > svg{position:absolute;inset:0;overflow:visible;}
+.rd-ghost{fill:none;stroke:var(--line);stroke-width:1.4;stroke-dasharray:2 6;stroke-linecap:round;}
+.rd-road{fill:none;stroke:var(--highlight);stroke-width:2;stroke-linecap:round;}
+.rd-pin{position:absolute;display:flex;align-items:center;justify-content:center;width:34px;height:34px;margin:-17px 0 0 -17px;
+  border:1px solid var(--silver-deep);border-radius:50%;background:var(--raised);color:var(--ink);}
+.rd-lbl{position:absolute;color:var(--muted);}
+.rd-lbl-b{width:64px;text-align:center;}
+.rd-car{position:absolute;left:0;top:0;width:22px;height:12px;border-radius:4px;background:#EFEDE9;background-image:var(--sheen);
+  box-shadow:0 0 0 3px var(--surface),0 0 18px rgba(239,237,233,.35);offset-distance:88%;}
+.sc-play .rd-car.a-drive{animation-name:j-drive-short;}
+@keyframes j-drive-short{from{offset-distance:0%;}to{offset-distance:88%;}}
+.rd-paid{position:absolute;left:70px;top:254px;width:300px;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--raised);box-shadow:var(--shadow-hard);}
+.rd-k{font-family:var(--serif);font-size:var(--t-title);font-weight:500;}
+.rd-cur{display:flex;gap:8px;}
+.rd-cur span{display:inline-block;padding:4px 10px;border:1px solid var(--silver-deep);border-radius:var(--r-pill);color:var(--highlight);
+  font-weight:500;letter-spacing:.06em;}
+
+/* =========================================================================
+   WHY CABBY'S — the pillars, each a tile and a line
+   ========================================================================= */
+.pillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(20px,2.4vw,32px);margin-top:clamp(38px,5vw,60px);}
+.pvis{margin-bottom:22px;padding:14px 4px;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;
+  transition:border-color var(--dur-slow-ui) var(--ease-ui);}
+.pillar:hover .pvis{border-color:var(--silver-deep);}
+.pillar h3{font-family:var(--sans);font-size:var(--t-body);font-weight:600;letter-spacing:.01em;margin:0 0 8px;line-height:1.3;color:var(--ink);}
+.pillar p{font-size:var(--t-body);color:var(--muted);line-height:1.65;margin:0;font-weight:400;max-width:34ch;}
+@media(max-width:900px){.pillars{grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 24px;}}
+@media(max-width:560px){.pillars{grid-template-columns:1fr;gap:34px;}}
+
+/* tiles (journey/PillarVisuals.tsx) — drawn at 220×150 */
+.pv{position:relative;width:220px;height:150px;color:var(--silver);font-size:var(--t-meta);line-height:1.2;}
+.pv > svg{position:absolute;inset:0;overflow:visible;}
+.pv-line{fill:none;stroke:var(--highlight);stroke-width:1.8;stroke-linecap:round;}
+.pv-dash{fill:none;stroke:var(--soft);stroke-width:1.4;stroke-linecap:round;}
+.pv-dash-faint{stroke:var(--line);stroke-dasharray:2 5;}
+.pv-stop{fill:var(--surface);stroke:var(--soft);stroke-width:1.4;}
+.pv-end{fill:var(--surface);stroke:var(--silver);stroke-width:1.4;}
+.pv-tick{fill:none;stroke:var(--silver-deep);stroke-width:1.2;}
+.pv-tag{position:absolute;translate:-50% 0;white-space:nowrap;color:var(--ink);font-weight:500;}
+.pv-tag-mute{color:var(--muted);font-weight:400;}
+.pv-car{position:absolute;left:0;top:0;width:16px;height:9px;border-radius:3px;background:#EFEDE9;background-image:var(--sheen);
+  box-shadow:0 0 0 3px var(--surface),0 0 12px rgba(239,237,233,.3);}
+.pv-axis{position:absolute;color:var(--muted);white-space:nowrap;}
+/* Centring is done with `translate`, never `transform`: the reveal animates
+   transform, and with `both` fill it would hold transform:none and undo
+   the centring — the labels landed half their width to the right. The two
+   properties compose instead of competing. */
+.pv-axis-r{translate:-100% 0;}
+.pv-axis-c{translate:-50% 0;}
+
+.pv-lock{position:absolute;left:50%;top:14px;translate:-50% 0;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  padding:6px 12px 6px 10px;border:1px solid var(--silver-deep);border-radius:var(--r-pill);background:var(--raised);color:var(--ink);font-weight:500;}
+.pv-chip{position:absolute;padding:3px 9px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--surface);color:var(--silver);white-space:nowrap;}
+
+.pv-live{position:absolute;left:8px;top:6px;display:grid;grid-template-columns:auto auto;align-items:center;column-gap:7px;color:var(--signal-ink);}
+.pv-live-dot{grid-row:1;grid-column:1;width:7px;height:7px;border-radius:50%;background:var(--signal);}
+.pv-live-a,.pv-live-b{grid-row:1;grid-column:2;}
+.pillars.in .pv-live-dot{animation:j-pulse 1.1s ease-out calc(var(--i,0) * var(--stagger)) 3;}
+.pv-plane{position:absolute;left:0;top:0;color:var(--ink);display:flex;offset-rotate:auto 90deg;}
+.pv-ring-track{fill:none;stroke:var(--line);stroke-width:1.4;}
+.pv-ring{fill:none;stroke:var(--highlight);stroke-width:1.8;stroke-linecap:round;}
+/* the figure over its unit, so the pair sits inside the ring at any width
+   a reader's font settings give it */
+.pv-wait{position:absolute;translate:-50% -50%;display:flex;flex-direction:column;align-items:center;color:var(--ink);line-height:1;}
+.pv-wait b{font-family:var(--serif);font-size:var(--t-title);font-weight:500;line-height:1;font-variant-numeric:lining-nums;}
+.pv-wait small{margin-top:1px;font-size:var(--t-micro);color:var(--muted);}
+
+.pv-mail{position:absolute;left:50%;top:6px;translate:-50% 0;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  padding:5px 12px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--raised);color:var(--muted);}
+.pv-plate{letter-spacing:.12em;color:var(--ink);font-weight:600;}
+.pv-front{position:absolute;left:44px;top:50px;width:132px;height:78px;color:var(--silver);transform-origin:center 70%;}
+.pv-front svg{display:block;}
+.pv-glass{fill:rgba(167,173,180,.06);}
+.pv-lamp{fill:#EFEDE9;stroke:var(--silver);}
+.pv-plate-car{position:absolute;left:50%;top:51px;translate:-50% 0;padding:1px 6px;border-radius:3px;
+  background:#EFEDE9;background-image:var(--sheen);color:var(--on-sheen);font-size:var(--t-micro);letter-spacing:.1em;line-height:1.3;}
+.pv-match{position:absolute;left:176px;top:62px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;
+  border-radius:50%;border:1px solid var(--silver-deep);background:var(--raised);color:var(--ink);}
+
+/* =========================================================================
+   REDUCED MOTION — every scene and tile shown at its final frame. Last in
+   the file so nothing above can outrank it.
+   ========================================================================= */
+@media(prefers-reduced-motion:reduce){
+  .scene *,.pvis *{animation:none !important;}
+  .cursor,.dv-caret{display:none;}
+  .hiw-list .step{opacity:1;transform:none;transition:none;}
+  .hiw-list .scene-card .fit-in{transition:none;}
+  .snum,.pvis{transition:none;}
+}

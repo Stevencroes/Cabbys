@@ -6,6 +6,7 @@ import { useFlightProvider } from "./lib/flightStatus";
 import { supabaseFlights } from "./lib/providers/supabaseFlights";
 import "./styles/tokens.css";
 import "./styles/globals.css";
+import "./styles/journey.css";
 
 // Flight answers come from our own table, never from the vendor — the
 // scheduled function is the only thing holding a key. See
