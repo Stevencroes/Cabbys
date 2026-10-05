@@ -11,11 +11,16 @@
 //
 // The first version was a winding route with a card beside it, worked by
 // clicking. The owner found the card heavy and the route borrowed, so this
-// one is a straight line that the page's own scroll drives: the section
-// pins, the car moves as you scroll, and the words under the line change
+// one is a straight line that the page's own scroll drives: the car moves
+// as the section passes up the screen, and the words under the line change
 // as it reaches each stop. Nothing is hijacked — the scroll is never
-// slowed, snapped or redirected; the section is simply taller than the
-// screen and reports how far through it you are.
+// slowed, snapped or redirected.
+//
+// It used to pin: the section held still for two and a half screens of
+// scroll while the car drove. The owner found that too long — a whole
+// screen of one section, with nothing of the next in sight — so it is a
+// band of its own height now, a little taller than the fleet's, and the
+// journey runs while the line crosses the middle of the screen.
 //
 // Every line is one the old two sections already stood behind, read from
 // the same constants (src/lib/policy.ts), so Landing.test's promise checks
@@ -117,6 +122,21 @@ export function routeAt(p: number): { car: number; active: number; arrived: bool
   return { car, active, arrived: car > 0.999 };
 }
 
+/** Where the line's middle is, as a share of the screen's height, when the
+    journey starts and when it ends. It starts low, as the line comes up
+    into view, and ends high, with the words under it still on screen and
+    the next section's heading arriving below: that is the stretch where
+    the whole band can be seen, and the car spends all of it driving. */
+const FROM = 0.8;
+const TO = 0.22;
+
+/** The line's place on screen, to progress along the journey, 0..1. */
+export function progressAt(rect: { top: number; height: number }, vh: number): number {
+  if (!vh) return 0;
+  const y = rect.top + rect.height / 2;
+  return Math.min(1, Math.max(0, (FROM * vh - y) / ((FROM - TO) * vh)));
+}
+
 const reducedMotion = () =>
   typeof window !== "undefined" &&
   typeof window.matchMedia === "function" &&
@@ -135,10 +155,7 @@ export default function Journey() {
   const startBooking = useStartBooking();
   const [active, setActive] = useState(0);
   const [arrived, setArrived] = useState(false);
-  const [started, setStarted] = useState(false);
 
-  const track = useRef<HTMLDivElement>(null);
-  const stage = useRef<HTMLDivElement>(null);
   const line = useRef<HTMLDivElement>(null);
 
   /* The car and the trail are written straight to a custom property each
@@ -149,19 +166,16 @@ export default function Journey() {
     let raf = 0;
     const update = () => {
       raf = 0;
-      const t = track.current, s = stage.current;
-      if (!t || !s) return;
-      // Measured from where the stage STICKS, not from the top of the
-      // screen: counted from 0, the last stretch ran a nav-height past the
-      // end of the track and the whole stage slid up under the bar.
-      const stick = parseFloat(getComputedStyle(s).top) || 0;
-      const run = t.offsetHeight - s.offsetHeight;
-      const p = run > 0 ? Math.min(1, Math.max(0, (stick - t.getBoundingClientRect().top) / run)) : 0;
-      const r = routeAt(p);
+      const el = line.current;
+      if (!el) return;
+      const box = el.getBoundingClientRect();
+      // Not laid out (hidden, or a test DOM with no layout): a zero box
+      // reads as "scrolled past the top" and would open on the last stop.
+      if (!box.height) return;
+      const r = routeAt(progressAt(box, window.innerHeight));
       line.current?.style.setProperty("--car", r.car.toFixed(4));
       setActive(r.active);
       setArrived(r.arrived);
-      setStarted(p > 0.015);
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
     update();
@@ -178,99 +192,91 @@ export default function Journey() {
       parked, so a reader who would rather click — or who is on a keyboard —
       gets the same journey without having to scroll through it. */
   const goTo = (i: number) => {
-    const t = track.current, s = stage.current;
-    if (!t || !s) return;
-    const run = t.offsetHeight - s.offsetHeight;
+    const el = line.current;
+    if (!el) return;
     // the middle of the stop's parked stretch, clear of both changeovers
     const p = (i + DRIVE + (1 - DRIVE) / 2 - (i === N - 1 ? DRIVE / 4 : 0)) / N;
-    const stick = parseFloat(getComputedStyle(s).top) || 0;
-    const top = window.scrollY + t.getBoundingClientRect().top - stick + p * run;
+    const vh = window.innerHeight;
+    const want = (FROM - p * (FROM - TO)) * vh;
+    const r = el.getBoundingClientRect();
+    const top = window.scrollY + (r.top + r.height / 2) - want;
     window.scrollTo({ top, behavior: reducedMotion() ? "auto" : "smooth" });
   };
 
   return (
     <section className="journey-band" id={JOURNEY_ID}>
-      <div className="jtrack" ref={track}>
-        <div className="jstage" ref={stage}>
-          <div className="wrap jwrap">
-            <div className="sec-head">
-              <div className="eyebrow rise">How it works</div>
-              <SplitHeading className="sec"
-                parts={[{ text: "From booking to drop-off, " }, { text: "no surprises.", em: true }]} />
-            </div>
+      <div className="wrap jwrap">
+        <div className="sec-head">
+          <div className="eyebrow rise">How it works</div>
+          <SplitHeading className="sec"
+            parts={[{ text: "From booking to drop-off, " }, { text: "no surprises.", em: true }]} />
+        </div>
 
-            {/* The line. --car is the car's place along it, 0..1; the trail
-                is the line's own width times the same number, so the two can
-                never disagree. */}
-            <div className={`jline${arrived ? " arrived" : ""}`} ref={line} style={{ ["--car" as string]: "0" }}>
-              <span className="jstart" aria-hidden="true">Your trip</span>
-              <div className="jroad">
-                <span className="jtrail" aria-hidden="true" />
-                {/* Before the stops in the DOM, so it passes UNDER the rings
-                    and parks out of sight inside the one it has reached. */}
-                <span className="jcar" aria-hidden="true">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="6.5" width="18" height="11" rx="3.4" />
-                    <path d="M14.6 7v10M17.6 8.6v6.8" />
-                  </svg>
-                </span>
-                <ol className="jstops" aria-label="How it works, step by step">
-                  {STOPS.map((s, i) => (
-                    <li key={s.key} style={{ left: `${AT[i] * 100}%` }}>
-                      <button type="button" className={`jstop${i === active ? " on" : ""}${i < active ? " past" : ""}`}
-                        aria-current={i === active ? "step" : undefined} onClick={() => goTo(i)}>
-                        <span className="jring"><Mark>{s.icon}</Mark></span>
-                        <span className="jlabel">{s.title}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-              <span className={`jarrive${arrived ? " on" : ""}`} aria-hidden="true">
-                <span className="jdot" />
-                <em>Enjoy your trip.</em>
-              </span>
-            </div>
-
-            {/* The words, with no box round them. All four share one grid
-                cell so the block never changes height under the reader; the
-                ones not showing are faded, not removed, and lean the way
-                the car is going — the last stop's words leave upward, the
-                next stop's arrive from below. */}
-            <div className="jpanels">
-              {STOPS.map((s, i) => {
-                const on = i === active;
-                const last = i === N - 1;
-                return (
-                  <div key={s.key} className={`jpanel${on ? " on" : i < active ? " gone" : ""}`}>
-                    <div className="jstep">
-                      <div className="jcount">Step {i + 1} of {N}</div>
-                      <h3>{s.title}</h3>
-                      <p className="jbody">{s.body}</p>
-                      {last && (
-                        <button type="button" className="jbook" tabIndex={on ? 0 : -1} onClick={() => startBooking()}>
-                          Book your ride
-                          <Mark size={18}><path d="M5 12h13M13 6.5 18.5 12 13 17.5" /></Mark>
-                        </button>
-                      )}
-                    </div>
-                    {/* No icon: the reason is words beside the step, and a
-                        second ring here competed with the stops on the line. */}
-                    <div className="jwhy">
-                      <div className="jwhy-kick">Why Cabby's</div>
-                      <p><strong>{s.why.title}</strong> {s.why.body}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className={`jhint${started ? " off" : ""}`} aria-hidden="true">
-              Scroll to follow your trip
-              <Mark size={16}><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5" /></Mark>
-            </div>
+        {/* The line. --car is the car's place along it, 0..1; the trail
+            is the line's own width times the same number, so the two can
+            never disagree. */}
+        <div className={`jline${arrived ? " arrived" : ""}`} ref={line} style={{ ["--car" as string]: "0" }}>
+          <span className="jstart" aria-hidden="true">Your trip</span>
+          <div className="jroad">
+            <span className="jtrail" aria-hidden="true" />
+            {/* Before the stops in the DOM, so it passes UNDER the rings
+                and parks out of sight inside the one it has reached. */}
+            <span className="jcar" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="6.5" width="18" height="11" rx="3.4" />
+                <path d="M14.6 7v10M17.6 8.6v6.8" />
+              </svg>
+            </span>
+            <ol className="jstops" aria-label="How it works, step by step">
+              {STOPS.map((s, i) => (
+                <li key={s.key} style={{ left: `${AT[i] * 100}%` }}>
+                  <button type="button" className={`jstop${i === active ? " on" : ""}${i < active ? " past" : ""}`}
+                    aria-current={i === active ? "step" : undefined} onClick={() => goTo(i)}>
+                    <span className="jring"><Mark>{s.icon}</Mark></span>
+                    <span className="jlabel">{s.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
           </div>
+          <span className={`jarrive${arrived ? " on" : ""}`} aria-hidden="true">
+            <span className="jdot" />
+            <em>Enjoy your trip.</em>
+          </span>
+        </div>
+
+        {/* The words, with no box round them. All four share one grid
+            cell so the block never changes height under the reader; the
+            ones not showing are faded, not removed, and lean the way
+            the car is going — the last stop's words leave upward, the
+            next stop's arrive from below. */}
+        <div className="jpanels">
+          {STOPS.map((s, i) => {
+            const on = i === active;
+            const last = i === N - 1;
+            return (
+              <div key={s.key} className={`jpanel${on ? " on" : i < active ? " gone" : ""}`}>
+                <div className="jstep">
+                  <div className="jcount">Step {i + 1} of {N}</div>
+                  <h3>{s.title}</h3>
+                  <p className="jbody">{s.body}</p>
+                  {last && (
+                    <button type="button" className="jbook" tabIndex={on ? 0 : -1} onClick={() => startBooking()}>
+                      Book your ride
+                      <Mark size={18}><path d="M5 12h13M13 6.5 18.5 12 13 17.5" /></Mark>
+                    </button>
+                  )}
+                </div>
+                {/* No icon: the reason is words beside the step, and a
+                    second ring here competed with the stops on the line. */}
+                <div className="jwhy">
+                  <div className="jwhy-kick">Why Cabby's</div>
+                  <p><strong>{s.why.title}</strong> {s.why.body}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import Journey, { JOURNEY_ID, routeAt } from "./Journey";
+import Journey, { JOURNEY_ID, progressAt, routeAt } from "./Journey";
 import Landing from "../pages/Landing";
 import { BookingProvider } from "../booking/BookingContext";
 import { AIRPORT_FREE_WAIT_MINUTES, FREE_CANCEL_HOURS } from "../lib/policy";
@@ -65,6 +65,23 @@ describe("routeAt — scroll to car", () => {
   it("clamps scroll outside the section", () => {
     expect(routeAt(-0.4)).toEqual(routeAt(0));
     expect(routeAt(1.7)).toEqual(routeAt(1));
+  });
+});
+
+describe("progressAt — line on screen to progress", () => {
+  const at = (centre: number, vh = 1000) => progressAt({ top: centre - 29, height: 58 }, vh);
+  it("is 0 until the line is up off the bottom of the screen, 1 once it is near the top", () => {
+    expect(at(1200)).toBe(0);
+    expect(at(800)).toBe(0);
+    expect(at(220)).toBeCloseTo(1);
+    expect(at(-300)).toBe(1);
+  });
+  it("runs evenly in between, so every stop gets the same stretch of scroll", () => {
+    expect(at(510)).toBeCloseTo(0.5);
+    expect(at(655)).toBeCloseTo(0.25);
+  });
+  it("does not divide by a zero-height screen", () => {
+    expect(progressAt({ top: 0, height: 0 }, 0)).toBe(0);
   });
 });
 
