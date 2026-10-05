@@ -1173,6 +1173,144 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    equal specificity — the line still had an animation, just a 0s one. */
 @media(prefers-reduced-motion:reduce){.steps.in .step::after{animation:none;}}
 
+/* ============ HOW IT WORKS + WHY — the route (Journey.tsx) ============ */
+/* The step strip and the pillars, merged into one drawn route. The road is
+   a dotted line in --soft — decoration, so the colour that fails as text
+   is the right one for it — and the trail behind the car is the silver
+   hairline the system already uses for rules. The rings are the strip's
+   46px circles grown to carry an icon, and the active one takes --sheen,
+   the system's one "this is the thing" fill: the same material as the
+   primary button, so the eye reads it as the selection without a legend.
+
+   --ground, not --deep. The strip and the pillars were two bands, deep
+   then ground; this is one, and the fleet below it is --deep, so ground
+   keeps the page alternating. The rings sit on the band colour so the
+   road ends AT each circle instead of running visibly through it. */
+.journey-band{--jbg:var(--ground);background:var(--jbg);}
+.journey-band h2.sec{text-wrap:balance;}
+.journey{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);
+  align-items:center;margin-top:clamp(38px,5vw,60px);}
+
+/* ---- the map ---- */
+.jmap{--ring:64px;position:relative;width:100%;}
+.jroute{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.jroad,.jtrail{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.jroad{stroke:var(--soft);stroke-width:2;stroke-dasharray:.5 9;}
+/* no dash until Journey measures the route and writes one, so a browser
+   that cannot measure SVG shows the dotted road and nothing half-drawn */
+.jtrail{stroke:var(--silver);stroke-width:1.75;stroke-dasharray:0 100000;}
+
+.jstops{position:absolute;inset:0;pointer-events:none;}
+.jstop{position:absolute;pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:10px;
+  width:max-content;transform:translate(-50%,calc(var(--ring) / -2));padding:0;color:var(--silver);}
+.jring{display:grid;place-items:center;width:var(--ring);height:var(--ring);border-radius:50%;
+  border:1px solid var(--line);background:var(--jbg);color:var(--silver);
+  transition:border-color var(--dur-ui) var(--ease-ui),background-color var(--dur-ui) var(--ease-ui),
+             color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui),
+             transform var(--dur-ui) var(--ease-ui);}
+.jlabel{font-size:var(--t-meta);font-weight:500;line-height:var(--lh-tight);letter-spacing:.01em;white-space:nowrap;
+  color:var(--silver);transition:color var(--dur-ui) var(--ease-ui);}
+.jstop:hover .jring{border-color:var(--silver-deep);background-color:var(--raised);color:var(--ink);}
+.jstop:hover .jlabel{color:var(--ink);}
+.jstop:active .jring{transform:scale(.97);transition-duration:var(--dur-press);}
+/* a stop already driven past keeps a firmer ring — the trail says where
+   you have been, the ring says it too for anyone not following the line */
+.jstop.past .jring{border-color:var(--silver-deep);color:var(--ink);}
+.jstop.on .jring{background:var(--sheen);color:var(--on-sheen);border-color:transparent;
+  box-shadow:0 0 0 7px rgba(215,217,216,.07),var(--shadow-hard);}
+.jstop.on .jlabel{color:var(--ink);font-weight:600;}
+.jstop:focus-visible{outline:none;}
+.jstop:focus-visible .jring{outline:2px solid var(--highlight);outline-offset:4px;}
+
+/* The car. Hidden while parked: it rides under the rings, and the lit ring
+   is where it is. --heading is written per frame so it turns the corners. */
+.jcar{position:absolute;display:grid;place-items:center;width:28px;height:28px;margin:-14px 0 0 -14px;
+  border-radius:50%;background:var(--ink);color:var(--on-sheen);box-shadow:var(--shadow-hard);
+  transform:rotate(var(--heading,0deg));opacity:0;transition:opacity var(--dur-press) var(--ease-ui);pointer-events:none;}
+.jcar.moving{opacity:1;}
+
+.jstart{position:absolute;transform:translate(-18px,calc(-100% - 6px));padding:5px 12px;border-radius:var(--r-pill);
+  border:1px solid var(--line);background:var(--raised);color:var(--silver);white-space:nowrap;
+  font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;line-height:var(--lh-tight);}
+.jarrive{position:absolute;display:flex;align-items:center;gap:12px;transform:translate(-7px,-50%);white-space:nowrap;pointer-events:none;}
+.jdot{width:14px;height:14px;border-radius:50%;border:1px solid var(--silver-deep);background:var(--jbg);flex:none;
+  transition:background-color var(--dur-slow-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui);}
+.jarrive-label{font-size:var(--t-meta);color:var(--muted);transition:color var(--dur-slow-ui) var(--ease-ui);}
+.jarrive-label em{font-family:var(--serif);font-size:var(--t-lead);font-style:italic;color:var(--silver);margin-right:4px;}
+.jarrive.on .jdot{background:var(--ink);box-shadow:0 0 0 6px rgba(215,217,216,.08);}
+.jarrive.on .jarrive-label,.jarrive.on .jarrive-label em{color:var(--ink);}
+
+/* bottom right, level with the arrival: out of the route's way, and where
+   the eye lands after following the line to its end */
+.jtour{position:absolute;bottom:0;right:0;transform:translateY(50%);display:inline-flex;align-items:center;gap:8px;
+  min-height:var(--tap);padding:0 16px 0 14px;border-radius:var(--r-pill);border:1px solid var(--line);color:var(--silver);
+  font-size:var(--t-meta);font-weight:500;
+  transition:border-color var(--dur-ui) var(--ease-ui),color var(--dur-ui) var(--ease-ui);}
+.jtour:hover{border-color:var(--silver-deep);color:var(--ink);}
+.jtour:focus-visible,.jprev:focus-visible,.jnext:focus-visible,.jpanel:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;}
+
+/* ---- the panel ----
+   All four in one grid cell, so the box is as tall as the longest and does
+   not jump as the stops change. The hidden ones are visibility:hidden —
+   out of the tab order and the accessibility tree, still in the DOM. */
+.jpanels{display:grid;}
+.jpanel{grid-area:1/1;position:relative;overflow:hidden;padding:clamp(26px,3.4vw,40px);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  visibility:hidden;opacity:0;transform:translateY(10px);
+  transition:opacity var(--dur-slow-ui) var(--ease-reveal),transform 460ms var(--ease-reveal),visibility 0s linear var(--dur-slow-ui);}
+.jpanel.on{visibility:visible;opacity:1;transform:none;transition-delay:0s;}
+.jcount{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
+.jpanel h3{font-family:var(--serif);font-weight:400;font-size:var(--t-display-sm);line-height:var(--lh-display);
+  letter-spacing:var(--ls-display);color:var(--ink);margin:12px 0 14px;}
+.jbody{font-size:var(--t-lead);line-height:var(--lh-body);color:var(--highlight);max-width:var(--measure-narrow);}
+.jwhy{display:flex;gap:16px;align-items:flex-start;margin-top:26px;padding-top:22px;border-top:1px solid var(--line);}
+.jwhy-mark{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);color:var(--silver);}
+.jwhy-kick{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);margin:2px 0 6px;}
+.jwhy p{font-size:var(--t-body);line-height:var(--lh-body);color:var(--muted);}
+.jwhy strong{display:block;color:var(--ink);font-weight:600;margin-bottom:2px;}
+.jnav{display:flex;align-items:center;gap:12px;margin-top:30px;}
+.jprev{display:grid;place-items:center;flex:none;width:var(--tap);height:var(--tap);border-radius:50%;
+  border:1px solid var(--line);color:var(--silver);
+  transition:border-color var(--dur-ui) var(--ease-ui),color var(--dur-ui) var(--ease-ui),background-color var(--dur-ui) var(--ease-ui);}
+.jprev:hover{border-color:var(--silver-deep);background-color:var(--raised);color:var(--ink);}
+.jnext{display:inline-flex;align-items:center;gap:8px;margin-left:auto;min-height:var(--tap);padding:0 18px 0 22px;
+  border-radius:var(--r-pill);border:1px solid var(--line);color:var(--ink);
+  font-size:var(--t-meta);font-weight:600;letter-spacing:.02em;
+  transition:border-color var(--dur-ui) var(--ease-ui),background-color var(--dur-ui) var(--ease-ui),transform var(--dur-ui) var(--ease-ui);}
+.jnext:hover{border-color:var(--silver-deep);background-color:var(--raised);}
+.jnext svg{transition:transform var(--dur-ui) var(--ease-ui);}
+.jnext:hover svg{transform:translateX(3px);}
+/* the end of the route is the one place the section asks for anything */
+.jnext.jbook{background:var(--sheen);color:var(--on-sheen);border-color:transparent;padding:0 26px;}
+.jnext.jbook:hover{background:var(--sheen);box-shadow:var(--shadow-hard);transform:scale(1.025);}
+/* the tour's clock: a hairline filling along the panel's foot, so a stop
+   that changes on its own was visibly about to */
+@keyframes jtimer{from{transform:scaleX(0);}to{transform:none;}}
+.jtimer{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--silver-deep);opacity:.55;
+  transform-origin:left center;animation:jtimer linear forwards;}
+
+/* Stacked: the map on top, at a size it can be read at — the full column
+   width would make it 560px tall on a tablet. */
+@media(max-width:900px){
+  .journey{grid-template-columns:1fr;}
+  .jmap{max-width:600px;margin:0 auto;}
+}
+@media(max-width:560px){
+  .jmap{--ring:50px;margin-top:10px;}
+  .jring svg{width:21px;height:21px;}
+  .jstop{gap:8px;}
+  .jcar{width:24px;height:24px;margin:-12px 0 0 -12px;}
+  .jarrive{gap:10px;}
+  .jarrive-label em{font-size:var(--t-body);}
+  .jtour{padding:0 12px 0 10px;}
+  .jnext{flex:1;justify-content:center;}
+}
+@media(prefers-reduced-motion:reduce){
+  .jring,.jlabel,.jcar,.jdot,.jarrive-label,.jpanel,.jnext,.jnext svg,.jprev,.jtour{transition:none;}
+  .jpanel{transform:none;}
+  .jtimer{display:none;}
+}
+
 /* ============ §11 — VEHICLE CARDS ============ */
 .fleet{background:var(--deep);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
 .fleet .inner{max-width:var(--maxw);margin:0 auto;padding:clamp(50px,6.6vh,84px) var(--gutter);}
