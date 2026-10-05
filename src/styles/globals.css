@@ -1054,23 +1054,23 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 
 /* ============ HOW IT WORKS + WHY — the route (Journey.tsx) ============ */
 /* The step strip and the pillars, merged into one straight line that the
-   page's scroll drives. The track is taller than the screen by one stretch
-   per stop; the stage inside it is sticky, so it holds still under the nav
-   while the track scrolls past and Journey reads how far through it you
-   are. No box anywhere: the first version put the words in a card, and the
+   page's scroll drives: Journey reads where the line is on screen and
+   moves the car to match. It once pinned for two and a half screens; it is
+   a band of its own height now, a step taller than the fleet's so the
+   section that carries the most reads as the larger one. No box anywhere: the first version put the words in a card, and the
    owner found it heavy — the line and the type carry the section alone.
 
    --ground, not --deep. The strip and the pillars were two bands, deep
    then ground; this is one, and the fleet below it is --deep, so ground
    keeps the page alternating. The rings sit on the band colour so the
    road ends AT each circle instead of running visibly through it. */
-.journey-band{--jbg:var(--ground);--jstick:var(--nav-total);--ring:58px;background:var(--jbg);position:relative;}
-/* One stretch of scroll per stop, sized to the screen: about two-thirds of
-   a viewport each is a flick on a trackpad and a thumb-swipe on a phone —
-   enough to read a stop without the section outstaying its welcome. */
-.jtrack{height:calc(100svh - var(--jstick) + 4 * 62svh);}
-.jstage{position:sticky;top:var(--jstick);height:calc(100svh - var(--jstick));display:flex;align-items:center;overflow:hidden;}
-.jwrap{width:100%;display:flex;flex-direction:column;gap:clamp(30px,6.5vh,64px);padding-block:clamp(20px,4vh,40px);}
+.journey-band{--jbg:var(--ground);--ring:58px;background:var(--jbg);position:relative;
+  padding-block:clamp(60px,8vh,100px);}
+/* One gap between the three parts — heading, line, words — so they read
+   as evenly spaced. The words add 28px of their own, the room the labels
+   hung under the rings take, so the space you SEE above them is this gap
+   too, not the gap minus a label. */
+.jwrap{display:flex;flex-direction:column;gap:clamp(36px,4.6vw,56px);}
 .journey-band h2.sec{text-wrap:balance;}
 
 /* ---- the line ---- */
@@ -1152,17 +1152,9 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .jbook:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;}
 .jbook svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .jbook:hover svg{transform:translateX(3px);}
-/* Says once that this section moves with the scroll, and goes the moment
-   it has. Without it the pinned stage reads, for a beat, as the page
-   having stuck. */
-.jhint{display:flex;align-items:center;gap:8px;align-self:center;font-size:var(--t-meta);color:var(--muted);
-  transition:opacity var(--dur-slow-ui) var(--ease-ui);}
-.jhint svg{animation:jhint 1.8s var(--ease-ui) infinite;}
-@keyframes jhint{0%,100%{transform:none;}50%{transform:translateY(3px);}}
-.jhint.off{opacity:0;}
 
 @media(max-width:900px){
-  .journey-band{--jstick:var(--nav-total-sm);--ring:50px;}
+  .journey-band{--ring:50px;}
   .jpanel{grid-template-columns:1fr;gap:22px;}
   .jwhy{padding-left:0;border-left:none;padding-top:20px;border-top:1px solid var(--line);margin-top:0;}
 }
@@ -1172,7 +1164,7 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
    two dots stay, so the line still visibly starts and ends somewhere. */
 @media(max-width:560px){
   .journey-band{--ring:46px;}
-  .jwrap{gap:clamp(22px,4vh,40px);}
+  .jwrap{gap:30px;}
   .jline{gap:10px;}
   .jstart{width:8px;height:8px;padding:0;border-radius:50%;font-size:0;background:var(--silver-deep);border:none;}
   .jarrive em{display:none;}
@@ -1183,9 +1175,8 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .jbook{width:100%;justify-content:center;}
 }
 @media(prefers-reduced-motion:reduce){
-  .jring,.jlabel,.jdot,.jarrive em,.jpanel,.jbook,.jbook svg,.jhint{transition:none;}
+  .jring,.jlabel,.jdot,.jarrive em,.jpanel,.jbook,.jbook svg{transition:none;}
   .jpanel,.jpanel.gone{transform:none;}
-  .jhint svg{animation:none;}
 }
 
 /* ============ §11 — VEHICLE CARDS ============ */
