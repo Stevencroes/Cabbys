@@ -128,11 +128,11 @@ describe("Landing — only promises what is true", () => {
     expect(steps).toMatch(/name, car and plate/);
   });
 
-  // Seven short answers (the owner: "keep it minimal"), each from the
-  // constant that decides it.
+  // Six short answers at most (the owner: "keep it minimal", then "max
+  // 6"), each from the constant that decides it.
   it("states the owner's decisions, from the constants that hold them", () => {
     const faq = copyOf("#faq");
-    expect(document.querySelectorAll("#faq .fitem").length).toBeLessThanOrEqual(7);
+    expect(document.querySelectorAll("#faq .fitem").length).toBeLessThanOrEqual(6);
     expect(faq).toMatch(/arrivals hall with a sign with your name/);
     expect(faq).toMatch(/name, car and plate/);
     expect(faq).toContain(`${usd(CHILD_SEAT_USD)} per seat each way`);
@@ -145,7 +145,6 @@ describe("Landing — only promises what is true", () => {
     expect(faq).toMatch(/Can I cancel\?\W*Yes, for free/);
     expect(faq).toContain(`at least ${FREE_CANCEL_HOURS} hours ahead`);
     expect(faq).toContain(`At least ${durationLabel(MIN_NOTICE_HOURS * 60)} before pickup`);
-    expect(faq).toMatch(/Do I need an account\?\W*No\./);
 
     const route = copyOf("#how-it-works");
     expect(route).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
