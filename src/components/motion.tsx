@@ -42,7 +42,7 @@ function index(group: Element): void {
  * on an element whose transition has already started does not shift it: it
  * cancels and restarts it, so every card snapped back to opacity 0 and sat
  * there for its delay before starting again. That is the stall, and it hit
- * exactly the two groups that use `.stagger` — the pillars and the vehicle
+ * exactly the two groups that then used `.stagger` — the pillars and the vehicle
  * cards. Delays are now written when the element is first observed, before
  * anything has been asked to move.
  *

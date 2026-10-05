@@ -1,9 +1,10 @@
 // How it works + Why Cabby's, as one route you scroll along.
 //
-// The page said the same thing twice. Steps.tsx walked through what happens
-// after you book; HowItWorks.tsx (the pillars) listed why that is good — and
-// two of its four pillars ("you know who's coming", "there before you are")
-// were the steps again, restated as claims. Here each reason sits on the
+// The page said the same thing twice. A step strip (Steps.tsx, now gone)
+// walked through what happens after you book; the pillars (HowItWorks.tsx,
+// also gone) listed why that is good — and two of the four pillars ("you
+// know who's coming", "there before you are") were the steps again,
+// restated as claims. Here each reason sits on the
 // stop where a guest actually meets it: the fixed price when they book, free
 // cancellation once it is confirmed, the flight being followed when they
 // land, privacy on the ride itself. Eight blocks of copy become four stops.

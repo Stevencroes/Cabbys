@@ -1044,134 +1044,13 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 
 /* ============ HOW — one bordered grid, shared rules ============ */
-/* ============ SECTION HEAD — shared by §10 and §11 ============ */
+/* ============ SECTION HEAD — shared by the route and the fleet ============ */
 /* An eyebrow and a serif headline, and nothing else. The head used to carry
    a ghost link to the right of the headline in both sections; both said
    "book", which the page already asks for in the nav, the hero and the
    closer. The heading is stronger on its own. */
 .sec-head .eyebrow{color:var(--silver);font-size:var(--t-meta);font-weight:500;letter-spacing:.26em;}
 .sec-head .sec{margin:14px 0 0;}
-
-/* ============ §10 — THE FOUR PILLARS ============ */
-/* No boxes. A mark, a name, a claim, and air between them — the border-grid
-   the old three-step block used made each cell an object to look at rather
-   than a line to read. */
-.pillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(24px,3vw,44px);margin-top:clamp(38px,5vw,60px);}
-.pillar .pmark{display:flex;align-items:center;justify-content:center;width:46px;height:46px;
-  border:1px solid var(--line);border-radius:50%;color:var(--silver);margin-bottom:20px;
-  transition:border-color var(--dur-slow-ui) var(--ease-ui),
-             background-color var(--dur-slow-ui) var(--ease-ui),
-             color var(--dur-slow-ui) var(--ease-ui);}
-.pillar:hover .pmark{border-color:var(--silver-deep);background-color:var(--raised);color:var(--ink);}
-/* The circle settles a beat behind its own card — 140ms after the card
-   starts, so it reads as part of the card arriving rather than as a second
-   thing happening. --i is inherited from the .pillar the observer indexed.
-   Scale only: the card is already carrying the fade, and two fades stacked
-   on one element just make it slower. It runs once. */
-@keyframes mark-in{from{transform:scale(.86);}to{transform:none;}}
-.pillars.in .pmark{animation:mark-in 520ms var(--ease-reveal) backwards;
-  animation-delay:calc(var(--i,0) * var(--stagger) + 140ms);}
-@media(prefers-reduced-motion:reduce){
-  .pillar .pmark{transition:none;}
-  .pillars.in .pmark{animation:none;}
-}
-/* Two lines' worth of room whether the title needs it or not. "Fixed &
-   Transparent Prices" wraps at desktop widths and the other three do not,
-   which pushed its paragraph 26px below its neighbours' — four columns
-   that stopped sharing a baseline over one long word. */
-.pillar h3{font-family:var(--sans);font-size:var(--t-body);font-weight:600;letter-spacing:.01em;
-  margin:0 0 10px;line-height:1.3;min-height:2.6em;color:var(--ink);}
-.pillar p{font-size:var(--t-body);color:var(--muted);line-height:1.72;margin:0;font-weight:400;}
-@media(max-width:900px){.pillars{grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 24px;}}
-/* the phone's form: one open at a time, each row a real button */
-.pillars-list{grid-template-columns:1fr;gap:0;border-top:1px solid var(--line);}
-.pillars-list .pillar{border-bottom:1px solid var(--line);}
-.pillars-list .pillar h3{margin:0;font-size:inherit;font-weight:inherit;}
-.pillars-list .pillar h3 button{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
-  background:none;border:none;color:var(--ink);padding:18px 2px;min-height:var(--tap);
-  font-size:var(--t-body);font-weight:600;font-family:var(--sans);}
-.pillars-list .pillar .pmark{width:38px;height:38px;margin:0;flex:none;}
-.pillars-list .pillar .pmark svg{width:19px;height:19px;}
-.pillars-list .ptitle{flex:1;min-width:0;}
-.pillars-list .pchev{flex:none;color:var(--muted);transition:transform .3s var(--ease);}
-.pillars-list .pillar.on .pchev{transform:rotate(180deg);}
-.pillars-list .pillar p{padding:0 2px 20px 54px;margin:0;}
-@media(prefers-reduced-motion:reduce){.pillars-list .pchev{transition:none;}}
-
-/* ============ HOW IT WORKS — the step strip (Steps.tsx) ============ */
-/* What happens after you book, between the hero and the pillars. It takes
-   the --deep ground with one hairline under it, the fleet's treatment, so
-   the page alternates ground/deep from the hero down — hero, steps,
-   pillars, fleet — instead of two --ground bands running together with
-   nothing to say where one stops. The hero's own border-bottom is the
-   line above it.
-
-   The marks are the pillars' circles carrying a numeral instead of an
-   icon: the same 46px hairline ring, so the two sections read as one
-   system, and the serif numeral says "sequence" where the pillars' icons
-   say "quality". A rule runs from each ring to the next — the strip — and
-   is drawn left to right a beat after the step it leaves, so the order is
-   something you see happen once rather than decoration. */
-.steps-band{background:var(--deep);border-bottom:1px solid var(--line);}
-/* Four equal columns. The last was wider while "on the day" was a
-   four-item list; every step is one line now, so the strip is even. */
-.steps{--steps-gap:clamp(24px,3vw,44px);list-style:none;margin:clamp(38px,5vw,60px) 0 0;padding:0;
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--steps-gap);}
-/* "What happens after you / book." left one word alone on a phone. */
-.steps-band h2.sec{text-wrap:balance;}
-.step{position:relative;min-width:0;}
-/* --deep behind the ring so the rule ends AT the circle rather than
-   running visibly through it */
-.snum{position:relative;z-index:var(--z-content);display:flex;align-items:center;justify-content:center;
-  width:46px;height:46px;margin-bottom:20px;border:1px solid var(--line);border-radius:50%;background:var(--deep);
-  font-family:var(--serif);font-size:var(--t-title);font-weight:500;line-height:1;color:var(--ink);
-  font-variant-numeric:lining-nums;}
-/* From the ring's right edge to the next ring's left, 14px clear of both.
-   The right offset reaches back across the column gap, which is why the
-   gap is a custom property: one number, read by the grid and the rule. */
-.step:not(:last-child)::after{content:"";position:absolute;top:23px;height:1px;
-  left:calc(46px + 14px);right:calc(var(--steps-gap) * -1 + 14px);
-  background:var(--line);transform-origin:left center;}
-@keyframes steps-rule{from{transform:scaleX(0);}to{transform:none;}}
-@keyframes steps-drop{from{transform:scaleY(0);}to{transform:none;}}
-/* --i is the step's own index, inherited from the li the observer wrote it
-   on; 240ms puts the line after its step has started to settle. backwards
-   fill, so before the delay the rule is not there at all and afterwards it
-   is simply a line. Runs once. */
-.steps.in .step::after{animation:steps-rule 620ms var(--ease-reveal) backwards;
-  animation-delay:calc(var(--i,0) * var(--stagger) + 240ms);}
-/* The pillars' title and paragraph, so the two sections set the same way.
-   No reserved second line, as the pillars have: these titles are two or
-   three words and never wrap, so the room only pushed every line down. */
-.step h3{font-family:var(--sans);font-size:var(--t-body);font-weight:600;letter-spacing:.01em;
-  margin:0 0 10px;line-height:1.3;color:var(--ink);}
-.step p{font-size:var(--t-body);color:var(--muted);line-height:1.72;margin:0;}
-/* Two by two: the rules join 1 to 2 and 3 to 4 along each row, and the
-   one that would run off the right edge from step 2 is dropped. */
-@media(max-width:900px){
-  .steps{--steps-gap:24px;grid-template-columns:repeat(2,minmax(0,1fr));row-gap:36px;}
-  .step:nth-child(2n)::after{display:none;}
-}
-/* A phone: one column, the ring on the left and the rule dropping from
-   ring to ring — the same strip, turned to run down the page. Not an
-   accordion like the pillars: four steps this short are read in one
-   pass, and a sequence you have to open one step at a time is no longer
-   a sequence. */
-@media(max-width:560px){
-  .steps{grid-template-columns:1fr;gap:0;}
-  .step{display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:16px;padding-bottom:28px;}
-  .step:last-child{padding-bottom:0;}
-  .snum{margin:0;}
-  /* the title centres on the ring: (46px - one 1.3 line) / 2 */
-  .step h3{min-height:0;padding-top:calc((46px - 1.3em) / 2);}
-  .step:not(:last-child)::after,.step:nth-child(2n)::after{display:block;
-    top:calc(46px + 8px);bottom:8px;left:23px;right:auto;width:1px;height:auto;transform-origin:center top;}
-  .steps.in .step::after{animation-name:steps-drop;}
-}
-/* Last in the block on purpose: the phone query above re-names the rule's
-   animation, and a reduced-motion rule placed before it lost to that at
-   equal specificity — the line still had an animation, just a 0s one. */
-@media(prefers-reduced-motion:reduce){.steps.in .step::after{animation:none;}}
 
 /* ============ HOW IT WORKS + WHY — the route (Journey.tsx) ============ */
 /* The step strip and the pillars, merged into one straight line that the

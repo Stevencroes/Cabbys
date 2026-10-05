@@ -1,8 +1,34 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Journey, { JOURNEY_ID, routeAt } from "./Journey";
+import Landing from "../pages/Landing";
+import { BookingProvider } from "../booking/BookingContext";
 import { AIRPORT_FREE_WAIT_MINUTES, FREE_CANCEL_HOURS } from "../lib/policy";
+
+// Landing's quote card and fleet read pricing from Supabase; stub it so the
+// whole page can render for the link checks at the bottom.
+vi.mock("../lib/supabase", () => {
+  const builder = () => {
+    const b: {
+      select: () => unknown; eq: () => unknown; order: () => unknown;
+      then: (res: (v: unknown) => unknown) => Promise<unknown>;
+    } = {
+      select() { return b; }, eq() { return b; }, order() { return b; },
+      then(res) { return Promise.resolve({ data: [], error: null }).then(res); },
+    };
+    return b;
+  };
+  return {
+    supabase: {
+      from: builder,
+      auth: {
+        getSession: () => Promise.resolve({ data: { session: null } }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+      },
+    },
+  };
+});
 
 const mount = () => render(<MemoryRouter><Journey /></MemoryRouter>);
 const text = () => (document.getElementById(JOURNEY_ID)!.textContent ?? "").replace(/\s+/g, " ");
@@ -89,5 +115,34 @@ describe("the route", () => {
     expect(t).toContain(`up to ${FREE_CANCEL_HOURS} hours before pickup`);
     expect(t).toMatch(/Just your group/);
     expect(t).not.toMatch(/\bcard\b|\bfee\b|photo|\bat the gate\b|\b(he|him|his)\b/i);
+  });
+});
+
+describe("getting to the route", () => {
+  const page = () => render(
+    <MemoryRouter>
+      <BookingProvider>
+        <Landing />
+      </BookingProvider>
+    </MemoryRouter>,
+  );
+
+  it("is reached from the nav and from the footer sitemap", () => {
+    const { container } = page();
+    expect(container.querySelector(`#${JOURNEY_ID}`)).not.toBeNull();
+    const nav = container.querySelector("nav.nav") as HTMLElement;
+    const foot = screen.getByRole("contentinfo");
+    expect(within(nav).getByRole("link", { name: "How it works" })).toHaveAttribute("href", `/#${JOURNEY_ID}`);
+    expect(within(foot).getByRole("link", { name: "How it works" })).toHaveAttribute("href", `/#${JOURNEY_ID}`);
+    // the pillars merged into the route; the nav no longer has a second
+    // link to the same place, and nothing on the page answers #services
+    expect(within(nav).queryByRole("link", { name: /why cabby/i })).toBeNull();
+    expect(container.querySelector("#services")).toBeNull();
+  });
+
+  it("sits straight under the hero, ahead of the fleet", () => {
+    const { container } = page();
+    const ids = [...container.querySelectorAll("#top, #how-it-works, #fleet")].map((el) => el.id);
+    expect(ids).toEqual(["top", JOURNEY_ID, "fleet"]);
   });
 });
