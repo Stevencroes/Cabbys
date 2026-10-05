@@ -19,8 +19,11 @@ const NOT_A_PLACE = /^#step/;
  * does not tell — and it is "faq" now. /#about is still out there in
  * shared links, bookmarks and the emails already sent, and a renamed id
  * must not turn those into a link to the top of the page.
+ *
+ * "services" was the "Why Cabby's" pillars, which merged into the route
+ * at #how-it-works; the nav linked to it, so it is in links too.
  */
-const MOVED: Record<string, string> = { about: "faq" };
+const MOVED: Record<string, string> = { about: "faq", services: "how-it-works" };
 
 /** Frames to keep looking before giving up — ~half a second at 60fps. */
 const MAX_FRAMES = 30;

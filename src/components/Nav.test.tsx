@@ -51,10 +51,12 @@ describe("Nav", () => {
     fireEvent.click(burger);
     const sheet = screen.getByRole("dialog", { name: /menu/i });
     const items = within(sheet);
-    // §06's four and the step strip, and nothing promised that isn't there
-    for (const label of [/how it works/i, /why cabby/i, /vehicles/i, /faq/i, /contact/i]) {
+    // the route, the fleet, the FAQ and contact, and nothing promised that
+    // isn't there — "Why Cabby's" went when the pillars merged into the route
+    for (const label of [/how it works/i, /vehicles/i, /faq/i, /contact/i]) {
       expect(items.getByRole("link", { name: label })).toBeInTheDocument();
     }
+    expect(items.queryByRole("link", { name: /why cabby/i })).toBeNull();
     expect(items.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /close menu/i })).toHaveAttribute("aria-expanded", "true");
   });

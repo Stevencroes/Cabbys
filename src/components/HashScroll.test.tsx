@@ -50,6 +50,16 @@ describe("HashScroll", () => {
     await waitFor(() => expect(faq.scrollIntoView).toHaveBeenCalled());
   });
 
+  it("lands /#services on the route the pillars merged into", async () => {
+    const route = section("how-it-works");
+    render(
+      <MemoryRouter initialEntries={["/#services"]}>
+        <HashScroll />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(route.scrollIntoView).toHaveBeenCalled());
+  });
+
   it("leaves the booking modal's own hashes alone", async () => {
     const step = section("step-1");
     render(

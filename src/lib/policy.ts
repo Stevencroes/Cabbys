@@ -1,5 +1,5 @@
 // Cancellation and waiting policy — each rule one number, stated
-// everywhere the same way. The FAQ, the How it works pillars and My trips
+// everywhere the same way. The FAQ, the How it works route and My trips
 // read these; the legal pages (src/content/legal) are approval-gated and
 // are not generated from them.
 

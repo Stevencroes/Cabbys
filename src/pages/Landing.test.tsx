@@ -104,7 +104,7 @@ describe("Landing — only promises what is true", () => {
     ["the fare settled in advance", /settled in advance/i],
   ];
 
-  it.each([["the step strip", "#how-it-works"], ["the pillars", "#services"], ["the FAQ", "#faq"]])(
+  it.each([["the route", "#how-it-works"], ["the FAQ", "#faq"]])(
     "nothing in %s promises what the product does not do",
     (_, selector) => {
       const text = copyOf(selector);
@@ -114,7 +114,7 @@ describe("Landing — only promises what is true", () => {
     },
   );
 
-  // The strip is the page's account of what happens after booking, so it
+  // The route is the page's account of what happens after booking, so it
   // carries the promises most likely to drift: what you pay with, and the
   // sign. Card payment is off; nothing is taken online.
   it("walks through the steps without promising a card charge or a late fee", () => {
@@ -147,9 +147,10 @@ describe("Landing — only promises what is true", () => {
     expect(faq).toContain(`At least ${durationLabel(MIN_NOTICE_HOURS * 60)} before pickup`);
     expect(faq).toMatch(/Do I need an account\?\W*No\./);
 
-    const pillars = copyOf("#services");
-    expect(pillars).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
-    expect(pillars).toMatch(/name, car and plate/);
+    const route = copyOf("#how-it-works");
+    expect(route).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
+    expect(route).toMatch(/name, car and plate/);
+    expect(route).toContain(`${FREE_CANCEL_HOURS} hours before pickup`);
   });
 
   it("keeps the link previews to the same facts", () => {

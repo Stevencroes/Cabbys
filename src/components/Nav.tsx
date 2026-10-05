@@ -13,12 +13,12 @@ const LINKS = [
   // does not tell, which is a promise broken one click in.
   //
   // In page order, so the rail is also a table of contents. "How it works"
-  // is the step strip (Steps.tsx) — the process, which the page had never
-  // shown; "Why Cabby's" stays the pillars. The FAQ link pointed at
+  // is the route (Journey.tsx), which carries the reasons to book as well;
+  // "Why Cabby's" went when the pillars merged into it, rather than stay
+  // as a second link to the same place. The FAQ link pointed at
   // /#about, the FAQ's old id, which promised an About section the page
   // does not have; it is /#faq now, and HashScroll still answers /#about.
   { label: "How it works", href: "/#how-it-works" },
-  { label: "Why Cabby's", href: "/#services" },
   { label: "Vehicles", href: "/#fleet" },
   { label: "FAQ", href: "/#faq" },
   { label: "Contact", href: "/#contact" },
