@@ -34,7 +34,7 @@ type Stop = {
   title: string;
   body: string;
   icon: ReactNode;
-  why: { title: string; body: string; icon: ReactNode };
+  why: { title: string; body: string };
 };
 
 const STOPS: Stop[] = [
@@ -46,7 +46,6 @@ const STOPS: Stop[] = [
     why: {
       title: "The price is the price",
       body: "Fixed when you book. Traffic or a late flight won't change it.",
-      icon: <><path d="M11.4 3.4 3.6 11.2a1.6 1.6 0 0 0 0 2.3l6.9 6.9a1.6 1.6 0 0 0 2.3 0l7.8-7.8V3.4Z" /><circle cx="16.4" cy="7.6" r="1.5" /></>,
     },
   },
   {
@@ -58,7 +57,6 @@ const STOPS: Stop[] = [
       // The FAQ's and the link preview's own claim, from the same number.
       title: "Plans change. That's fine.",
       body: `Cancel for free up to ${FREE_CANCEL_HOURS} hours before pickup.`,
-      icon: <><path d="M4 12a8 8 0 1 0 2.4-5.7" /><path d="M4 4.5v3.8h3.8" /></>,
     },
   },
   {
@@ -69,7 +67,6 @@ const STOPS: Stop[] = [
     why: {
       title: "There before you are",
       body: `We follow your flight, then wait up to ${AIRPORT_FREE_WAIT_MINUTES} minutes after you land, free.`,
-      icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5.2l3.2 2" /></>,
     },
   },
   {
@@ -80,7 +77,6 @@ const STOPS: Stop[] = [
     why: {
       title: "Private, start to finish",
       body: "Just your group. No sharing, no detours.",
-      icon: <><circle cx="9.2" cy="9.4" r="3.1" /><path d="M3.4 19c.6-3.4 2.9-5.2 5.8-5.2s5.2 1.8 5.8 5.2" /><path d="M15.8 7.4a3 3 0 0 1 0 5.5" /><path d="M17.6 19c-.25-1.6-.9-3-1.9-3.9" /></>,
     },
   },
 ];
@@ -101,7 +97,7 @@ const DRIVE = 0.4;
  * Scroll progress (0..1) to where the car is (0..1 along the line) and
  * which stop is showing. Each stop owns 1/N of the scroll: the car drives
  * in for the first DRIVE of it, then waits. The last stop's share ends
- * with the drive on to the arrival dot, so the trail reaches "you're here"
+ * with the drive on to the arrival dot, so the trail reaches "Enjoy your trip"
  * exactly as the section lets go.
  */
 export function routeAt(p: number): { car: number; active: number; arrived: boolean } {
@@ -199,7 +195,7 @@ export default function Journey() {
             <div className="sec-head">
               <div className="eyebrow rise">How it works</div>
               <SplitHeading className="sec"
-                parts={[{ text: "From booking to arrivals, " }, { text: "no surprises.", em: true }]} />
+                parts={[{ text: "From booking to drop-off, " }, { text: "no surprises.", em: true }]} />
             </div>
 
             {/* The line. --car is the car's place along it, 0..1; the trail
@@ -232,7 +228,7 @@ export default function Journey() {
               </div>
               <span className={`jarrive${arrived ? " on" : ""}`} aria-hidden="true">
                 <span className="jdot" />
-                <em>Bon bini.</em>
+                <em>Enjoy your trip.</em>
               </span>
             </div>
 
@@ -258,12 +254,11 @@ export default function Journey() {
                         </button>
                       )}
                     </div>
+                    {/* No icon: the reason is words beside the step, and a
+                        second ring here competed with the stops on the line. */}
                     <div className="jwhy">
-                      <span className="jwhy-mark"><Mark size={20}>{s.why.icon}</Mark></span>
-                      <div>
-                        <div className="jwhy-kick">Why Cabby's</div>
-                        <p><strong>{s.why.title}</strong> {s.why.body}</p>
-                      </div>
+                      <div className="jwhy-kick">Why Cabby's</div>
+                      <p><strong>{s.why.title}</strong> {s.why.body}</p>
                     </div>
                   </div>
                 );

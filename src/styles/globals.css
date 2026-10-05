@@ -1261,9 +1261,8 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   letter-spacing:var(--ls-display);color:var(--ink);margin:10px 0 12px;}
 .jbody{font-size:var(--t-lead);line-height:var(--lh-body);color:var(--highlight);max-width:var(--measure-narrow);}
 /* the reason, set apart by a hairline rather than a box */
-.jwhy{display:flex;gap:16px;align-items:flex-start;padding-left:clamp(22px,3vw,40px);border-left:1px solid var(--line);margin-top:6px;}
-.jwhy-mark{display:grid;place-items:center;flex:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);color:var(--silver);}
-.jwhy-kick{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);margin:2px 0 8px;}
+.jwhy{padding-left:clamp(22px,3vw,40px);border-left:1px solid var(--line);margin-top:6px;}
+.jwhy-kick{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);margin:0 0 10px;}
 .jwhy p{font-size:var(--t-body);line-height:var(--lh-body);color:var(--muted);max-width:40ch;}
 .jwhy strong{display:block;color:var(--ink);font-weight:600;font-size:var(--t-lead);margin-bottom:4px;}
 /* the end of the route is the one place the section asks for anything */
