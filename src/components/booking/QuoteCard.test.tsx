@@ -45,8 +45,9 @@ function pick(label: RegExp, query: string) {
   fireEvent.change(input, { target: { value: query } });
   // scoped to this field: the passengers <select> answers option/listbox too
   const rows = within(input.closest(".combo") as HTMLElement).getAllByRole("option");
-  // rows commit on pointerdown, ahead of the blur a click would cause
+  // rows commit on a tap — down and up in place — so a scroll is never a pick
   fireEvent.pointerDown(rows[0]);
+  fireEvent.pointerUp(rows[0]);
   // a silent miss here would make every assertion below pass on the empty
   // card, so the selection is checked rather than assumed
   expect((input as HTMLInputElement).value).toContain(query);

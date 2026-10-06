@@ -9,8 +9,11 @@ import { MIN_NOTICE_HOURS, durationLabel } from "../lib/derivedTime";
 
 /* Short on purpose. The owner's word, 2 Oct 2026: "keep it minimal —
    a lot of typing". This had grown to ten answers of three to five
-   sentences, each saying everything that was true. Now it is the seven
-   questions a guest actually asks, one or two sentences each. The detail
+   sentences, each saying everything that was true. Now it is the six
+   questions a guest actually asks, one or two sentences each — six at
+   the owner's word, 5 Oct 2026. "Do I need an account?" was the one cut:
+   the cancel answer already names My trips, and the booking flow never
+   asks for one, so no guest meets the worry it answered. The detail
    still lives where it is used: waiting at an address, short notice, the
    ride home and changes are all handled in the booking flow, in the
    emails and on WhatsApp.
@@ -42,10 +45,6 @@ const ITEMS = [
     q: "How far ahead should I book?",
     a: `At least ${durationLabel(MIN_NOTICE_HOURS * 60)} before pickup.`,
   },
-  {
-    q: "Do I need an account?",
-    a: "No. An account just adds My trips, where you can see and cancel your bookings.",
-  },
 ];
 
 export default function Faq() {
@@ -57,10 +56,14 @@ export default function Faq() {
     <section id="faq">
       <div className="faq flow">
         <div className="inner">
-          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>The honest answers</div>
+          {/* Said as a host would: what the guest might wonder is already
+              handled. "The honest answers / What you're actually worried
+              about" implied answers elsewhere were not honest, and named a
+              worry before the guest had one. */}
+          <div className="eyebrow rise" style={{ color: "var(--silver)" }}>Good to know</div>
           <SplitHeading
             className="sec"
-            parts={[{ text: "What you're " }, { text: "actually", em: true }, { text: " worried about." }]}
+            parts={[{ text: "A few things, already " }, { text: "taken care of.", em: true }]}
           />
           <div className="flist stagger">
             {ITEMS.map((item, i) => {
@@ -103,7 +106,7 @@ export default function Faq() {
               design. Deliberately quiet: a way out for the few, not a
               second call to action arguing with the booking card. */}
           <p className="fmore">
-            Still not answered?{" "}
+            Have another question?{" "}
             {wa && (
               <>
                 <a href={wa} target="_blank" rel="noreferrer">Message us on WhatsApp</a>

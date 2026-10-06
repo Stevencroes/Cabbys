@@ -44,3 +44,21 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
 if (typeof Element !== "undefined" && typeof Element.prototype.scrollIntoView !== "function") {
   Element.prototype.scrollIntoView = function scrollIntoView() {};
 }
+
+// jsdom has no PointerEvent, so fireEvent.pointerDown dispatched a bare
+// Event and dropped clientX/clientY. The place picker tells a tap from a
+// scroll by how far the pointer travelled (src/lib/tap.ts), and a test of
+// that needs the coordinates to arrive. A MouseEvent carries them; this
+// adds the pointer fields on top.
+if (typeof window !== "undefined" && typeof window.PointerEvent !== "function") {
+  class PointerEventStub extends MouseEvent {
+    pointerId: number;
+    pointerType: string;
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 1;
+      this.pointerType = init.pointerType ?? "mouse";
+    }
+  }
+  window.PointerEvent = PointerEventStub as unknown as typeof PointerEvent;
+}

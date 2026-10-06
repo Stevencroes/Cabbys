@@ -1,6 +1,6 @@
 // §3.3 — the place picker. A real combobox, not a 60-option <select>:
 // type-to-filter across name AND area, grouped results, full keyboard
-// support, pointerdown commits (fires before blur on touch), custom
+// support, a row commits on a real tap (src/lib/tap.ts), custom
 // addresses anchored to a pricing area, and one dropdown at every size.
 //
 // It used to become a full-screen sheet under 760px. That solved stacking,
@@ -24,6 +24,7 @@ import {
   selFromGeo, selFromPlace, type Place, type PlaceSel,
 } from "../../data/places";
 import { geoStatusLine, geocode, placesSearchEnabled, type GeoStatus, type GeoSuggestion } from "../../lib/places";
+import { isTap, useTap } from "../../lib/tap";
 
 /** Letters before the list appears. The picker suggests what you are
     typing; it does not open with all 62 places and ask you to scroll. */
@@ -214,6 +215,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   // places it does not fit, so the field shows the short form and the
   // dropdown, the review and the job sheet all still show the full one.
   const committed = value ? displayName(value) : "";
+  const tap = useTap();
   // closeList can run from a document listener, outside React's render, and
   // must restore the CURRENT place rather than whichever one its closure was
   // built with
@@ -311,19 +313,33 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     setText(committedRef.current);
   }
 
-  // close on outside pointerdown (desktop dropdown)
+  // Close on a tap outside — a TAP, like the rows: closing on pointerdown
+  // shut the list the moment someone began to scroll the page past it.
   useEffect(() => {
-    function onDoc(e: PointerEvent) {
+    let from: { x: number; y: number } | null = null;
+    const at = (e: PointerEvent) => ({ x: e.clientX ?? 0, y: e.clientY ?? 0 });
+    function onDown(e: PointerEvent) { from = at(e); }
+    function onCancel() { from = null; }
+    function onUp(e: PointerEvent) {
+      const start = from;
+      from = null;
+      if (!start || !isTap(start, at(e))) return;
       const t = e.target as Node;
-      // Committing runs on the row's own pointerdown, and React has flushed
+      // Committing runs on the row's own pointerup, and React has flushed
       // the row out of the DOM by the time this document-level listener sees
       // the same event. A detached target is the row we just chose, not a
       // click somewhere else — closing on it would throw the choice away.
       if (!t.isConnected) return;
       if (wrapRef.current && !wrapRef.current.contains(t)) closeList();
     }
-    document.addEventListener("pointerdown", onDoc);
-    return () => document.removeEventListener("pointerdown", onDoc);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("pointercancel", onCancel);
+    document.addEventListener("pointerup", onUp);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("pointercancel", onCancel);
+      document.removeEventListener("pointerup", onUp);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -447,8 +463,10 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             value={text}
             onFocus={beginSearch}
             // committing keeps focus on the input, so a second tap raises no
-            // focus event — without this the box would sit there inert
-            onPointerDown={beginSearch}
+            // focus event — without this the box would sit there inert. A
+            // tap, not a press: a scroll that starts on the field must not
+            // open the search and empty it.
+            {...tap(beginSearch, { keepFocus: false })}
             onChange={(e) => { setText(e.target.value); setTyping(true); openList(); setActive(0); setCustomQuery(null); }}
             onKeyDown={onKeyDown}
           />
@@ -465,7 +483,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             Airport". Only while searching; the one above clears the field. */}
         {open && text.length > 0 && (
           <button type="button" className="cwipe" aria-label="Clear what you typed"
-            onPointerDown={(e) => { e.preventDefault(); setText(""); setTyping(true); input.current?.focus(); }}>
+            {...tap(() => { setText(""); setTyping(true); input.current?.focus(); })}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
               <path d="M4 4 L14 14 M14 4 L4 14" />
             </svg>
@@ -493,7 +511,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                   role="option"
                   aria-selected={false}
                   className={`custom${oIdx === activeIdx ? " hl" : ""}`}
-                  onPointerDown={(e) => { e.preventDefault(); setCustomQuery(row.query ?? text.trim()); }}
+                  {...tap(() => setCustomQuery(row.query ?? text.trim()))}
                 >
                   <Mark name="road" />
                   <span className="otext">
@@ -513,7 +531,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                   role="option"
                   aria-selected={value?.id === g.id}
                   className={oIdx === activeIdx ? "hl" : ""}
-                  onPointerDown={(e) => { e.preventDefault(); commitGeo(g); }}
+                  {...tap(() => commitGeo(g))}
                 >
                   <Mark name={markForGeo(g.kind)} />
                   <span className="otext">
@@ -532,7 +550,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
                 role="option"
                 aria-selected={value?.id === p.id}
                 className={oIdx === activeIdx ? "hl" : ""}
-                onPointerDown={(e) => { e.preventDefault(); commitPlace(p); }}
+                {...tap(() => commitPlace(p))}
               >
                 <Mark name={markForPlace(p)} />
                 {/* Two lines, always: the name you are looking for, and
@@ -582,7 +600,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           <div className="cquick">
             {COMMON_PICKUPS.map((pl) => (
               <button key={pl.id} type="button"
-                onPointerDown={(e) => { e.preventDefault(); commitPlace(pl); }}>
+                {...tap(() => commitPlace(pl))}>
                 <QuickIcon id={pl.id} />
                 <span className="qn">{pl.name}</span>
                 {/* the area only earns its column when it says something the
@@ -614,8 +632,8 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
             </div>
             <p className="as-note">Fixed fares are set by area, so villas and condos price honestly — no geocoding, no surprises.</p>
             <div className="frow" style={{ marginTop: 10 }}>
-              <button type="button" className="btn back" onPointerDown={(e) => { e.preventDefault(); setCustomQuery(null); }}>Back</button>
-              <button type="button" className="btn primary" onPointerDown={(e) => { e.preventDefault(); commitCustom(); }}>Use this address</button>
+              <button type="button" className="btn back" {...tap(() => setCustomQuery(null))}>Back</button>
+              <button type="button" className="btn primary" {...tap(commitCustom)}>Use this address</button>
             </div>
           </div>
         </div>
