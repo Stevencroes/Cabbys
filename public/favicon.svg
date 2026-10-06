@@ -1,15 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cabby's">
-  <!-- Golden Hour in miniature: the striped sun setting on its horizon.
-       Solid shapes only — anything finer disappears at 16px. -->
-  <rect width="64" height="64" rx="14" fill="#2B1F19"/>
-  <clipPath id="h"><rect x="8" y="8" width="48" height="34"/></clipPath>
-  <g clip-path="url(#h)">
-    <circle cx="32" cy="42" r="22" fill="#E2A03F"/>
-    <g fill="#2B1F19">
-      <rect x="10" y="24" width="44" height="3"/>
-      <rect x="10" y="31" width="44" height="3"/>
-      <rect x="10" y="38" width="44" height="3"/>
-    </g>
-  </g>
-  <rect x="8" y="44" width="48" height="4" fill="#C6452C"/>
+  <!-- The C' of the wordmark: Cormorant Garamond 600, outlined (a favicon
+       cannot load a web font), ink on the ground navy with the apostrophe
+       in silver, as it is in the nav. 600, not the wordmark's 500, because
+       at 16px the hairlines of 500 break up. Replaces the Golden Hour sun,
+       a brand the site no longer has. No double hyphen anywhere in this
+       comment: XML forbids it, and the browser then drops the whole icon. -->
+  <rect width="64" height="64" rx="14" fill="#020B14"/>
+  <path fill="#F5F5F3" d="M31.78 13Q33.78 13 35.69 13.19Q37.59 13.38 39.28 13.79Q40.96 14.2 42.31 14.84Q42.79 15.03 42.92 15.26Q43.05 15.5 43.11 16.17L43.86 23.92Q43.86 24.08 43.56 24.14Q43.25 24.21 43.15 23.98Q41.61 19.2 38.61 16.66Q35.6 14.12 31.1 14.12Q26.78 14.12 23.44 16.27Q20.1 18.41 18.22 22.36Q16.34 26.3 16.34 31.74Q16.34 35.76 17.48 39.09Q18.62 42.43 20.69 44.84Q22.77 47.25 25.53 48.57Q28.3 49.88 31.56 49.88Q35.97 49.88 38.78 47.58Q41.59 45.27 43.69 40.41Q43.79 40.24 44.07 40.3Q44.35 40.35 44.35 40.51L43.59 47.49Q43.53 48.2 43.39 48.39Q43.25 48.59 42.77 48.82Q39.88 50 37.12 50.5Q34.37 51 31.55 51Q25.26 51 20.39 48.61Q15.51 46.22 12.73 41.93Q9.95 37.64 9.95 32.05Q9.95 27.83 11.59 24.32Q13.23 20.82 16.2 18.29Q19.17 15.77 23.15 14.38Q27.13 13 31.78 13Z"/>
+  <path fill="#A7ADB4" d="M49.72 29.14 48.35 14.97Q48.31 14.45 49.2 14.01Q50.09 13.57 51.27 13.28Q52.44 12.99 53.29 13Q54.14 13.01 54.04 13.41L50.56 29.08Q50.5 29.2 50.11 29.26Q49.72 29.32 49.72 29.14Z"/>
 </svg>
