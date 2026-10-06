@@ -38,6 +38,8 @@ const rowNamed = (name: string) =>
 
 const box = () => screen.getByRole("combobox");
 const opts = () => screen.queryAllByRole("option");
+/** A finger down and up in the same place: what a row now commits on. */
+const tap = (el: Element | Document) => { fireEvent.pointerDown(el); fireEvent.pointerUp(el); };
 const type = (s: string) => fireEvent.change(box(), { target: { value: s } });
 
 describe("PlaceCombobox", () => {
@@ -98,7 +100,7 @@ describe("PlaceCombobox", () => {
   // the choice a moment after it is made — so it reads the current one.
   //
   // The other half of that fix cannot be tested here: committing runs on the
-  // row's own pointerdown, and in a browser React has unmounted the row by the
+  // row's own pointerup, and in a browser React has unmounted the row by the
   // time the document listener sees the same event, which is why that listener
   // ignores a detached target. jsdom flushes after the whole dispatch, so the
   // row is still attached and the race never happens. Verified in Chromium.
@@ -109,9 +111,9 @@ describe("PlaceCombobox", () => {
     type("ritz");
     const row = opts()[0];
     const name = row.querySelector(".on")!.textContent;
-    fireEvent.pointerDown(row);
+    tap(row);
     // the real listener is on document and fires for the same event
-    fireEvent.pointerDown(document);
+    tap(document);
     expect(onSelect).toHaveBeenCalledOnce();
     expect(box()).toHaveValue(name);
     expect(box()).not.toHaveValue(AIRPORT.name);
@@ -129,7 +131,7 @@ describe("PlaceCombobox", () => {
     type("Queen Beatrix");
     // the dropdown has room, so the dropdown says all of it
     expect(opts()[0].querySelector(".on")!.textContent).toBe(AIRPORT.name);
-    fireEvent.pointerDown(opts()[0]);
+    tap(opts()[0]);
 
     expect(box()).toHaveValue("Queen Beatrix Airport");
     // …and what was actually selected is unshortened, because quote.ts
@@ -181,11 +183,60 @@ describe("PlaceCombobox", () => {
     expect(box()).toHaveAttribute("aria-expanded", "false");
   });
 
+  // A scroll through the suggestions starts on a row. It used to choose
+  // that row the moment the finger landed; now only a press that ends where
+  // it began, uncancelled, is a choice.
+  describe("a scroll is not a choice", () => {
+    it("ignores a press that travels, as a finger scrolling the list does", () => {
+      const onSelect = vi.fn();
+      render(<Harness onSelect={onSelect} />);
+      fireEvent.focus(box());
+      type("palm");
+      const row = opts()[0];
+      fireEvent.pointerDown(row, { clientX: 100, clientY: 300 });
+      fireEvent.pointerMove(row, { clientX: 101, clientY: 260 });
+      fireEvent.pointerUp(row, { clientX: 101, clientY: 260 });
+      expect(onSelect).not.toHaveBeenCalled();
+      expect(opts().length).toBeGreaterThan(0);
+    });
+
+    it("ignores a press the browser took over as a scroll", () => {
+      const onSelect = vi.fn();
+      render(<Harness onSelect={onSelect} />);
+      fireEvent.focus(box());
+      type("palm");
+      const row = opts()[0];
+      fireEvent.pointerDown(row);
+      fireEvent.pointerCancel(row);
+      fireEvent.pointerUp(row);
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it("still takes a tap with the wobble a thumb has", () => {
+      const onSelect = vi.fn();
+      render(<Harness onSelect={onSelect} />);
+      fireEvent.focus(box());
+      type("palm");
+      const row = opts()[0];
+      fireEvent.pointerDown(row, { clientX: 100, clientY: 300 });
+      fireEvent.pointerUp(row, { clientX: 104, clientY: 305 });
+      expect(onSelect).toHaveBeenCalledOnce();
+    });
+
+    it("does not open the search when a scroll starts on the field", () => {
+      render(<Harness initial={selFromPlace(AIRPORT)} />);
+      fireEvent.pointerDown(box(), { clientX: 50, clientY: 400 });
+      fireEvent.pointerCancel(box());
+      expect(box()).toHaveValue(displayName(selFromPlace(AIRPORT)));
+      expect(document.querySelector(".cpanel")).toBeNull();
+    });
+  });
+
   it("takes a shortcut as the answer", () => {
     const onSelect = vi.fn();
     render(<Harness onSelect={onSelect} />);
     fireEvent.focus(box());
-    fireEvent.pointerDown(document.querySelectorAll(".cquick button")[0]);
+    tap(document.querySelectorAll(".cquick button")[0]);
     expect(onSelect).toHaveBeenCalledOnce();
     // the field's name, not the rate card's — same rule as any other row
     expect(box()).toHaveValue(displayName(selFromPlace(COMMON_PICKUPS[0])));
@@ -211,7 +262,7 @@ describe("PlaceCombobox", () => {
     fireEvent.focus(box());
     type("palm");
     expect(opts().length).toBeGreaterThan(0);
-    fireEvent.pointerDown(screen.getByLabelText(/clear what you typed/i));
+    tap(screen.getByLabelText(/clear what you typed/i));
     expect(box()).toHaveValue("");
     expect(opts()).toHaveLength(0);
     expect(document.querySelectorAll(".cquick button")).toHaveLength(COMMON_PICKUPS.length);
@@ -244,7 +295,7 @@ describe("PlaceCombobox", () => {
       await waitFor(() => expect(rowNamed("Sasakiweg 34")).toBeTruthy());
       const row = rowNamed("Sasakiweg 34")!;
       expect(row.querySelector(".oa")!.textContent).toBe("Oranjestad");
-      fireEvent.pointerDown(row);
+      tap(row);
 
       // it commits like any other place, with an AREA — which is the fare
       expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({
