@@ -37,15 +37,21 @@
   <meta property="og:url" content="__SITE_URL__/" />
   <meta property="og:title" content="Cabby's — Private airport transfers in Aruba" />
   <meta property="og:description" content="Private transfers across Aruba at a fixed price, agreed before you ride. Met in the arrivals hall, then door to door." />
-  <meta property="og:image" content="__SITE_URL__/og.png" />
+  <!-- og.jpg, not og.png: the old card was the Golden Hour brand and said
+       "met at the gate", which nobody is. A new file name also makes
+       WhatsApp and Facebook fetch it fresh rather than serve the old card
+       from their cache. JPEG because the card is a photograph — 71 KB, well
+       under the size WhatsApp will still show a large preview for. -->
+  <meta property="og:image" content="__SITE_URL__/og.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Cabby's — getting there was always the point. A striped sun setting over a horizon." />
+  <meta property="og:image:alt" content="Cabby's — your ride is ready when you are. A black SUV parked at a villa in Aruba at dusk." />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Cabby's — Private airport transfers in Aruba" />
   <meta name="twitter:description" content="Private transfers across Aruba at a fixed price, agreed before you ride. Met in the arrivals hall, then door to door." />
-  <meta name="twitter:image" content="__SITE_URL__/og.png" />
+  <meta name="twitter:image" content="__SITE_URL__/og.jpg" />
 
   <!-- The C' monogram, from the wordmark. The .ico comes first and says
        32x32 so a browser that can draw SVG still picks the SVG below (it is
