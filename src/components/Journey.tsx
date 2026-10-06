@@ -94,32 +94,72 @@ const N = STOPS.length;
     last, so the car has a leg to drive at each end. */
 const AT = STOPS.map((_, i) => (i + 1) / (N + 1));
 
-/** Of each stop's share of the scroll, the part spent driving to it; the
-    rest the car is parked and the reader is reading. Under a third and the
-    car lurches; over a half and a stop changes before its words are read. */
-const DRIVE = 0.4;
+/** The places the car can stand: 0 is the start, 1..N the stops, N + 1
+    the arrival dot. */
+const LAST = N + 1;
+const posOf = (node: number) => node / LAST;
+
+/** Of the scroll, the sliver at each end that belongs to the start and to
+    the arrival; the stops share the rest evenly. */
+const EDGE = 0.04;
+
+/** Which place the scroll is asking for. The car does not go there
+    directly — see drive() — it is only told where it should be heading. */
+export function nodeAt(p: number): number {
+  if (p < EDGE) return 0;
+  if (p >= 1 - EDGE) return LAST;
+  return 1 + Math.min(N - 1, Math.floor(((p - EDGE) / (1 - 2 * EDGE)) * N));
+}
+
+/* The pace. The car used to sit wherever the scroll put it, so its speed
+   was the reader's scroll speed: one flick of a thumb and four stops went
+   by, each sentence on screen for a frame or two. The owner asked for time
+   to read. So the scroll now only says where the car should be heading,
+   and the car drives there one leg at a time, at its own speed, and stops
+   at every stop on the way for long enough to read what it says. A fast
+   scroll does not skip a stop; the car catches up a beat behind. */
+const LEG_MS = 600;
+const DWELL_MS = 1100;
+
+export type Drive = {
+  /** the place the car is standing at, or last left */
+  at: number;
+  leg: { from: number; to: number; t0: number } | null;
+  /** it may not set off again before this */
+  holdUntil: number;
+  /** a stop someone clicked: driven to straight, without a stop on the way */
+  rush: number | null;
+};
+
+export const parked = (at = 0): Drive => ({ at, leg: null, holdUntil: 0, rush: null });
 
 /**
- * Scroll progress (0..1) to where the car is (0..1 along the line) and
- * which stop is showing. Each stop owns 1/N of the scroll: the car drives
- * in for the first DRIVE of it, then waits. The last stop's share ends
- * with the drive on to the arrival dot, so the trail reaches "Enjoy your trip"
- * exactly as the section lets go.
+ * One frame of the car, pure so the pace can be tested without a browser.
+ * Returns the new state, where the car is along the line (0..1), the place
+ * it pulled up at THIS frame if any, and whether it has nothing left to do.
  */
-export function routeAt(p: number): { car: number; active: number; arrived: boolean } {
-  const t = Math.min(Math.max(p, 0), 1) * N;
-  const i = Math.min(N - 1, Math.floor(t));
-  const local = t - i;
-  const from = i === 0 ? 0 : AT[i - 1];
-  const ease = (x: number) => x * x * (3 - 2 * x);
-  let car = from + (AT[i] - from) * ease(Math.min(1, local / DRIVE));
-  if (i === N - 1 && local > 1 - DRIVE / 2) {
-    car = AT[i] + (1 - AT[i]) * ease((local - (1 - DRIVE / 2)) / (DRIVE / 2));
+export function drive(s: Drive, want: number, now: number):
+  { s: Drive; car: number; reached: number | null; idle: boolean } {
+  let next = s;
+  let reached: number | null = null;
+  if (next.leg) {
+    const { from, to, t0 } = next.leg;
+    const t = Math.min(1, (now - t0) / LEG_MS);
+    if (t < 1) {
+      const e = t * t * (3 - 2 * t);
+      return { s: next, car: posOf(from) + (posOf(to) - posOf(from)) * e, reached: null, idle: false };
+    }
+    reached = to;
+    const rush = next.rush === to ? null : next.rush;
+    // A stop is read; the start and the arrival dot have nothing to read.
+    const isStop = to >= 1 && to <= N;
+    next = { at: to, leg: null, rush, holdUntil: isStop && rush === null ? now + DWELL_MS : now };
   }
-  // The words change when the car is halfway there, not when it sets off:
-  // the reader is still on the last stop's sentence as the car leaves it.
-  const active = local < DRIVE / 2 && i > 0 ? i - 1 : i;
-  return { car, active, arrived: car > 0.999 };
+  const goal = next.rush ?? want;
+  if (goal === next.at) return { s: next, car: posOf(next.at), reached, idle: true };
+  if (now < next.holdUntil) return { s: next, car: posOf(next.at), reached, idle: false };
+  const to = next.at + Math.sign(goal - next.at);
+  return { s: { ...next, leg: { from: next.at, to, t0: now } }, car: posOf(next.at), reached, idle: false };
 }
 
 /** Where the line's middle is, as a share of the screen's height, when the
@@ -127,8 +167,8 @@ export function routeAt(p: number): { car: number; active: number; arrived: bool
     into view, and ends high, with the words under it still on screen and
     the next section's heading arriving below: that is the stretch where
     the whole band can be seen, and the car spends all of it driving. */
-const FROM = 0.8;
-const TO = 0.22;
+const FROM = 0.85;
+const TO = 0.2;
 
 /** The line's place on screen, to progress along the journey, 0..1. */
 export function progressAt(rect: { top: number; height: number }, vh: number): number {
@@ -157,50 +197,76 @@ export default function Journey() {
   const [arrived, setArrived] = useState(false);
 
   const line = useRef<HTMLDivElement>(null);
+  const car = useRef<Drive>(parked());
+  const want = useRef(0);
+  const kick = useRef<() => void>(() => {});
 
   /* The car and the trail are written straight to a custom property each
-     frame rather than through React: a scroll handler that re-renders the
-     whole section sixty times a second is the version that stutters on a
-     mid-range phone. React only hears about it when the STOP changes. */
+     frame rather than through React: re-rendering the whole section sixty
+     times a second is the version that stutters on a mid-range phone.
+     React only hears about it when the car pulls up at a stop. */
   useEffect(() => {
     let raf = 0;
-    const update = () => {
+    let first = true;
+    const draw = (c: number) => line.current?.style.setProperty("--car", c.toFixed(4));
+    const show = (node: number) => {
+      setActive(Math.min(N - 1, Math.max(0, node - 1)));
+      setArrived(node === LAST);
+    };
+    const frame = (now: number) => {
       raf = 0;
+      const r = drive(car.current, want.current, now);
+      car.current = r.s;
+      draw(r.car);
+      if (r.reached !== null) show(r.reached);
+      if (!r.idle) raf = requestAnimationFrame(frame);
+    };
+    const read = () => {
       const el = line.current;
       if (!el) return;
       const box = el.getBoundingClientRect();
       // Not laid out (hidden, or a test DOM with no layout): a zero box
       // reads as "scrolled past the top" and would open on the last stop.
       if (!box.height) return;
-      const r = routeAt(progressAt(box, window.innerHeight));
-      line.current?.style.setProperty("--car", r.car.toFixed(4));
-      setActive(r.active);
-      setArrived(r.arrived);
+      want.current = nodeAt(progressAt(box, window.innerHeight));
+      // A page opened, or reloaded, part-way down starts with the car
+      // already where the scroll is — not a drive in from the start — and
+      // a reader who asked for less motion never sees it drive at all.
+      if (first || reducedMotion()) {
+        first = false;
+        car.current = parked(want.current);
+        draw(posOf(want.current));
+        show(want.current);
+        return;
+      }
+      if (!raf) raf = requestAnimationFrame(frame);
     };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    kick.current = read;
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
     };
   }, []);
 
   /** A stop is still a button: it scrolls the page to where that stop is
-      parked, so a reader who would rather click — or who is on a keyboard —
-      gets the same journey without having to scroll through it. */
+      read, and the car drives straight there — no pause at the stops in
+      between, which the reader has just said they want to skip. */
   const goTo = (i: number) => {
     const el = line.current;
     if (!el) return;
-    // the middle of the stop's parked stretch, clear of both changeovers
-    const p = (i + DRIVE + (1 - DRIVE) / 2 - (i === N - 1 ? DRIVE / 4 : 0)) / N;
+    car.current = { ...car.current, rush: i + 1, holdUntil: 0 };
+    // the middle of the stop's stretch of scroll
+    const p = EDGE + ((i + 0.5) / N) * (1 - 2 * EDGE);
     const vh = window.innerHeight;
-    const want = (FROM - p * (FROM - TO)) * vh;
+    const y = (FROM - p * (FROM - TO)) * vh;
     const r = el.getBoundingClientRect();
-    const top = window.scrollY + (r.top + r.height / 2) - want;
+    const top = window.scrollY + (r.top + r.height / 2) - y;
     window.scrollTo({ top, behavior: reducedMotion() ? "auto" : "smooth" });
+    kick.current();
   };
 
   return (
