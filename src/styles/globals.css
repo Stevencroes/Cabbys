@@ -1308,48 +1308,58 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
              box-shadow var(--dur-slow-ui) var(--ease-ui);}
 .fcard:hover{transform:translateY(-2px);border-color:var(--silver-deep);box-shadow:var(--shadow-hard);}
 .fcard:active{transform:translateY(0);transition-duration:var(--dur-press);}
-/* The car was 64% of the card's width and black on navy, so the section
-   read as four dark cards with something small in each. Two causes, two
-   fixes. SIZE: the PNGs carried their own empty margins (the car was 80% of
-   its frame, by convention) and the frame added 9-10% padding on top, so
-   the margins compounded. The files are now cropped to the car, and the
-   frame's content box is 1.67:1 — the Sprinter's own ratio, the tallest of
-   the four — so every car spans the card's full inner width, and the lower
-   ones simply leave sky above them. Bottom-aligned, so all four stand on
-   one ground line. VISIBILITY: a black car needs light BEHIND it to have an
-   edge. A soft --highlight backlight sits behind the body and a pale floor
-   pool under the wheels; both are light, so the silhouette separates from
-   the card without a plate or an outline around the car. */
-.fshot{display:block;aspect-ratio:3/2;padding:7% 6% 9%;
+/* ── the photograph ── portrait, after the reference's fleet row: the car
+   front-three-quarter, nose to the left, standing a little below the
+   middle and running out of the card on the right. The crop is the point.
+   A whole car fitted into a landscape box (what this was) is a catalogue
+   thumbnail; a car too big for its frame, cut at the tail, is a car you are
+   standing next to. The tail is the part to lose — the face, the lamps and
+   the plate are what identify it.
+
+   Sized by WIDTH (118% of the card, so about a sixth of the car — the
+   tail — is cut), not fitted with object-fit, so all four are drawn at one
+   scale and the Sprinter is visibly the long one; anchored by the BOTTOM,
+   so all four stand on one ground line whatever their height. The files
+   are cut to the car (public/fleet/README.md), so the anchors are the
+   car's own edges.
+
+   The ground is the one this card has always had — navy, a soft backlight
+   so a black car has an edge, a pale pool under the wheels — moved to
+   where the car now stands. */
+.fshot{position:relative;display:block;aspect-ratio:3/4;overflow:hidden;
+  --ground-y:70%;
   background:
-    radial-gradient(46% 30% at 50% 88%,rgba(215,217,216,.16) 0%,rgba(215,217,216,0) 100%),
-    radial-gradient(70% 62% at 50% 52%,rgba(215,217,216,.13) 0%,rgba(215,217,216,0) 100%),
-    radial-gradient(120% 90% at 50% 38%,#17304A 0%,#0C1D2D 52%,var(--surface) 92%);}
-/* contain, not cover: the files are cut to the car now, so there are no
-   empty bands left to crop — cover would take the bumpers instead. */
-.fshot img{width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;
+    radial-gradient(52% 9% at 44% var(--ground-y),rgba(215,217,216,.16) 0%,rgba(215,217,216,0) 100%),
+    radial-gradient(80% 34% at 48% 56%,rgba(215,217,216,.12) 0%,rgba(215,217,216,0) 100%),
+    radial-gradient(130% 80% at 50% 44%,#17304A 0%,#0C1D2D 54%,var(--surface) 94%);}
+.fshot img{position:absolute;left:6%;bottom:calc(100% - var(--ground-y) - 2%);
+  width:118%;max-width:none;height:auto;display:block;
   filter:drop-shadow(0 12px 16px rgba(0,0,0,.6));
-  transform-origin:50% 100%;
+  transform-origin:12% 100%;
   transition:transform var(--dur-slow-ui) var(--ease-ui);}
-.fcard:hover .fshot img{transform:scale(1.04);}
+.fcard:hover .fshot img{transform:scale(1.035);}
 @media(prefers-reduced-motion:reduce){
   .fcard,.fshot img{transition:none;}
   .fcard:hover{transform:none;}
   .fcard:hover .fshot img{transform:none;}
 }
+
+/* ── the plate ── the name on its own line, never cut; under it what the
+   car holds and, across from that, what it costs. The fare keeps its
+   "From": it is the airport-to-Palm-Beach quote, not this trip's price,
+   and a bare number would claim it was. */
 .fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);}
 .fname{display:block;font-size:var(--t-body);font-weight:600;letter-spacing:.01em;color:var(--ink);}
-/* The price used to sit absolutely bottom-right with the line beside it
-   padded to clear it — and in a four-across card "12 guests · 12 bags" did
-   not fit the room left, wrapped, and made the Sprinter's card the one card
-   in the row with a different height. The price has its own row now, so
-   nothing has to be told where to stop. */
-.fpax{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:5px;}
-.ffrom{display:flex;align-items:baseline;gap:6px;padding:0 18px 18px;margin-top:-6px;}
+.fline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;}
+.fspec{display:flex;gap:14px;font-size:var(--t-meta);color:var(--silver);font-variant-numeric:tabular-nums;}
+.fsp{display:inline-flex;align-items:center;gap:6px;}
+.fsp svg{flex:none;color:var(--silver);}
+.ffrom{flex:none;display:flex;align-items:baseline;gap:5px;white-space:nowrap;}
 .ffrom .fl{font-size:var(--t-meta);color:var(--muted);}
-.ffrom .fv{font-size:17px;font-weight:600;color:var(--ink);}
-@media(max-width:1040px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr));}}
-@media(max-width:520px){
+.ffrom .fv{font-size:var(--t-body);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+/* four across down to a small laptop; under that, the rail */
+@media(max-width:1040px){.fgrid{gap:14px;}}
+@media(max-width:899px){
   /* ── the rail ──────────────────────────────────────────────────────
      Four full-width cards stacked is four screens of scrolling to compare
      four things. One swipeable rail instead, with the next card showing at
@@ -1371,6 +1381,8 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
     scrollbar-width:none;}
   .fgrid::-webkit-scrollbar{display:none;}
   .fcard{flex:0 0 78%;scroll-snap-align:start;}
+  /* a tablet shows two and the edge of a third, as the reference's row does */
+  @media(min-width:521px){.fcard{flex-basis:calc((100% - 28px) / 2.3);}}
   /* the lift on hover is a pointer idiom and costs a repaint mid-swipe */
   .fcard:hover{transform:none;}
 

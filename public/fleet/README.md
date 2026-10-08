@@ -7,12 +7,18 @@ booking flow's car step (`.vthumb`).
 | file            | tier            | the car in the shot          |
 | --------------- | --------------- | ---------------------------- |
 | `sedan.webp`    | Executive Sedan | Mercedes S-Class type saloon |
-| `suv.webp`      | Luxury SUV      | full-size luxury SUV         |
+| `suv.webp`      | Luxury SUV      | Mercedes GLS type SUV        |
 | `transit.webp`  | Premium Van     | Mercedes V-Class type MPV    |
 | `sprinter.webp` | Luxury Sprinter | Mercedes Sprinter            |
 
 A tier is a category, not a car — drivers arrive in their own vehicles, so the
-shot shows a representative one, and each carries a "Cabby's" plate.
+shot shows a representative one, and each carries a "Cabbys" plate.
+
+**All four face the same way: front three-quarter, nose to the LEFT.** The
+landing cards crop the car on the right (see below), so a car facing right
+would lose its face instead of its tail. A replacement that faces the other
+way needs mirroring — and a mirrored plate reads backwards, so ask for a
+render that faces left instead.
 
 Filenames are lower case and the code asks for them exactly. `SUV.png` worked
 on a Mac and 404'd everywhere else; Linux and the deploy host are both
@@ -29,18 +35,17 @@ case-sensitive.
   the glass is unmissable, and on the card's dark navy, where a pale rim from
   a white-background cut is.
 - **Crop to the car**: its bounding box (alpha > 12) plus a margin of 2% of
-  the car's width on every side. The cards do the framing — `.fshot`'s
-  content box is 1.67:1 with `object-fit:contain`, bottom-aligned, so every
-  car spans the card's inner width and stands on one ground line. A car
-  taller than 1.67:1 is height-bound and comes out a little narrower; the
-  Sprinter, at 1.65, is the only one and the difference is a few pixels.
-  The old convention ("car at 80% of the frame") put a margin in every file
-  that stacked on the card's padding, and the cars rendered at 64% of the
-  card's width.
-- **1100px wide, WebP at quality 88 with lossless alpha.** The cards render
-  up to ~290 CSS px wide on a phone, so 3× wants ~870px; 1100 covers it. As
-  PNG the four were 430–620KB each, which is ~2MB of cars on the landing
-  page; as WebP they are 77–99KB.
+  the car's width on every side. The cards do the framing. On the landing
+  page `.fshot` is a 3:4 portrait box and the car is drawn at 118% of its
+  width, 6% in from the left and bottom-anchored on one ground line — so
+  every car is at one scale, the tail runs off the right edge, and the
+  Sprinter is visibly the longest. Any margin left in the file shifts the
+  car off that line. The booking step's `.vthumb` still fits the whole car
+  (`object-fit:contain`).
+- **1100px wide, WebP at quality 88.** The car is drawn up to ~350 CSS px
+  wide (118% of a ~295px tablet card), so 3× wants ~1050px; 1100 covers it.
+  As PNG a set like this is ~2MB of cars on the landing page; as WebP the
+  four are 96–121KB.
 
 A missing or renamed file is not fatal: `VehiclePhoto` collapses the slot and
 the row falls back to its text-only layout.

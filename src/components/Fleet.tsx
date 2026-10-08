@@ -13,9 +13,11 @@ import { useStartBooking } from "../booking/useStartBooking";
 // Representative popular route for the indicative "from" fare.
 const SAMPLE_TO = "palm-beach";
 
-/** The width the carousel takes over at — the same 520px the grid already
-    collapsed to one column at, so there is one breakpoint, not two. */
-const PHONE = "(max-width:520px)";
+/** The width the carousel takes over at. The cards are portrait now, and two
+    columns of them on a tablet were 460px of photograph each — the section
+    ran two screens tall to show four cars. Below 900px it is the rail, as
+    the reference draws its row: the next card cut off at the edge. */
+const PHONE = "(max-width:899px)";
 
 /** Four full-width cards stacked down a phone is four screens of scrolling
     to compare four things, and the section stops being a row you can read
@@ -33,6 +35,25 @@ function useIsPhone(): boolean {
     return () => mq.removeEventListener?.("change", sync);
   }, []);
   return phone;
+}
+
+/** §07's line icons — a 20px grid, one weight — for the two numbers a car
+    is chosen by. Two figures, not one: "guests" is a group. */
+const GUESTS = <><circle cx="8" cy="6.8" r="2.8" /><path d="M2.6 16.5c.5-3 2.7-4.7 5.4-4.7s4.9 1.7 5.4 4.7" /><path d="M12.7 4.3a2.8 2.8 0 0 1 0 5.1M14.7 11.9c1.5.6 2.4 2.1 2.7 4.6" /></>;
+const BAGS = <><rect x="4" y="6.6" width="12" height="10.4" rx="1.6" /><path d="M7.6 6.6V4.9c0-.7.5-1.2 1.2-1.2h2.4c.7 0 1.2.5 1.2 1.2v1.7M7.6 9.6v4.4M12.4 9.6v4.4" /></>;
+
+function Spec({ icon, n, unit }: { icon: React.ReactNode; n: number; unit: string }) {
+  return (
+    <span className="fsp">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+        strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {icon}
+      </svg>
+      {n}
+      {/* the icon is the unit for the eye; the button's name needs the word */}
+      <span className="sr-only"> {unit}</span>
+    </span>
+  );
 }
 
 export default function Fleet() {
@@ -102,17 +123,25 @@ export default function Fleet() {
                   </span>
                   <span className="fmeta">
                     <span className="fname">{v.name}</span>
-                    {/* Guests AND bags: two people with four suitcases do not
-                        fit the car that seats three, and "1–3 Passengers"
-                        never said so. The booking step already showed both. */}
-                    <span className="fpax">{v.pax} guests &middot; {v.bags} bags</span>
-                  </span>
-                  {from && (
-                    <span className="ffrom">
-                      <span className="fl">From</span>
-                      <span className="fv">{usd(from.totalUsd)}</span>
+                    {/* What it holds on the left, what it costs on the right.
+                        The reference puts the fare beside the name; four
+                        across, "Luxury Sprinter" and "From $82" do not both
+                        fit one line, and the name is the one that cannot be
+                        cut. Guests AND bags: two people with four suitcases
+                        do not fit the car that seats three. */}
+                    <span className="fline">
+                      <span className="fspec">
+                        <Spec icon={GUESTS} n={v.pax} unit="guests" />
+                        <Spec icon={BAGS} n={v.bags} unit="bags" />
+                      </span>
+                      {from && (
+                        <span className="ffrom">
+                          <span className="fl">From</span>
+                          <span className="fv">{usd(from.totalUsd)}</span>
+                        </span>
+                      )}
                     </span>
-                  )}
+                  </span>
                 </button>
               );
             })}

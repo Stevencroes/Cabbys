@@ -58,10 +58,14 @@
        sharper at every size); the .ico is for the ones that cannot, and for
        search results, which fetch /favicon.ico whatever the page says. The
        touch icon is square, not rounded: iOS rounds it, and a transparent
-       corner shows black there. -->
-  <link rel="icon" href="/favicon.ico" sizes="32x32" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+       corner shows black there.
+       ?v=2: browsers keep a favicon by its URL far longer than the page, so
+       visitors who had seen the old Golden Hour sun went on seeing it in
+       the tab after the files were replaced. A new URL is a new icon to
+       them. Bump it whenever these files change. -->
+  <link rel="icon" href="/favicon.ico?v=2" sizes="32x32" />
+  <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
   <!-- Safari tints the strip around the page with this, so it has to BE the
        page: #0B1420 was lighter than anything in the palette and painted a
        visible band above the fixed rail, which read as a gap at the top of
