@@ -1,19 +1,75 @@
-// §08 — the hero booking card. One way or return, five answers in a row,
-// and the way on. It no longer quotes: the mockup asks for availability
-// first and shows money once the route is real, so the rate card is loaded
-// by the flow that spends it rather than by the card that opens it.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+// §08 — the hero booking card. One way or round trip above it, then one
+// glass bar: pickup, drop-off, date, the hour, and the way on.
+//
+// It has two states, and the second is the point of this version. At rest
+// it is a single line across the photograph. Touch any field and the same
+// card opens IN PLACE into a panel: the field row stays where it is, and
+// what the field needs — the island's places, the calendar, the hour — is
+// laid out in the body underneath instead of hanging off the field as a
+// 300px dropdown that ran off the bottom of a hero sitting low on the
+// screen. On a phone the open card is the whole screen.
+//
+// It does not quote: the flow asks for availability first and shows money
+// once the route is real, so the rate card is loaded by the flow that
+// spends it rather than by the card that opens it. The party size went the
+// same way — the flow's first step asks it beside the cars it decides, so
+// the card no longer asks it a step early.
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useBooking } from "../../booking/BookingContext";
 import PlaceCombobox from "./PlaceCombobox";
 import DateField from "./DateField";
 import TimeField from "./TimeField";
 import { todayInAruba } from "../../lib/datetime";
 import { isOnIsland, locate } from "../../lib/geo";
+import { isTap } from "../../lib/tap";
+import { lockBody, unlockBody } from "../../lib/bodyLock";
 import { AIRPORT, AIRPORT_ID, selFromCustom, selFromPlace } from "../../data/places";
-import { MAX_PAX } from "../../data/vehicles";
 import { CARD_ID } from "../../booking/useStartBooking";
 
-export default function QuoteCard() {
+/** Where the open card stops being a panel in the hero and becomes the
+    screen. The same 760px the place picker has always switched at, so the
+    card and the controls inside it agree about what a phone is. */
+const SHEET_QUERY = "(max-width: 760px)";
+
+/** Controls that SURVIVE the card closing. Focus resting on one of these
+    can stay where it is; focus anywhere else in the card (a common stop, the
+    calendar, the close button) is about to be unmounted with the body, and
+    has to be handed somewhere first or it falls to <body>. */
+const SURVIVES = 'input[role="combobox"], .dtf-trigger, .qbtn, .qmode button';
+
+/** The C' of the wordmark, as the favicon draws it — outlined, because the
+    empty state cannot wait on the web font to say whose card this is. */
+function Monogram() {
+  return (
+    <svg className="qmono" width="44" height="44" viewBox="8 10 48 44" aria-hidden="true">
+      <path fill="currentColor" d="M31.78 13Q33.78 13 35.69 13.19Q37.59 13.38 39.28 13.79Q40.96 14.2 42.31 14.84Q42.79 15.03 42.92 15.26Q43.05 15.5 43.11 16.17L43.86 23.92Q43.86 24.08 43.56 24.14Q43.25 24.21 43.15 23.98Q41.61 19.2 38.61 16.66Q35.6 14.12 31.1 14.12Q26.78 14.12 23.44 16.27Q20.1 18.41 18.22 22.36Q16.34 26.3 16.34 31.74Q16.34 35.76 17.48 39.09Q18.62 42.43 20.69 44.84Q22.77 47.25 25.53 48.57Q28.3 49.88 31.56 49.88Q35.97 49.88 38.78 47.58Q41.59 45.27 43.69 40.41Q43.79 40.24 44.07 40.3Q44.35 40.35 44.35 40.51L43.59 47.49Q43.53 48.2 43.39 48.39Q43.25 48.59 42.77 48.82Q39.88 50 37.12 50.5Q34.37 51 31.55 51Q25.26 51 20.39 48.61Q15.51 46.22 12.73 41.93Q9.95 37.64 9.95 32.05Q9.95 27.83 11.59 24.32Q13.23 20.82 16.2 18.29Q19.17 15.77 23.15 14.38Q27.13 13 31.78 13Z" />
+      <path className="qmono-ap" d="M49.72 29.14 48.35 14.97Q48.31 14.45 49.2 14.01Q50.09 13.57 51.27 13.28Q52.44 12.99 53.29 13Q54.14 13.01 54.04 13.41L50.56 29.08Q50.5 29.2 50.11 29.26Q49.72 29.32 49.72 29.14Z" />
+    </svg>
+  );
+}
+
+/** The open card's resting body: a mark and two lines. Aruba only — the
+    reference this layout came from claims sixty-four countries, and the
+    one thing this card must never do is promise a service that is not
+    there. "Anywhere on the island" is what the hero has always said. */
+function Welcome({ lines }: { lines: [string, string] }) {
+  return (
+    <div className="qwelcome">
+      <Monogram />
+      <p className="qwelcome-t">{lines[0]}<br />{lines[1]}</p>
+    </div>
+  );
+}
+
+const PICKUP_LINES: [string, string] = ["Set your pickup anywhere on Aruba.", "We'll be there on time."];
+const DROPOFF_LINES: [string, string] = ["Wherever you're headed on the island,", "we'll get you there on time."];
+
+interface QuoteCardProps {
+  /** told whenever the card opens or closes, so the hero can make room */
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
   const { state, setField, open } = useBooking();
   const [hint, setHint] = useState("");
   const [locMsg, setLocMsg] = useState("");
@@ -21,38 +77,153 @@ export default function QuoteCard() {
   const fromInput = useRef<HTMLInputElement | null>(null);
   const toInput = useRef<HTMLInputElement | null>(null);
 
-  // ── the underline that slides between the two tabs ──────────────────
-  // It was a ::after on whichever button was .on, which cannot move: the
-  // mark vanished from one word and appeared under the other. One bar,
-  // measured onto the active tab, is the same mark travelling.
-  //
-  // Geometry has to be read rather than assumed — the two labels are
-  // different widths, and "One Way" is a different width again once
-  // Inter has loaded and the fallback stops standing in for it. So this
-  // re-measures on the tab change, on resize, and whenever the strip's
-  // own box changes, which is what catches the font swap.
-  const tabs = useRef<HTMLDivElement>(null);
-  const [ink, setInk] = useState<{ x: number; w: number } | null>(null);
+  // ── open / closed ────────────────────────────────────────────────────
+  const [expanded, setExpanded] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  /** the field the card was last opened from — where focus goes back to */
+  const lastCell = useRef<HTMLElement | null>(null);
+  /** set while WE move focus, so handing it back does not reopen the card */
+  const restoring = useRef(false);
+  /** the open field's left edge, so its panel opens under it, not at x=0 */
+  const [fieldX, setFieldX] = useState(0);
+  // The field row's height, so a picker's panel can span from the foot of
+  // the row to the foot of the CARD rather than be a fixed --qbody-h tall.
+  // Fixed, it stood at full height from the first frame while the card was
+  // still growing to meet it, hung out of the bottom, and a Tab into it
+  // scrolled the page to a panel the card had not reached yet.
+  const headRef = useRef<HTMLDivElement>(null);
+  const [headH, setHeadH] = useState<number | null>(null);
   useLayoutEffect(() => {
-    const strip = tabs.current;
-    if (!strip) return;
-    const measure = () => {
-      const on = strip.querySelector<HTMLElement>("button.on");
-      if (!on) return;
-      // inset by the button's own padding so the bar is the width of the
-      // words, not of the hit area — read from the element so the number
-      // lives in one place, the stylesheet
-      const box = getComputedStyle(on);
-      const l = parseFloat(box.paddingLeft) || 0;
-      const r = parseFloat(box.paddingRight) || 0;
-      const w = on.offsetWidth - l - r;
-      if (w > 0) setInk({ x: on.offsetLeft + l, w });
-    };
+    const head = headRef.current;
+    if (!head) return;
+    const measure = () => setHeadH(head.offsetHeight);
     measure();
+    if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(measure);
-    ro.observe(strip);
+    ro.observe(head);
     return () => ro.disconnect();
-  }, [state.journey]);
+  }, []);
+  const bodyId = useId();
+  /** a pointer is down on the row — its focus waits for the click */
+  const pressing = useRef(false);
+
+  useEffect(() => { onOpenChange?.(expanded); }, [expanded, onOpenChange]);
+
+  /** Opened by a field, from any of the ways into one: focus (a tap, Tab,
+      the validator), a click on a trigger that already has focus, and
+      typing into a box that kept focus after Escape closed the card. */
+  const expandFrom = useCallback((target: EventTarget | null) => {
+    if (restoring.current) return;
+    const cell = (target as HTMLElement | null)?.closest<HTMLElement>(".qf");
+    if (!cell) return;
+    lastCell.current = cell;
+    setFieldX(cell.offsetLeft);
+    setExpanded(true);
+  }, []);
+
+  // ── why a press opens on CLICK, not on focus ──
+  // Opening moves the field: the headline folds and the card rises, and on
+  // a phone the card becomes the screen. Opened on the focus a press gives,
+  // that move happened between pointerdown and pointerup, the release
+  // landed on something else, and the browser sent the click to neither —
+  // so the date and time pickers, which open on click, never opened. A
+  // press now opens the card on its click, after the pickers have had it;
+  // focus still opens it for Tab and for the validator's .focus().
+  useEffect(() => {
+    const reset = () => { pressing.current = false; };
+    document.addEventListener("keydown", reset, true);
+    return () => document.removeEventListener("keydown", reset, true);
+  }, []);
+
+  function onRowClick(e: React.MouseEvent) {
+    pressing.current = false;
+    const t = e.target as HTMLElement;
+    // a click on a field's dead space — beside the time label, say — means
+    // that field: hand it to the control, as a <label> would
+    if (!t.closest("input, button, label, li, select, [role]")) {
+      const control = t.closest(".qf")?.querySelector<HTMLElement>('input[role="combobox"], .dtf-trigger');
+      control?.focus();
+      control?.click();
+    }
+    expandFrom(t);
+  }
+
+  const collapse = useCallback(() => {
+    const wrap = wrapRef.current;
+    const active = document.activeElement as HTMLElement | null;
+    setExpanded(false);
+    if (!wrap || !active || !wrap.contains(active) || active.matches(SURVIVES)) return;
+    // Focus is on something the close is about to remove. A date or time
+    // trigger takes it back — focusing a button opens nothing. A place
+    // field does not: focusing it opens its search (and on a phone raises
+    // the keyboard), so the card itself takes focus instead, which keeps a
+    // screen-reader user in the card they were working in.
+    const trigger = lastCell.current?.querySelector<HTMLElement>(".dtf-trigger");
+    restoring.current = true;
+    (trigger ?? cardRef.current)?.focus({ preventScroll: true });
+    restoring.current = false;
+  }, []);
+
+  // Close on a TAP outside, like the place picker: closing on pointerdown
+  // shut the card the moment someone began to scroll the page past it.
+  useEffect(() => {
+    if (!expanded) return;
+    let from: { x: number; y: number } | null = null;
+    const at = (e: PointerEvent) => ({ x: e.clientX ?? 0, y: e.clientY ?? 0 });
+    // started inside the card, it is not a tap outside it — see the same
+    // guard in PlaceCombobox
+    const onDown = (e: PointerEvent) => {
+      from = wrapRef.current?.contains(e.target as Node) ? null : at(e);
+    };
+    const onCancel = () => { from = null; };
+    const onUp = (e: PointerEvent) => {
+      const start = from;
+      from = null;
+      if (!start || !isTap(start, at(e))) return;
+      const t = e.target as Node;
+      // a row that committed on this same pointerup has already left the
+      // DOM — that is a choice made inside the card, not a tap outside it
+      if (!t.isConnected) return;
+      if (wrapRef.current && !wrapRef.current.contains(t)) collapse();
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("pointercancel", onCancel);
+    document.addEventListener("pointerup", onUp);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("pointercancel", onCancel);
+      document.removeEventListener("pointerup", onUp);
+    };
+  }, [expanded, collapse]);
+
+  // On a phone the open card is the screen, so the page under it must not
+  // scroll — the same reference-counted lock the booking flow uses, so the
+  // flow opening from this card hands the lock over rather than fighting
+  // for it.
+  useEffect(() => {
+    if (!expanded || !window.matchMedia(SHEET_QUERY).matches) return;
+    lockBody();
+    // the field that opened the sheet goes to the top of it, so its list
+    // has the room between it and the keyboard
+    requestAnimationFrame(() => lastCell.current?.scrollIntoView?.({ block: "start" }));
+    return () => unlockBody();
+  }, [expanded]);
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    // A picker that handled this Escape (closed its calendar, its list)
+    // marks it handled; the card closes on the NEXT one. One key, one layer.
+    if (e.key !== "Escape" || e.defaultPrevented || !expanded) return;
+    e.preventDefault();
+    collapse();
+  }
+
+  function onBlur(e: React.FocusEvent) {
+    // Tabbing out of the card closes it. relatedTarget is null for a click
+    // on nothing focusable — that is the outside-tap listener's call.
+    const next = e.relatedTarget as Node | null;
+    if (expanded && next && wrapRef.current && !wrapRef.current.contains(next)) setExpanded(false);
+  }
 
   // ── the button's departure state ────────────────────────────────────
   // The press opens the flow immediately — there is no beat held here, and
@@ -93,12 +264,14 @@ export default function QuoteCard() {
   const fromAirport = state.from?.id === AIRPORT_ID;
   const toAirport = state.to?.id === AIRPORT_ID;
   const when = fromAirport
-    ? { label: "Flight lands", ph: "Landing", key: "flightLanding" as const, value: state.flightLanding }
+    ? { label: "Flight lands", key: "flightLanding" as const, value: state.flightLanding }
     : toAirport
-    ? { label: "Flight departs", ph: "Departure", key: "depTime" as const, value: state.depTime }
-    : { label: "Time", ph: "Pick up", key: "pickupTime" as const, value: state.pickupTime };
+    ? { label: "Flight departs", key: "depTime" as const, value: state.depTime }
+    : { label: "Pickup time", key: "pickupTime" as const, value: state.pickupTime };
 
   // Continue is never disabled — an empty field gets focus and a reason.
+  // Focusing it is also what opens the card, so the reason is read with the
+  // field's own panel already open under it.
   function handleContinue() {
     // The re-entry guard, rather than `disabled` on the button. Disabling a
     // control the moment it is pressed drops focus to the body, so a
@@ -128,110 +301,145 @@ export default function QuoteCard() {
       return;
     }
     setHint("");
+    setExpanded(false);
     open(); // everything already lives in context — nothing is asked twice
   }
 
-  const Pin = (
-    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 18s6-6.5 6-10a6 6 0 1 0-12 0c0 3.5 6 10 6 10z" /><circle cx="10" cy="8" r="2" />
-    </svg>
-  );
+  const locateBtn = onIsland ? (
+    <button type="button" className="qloc" onClick={handleLocate}>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+        strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+        <circle cx="10" cy="10" r="3" /><path d="M10 2v3M10 15v3M2 10h3M15 10h3" />
+      </svg>
+      Use my location
+    </button>
+  ) : null;
 
   return (
     // Every "Book now" on the site lands here when it has no route to
     // open the flow with, so the card needs a name to be scrolled to.
-    <div className="quote rise" id={CARD_ID}>
-      {/* §08 — one way or return, then the five answers in a row, then the
-          way on. The card carries no fare: the mockup asks for availability
-          first and shows the money once the route is real. */}
-      <div className="qtabs" role="tablist" aria-label="Trip type" ref={tabs}>
-        <button type="button" role="tab" aria-selected={state.journey === "one"}
-          className={state.journey === "one" ? "on" : ""}
-          onClick={() => setField("journey", "one")}>One Way</button>
-        <button type="button" role="tab" aria-selected={state.journey === "return"}
-          className={state.journey === "return" ? "on" : ""}
-          onClick={() => setField("journey", "return")}>Round Trip</button>
-        {/* scaleX on a 1px bar, not a width — the slide stays on the
-            compositor. Held at opacity 0 until it has been measured, or it
-            flashes at x=0 on the first paint. */}
-        <span className="qtab-ink" aria-hidden="true"
-          style={ink ? { opacity: 1, transform: `translateX(${ink.x}px) scaleX(${ink.w})` } : undefined} />
+    <div className={`quote rise${expanded ? " is-open" : ""}`} id={CARD_ID} ref={wrapRef}
+      onKeyDown={onKeyDown} onBlur={onBlur}>
+      <div className="qtop">
+        {/* Two trips, both real: a return is priced and booked by the flow
+            (TripSchedule asks its date). The reference's "By the hour" is
+            not here because hourly hire is not a product — see Footer.tsx —
+            and a mode the flow would refuse is not offered. Toggle buttons,
+            not tabs: there is no tab panel, the pair sets one value. */}
+        <div className="qmode" role="group" aria-label="Trip type" data-on={state.journey}>
+          <span className="qmode-pill" aria-hidden="true" />
+          <button type="button" aria-pressed={state.journey === "one"}
+            onClick={() => setField("journey", "one")}>One way</button>
+          <button type="button" aria-pressed={state.journey === "return"}
+            onClick={() => setField("journey", "return")}>Round trip</button>
+        </div>
+        {expanded && (
+          <button type="button" className="qclose" aria-controls={bodyId} aria-expanded="true"
+            onClick={collapse}>
+            <span>Close</span>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
+              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M4 4 L14 14 M14 4 L4 14" />
+            </svg>
+          </button>
+        )}
       </div>
 
-      <div className="qrow">
-        <div className="qcell">
-          <PlaceCombobox
-            label="From"
-            value={state.from}
-            onSelect={(sel) => setField("from", sel)}
-            placeholder={onIsland ? "Where are you now?" : "Airport, Hotel, Address"}
-            inputRef={fromInput}
-            icon={Pin}
-          />
+      {/* tabIndex -1: the card takes focus back when the field that opened
+          it cannot (see collapse) — never a Tab stop of its own. */}
+      <div className={`qcard${expanded ? " is-open" : ""}`} ref={cardRef} tabIndex={-1}
+        role="group" aria-label="Book a ride"
+        style={{ "--qx": `${fieldX}px`, ...(headH ? { "--qhead-h": `${headH}px` } : null) } as React.CSSProperties}>
+        <div className="qhead" ref={headRef}>
+          <div className="qrow"
+            // a field's press only: the button's press must not hold back
+            // the focus its validator sends to the field it found empty
+            onPointerDown={(e) => { pressing.current = !!(e.target as HTMLElement).closest(".qf"); }}
+            onFocus={(e) => { if (!pressing.current) expandFrom(e.target); }}
+            onClick={onRowClick}
+            onInput={(e) => expandFrom(e.target)}>
+            <div className="qf qf-from">
+              <PlaceCombobox
+                label="Pickup location"
+                value={state.from}
+                onSelect={(sel) => setField("from", sel)}
+                placeholder={onIsland ? "Where are you now?" : "Airport, hotel, address…"}
+                inputRef={fromInput}
+                docked
+                lead={<>
+                  <Welcome lines={PICKUP_LINES} />
+                  {locateBtn}
+                </>}
+              />
+            </div>
+
+            <div className="qf qf-to">
+              <PlaceCombobox
+                label="Drop-off location"
+                value={state.to}
+                onSelect={(sel) => setField("to", sel)}
+                placeholder="Airport, hotel, address…"
+                inputRef={toInput}
+                docked
+                lead={<Welcome lines={DROPOFF_LINES} />}
+              />
+            </div>
+
+            <span className="qsep qsep-a" aria-hidden="true" />
+
+            <div className="qf qf-date">
+              <DateField
+                id="q-date"
+                label="Date"
+                value={state.date}
+                min={todayInAruba()}
+                onChange={(iso) => setField("date", iso)}
+                placeholder="Select a date"
+                compact
+                chevron
+              />
+            </div>
+
+            {/* The hour, asked once, in the terms the route puts it in. */}
+            <div className="qf qf-time">
+              <TimeField
+                id="q-time"
+                label={when.label}
+                value={when.value}
+                onChange={(t) => setField(when.key, t)}
+                placeholder="Select a time"
+                hideZone
+                chevron
+              />
+            </div>
+
+            <span className="qsep qsep-b" aria-hidden="true" />
+
+            <div className="qgo">
+              <button type="button" className={`qbtn${busy ? " busy" : ""}`}
+                aria-busy={busy} onClick={handleContinue}>
+                <span className="qbtn-l">View options</span>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+                  strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 10h13M11 5l5 5-5 5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {locMsg && <div className="qhint" role="status">{locMsg}</div>}
+          {hint && <div className="qhint" role="alert">{hint}</div>}
         </div>
 
-        <div className="qcell">
-          <PlaceCombobox
-            label="To"
-            value={state.to}
-            onSelect={(sel) => setField("to", sel)}
-            placeholder="Hotel, Address, Destination"
-            inputRef={toInput}
-            icon={Pin}
-          />
+        {/* The open card's body. The pickers lay their panels over this
+            box (see .qcard in globals.css); when none is open, this is what
+            shows. The box stays so its height can animate, but it is a
+            landmark, and has content, only while the card is open — a
+            closed card has no "Trip details" region to announce. */}
+        <div className="qbody" id={bodyId} role={expanded ? "region" : undefined}
+          aria-label={expanded ? "Trip details" : undefined}>
+          {expanded && <Welcome lines={PICKUP_LINES} />}
         </div>
-
-        <div className="qcell qcell-date">
-          <DateField
-            id="q-date"
-            label="Date"
-            value={state.date}
-            min={todayInAruba()}
-            onChange={(iso) => setField("date", iso)}
-            compact
-          />
-        </div>
-
-        {/* The hour, asked once, in the terms the route puts it in. */}
-        <div className="qcell qcell-time">
-          <TimeField
-            id="q-time"
-            label={when.label}
-            value={when.value}
-            onChange={(t) => setField(when.key, t)}
-            placeholder={when.ph}
-            hideZone
-          />
-        </div>
-
-        <div className="qcell qcell-pax">
-          <label className="qpax" htmlFor="q-pax">
-            <span className="qpax-l">Passengers</span>
-            <select id="q-pax" value={state.pax} onChange={(e) => setField("pax", +e.target.value)}>
-              {Array.from({ length: MAX_PAX }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>{n} Passenger{n > 1 ? "s" : ""}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      {onIsland && (
-        <button type="button" className="qloc" onClick={handleLocate}>Use my location</button>
-      )}
-      {locMsg && <div className="qhint" role="status">{locMsg}</div>}
-      {hint && <div className="qhint" role="alert">{hint}</div>}
-
-      <div className="qgo">
-        <button type="button" className={`qbtn${busy ? " busy" : ""}`}
-          aria-busy={busy} onClick={handleContinue}>
-          <span className="qbtn-l">Get your fixed price</span>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3 10h13M11 5l5 5-5 5" />
-          </svg>
-        </button>
       </div>
     </div>
   );

@@ -48,8 +48,15 @@ interface PlaceComboboxProps {
   /** id of the error paragraph, so a screen reader reads the reason */
   describedBy?: string;
   invalid?: boolean;
-  /** a mark before the value — the hero card sets a pin on FROM and TO */
+  /** a mark before the value */
   icon?: React.ReactNode;
+  /** The hero card lays this picker's panels out in its own open body
+      rather than as a dropdown off the field, so there is no viewport to
+      measure against and no flip to make — the card owns the geometry. */
+  docked?: boolean;
+  /** shown above the common stops, before a letter is typed — the hero
+      card's welcome, and its "use my location" */
+  lead?: React.ReactNode;
 }
 
 interface Row {
@@ -192,7 +199,7 @@ const markForGeo = (k: GeoSuggestion["kind"]) =>
   k === "poi" ? "hotel" : k === "address" ? "road" : "pin";
 
 
-export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid, icon }: PlaceComboboxProps) {
+export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid, icon, docked, lead }: PlaceComboboxProps) {
   const uid = useId();
   const listId = `${uid}-listbox`;
   const [open, setOpen] = useState(false);
@@ -318,7 +325,14 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   useEffect(() => {
     let from: { x: number; y: number } | null = null;
     const at = (e: PointerEvent) => ({ x: e.clientX ?? 0, y: e.clientY ?? 0 });
-    function onDown(e: PointerEvent) { from = at(e); }
+    // A press that STARTS in the picker is never a tap outside it, wherever
+    // it ends. Opening the hero card moves the field under the finger — on
+    // a phone the card becomes the screen between pointerdown and pointerup
+    // — so the release landed beside the input, read as "outside", and shut
+    // the list the same tap had just opened.
+    function onDown(e: PointerEvent) {
+      from = wrapRef.current?.contains(e.target as Node) ? null : at(e);
+    }
     function onCancel() { from = null; }
     function onUp(e: PointerEvent) {
       const start = from;
@@ -371,7 +385,16 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Escape") { closeList(); return; }
+    if (e.key === "Escape") {
+      // Marked handled only when there was something to put away — a list
+      // or the area form. The common stops are the field's resting panel,
+      // so an Escape over them belongs to whatever holds the field: the
+      // hero card closes on it, rather than eating a keypress to hide a
+      // panel nobody asked for and closing on the second.
+      if (showList || customQuery !== null) e.preventDefault();
+      closeList();
+      return;
+    }
     if (!showList) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, options.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
@@ -386,7 +409,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   }
 
   useEffect(() => {
-    if (!showList) { setDrop({ up: false, max: null }); return; }
+    if (!showList || docked) { setDrop({ up: false, max: null }); return; }
     const measure = () => {
       const r = wrapRef.current?.getBoundingClientRect();
       if (!r) return;
@@ -421,7 +444,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       vv?.removeEventListener("resize", measure);
       vv?.removeEventListener("scroll", measure);
     };
-  }, [showList]);
+  }, [showList, docked]);
 
   // keep the active option visible under arrow-key travel
   useEffect(() => {
@@ -431,9 +454,21 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
 
   const activeId = options[activeIdx] ? `${uid}-opt-${options[activeIdx].id}` : undefined;
   const typedNothingFound = typing && q.length >= MIN_QUERY && options.length === 0 && !searching;
+  // The island search did not run (no key, an HTTP error, no network), so
+  // "nothing matches" would be a guess dressed as an answer: only the
+  // catalog was looked at. The empty row has to say which of the two it is.
+  const searchDown = status.s === "off" || status.s === "http" || status.s === "network";
 
   return (
-    <div className={`combo${open ? " open" : ""}`} ref={wrapRef}>
+    <div className={`combo${open ? " open" : ""}`} ref={wrapRef}
+      onBlur={(e) => {
+        // Tabbing on to the next field leaves this one. Without this its
+        // panel stayed up beside the next field's — two panels in one body.
+        // A null relatedTarget is a click on nothing focusable, which the
+        // outside-tap listener above decides.
+        const next = e.relatedTarget as Node | null;
+        if (open && next && wrapRef.current && !wrapRef.current.contains(next)) closeList();
+      }}>
       <div className={`cfield${invalid ? " invalid" : ""}`}>
         <div className="cwrap">
           <label htmlFor={`${uid}-in`}>{label}</label>
@@ -569,7 +604,9 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           )}
           {typedNothingFound && (
             <li className="cempty">
-              Nothing on the island matches “{q}”.{" "}
+              {searchDown && q.length >= MIN_GEO
+                ? <>Address search is offline, so only our own list was checked — nothing in it matches “{q}”.{" "}</>
+                : <>Nothing on the island matches “{q}”.{" "}</>}
               {q.length < MIN_CUSTOM
                 ? "Keep typing — a few more letters and you can use it as your own address."
                 : "Use it as your own address below."}
@@ -596,6 +633,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           IS the right answer until a letter is typed. */}
       {open && customQuery === null && !showList && (
         <div className="cpanel chint">
+          {lead && <div className="clead">{lead}</div>}
           <div className="cgroup">Common stops</div>
           <div className="cquick">
             {COMMON_PICKUPS.map((pl) => (

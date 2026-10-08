@@ -53,11 +53,11 @@ describe("Landing", () => {
     expect(screen.getAllByText(/Fixed price/i).length).toBeGreaterThanOrEqual(1);
     // the card is symmetric: from and to are the same control, and
     // planning-from-abroad pre-fills pickup to the airport (§3.8)
-    const pickup = screen.getByRole("combobox", { name: "From" });
+    const pickup = screen.getByRole("combobox", { name: "Pickup location" });
     // the field carries the name that fits it; the canonical one is on the
     // selection, on hover, and in the dropdown (see PlaceCombobox.test)
     expect(pickup).toHaveValue("Queen Beatrix Airport");
-    expect(screen.getByRole("combobox", { name: "To" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Drop-off location" })).toBeInTheDocument();
     // Reverse is not on the hero card in the mockup; it lives on step 1 of
     // the flow, which is the only place it was ever used twice.
     expect(screen.queryByRole("button", { name: /reverse pickup and drop-off/i })).toBeNull();

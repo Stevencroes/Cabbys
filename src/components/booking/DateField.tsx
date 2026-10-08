@@ -20,10 +20,13 @@ interface DateFieldProps {
   /** drops the year from the trigger — for narrow cards where the full
       date wraps to two lines. The year is still in the popover. */
   compact?: boolean;
+  /** a chevron in place of the calendar mark — the hero card's fields all
+      open the same way, so they all carry the same sign for it */
+  chevron?: boolean;
 }
 
 export default function DateField({
-  id, label, value, onChange, min, placeholder = "Choose a date", describedBy, invalid, compact,
+  id, label, value, onChange, min, placeholder = "Choose a date", describedBy, invalid, compact, chevron,
 }: DateFieldProps) {
   const uid = useId();
   const gridId = `${uid}-grid`;
@@ -104,7 +107,14 @@ export default function DateField({
   const canGoBack = !sameMonth(cursor, floor) && cursor > floor;
 
   return (
-    <div className="datefield" ref={wrapRef}>
+    <div className="datefield" ref={wrapRef}
+      onBlur={(e) => {
+        // Tab out of the calendar and it goes: left open, it sat beside the
+        // next field's panel. Null is a click on nothing focusable, which
+        // the pointerdown listener above already answers.
+        const next = e.relatedTarget as Node | null;
+        if (open && next && !wrapRef.current?.contains(next)) setOpen(false);
+      }}>
       <label className="dtf-label" htmlFor={id}>{label}</label>
       <button
         id={id}
@@ -118,11 +128,18 @@ export default function DateField({
         onClick={() => setOpen((o) => !o)}
       >
         <span>{value ? (compact ? formatDateShort(value) : formatDate(value)) : placeholder}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="16" rx="2" />
-          <path d="M8 3v4M16 3v4M3 10h18" />
-        </svg>
+        {chevron ? (
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" />
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M8 3v4M16 3v4M3 10h18" />
+          </svg>
+        )}
       </button>
 
       {open && (

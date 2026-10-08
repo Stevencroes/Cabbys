@@ -14,9 +14,10 @@ class IntersectionObserverStub {
 }
 globalThis.IntersectionObserver = IntersectionObserverStub as unknown as typeof IntersectionObserver;
 
-// jsdom has no ResizeObserver either. The booking card's tab underline is
-// placed from the active tab's measured box and re-measures when the strip
-// resizes — which is how it survives the web font landing after first paint.
+// jsdom has no ResizeObserver either. The route map and the admin charts
+// re-measure their boxes with it; the booking card's measured tab underline
+// that first needed this stub is now a pill in an even grid and measures
+// nothing.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
