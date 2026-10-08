@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { SplitHeading } from "./motion";
-import QuoteCard from "./booking/QuoteCard";
+import QuoteCard, { SHEET_QUERY } from "./booking/QuoteCard";
 
 /** §07 — the trust row's three marks. Line icons on a 20px grid, one weight. */
 const TRUST = [
@@ -21,7 +21,7 @@ export default function Hero() {
     // Opened from a scrolled page, the card would rise out of the top of the
     // screen as the headline folds. Bring the hero's top back first.
     const top = ref.current?.getBoundingClientRect().top ?? 0;
-    if (open && top < 0 && !window.matchMedia("(max-width: 760px)").matches) {
+    if (open && top < 0 && !window.matchMedia(SHEET_QUERY).matches) {
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
     }

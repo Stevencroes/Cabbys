@@ -27,35 +27,31 @@ import { AIRPORT, AIRPORT_ID, selFromCustom, selFromPlace } from "../../data/pla
 import { CARD_ID } from "../../booking/useStartBooking";
 
 /** Where the open card stops being a panel in the hero and becomes the
-    screen. The same 760px the place picker has always switched at, so the
-    card and the controls inside it agree about what a phone is. */
-const SHEET_QUERY = "(max-width: 760px)";
+    screen: a phone (the same 760px the place picker has always switched
+    at), and any window too SHORT for the panel. Width alone let a laptop at
+    600px tall, a tablet at 1024x600 and a phone on its side open a card
+    that ran off the bottom of the screen with the calendar cut in half —
+    the nav, the toggle and the field row left too little for a month.
+    globals.css draws the two shapes this covers (§08, "the screen when
+    open"); this is the same union, for the body lock and Hero's scroll. */
+export const SHEET_QUERY = "(max-width: 760px), (max-height: 640px), (max-width: 1099px) and (max-height: 720px)";
 
 /** Controls that SURVIVE the card closing. Focus resting on one of these
-    can stay where it is; focus anywhere else in the card (a common stop, the
-    calendar, the close button) is about to be unmounted with the body, and
-    has to be handed somewhere first or it falls to <body>. */
+    can stay where it is; focus anywhere else in the card ("use my location",
+    the calendar, the close button) is about to be unmounted with the body,
+    and has to be handed somewhere first or it falls to <body>. */
 const SURVIVES = 'input[role="combobox"], .dtf-trigger, .qbtn, .qmode button';
 
-/** The C' of the wordmark, as the favicon draws it — outlined, because the
-    empty state cannot wait on the web font to say whose card this is. */
-function Monogram() {
-  return (
-    <svg className="qmono" width="44" height="44" viewBox="8 10 48 44" aria-hidden="true">
-      <path fill="currentColor" d="M31.78 13Q33.78 13 35.69 13.19Q37.59 13.38 39.28 13.79Q40.96 14.2 42.31 14.84Q42.79 15.03 42.92 15.26Q43.05 15.5 43.11 16.17L43.86 23.92Q43.86 24.08 43.56 24.14Q43.25 24.21 43.15 23.98Q41.61 19.2 38.61 16.66Q35.6 14.12 31.1 14.12Q26.78 14.12 23.44 16.27Q20.1 18.41 18.22 22.36Q16.34 26.3 16.34 31.74Q16.34 35.76 17.48 39.09Q18.62 42.43 20.69 44.84Q22.77 47.25 25.53 48.57Q28.3 49.88 31.56 49.88Q35.97 49.88 38.78 47.58Q41.59 45.27 43.69 40.41Q43.79 40.24 44.07 40.3Q44.35 40.35 44.35 40.51L43.59 47.49Q43.53 48.2 43.39 48.39Q43.25 48.59 42.77 48.82Q39.88 50 37.12 50.5Q34.37 51 31.55 51Q25.26 51 20.39 48.61Q15.51 46.22 12.73 41.93Q9.95 37.64 9.95 32.05Q9.95 27.83 11.59 24.32Q13.23 20.82 16.2 18.29Q19.17 15.77 23.15 14.38Q27.13 13 31.78 13Z" />
-      <path className="qmono-ap" d="M49.72 29.14 48.35 14.97Q48.31 14.45 49.2 14.01Q50.09 13.57 51.27 13.28Q52.44 12.99 53.29 13Q54.14 13.01 54.04 13.41L50.56 29.08Q50.5 29.2 50.11 29.26Q49.72 29.32 49.72 29.14Z" />
-    </svg>
-  );
-}
-
-/** The open card's resting body: a mark and two lines. Aruba only — the
-    reference this layout came from claims sixty-four countries, and the
-    one thing this card must never do is promise a service that is not
-    there. "Anywhere on the island" is what the hero has always said. */
+/** The open card's resting body: two lines and nothing else. No mark and
+    no shortcut chips — with them the body read as a menu to pick from
+    rather than a pause before you type, and the chips wrapped to three
+    rows on a phone. Aruba only — the reference this layout came from
+    claims sixty-four countries, and the one thing this card must never do
+    is promise a service that is not there. "Anywhere on the island" is
+    what the hero has always said. */
 function Welcome({ lines }: { lines: [string, string] }) {
   return (
     <div className="qwelcome">
-      <Monogram />
       <p className="qwelcome-t">{lines[0]}<br />{lines[1]}</p>
     </div>
   );
@@ -87,6 +83,10 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
   const restoring = useRef(false);
   /** the open field's left edge, so its panel opens under it, not at x=0 */
   const [fieldX, setFieldX] = useState(0);
+  /** whether the drop-off opened the card, so the body's words are about
+      it — on a phone they are the only words, and said "pickup" under an
+      open drop-off */
+  const [toward, setToward] = useState(false);
   // The field row's height, so a picker's panel can span from the foot of
   // the row to the foot of the CARD rather than be a fixed --qbody-h tall.
   // Fixed, it stood at full height from the first frame while the card was
@@ -119,6 +119,7 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
     if (!cell) return;
     lastCell.current = cell;
     setFieldX(cell.offsetLeft);
+    setToward(cell.classList.contains("qf-to"));
     setExpanded(true);
   }, []);
 
@@ -197,7 +198,7 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
     };
   }, [expanded, collapse]);
 
-  // On a phone the open card is the screen, so the page under it must not
+  // When the open card is the screen, the page under it must not
   // scroll — the same reference-counted lock the booking flow uses, so the
   // flow opening from this card hands the lock over rather than fighting
   // for it.
@@ -438,7 +439,7 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
             closed card has no "Trip details" region to announce. */}
         <div className="qbody" id={bodyId} role={expanded ? "region" : undefined}
           aria-label={expanded ? "Trip details" : undefined}>
-          {expanded && <Welcome lines={PICKUP_LINES} />}
+          {expanded && <Welcome lines={toward ? DROPOFF_LINES : PICKUP_LINES} />}
         </div>
       </div>
     </div>

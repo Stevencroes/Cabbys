@@ -54,8 +54,9 @@ interface PlaceComboboxProps {
       rather than as a dropdown off the field, so there is no viewport to
       measure against and no flip to make — the card owns the geometry. */
   docked?: boolean;
-  /** shown above the common stops, before a letter is typed — the hero
-      card's welcome, and its "use my location" */
+  /** shown INSTEAD of the common stops, before a letter is typed — the
+      hero card's resting words. A host that brings its own empty state
+      wants that and only that; the chips under it made it a menu. */
   lead?: React.ReactNode;
 }
 
@@ -633,23 +634,24 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           IS the right answer until a letter is typed. */}
       {open && customQuery === null && !showList && (
         <div className="cpanel chint">
-          {lead && <div className="clead">{lead}</div>}
-          <div className="cgroup">Common stops</div>
-          <div className="cquick">
-            {COMMON_PICKUPS.map((pl) => (
-              <button key={pl.id} type="button"
-                {...tap(() => commitPlace(pl))}>
-                <QuickIcon id={pl.id} />
-                <span className="qn">{pl.name}</span>
-                {/* the area only earns its column when it says something the
-                    name does not — "Palm Beach · Palm Beach" is furniture */}
-                {pl.area !== pl.name && (
-                  <span className="oarea">{pl.area === "Airport" ? "AUA" : pl.area}</span>
-                )}
-              </button>
-            ))}
-          </div>
-          <p>Somewhere else? Type it — an address prices by area, so villas and condos come out honest.</p>
+          {lead ? <div className="clead">{lead}</div> : (<>
+            <div className="cgroup">Common stops</div>
+            <div className="cquick">
+              {COMMON_PICKUPS.map((pl) => (
+                <button key={pl.id} type="button"
+                  {...tap(() => commitPlace(pl))}>
+                  <QuickIcon id={pl.id} />
+                  <span className="qn">{pl.name}</span>
+                  {/* the area only earns its column when it says something the
+                      name does not — "Palm Beach · Palm Beach" is furniture */}
+                  {pl.area !== pl.name && (
+                    <span className="oarea">{pl.area === "Airport" ? "AUA" : pl.area}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p>Somewhere else? Type it — an address prices by area, so villas and condos come out honest.</p>
+          </>)}
         </div>
       )}
 

@@ -132,6 +132,20 @@ describe("QuoteCard — opens in place, and closes back", () => {
     expect(screen.getByRole("dialog", { name: /choose a date/i })).toBeInTheDocument();
   });
 
+  it("says only its words before a letter is typed — no mark, no shortcut chips", () => {
+    mount();
+    fireEvent.click(screen.getByRole("combobox", { name: /pickup/i }));
+    expect(isOpen()).toBe(true);
+    const panel = card().querySelector(".qf-from .chint") as HTMLElement;
+    expect(panel).toHaveTextContent(/set your pickup anywhere on aruba/i);
+    expect(card().querySelector(".qmono, .cquick")).toBeNull();
+    expect(within(card()).queryByText(/common stops/i)).toBeNull();
+    // the drop-off says its own line, in its panel and in the body behind it
+    fireEvent.click(screen.getByRole("combobox", { name: /drop-off/i }));
+    expect(card().querySelector(".qf-to .chint")).toHaveTextContent(/wherever you're headed/i);
+    expect(screen.getByRole("region", { name: /trip details/i })).toHaveTextContent(/wherever you're headed/i);
+  });
+
   it("opens on keyboard focus, for Tab and for the validator", () => {
     mount();
     fireEvent.focus(screen.getByRole("combobox", { name: /drop-off/i }));
