@@ -22,19 +22,18 @@ import TimeField from "./TimeField";
 import { todayInAruba } from "../../lib/datetime";
 import { isOnIsland, locate } from "../../lib/geo";
 import { isTap } from "../../lib/tap";
-import { lockBody, unlockBody } from "../../lib/bodyLock";
-import { AIRPORT, AIRPORT_ID, selFromCustom, selFromPlace } from "../../data/places";
+import { AIRPORT_ID, selFromCustom } from "../../data/places";
 import { CARD_ID } from "../../booking/useStartBooking";
 
-/** Where the open card stops being a panel in the hero and becomes the
-    screen: a phone (the same 760px the place picker has always switched
-    at), and any window too SHORT for the panel. Width alone let a laptop at
-    600px tall, a tablet at 1024x600 and a phone on its side open a card
-    that ran off the bottom of the screen with the calendar cut in half —
-    the nav, the toggle and the field row left too little for a month.
-    globals.css draws the two shapes this covers (§08, "the screen when
-    open"); this is the same union, for the body lock and Hero's scroll. */
-export const SHEET_QUERY = "(max-width: 760px), (max-height: 640px), (max-width: 1099px) and (max-height: 720px)";
+/** Where the card does not open at all. Opening in place needs the hero
+    to have room for the field row AND a panel under it: on a phone the
+    "open" card had to become a full-screen sheet, and on a short laptop or
+    tablet it had to cover the nav — two more layouts for a screen that was
+    never the one the open state was drawn for. On these screens the card
+    stays the bar it is at rest, and each picker opens as its own dropdown
+    or calendar, the way it does inside the booking flow. globals.css docks
+    the pickers only under the complement of this (§08). */
+export const CLOSED_QUERY = "(max-width: 760px), (max-height: 640px), (max-width: 1099px) and (max-height: 720px)";
 
 /** Controls that SURVIVE the card closing. Focus resting on one of these
     can stay where it is; focus anywhere else in the card ("use my location",
@@ -75,6 +74,19 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
 
   // ── open / closed ────────────────────────────────────────────────────
   const [expanded, setExpanded] = useState(false);
+  // Read live, not once: a window dragged short, or a tablet turned on its
+  // side, while the card is open has to close it — the open layout is not
+  // drawn for the screen it is now on.
+  const [canOpen, setCanOpen] = useState(() => !window.matchMedia(CLOSED_QUERY).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(CLOSED_QUERY);
+    const sync = () => {
+      setCanOpen(!mq.matches);
+      if (mq.matches) setExpanded(false);
+    };
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
   const wrapRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   /** the field the card was last opened from — where focus goes back to */
@@ -114,14 +126,14 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
       the validator), a click on a trigger that already has focus, and
       typing into a box that kept focus after Escape closed the card. */
   const expandFrom = useCallback((target: EventTarget | null) => {
-    if (restoring.current) return;
+    if (restoring.current || !canOpen) return;
     const cell = (target as HTMLElement | null)?.closest<HTMLElement>(".qf");
     if (!cell) return;
     lastCell.current = cell;
     setFieldX(cell.offsetLeft);
     setToward(cell.classList.contains("qf-to"));
     setExpanded(true);
-  }, []);
+  }, [canOpen]);
 
   // ── why a press opens on CLICK, not on focus ──
   // Opening moves the field: the headline folds and the card rises, and on
@@ -198,19 +210,6 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
     };
   }, [expanded, collapse]);
 
-  // When the open card is the screen, the page under it must not
-  // scroll — the same reference-counted lock the booking flow uses, so the
-  // flow opening from this card hands the lock over rather than fighting
-  // for it.
-  useEffect(() => {
-    if (!expanded || !window.matchMedia(SHEET_QUERY).matches) return;
-    lockBody();
-    // the field that opened the sheet goes to the top of it, so its list
-    // has the room between it and the keyboard
-    requestAnimationFrame(() => lastCell.current?.scrollIntoView?.({ block: "start" }));
-    return () => unlockBody();
-  }, [expanded]);
-
   function onKeyDown(e: React.KeyboardEvent) {
     // A picker that handled this Escape (closed its calendar, its list)
     // marks it handled; the card closes on the NEXT one. One key, one layer.
@@ -239,22 +238,17 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
   // leaves the card's button stuck.
   const busy = state.open;
 
-  // §3.8 — planning from abroad: pickup pre-fills to the airport; guests
-  // already on the island get an empty form (they know where they are).
-  useEffect(() => {
-    if (!onIsland && !state.from) setField("from", selFromPlace(AIRPORT));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No pickup is filled in for anyone. It used to pre-fill the airport for
+  // visitors planning from abroad (§3.8), which put a place on the card the
+  // traveller had not chosen — and with it the "Flight lands" question —
+  // for everyone whose first ride is not from the airport.
 
   async function handleLocate() {
     const res = await locate();
     setLocMsg(res.message);
-    if (res.ok && res.area) {
-      setField("from", selFromCustom(`Near ${res.area.name}`, res.area));
-    } else {
-      // off-island or denied — fall back kindly to the airport
-      setField("from", selFromPlace(AIRPORT));
-    }
+    // Off-island or denied: the message says why, and the field stays as it
+    // was. Filling in the airport here was a choice made for the traveller.
+    if (res.ok && res.area) setField("from", selFromCustom(`Near ${res.area.name}`, res.area));
   }
 
   // The card asks the ONE time question the route actually has. An airport
@@ -319,7 +313,7 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
   return (
     // Every "Book now" on the site lands here when it has no route to
     // open the flow with, so the card needs a name to be scrolled to.
-    <div className={`quote rise${expanded ? " is-open" : ""}`} id={CARD_ID} ref={wrapRef}
+    <div className={`quote rise${canOpen ? " can-open" : ""}${expanded ? " is-open" : ""}`} id={CARD_ID} ref={wrapRef}
       onKeyDown={onKeyDown} onBlur={onBlur}>
       <div className="qtop">
         {/* Two trips, both real: a return is priced and booked by the flow
@@ -366,11 +360,14 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
                 onSelect={(sel) => setField("from", sel)}
                 placeholder={onIsland ? "Where are you now?" : "Airport, hotel, address…"}
                 inputRef={fromInput}
-                docked
-                lead={<>
+                docked={canOpen}
+                // Closed for good on this screen, the field's resting panel
+                // is a dropdown, and it carries only what is worth one: "use
+                // my location", or nothing — never the shortcut chips.
+                lead={canOpen ? <>
                   <Welcome lines={PICKUP_LINES} />
                   {locateBtn}
-                </>}
+                </> : locateBtn}
               />
             </div>
 
@@ -381,8 +378,8 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
                 onSelect={(sel) => setField("to", sel)}
                 placeholder="Airport, hotel, address…"
                 inputRef={toInput}
-                docked
-                lead={<Welcome lines={DROPOFF_LINES} />}
+                docked={canOpen}
+                lead={canOpen ? <Welcome lines={DROPOFF_LINES} /> : null}
               />
             </div>
 

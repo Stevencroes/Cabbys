@@ -90,6 +90,11 @@ export default function TimeField({
       list.scrollTop = row.offsetTop - list.clientHeight / 2 + row.clientHeight / 2;
     }
     row?.focus({ preventScroll: true });
+    // preventScroll kept the row where it was centred — and so also kept the
+    // page where it was, with the list hanging off the bottom of a short
+    // window (the hero card on a 600px laptop). The calendar never had this:
+    // its plain focus() scrolls. "nearest" moves nothing that already shows.
+    list?.closest(".tmf-pop")?.scrollIntoView?.({ block: "nearest" });
     // deliberately on open only: re-centring on every pick would yank the
     // list under the pointer between two adjacent times
     // eslint-disable-next-line react-hooks/exhaustive-deps

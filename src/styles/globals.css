@@ -902,7 +902,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qf .dtf-trigger svg,.qclose,.qloc{transition:none;}
 }
 
-/* ── the pickers, docked (tablet and up) ──
+/* ── the pickers, docked (wherever the card opens) ──
    Inside the card each picker's panel stops hanging off its field and lies
    in the open body instead: absolutely placed against the card, from the
    foot of the field row (--qhead-h, measured by QuoteCard) to the foot of
@@ -912,7 +912,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
    does not run off the card's right edge. Everything between the panel and
    the card is position:static so the card is the box they all measure
    from. No fill, no border, no shadow: the card is the panel now. */
-@media(min-width:761px) and (min-height:521px){
+@media(min-width:1100px) and (min-height:641px),(min-width:761px) and (min-height:721px){
   .qcard .combo,.qcard .datefield,.qcard .timefield{position:static;}
   .qcard .cpanel,.qcard .dtf-pop{position:absolute;z-index:1;top:var(--qhead-h,100%);bottom:0;
     left:clamp(16px,var(--qx,0px),calc(100% - var(--qpw) - 16px));width:var(--qpw);
@@ -943,11 +943,12 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* The words as the card's resting panel, at every width — the phone-only
    rule further down is for the standalone picker. */
 .qcard .combo.open .chint{display:flex;}
-/* No panel on a closed card, whatever a picker's own state says — a closed
-   card has no body for it to lie in, and it would hang out of the bar. After
-   the rule above and as specific as it, or the resting panel wins and hangs
-   under a closed bar. */
-.qcard:not(.is-open) .combo .cpanel,.qcard:not(.is-open) .qf .dtf-pop{display:none;}
+/* No panel on a closed card that could open, whatever a picker's own state
+   says — it has no body for the panel to lie in yet, and it would hang out
+   of the bar. Where the card never opens (no .can-open) the pickers are
+   plain dropdowns and this does not apply. After the rule above and more
+   specific than it, or the resting panel wins and hangs under the bar. */
+.quote.can-open .qcard:not(.is-open) .combo .cpanel,.quote.can-open .qcard:not(.is-open) .qf .dtf-pop{display:none;}
 
 /* ── tablet: two rows ── places across the top, then date, hour and the
    way on. A six-column grid so both rows split evenly. */
@@ -976,110 +977,20 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qhint{padding:0 18px 16px;}
 }
 
-/* ── the screen when open ──
-   Two shapes, and QuoteCard's SHEET_QUERY is their union (it locks the
-   page under both). Height decides as much as width: a 1280x600 laptop,
-   a 1024x600 tablet and a phone on its side all opened the card in the
-   hero, under the nav, and it ran off the bottom with the month cut. */
+/* ── where the card stays shut ──
+   Phones, and windows too short for the row and a panel under it, never
+   open the card (QuoteCard's CLOSED_QUERY): each picker opens as its own
+   dropdown or calendar instead. The phone's calendar is position:fixed and
+   centred, and the card's glass is a backdrop-filter, which makes the card
+   the containing block for anything fixed inside it — the "centred"
+   calendar was laid out in the card, not the screen. The glass goes while
+   a calendar or hour list is up; the picker covers it anyway. */
+.quote:not(.can-open) .qcard:has(.dtf-pop){-webkit-backdrop-filter:none;backdrop-filter:none;}
+/* where the place list scrolls its field to the top for room (PlaceCombobox),
+   the top is under the fixed nav — so the field stops clear of it */
+.quote:not(.can-open) .combo{scroll-margin-top:calc(var(--nav-total) + 10px);}
+@media(max-width:900px){.quote:not(.can-open) .combo{scroll-margin-top:calc(var(--nav-total-sm) + 10px);}}
 
-/* A phone, or a window too short for the field row AND a panel under it
-   (a phone on its side): the card is a sheet over everything — the trip
-   type and Close across the top, the fields in one column under them, and
-   the field's panel opening IN the stack under the field rather than in a
-   body at the foot of four fields, which on a phone would be behind the
-   keyboard. The card scrolls; the page under it is locked (QuoteCard). */
-@media(max-width:760px),(max-height:520px){
-  .quote.is-open{position:fixed;inset:0;z-index:var(--z-sheet);gap:12px;
-    /* a phone on its side is 844px of mostly nothing: one 640px column,
-       centred, clear of the notch on whichever side it is */
-    padding:calc(var(--safe-top) + 10px)
-      max(calc(env(safe-area-inset-right,0px) + 16px),calc((100% - 640px) / 2))
-      calc(env(safe-area-inset-bottom,0px) + 16px)
-      max(calc(env(safe-area-inset-left,0px) + 16px),calc((100% - 640px) / 2));
-    background:var(--ground);}
-  .quote.is-open .qtop{grid-template-columns:auto 1fr;}
-  .quote.is-open .qmode{grid-column:1;}
-  .quote.is-open .qclose{grid-column:2;margin-right:-8px;}
-  .quote.is-open .qcard{flex:1;min-height:0;display:flex;flex-direction:column;
-    overflow-y:auto;overscroll-behavior:contain;}
-  /* One column. Date and hour share a row at rest on a phone; open, each
-     takes the full width, because a calendar laid out in half a phone is
-     seven 20px days. Spelled out rather than inherited from the phone's
-     rest rules, because a short tablet arrives here with the six-column
-     grid and a desktop with the seven. */
-  .quote.is-open .qrow{grid-template-columns:minmax(0,1fr);column-gap:18px;row-gap:14px;padding:18px;}
-  .quote.is-open .qrow > *{grid-column:1 / -1;}
-  .quote.is-open .qsep{display:none;}
-  .quote.is-open .qgo{margin-top:6px;}
-  .quote.is-open .qgo .qbtn{width:100%;}
-  .quote.is-open .qf .combo .cfield input,.quote.is-open .qf .dtf-trigger{min-height:var(--tap);}
-  /* as tall as its words and no taller — a 180px floor pushed an SE's
-     card into a scroll it did not need */
-  .quote.is-open .qbody{height:auto;flex:1 0 auto;min-height:0;padding:24px;}
-  /* The words live in the body here, under the fields. The copy inside the
-     field's resting panel would sit between pickup and drop-off and push
-     the rest down toward the keyboard, so it is hidden, and the panel with
-     it unless it carries "use my location". The body's words stay up while
-     only that resting panel is open — the desktop rule hides them under
-     ANY panel — and the body goes altogether under a real one, a list or a
-     month, which needs the scroll room more than a sentence does. */
-  .quote.is-open .chint .qwelcome{display:none;}
-  .quote.is-open .chint:not(:has(.qloc)){display:none;}
-  .quote.is-open .qcard .qbody > .qwelcome{visibility:visible;}
-  .quote.is-open .qcard:has(.qrow .cpanel:not(.chint),.qrow .dtf-pop) .qbody{display:none;}
-  /* The validator's line, pinned to the top of the sheet. Under the row,
-     where the desktop keeps it, it sat below four fields and the panel of
-     the one it was about — scrolled out of sight by the very focus that
-     opened the panel. */
-  .quote.is-open .qhead{display:flex;flex-direction:column;}
-  .quote.is-open .qhint{order:-1;position:sticky;top:0;z-index:2;margin:0;padding:14px 18px;
-    background:var(--deep);border-bottom:1px solid var(--glass-rule);}
-  .quote.is-open:has(.qhint) .qf{scroll-margin-top:64px;}
-  .quote.is-open .cpanel,.quote.is-open .dtf-pop{position:static;transform:none;
-    width:auto;min-width:0;max-width:none;max-height:none;margin:12px 0 0;padding:0;
-    background:none;border:none;border-radius:0;box-shadow:none;
-    -webkit-backdrop-filter:none;backdrop-filter:none;}
-  .quote.is-open .clist{overflow:visible;padding:0;}
-  .quote.is-open .clist li[role="option"]{margin:0;}
-  .quote.is-open .cpanel .cattrib{border-top-color:var(--glass-rule);padding-left:0;padding-right:0;}
-  .quote.is-open .tmf-list{max-height:min(320px,46svh);}
-  /* aspect-ratio off: a square 46px day is 334px a week, wider than a
-     343px card less its padding, and the Saturday column was cut */
-  .quote.is-open .dtf-day{min-height:var(--tap);aspect-ratio:auto;}
-}
-
-/* A 320px phone: the trip pill and "Close" are 300px together, wider than
-   the sheet, and Close was cut at the screen's edge. The X says it alone;
-   the word stays for screen readers. And at 568px tall the fields fill the
-   sheet, so the words would only ever show as a half-line at its foot. */
-@media(max-width:359px){
-  .quote.is-open .qclose span{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;
-    clip:rect(0,0,0,0);white-space:nowrap;}
-  .quote.is-open .qclose{width:var(--tap);padding:0;justify-content:center;}
-}
-@media(max-width:760px) and (max-height:600px){
-  .quote.is-open .qbody{display:none;}
-}
-
-/* Wide enough for the bar, too short for it in the hero: the open card
-   takes the whole screen instead, nav included, and keeps the desktop's
-   row with the panel docked under it. Under the nav, a 1280x600 window
-   left ~280px for a body a month needs ~300 of; over it, ~400. The
-   cut-offs are where the hero's own --qbody-h floor stops fitting: 640px
-   tall with the one-row bar, 720px with the tablet's two rows. */
-@media(min-width:761px) and (min-height:521px) and (max-height:640px),
-      (min-width:761px) and (max-width:1099px) and (min-height:521px) and (max-height:720px){
-  .quote.is-open{position:fixed;inset:0;z-index:var(--z-sheet);gap:12px;
-    padding:calc(var(--safe-top) + 12px)
-      max(var(--gutter),calc((100% - var(--maxw)) / 2 + var(--gutter))) 16px;
-    /* opaque, as the phone's sheet is: through --scrim-heavy the nav's
-       wordmark and Book now still ghosted behind Close */
-    background:var(--ground);}
-  /* the body is whatever the screen leaves, not a computed --qbody-h —
-     there is nothing above the card to estimate any more */
-  .quote.is-open .qcard{flex:1;min-height:0;display:flex;flex-direction:column;}
-  .quote.is-open .qbody{height:auto;flex:1 1 0;min-height:0;}
-}
 /* Beside the headline the card has to match its weight, and a mouse needs
    none of what a thumb does. Touch keeps the 46px targets and the 16px
    fields — under 16px, iOS zooms the page the moment one takes focus. */

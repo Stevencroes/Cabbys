@@ -56,7 +56,8 @@ interface PlaceComboboxProps {
   docked?: boolean;
   /** shown INSTEAD of the common stops, before a letter is typed — the
       hero card's resting words. A host that brings its own empty state
-      wants that and only that; the chips under it made it a menu. */
+      wants that and only that; the chips under it made it a menu. null:
+      no resting panel at all, the plain dropdown that waits for a letter. */
   lead?: React.ReactNode;
 }
 
@@ -283,6 +284,8 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
    * and a measured height would fight the layout.
    */
   const [drop, setDrop] = useState<{ up: boolean; max: number | null }>({ up: false, max: null });
+  /** the page has been scrolled once for this list — see measure() */
+  const nudged = useRef(false);
   const options = useMemo(() => rows.filter((r) => r.kind !== "group"), [rows]);
   // Geocoded rows land a beat after the catalog ones, so the highlight can
   // be pointing past the end of a list that just changed under it.
@@ -410,7 +413,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   }
 
   useEffect(() => {
-    if (!showList || docked) { setDrop({ up: false, max: null }); return; }
+    if (!showList || docked) { nudged.current = false; setDrop({ up: false, max: null }); return; }
     const measure = () => {
       const r = wrapRef.current?.getBoundingClientRect();
       if (!r) return;
@@ -424,7 +427,23 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       const vv = window.visualViewport;
       const seen = vv ? vv.height + vv.offsetTop : innerHeight;
       const below = seen - r.bottom - GAP - EDGE;
-      const above = r.top - GAP - EDGE;
+      // Above ends at the fixed nav, not the screen's edge: measured to the
+      // edge, a list flipped up started 16px from the top and its first
+      // rows sat under the nav — on every phone, and on a 600px laptop.
+      const navFoot = document.querySelector(".nav")?.getBoundingClientRect().bottom ?? 0;
+      const above = r.top - GAP - Math.max(EDGE, navFoot + 8);
+      // Room for neither: a phone on its side, the field mid-screen. Flipped
+      // up, the list ran under the fixed nav and showed one row of five.
+      // Scroll the field to the top once (its scroll-margin clears the nav)
+      // and let the scroll this fires measure again with the room below.
+      // Instant: the page scrolls smoothly, and the active row's own
+      // scrollIntoView, run as results land, stopped a smooth scroll 47px
+      // into its 170.
+      if (below < FLOOR && above < FLOOR && !nudged.current) {
+        nudged.current = true;
+        wrapRef.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
+        return;
+      }
       const up = below < WANT && above > below;
       const room = up ? above : below;
       // A list shorter than a few rows is not worth flipping the world for,
@@ -632,7 +651,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       {/* The sheet takes the whole screen, so it cannot open on nothing.
           On the desktop dropdown this stays hidden — there, showing nothing
           IS the right answer until a letter is typed. */}
-      {open && customQuery === null && !showList && (
+      {open && customQuery === null && !showList && lead !== null && (
         <div className="cpanel chint">
           {lead ? <div className="clead">{lead}</div> : (<>
             <div className="cgroup">Common stops</div>

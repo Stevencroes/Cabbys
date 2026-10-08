@@ -146,6 +146,30 @@ describe("QuoteCard — opens in place, and closes back", () => {
     expect(screen.getByRole("region", { name: /trip details/i })).toHaveTextContent(/wherever you're headed/i);
   });
 
+  it("stays shut on a phone or a short window, and the pickers still work", () => {
+    const real = window.matchMedia;
+    // every query this card asks is CLOSED_QUERY, so "matches" is a phone
+    window.matchMedia = ((q: string) => ({
+      matches: true, media: q, onchange: null,
+      addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {},
+      dispatchEvent() { return false; },
+    })) as unknown as typeof window.matchMedia;
+    try {
+      mount();
+      fireEvent.click(screen.getByRole("combobox", { name: /pickup/i }));
+      fireEvent.click(screen.getByRole("button", { name: /^date/i }));
+      expect(isOpen()).toBe(false);
+      expect(screen.queryByRole("region", { name: /trip details/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /^close$/i })).toBeNull();
+      // the calendar opens as its own popover on the closed bar
+      expect(screen.getByRole("dialog", { name: /choose a date/i })).toBeInTheDocument();
+      // and no welcome words are pushed into a dropdown
+      expect(card()).not.toHaveTextContent(/set your pickup anywhere/i);
+    } finally {
+      window.matchMedia = real;
+    }
+  });
+
   it("opens on keyboard focus, for Tab and for the validator", () => {
     mount();
     fireEvent.focus(screen.getByRole("combobox", { name: /drop-off/i }));
