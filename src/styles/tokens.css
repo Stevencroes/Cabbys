@@ -135,7 +135,16 @@
      touch: 14px is still the floor there too, and the admin's form
      fields are 14px knowingly — iOS zooms a focused input under 16px,
      which is acceptable on a desk tool and would not be on the booking
-     form. */
+     form.
+
+     The admin desk also sets aside the PAIRING above, by the same owner,
+     in the same month: it took the typography and colours of a reference
+     analytics dashboard he pointed at, so the admin is Inter throughout
+     (no Cormorant, not even for its figures) and adds its own scoped
+     rungs, --a-t-page and --a-t-figure*, for that dashboard's bold title
+     and big tabular figures. Those live in admin.css under .adm and mean
+     nothing outside it. Everywhere else, Cormorant still carries display
+     and this scale is still the whole vocabulary. */
   --t-micro:0.75rem;      /* 12px — uppercase letterspaced labels ONLY */
   --t-meta:0.875rem;      /* 14px — supporting text, the absolute floor */
   --t-body:1rem;          /* 16px — body copy, any sentence, form fields */

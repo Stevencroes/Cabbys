@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { jobDateShort, jobTime, shortAirport } from "../../driver/JobCard";
-import { usd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { useBoard } from "../BoardContext";
 import { HISTORY_DAYS, loadRideHistory, mergeRides, type AdminRide } from "../lib/admin";
 import { customersFrom, matchesCustomer } from "../lib/customers";

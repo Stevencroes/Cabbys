@@ -13,33 +13,66 @@
    than borrowed, because borrowing would tie a desk table's row height
    to a phone's tap target.
 
-   Rules carried over from driver.css, unchanged:
-     · the only gradients in the system are --sheen (primary actions,
-       the active segment) and --hairline (a rule across a stat block);
-     · Cormorant for every number that matters, Inter for everything you
-       operate;
-     · colour carries state and only two are allowed to — signal = live,
-       alert = wrong. Everything else is ground, silver and ink.
+   What this file used to carry over from driver.css — Cormorant for
+   every number that matters, and colour allowed to only two meanings,
+   signal = live and alert = wrong — NO LONGER HOLDS IN THE ADMIN. Both
+   were overridden by the owner in October 2026, below. They still hold
+   on the marketing site and in the driver portal, which this file
+   cannot reach.
 
-   October 2026, at the owner's direction: THE BOARD IS PAPER, THE RAIL
-   STAYS MIDNIGHT. Read at a desk for hours, under office light, a white
-   working surface is easier on the eye than a navy one, and the owner
-   pointed at a light analytics dashboard as the look he wanted. The
-   rail keeps Night Sea so the portal still reads as Cabby's from across
-   the room — the midnight bar down the left is the brand; the paper
-   beside it is the desk. How that is done without a second stylesheet
-   is under THE PAPER LAYER, directly below.
+   October 2026, at the owner's direction, in two steps:
+
+   1. THE BOARD IS PAPER, THE RAIL STAYS MIDNIGHT. A white working
+      surface read for hours under office light, beside the Night Sea
+      rail — the midnight bar down the left is the brand, the paper
+      beside it is the desk.
+
+   2. THE REFERENCE DASHBOARD'S TYPE AND COLOURS. The owner pointed at a
+      light analytics dashboard ("Analytics" — KPI tiles, an amber and a
+      blue donut, rounded blue columns, a purple line, purple and green
+      progress rings, a table with pastel status rows) and asked for its
+      typography and its palette, not Cabby's. So inside the board:
+        · one sans, Inter, for everything — the page title bold, card
+          titles medium, KPI figures large and semibold with tabular
+          digits and tight tracking, meta lines small and grey. No
+          Cormorant, no uppercase letterspaced labels; sentence case.
+        · the reference's hues, SAMPLED from its pixels rather than
+          guessed: royal blue as the accent and main series, periwinkle,
+          amber and its cream, purple, green and red, and the four pastel
+          row tints. Colour may now carry meaning beyond live/wrong — a
+          green up-delta, a red down-delta, a tinted status row — but it
+          is still never the ONLY carrier: every tint sits under a word,
+          every delta has its arrow.
+      Values, sampling method and contrast are under THE PAPER LAYER.
 
    And RUNNING TEXT IS 14px HERE (--t-meta), not the 16px --t-body the
    rest of Cabby's sets sentences in — the one owner-requested exception
-   to that floor, recorded in tokens.css beside the floor itself. Display
-   rungs (titles, the figures that matter) keep their larger sizes.
+   to that floor, recorded in tokens.css beside the floor itself. Card
+   titles and figures take larger rungs; see --a-t-* under .adm.
    ========================================================================== */
 .adm{
   /* Tighter than the driver portal's radii, which are drawn for cards
      held at arm's length. A 26px corner on a table row reads as a
      bubble. */
-  --a-r-sm:8px; --a-r-md:12px; --a-r-lg:16px; --a-r-pill:100px;
+  --a-r-sm:8px; --a-r-md:12px; --a-r-pill:100px;
+  /* the card corner. 20px, up from 16, because the reference dashboard's
+     cards are drawn soft and large-cornered and the owner asked for that
+     look (October 2026); rows and inputs keep the tighter radii above. */
+  --a-r-lg:20px;
+  /* ── the admin's own type rungs ───────────────────────────────────────
+     Added October 2026 for the reference dashboard's hierarchy, which the
+     site scale has no rung for: a bold page title between --t-head and
+     the fluid display sizes, and KPI figures large enough to be the
+     first thing read in a tile. Scoped to .adm so the site's scale
+     still means what it says everywhere else. Every size on the board
+     comes from these or from tokens.css; none is a raw px. */
+  --a-t-page:2rem;        /* 32px — the page title, Inter 700 */
+  --a-t-figure:2.25rem;   /* 36px — a KPI tile's figure, Inter 600 */
+  --a-t-figure-sm:1.625rem; /* 26px — the figure inside a donut or ring card */
+  /* tight tracking on big figures, as the reference sets them: Inter's
+     default spacing is drawn for text sizes and opens up past ~24px */
+  --a-ls-figure:-.02em;
+  --a-ls-page:-.015em;
   /* the one width the whole board lines up to */
   --a-maxw:1180px;
   /* an operator's pointer target — a mouse, not a thumb, so the 46px
@@ -72,128 +105,183 @@
 
 /* ══════════════════════════════════════════════════════════════════════
    THE PAPER LAYER
-   The board (.adm-screen) re-points the Night Sea token NAMES at light
-   values; the rail, the skip link and the sign-in gate sit outside it
-   and keep midnight. Re-pointing rather than renaming is the point:
-   every rule in this file was written against --ink, --line, --surface
-   and the rest, so every one of them follows the paper without being
-   touched, and nothing below this block contains a raw colour. A second
-   set of names would have meant a second copy of every rule.
+   The board (.adm-screen) re-points the Night Sea token NAMES at the
+   reference dashboard's values; the rail, the skip link and the sign-in
+   gate sit outside it and keep midnight. Re-pointing rather than
+   renaming is the point: every rule in this file was written against
+   --ink, --line, --surface and the rest, so every one of them follows
+   without being touched, and nothing below this block holds a raw
+   colour. A second set of names would have meant a second copy of
+   every rule.
 
    The gate stays midnight on purpose. It hosts AuthForm, which is the
    site's own sign-in drawn for the dark ground; re-skinning it in here
    would be a second sign-in form wearing the first one's markup.
 
-   The ladder runs the other way on paper: the page is a whisper of
-   cool grey (#F5F7FA, which reads white beside the navy rail), cards
-   are white and lift off it, and --raised is the slightly DARKER rung
-   for inputs, table heads and hovered rows. Same three roles as Night
-   Sea, mirrored.
+   SAMPLED, NOT GUESSED (October 2026). Every hue below was read off the
+   reference PNG's pixels through a canvas: the mean of the most
+   saturated 15% of a region inside each mark, so antialiased edges do
+   not pull a colour toward the white around it. Sampled → used:
+       page ground          #F4F4F4  → --ground
+       card                 #FFFFFF  → --surface
+       figures, title       #030303/#080808 → --ink #0A0A0A
+       column / "Paid"      #4677F7 / #3D75FE → --a-blue #3D75FE
+       "Trial" periwinkle   #7FA4FF  → --a-peri
+       column track         #F0F4FC  → --a-blue-tint #F0F4FD
+       amber "New"          #FEBE08  → --a-amber-fill (fills only)
+       amber "Returning"    #FEDC72  → not used: see the chart note
+       cream "Inactive"     #FDF9EF  → --a-cream #FFFAEC (row tint)
+       line, ring purple    #C74FF4 / #CC67F1 → --a-purple #C74FF4
+       ring purple track    #EBC6FA  → --a-purple-tint (lightened, below)
+       ring green           #49B239  → --signal (marks only)
+       up / down deltas     green, red (text too small to sample
+                            cleanly; stepped to AA siblings below)
+       row tints            #FFFAEC yellow · #EDF7EB green · #FDEFEF red
+                            · #FCECF0 pink (from the page's histogram)
+       nav active pill      #E4E9EF / #F0F6FF → --a-pill #EAF1FF
 
    Contrast, WCAG 2.1, measured (dataviz validate_palette.js contrast()),
-   not estimated. Text needs 4.5:1; marks and borders that identify a
-   control need 3:1.
+   not estimated. Text needs 4.5:1; marks and control borders 3:1.
 
-                     ground  surface  raised   deep
-       --ink          16.84   18.07    16.06   15.48
-       --silver        6.60    7.08     6.29    6.07
-       --muted         5.08    5.46     4.85    4.67   <- body copy
-       --silver-deep   3.56    3.82     3.39    3.27   <- control borders
-       --signal-ink    5.92    6.36     5.65    5.44
-       --alert-ink     6.15    6.60     5.86    5.65
-       --signal        3.70    3.97     3.53    3.40   <- marks only
-       --alert         3.98    4.27     3.80    3.66   <- marks only
-       --soft          1.66    1.79     1.59    1.53   <- fails, by design
+                       ground  surface  raised   deep
+       --ink            18.00   19.80    18.16   17.06
+       --silver          8.72    9.59     8.79    8.26
+       --muted           4.99    5.49     5.04    4.73   <- meta lines
+       --silver-deep     3.35    3.69     3.38    3.18   <- control borders
+       --a-blue-ink      5.06    5.57     5.11    4.80   <- links, buttons
+       --signal-ink      4.88    5.37     4.92    4.63   <- up, live
+       --alert-ink       5.35    5.88     5.40    5.07   <- down, wrong
+       --a-amber-ink     5.49    6.04     5.54    5.21
+       --a-purple-ink    6.10    6.71     6.15    5.78
+       --a-blue          3.69    4.06     3.72    3.50   <- marks only
+       --alert           3.56    3.91     3.59    3.37   <- marks only
+       --a-purple        3.26    3.59     3.29    3.09   <- marks only
+       --signal          2.48    2.72     2.50    2.35   <- fills, w/ label
+       --a-peri          2.21    2.43     2.23    2.09   <- fills, w/ label
+       --a-amber         1.97    2.17     1.99    1.87   <- fills, w/ label
 
-     Text on its own tint, the chips and banners:
-       --signal-ink on --signal-tint   5.64 on a card, 5.28 on the page
-       --alert-ink  on --alert-tint    5.90 on a card, 5.52 on the page
+     Text on its own tint, the status pills and rows:
+       --a-blue-ink on blue tint 5.05 · --signal-ink on green 4.88
+       --alert-ink on red 5.26 · --a-rose-ink on pink 5.58
+       --a-amber-ink on cream 5.79 · --muted on the palest of them 4.81
+     White on --a-blue-ink (primary buttons, the selected segment) 5.57.
 
-   --muted is again the one with the least margin, and it is measured
-   against --deep, the darkest rung it can land on. --soft keeps its
-   Night Sea job — disabled, faint, never text — and fails here for the
-   same reason it fails there. The Night Sea teal (#4FA5A5) was 2.9:1 on
-   white and could not even be a mark; the paper signal is a deeper step
-   of the same teal, and the paper alert the same clay, a step down.
+   THE ONES THAT FAIL AS TEXT stay off text. The reference sets its
+   deltas, its "Paid" legend and its status words in the bright hues
+   themselves; at 14px the green is 2.72:1 and the amber 1.67:1 on white,
+   so here each bright hue is a FILL or a MARK and its darker sibling
+   (the -ink tokens) carries the words. Same hue family, readable.
 
-   --sheen, the one gradient for primary actions and the selected
-   segment, becomes midnight on paper: a silver button on a white card
-   vanishes, and a navy one repeats the rail — so the primary action and
-   the brand bar are visibly the same material. --on-sheen flips to
-   match, and stays the only ink allowed on it.
+   The primary action (--sheen) is the reference's blue, one step darker
+   so white type on it clears AA — the sampled #3D75FE under white is
+   4.06:1. It stays the one fill a primary button and a selected segment
+   wear; it is no longer a gradient.
    ══════════════════════════════════════════════════════════════════════ */
 .adm-screen{
-  --ground:#F5F7FA;      /* the page — reads white beside the rail */
-  --deep:#E9EEF3;        /* code blocks, the deepest well */
+  --ground:#F4F4F4;      /* the page */
+  --deep:#EEEEEE;        /* code blocks, the deepest well */
   --surface:#FFFFFF;     /* cards, panels, tables */
-  --raised:#EEF2F6;      /* inputs, table heads, segmented strips */
-  --line:#DFE5EC;        /* hairlines, card edges */
-  --line-soft:rgba(223,229,236,.7);
-  --soft:#B9C3CE;        /* disabled, faint icons — never text */
+  --raised:#F5F5F5;      /* inputs, segmented strips, hovered rows */
+  --line:#EBEBEB;        /* hairlines, card edges */
+  --line-soft:rgba(235,235,235,.8);
+  --soft:#C9C9C9;        /* disabled, faint icons — never text */
 
-  --ink:#0B1724;         /* midnight, as ink */
-  --highlight:#1C2B3B;
-  --silver:#4A5A6B;      /* labels, eyebrows, small caps */
-  --muted:#5D6B7A;       /* secondary text */
-  --placeholder:#5D6B7A;
-  --silver-deep:#768494; /* control borders, pressed states */
+  --ink:#0A0A0A;
+  --highlight:#1F1F1F;
+  --silver:#454545;      /* labels, card titles' quieter siblings */
+  --muted:#696969;       /* meta lines: "since last month" */
+  --placeholder:#696969;
+  --silver-deep:#858585; /* control borders, pressed states */
 
-  --signal:#0E8F86;
-  --signal-ink:#0A6B65;
-  --signal-tint:rgba(14,143,134,.10);
-  --signal-line:rgba(14,143,134,.38);
-  --signal-glow:rgba(14,143,134,.14);
-  --signal-knob:rgba(14,143,134,.22);
-  --signal-halo:rgba(14,143,134,.45);
-  --alert:#C9564B;
-  --alert-ink:#A3392F;
-  --alert-tint:rgba(201,86,75,.09);
-  --alert-line:rgba(201,86,75,.38);
+  /* live / up — the reference's ring green */
+  --signal:#49B239;
+  --signal-ink:#2C7A21;
+  --signal-tint:#EDF7EB;
+  --signal-line:rgba(73,178,57,.38);
+  --signal-glow:rgba(73,178,57,.16);
+  --signal-knob:rgba(73,178,57,.24);
+  --signal-halo:rgba(73,178,57,.45);
+  /* wrong / down — the reference's red */
+  --alert:#E5484D;
+  --alert-ink:#C0272D;
+  --alert-tint:#FDEFEF;
+  --alert-line:rgba(229,72,77,.36);
 
-  --sheen:linear-gradient(180deg,#13263A 0%,#081420 100%);
-  --hairline:linear-gradient(90deg,transparent,#C9D1DA 22%,#AAB5C1 50%,#C9D1DA 78%,transparent);
-  --on-sheen:#F5F5F3;
-  --on-sheen-wash:rgba(245,245,243,.2);
+  /* the reference's accents */
+  --a-blue:#3D75FE;
+  --a-blue-ink:#2B5FDC;
+  --a-blue-tint:#F0F4FD;
+  --a-peri:#7FA4FF;
+  --a-amber-fill:#FEBE08;
+  --a-amber:#EDA100;
+  --a-amber-ink:#8A5800;
+  --a-cream:#FFFAEC;
+  --a-purple:#C74FF4;
+  --a-purple-ink:#8B2FB0;
+  --a-purple-tint:#F4E1FC;
+  --a-green-tint-ring:#D6EED1;
+  --a-pink:#FCECF0;
+  --a-rose-ink:#B4234F;
 
-  /* Depth on paper comes from a shadow, not from the dark: the Night
-     Sea's 40% black drop would read as a smudge on white. Two layers —
-     a contact line and a wide, faint lift — which is how the reference
-     dashboard's cards sit off its page. */
-  --shadow-hard:0 10px 28px rgba(11,23,36,.12);
-  --shadow-hard-lg:0 18px 44px rgba(11,23,36,.14);
-  --a-card:0 1px 2px rgba(11,23,36,.04),0 6px 22px rgba(11,23,36,.05);
-  /* a hovered row on a white card — one step toward --raised */
-  --a-hover:#F3F6F9;
+  --sheen:var(--a-blue-ink);
+  --hairline:linear-gradient(90deg,transparent,#DADADA 22%,#C4C4C4 50%,#DADADA 78%,transparent);
+  --on-sheen:#FFFFFF;
+  --on-sheen-wash:rgba(255,255,255,.22);
+
+  /* Depth on paper comes from a soft, wide shadow — the reference's
+     cards barely lift off the page, with no visible contact line */
+  --shadow-hard:0 10px 28px rgba(0,0,0,.08);
+  --shadow-hard-lg:0 18px 44px rgba(0,0,0,.10);
+  --a-card:0 2px 4px rgba(0,0,0,.02),0 8px 24px rgba(0,0,0,.04);
+  --a-hover:#F7F7F7;
 
   /* ── the chart colours ────────────────────────────────────────────────
-     By role, never by rank, and the roles are the house's: only signal
-     (live) and alert (wrong) mean anything. Harbour blue is the series
-     itself, its lighter step is "booked, not yet driven", grey is the
-     de-emphasised "over" (cancelled).
+     By role, never by rank. Validated, not eyeballed — dataviz
+     validate_palette.js, light mode, against the white card:
 
-     Validated, not eyeballed — dataviz validate_palette.js, light mode,
-     against the white card, in the order the donut draws them
-     (c1, c2, c3, c4): lightness band, chroma floor and CVD all PASS;
-     worst adjacent CVD ΔE 14.1 (deutan, c3↔c2), worst normal-vision ΔE
-     15.5 (c2↔c1), both clear of their floors. The fleet donut's order
-     (c1, c3, c4) passes at 20.4 / 22.5. --c-3 is 2.63:1 on white, under
-     the 3:1 for marks, so it is never shown without its number written
-     beside it in ink (every legend does) and a table view one click
-     away — the relief the validator's WARN obliges. --c-other is the
-     de-emphasis grey and is exempt from the chroma floor by role. */
-  --c-1:#2F5F96;         /* harbour blue — the series, "driven" */
-  --c-2:var(--signal);   /* on the road — live */
-  --c-3:#73A2E0;         /* booked, not yet driven */
-  --c-4:var(--alert);    /* nobody driving it — wrong */
-  --c-other:#A9B4C0;     /* cancelled, over */
-  --c-grid:#E8EDF2;      /* gridlines — one step off the card */
-  --c-axis:#C5CED8;      /* the baseline */
-  --c-track:#EEF2F6;     /* a meter's unfilled track */
+       today's donut  blue, green, periwinkle, red   ALL PASS
+                      worst adjacent CVD ΔE 24.5, normal-vision 29.4
+       fleet donut    amber, periwinkle, red         ALL PASS
+                      worst adjacent CVD ΔE 24.5, normal-vision 30.1
+       stacked cols   blue, red                      ALL PASS (35.1)
+       the line       purple                         PASS, 3.59:1
+
+     What the validator REFUSED, and what was done about it:
+       · the sampled amber #FEBE08 sits at OKLCH L 0.837, outside the
+         0.43–0.77 band a mark needs on white; its sampled companions
+         #FEDC72 and the cream fail harder (normal-vision ΔE 7.8 between
+         them). The reference's three-amber donut cannot be drawn
+         legibly on white, so the amber was snapped to the nearest
+         passing step, #EDA100 (L 0.77, 2.17:1), and the donut it leads
+         pairs it with periwinkle and red instead of with paler ambers.
+         The sampled #FEBE08 is kept for decorative fills that carry no
+         data (--a-amber-fill), and the cream for the row tint.
+       · blue next to periwinkle measures 14.7 normal-vision, under the
+         15 floor, so the two are never neighbours in a part-to-whole;
+         periwinkle appears beside blue only as the SAME series still
+         filling (the current week), which the label says.
+     Green, periwinkle and amber are under 3:1 as marks, so each is
+     shown with its number in ink beside it (every legend does) and a
+     table view one click away — the relief the validator's WARN obliges.
+     --c-other is the de-emphasis grey and is exempt from the chroma
+     floor by role. */
+  --c-1:var(--a-blue);     /* the series; "driven" */
+  --c-2:var(--signal);     /* on the road */
+  --c-3:var(--a-peri);     /* booked, not yet driven; still filling */
+  --c-4:var(--alert);      /* nobody driving it */
+  --c-amber:var(--a-amber);
+  --c-purple:var(--a-purple);
+  --c-other:#D4D4D4;       /* cancelled, over */
+  --c-grid:#F2F2F2;        /* gridlines — one step off the card */
+  --c-axis:#E4E4E4;        /* the baseline */
+  --c-track:var(--a-blue-tint); /* a column's track, a meter's empty */
 
   background:var(--ground);
   color:var(--ink);
   min-height:100dvh;
 }
+/* focus in the accent, which is what the reference's controls wear */
+.adm-screen :focus-visible{outline-color:var(--a-blue-ink);}
 
 .adm *{box-sizing:border-box;}
 .adm :focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
@@ -202,7 +290,7 @@
    links to the table somebody actually came for */
 .adm-skip{position:absolute;left:-9999px;top:0;z-index:var(--z-modal);
   background:var(--sheen);color:var(--on-sheen);padding:10px 16px;border-radius:0 0 var(--a-r-md) 0;
-  font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
+  font-weight:600;font-size:var(--t-meta);}
 .adm-skip:focus{left:0;}
 
 /* ── the frame: a rail, and the board beside it ────────────────────── */
@@ -222,10 +310,11 @@
   border-right:1px solid var(--line);background:var(--deep);
   padding:calc(env(safe-area-inset-top,0px) + 26px) 0 20px;}
 .adm-railtop{padding:0 20px;flex:none;}
-.adm-mark{font-family:var(--serif);font-weight:500;letter-spacing:.3em;text-transform:uppercase;
-  font-size:var(--t-body);padding-left:.3em;color:var(--ink);flex:none;display:block;}
-.adm-mark .ap{color:var(--silver);}
-.adm-mark small{display:block;font-family:var(--sans);font-size:var(--t-micro);letter-spacing:var(--ls-micro);
+.adm-mark{font-weight:700;letter-spacing:var(--a-ls-page);
+  font-size:var(--t-lead);color:var(--ink);flex:none;display:block;}
+/* the apostrophe in the reference's accent — the one blue in the rail */
+.adm-mark .ap{color:#7FA4FF;}
+.adm-mark small{display:block;font-family:var(--sans);font-size:var(--t-meta);
   color:var(--muted);margin-top:4px;font-weight:500;}
 
 .adm-nav{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:1px;padding:0 10px;}
@@ -234,15 +323,16 @@
   font-weight:500;font-size:var(--t-meta);white-space:nowrap;
   transition:color .2s var(--ease-ui),background .2s var(--ease-ui);}
 .adm-nav a .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;}
-.adm-nav a:hover{color:var(--silver);background:var(--surface);}
-.adm-nav a.on{color:var(--ink);background:var(--surface);}
-/* the marker is a rule down the active row's left edge — restrained, and
-   it reads as a position in a list rather than as a highlight */
-.adm-nav a.on::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:2px;
-  border-radius:2px;background:var(--silver);}
+.adm-nav a:hover{color:var(--ink);background:var(--surface);}
+/* The active row is a pale pill with dark type, the reference's own
+   marker, carried onto the midnight rail (October 2026). It replaced a
+   2px rule down the row's edge, which was restrained and also the
+   easiest thing on the screen to miss. Ink on the pill measures 14.97:1;
+   the count badge keeps its own colours on top of it. */
+.adm-nav a.on{color:#0A1B3D;background:#EAF1FF;font-weight:600;}
 /* a count is a claim that something needs doing, so it is absent at zero
    and it carries a number rather than a coloured dot */
-.adm-nav a .ct{flex:none;font-variant-numeric:tabular-nums;font-weight:600;font-size:var(--t-micro);
+.adm-nav a .ct{flex:none;font-variant-numeric:tabular-nums;font-weight:600;font-size:var(--t-meta);
   letter-spacing:0;min-width:20px;text-align:center;padding:2px 6px;border-radius:var(--a-r-pill);
   background:var(--alert-tint);color:var(--alert-ink);border:1px solid var(--alert-line);}
 .adm-navgap{display:block;height:1px;background:var(--line);margin:10px;}
@@ -263,24 +353,32 @@
   flex-wrap:wrap;margin-bottom:var(--a-band);}
 .adm-headt{min-width:0;}
 .adm-heada{flex:none;display:flex;gap:8px;align-items:center;}
-.adm .kick{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
-.adm .big{font-family:var(--serif);font-weight:300;font-size:var(--t-display-sm);line-height:var(--lh-display);
-  margin:10px 0 0;letter-spacing:var(--ls-display);}
-.adm .big em{font-style:italic;color:var(--silver);}
+/* sentence case and grey, above the title — the reference has no
+   uppercase letterspaced labels anywhere, and the owner asked for its
+   typography, so the kicker became a quiet meta line */
+.adm .kick{font-weight:500;font-size:var(--t-meta);color:var(--muted);}
+.adm .big{font-weight:700;font-size:var(--a-t-page);line-height:var(--lh-tight);
+  margin:6px 0 0;letter-spacing:var(--a-ls-page);}
+/* the emphasis was Cormorant italic in silver; in one sans it is just
+   the title, so it no longer looks different from the words around it */
+.adm .big em{font-style:normal;color:inherit;}
 .adm .sub{color:var(--muted);font-size:var(--t-meta);font-weight:400;line-height:var(--lh-body);
   margin:10px 0 0;max-width:var(--measure);}
 
 /* ── the filter strip ──────────────────────────────────────────────── */
-.adm-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--a-r-pill);
-  background:var(--surface);overflow:hidden;}
+.adm-seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid var(--line);
+  /* the card radius rather than a pill's: one line it still reads as a
+     pill, and wrapped to three on a phone it stays a box instead of a
+     lozenge */
+  border-radius:var(--a-r-lg);background:var(--surface);}
 /* a filter strip directly above the table it filters. Without the gap
    the pill sat on the table's top edge — invisible on midnight, where
    both were the same ground, and a collision once the table became a
    white card on paper. */
 .adm-seg + .adm-tablewrap{margin-top:var(--a-block);}
-.adm-seg button{background:none;border:none;padding:8px 14px;min-height:var(--a-tap);
-  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--muted);cursor:pointer;transition:.2s var(--ease);}
+.adm-seg button{background:none;border:none;padding:6px 14px;min-height:30px;border-radius:var(--a-r-pill);
+  font-family:var(--sans);font-weight:500;font-size:var(--t-meta);
+  color:var(--muted);cursor:pointer;transition:.2s var(--ease);}
 .adm-seg button:hover:not(.on){color:var(--silver);}
 .adm-seg button.on{background:var(--sheen);color:var(--on-sheen);}
 .adm-seg button b{font-weight:600;margin-left:6px;opacity:.7;}
@@ -298,18 +396,32 @@
 .adm-scroll{overflow-x:auto;}
 .adm-table{width:100%;border-collapse:collapse;min-width:720px;}
 .adm-table thead th{position:sticky;top:0;z-index:2;text-align:left;
-  background:var(--raised);border-bottom:1px solid var(--line);
-  padding:9px 12px;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--muted);white-space:nowrap;}
-.adm-table tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
-.adm-table tbody tr:last-child td{border-bottom:none;}
-.adm-table tbody tr{transition:background .18s var(--ease);}
-.adm-table tbody tr:hover{background:var(--a-hover);}
+  background:var(--surface);border-bottom:1px solid var(--line);
+  padding:12px 12px 10px;font-weight:500;font-size:var(--t-meta);
+  color:var(--muted);white-space:nowrap;}
+/* Rows as rounded pastel bands with air between them, the reference's
+   "Customer order" table (October 2026), in place of hairlines between
+   flat rows. border-collapse:separate is what lets a row have corners;
+   the tint sits on the cells because a <tr> cannot round. */
+.adm-table{border-collapse:separate;border-spacing:0 6px;padding:0 10px 4px;}
+.adm-table tbody td{padding:11px 12px;vertical-align:middle;transition:background .18s var(--ease);}
+.adm-table tbody td:first-child{border-radius:var(--a-r-md) 0 0 var(--a-r-md);}
+.adm-table tbody td:last-child{border-radius:0 var(--a-r-md) var(--a-r-md) 0;}
+.adm-table tbody tr:hover td{background:var(--a-hover);}
+/* The status tint, keyed to the same tones as the pill in the row — the
+   reference's yellow / green / red, and pink for the ride with a
+   deadline. The pill's WORD is the status; the band is the scan. */
+.adm-table tbody tr.tone-plain td,.adm-table tbody tr.tone-next td{background:var(--a-blue-tint);}
+.adm-table tbody tr.tone-live td,.adm-table tbody tr.tone-aboard td{background:var(--signal-tint);}
+.adm-table tbody tr.tone-done td{background:var(--a-cream);}
+.adm-table tbody tr.tone-warn td{background:var(--a-pink);}
+.adm-table tbody tr.tone-alert td{background:var(--alert-tint);}
+.adm-table tbody tr[class*="tone-"]:hover td{filter:brightness(.98);}
 /* the row the operator is acting on stays visible while a confirmation
    sits under it */
-.adm-table tbody tr.picked{background:var(--a-hover);box-shadow:inset 2px 0 0 var(--silver);}
-/* a row that needs a human — the reason this screen exists */
-.adm-table tbody tr.wants{box-shadow:inset 2px 0 0 var(--alert);}
+.adm-table tbody tr.picked td{background:var(--a-hover);}
+/* a row that needs a human — the reason this screen exists — is the
+   pink band (tone-warn) now, not a red rule down its edge */
 .adm-table .num{font-weight:600;font-size:var(--t-meta);color:var(--ink);
   font-variant-numeric:tabular-nums;}
 .adm-table .right{text-align:right;}
@@ -318,7 +430,7 @@
 /* two lines in one cell: the fact, and what qualifies it */
 .adm-two .a{display:block;color:var(--ink);font-size:var(--t-meta);line-height:1.3;}
 .adm-two .b{display:block;color:var(--muted);font-size:var(--t-meta);line-height:1.3;margin-top:2px;
-  letter-spacing:.04em;}
+  }
 .adm-two .b.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;}
 
 /* who, with a face — a photo is the fastest way to tell two Ana C.s apart */
@@ -332,40 +444,47 @@
 
 /* the plate, checkable from across a car park — and on this screen,
    checkable against what the guest was told */
-.adm-plate{display:inline-block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--ink);background:var(--raised);
+.adm-plate{display:inline-block;font-weight:600;font-size:var(--t-meta);
+  /* a plate IS uppercase — this is the data, not a label style */
+  text-transform:uppercase;letter-spacing:.04em;color:var(--ink);background:var(--raised);
   border:1px solid var(--silver-deep);border-radius:var(--a-r-sm);padding:2px 7px;
   font-variant-numeric:tabular-nums;white-space:nowrap;}
 
-/* ── status chips ──────────────────────────────────────────────────── */
-/* Same tones and the same meanings as the driver portal's .drv-chip, so
-   "Aboard" is the same colour on both sides of the company. The class
-   names match ChipTone in src/driver/JobCard.tsx, which is where the
-   labels come from. */
-.adm-chip{display:inline-block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;padding:4px 9px;border-radius:var(--a-r-pill);white-space:nowrap;
-  background:var(--raised);color:var(--muted);border:1px solid var(--line);}
-.adm-chip.next{color:var(--ink);}
-.adm-chip.live,.adm-chip.aboard,.adm-chip.approved{
-  background:var(--signal-tint);color:var(--signal-ink);border-color:var(--signal-line);}
-.adm-chip.alert,.adm-chip.suspended{
-  background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert-line);}
-.adm-chip.done{background:none;color:var(--muted);}
-.adm-chip.pending{background:none;color:var(--silver);border-color:var(--soft);}
+/* ── status pills ──────────────────────────────────────────────────── */
+/* Sentence case on a pastel tint, the reference dashboard's status
+   vocabulary (October 2026), keyed to the same tones as before — the
+   class names still match ChipTone in src/driver/JobCard.tsx and Tone in
+   ui.tsx. The WORD is the status; the tint is the second signal and the
+   one a table row repeats (.adm-table tr.tone-*). Each ink clears 4.5:1
+   on its own tint — the ratios are in THE PAPER LAYER.
+
+     ""/next   assigned, at pickup   blue      — booked and covered
+     live/aboard/approved            green     — moving, or cleared
+     done      completed             cream     — the reference's "Delivered"
+     warn      needs a driver …      pink      — the one with a deadline
+     alert/suspended  cancelled, on hold  red  — over, or stopped */
+.adm-chip{display:inline-block;font-weight:500;font-size:var(--t-meta);line-height:1.4;
+  padding:3px 10px;border-radius:var(--a-r-pill);white-space:nowrap;
+  background:var(--a-blue-tint);color:var(--a-blue-ink);}
+.adm-chip.live,.adm-chip.aboard,.adm-chip.approved{background:var(--signal-tint);color:var(--signal-ink);}
+.adm-chip.alert,.adm-chip.suspended{background:var(--alert-tint);color:var(--alert-ink);}
+.adm-chip.done{background:var(--a-cream);color:var(--a-amber-ink);}
+.adm-chip.warn{background:var(--a-pink);color:var(--a-rose-ink);}
+.adm-chip.pending{background:var(--raised);color:var(--silver);}
 
 /* ── controls inside a row ─────────────────────────────────────────── */
 .adm-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
 .adm-btn{display:inline-flex;align-items:center;justify-content:center;
   border-radius:var(--a-r-pill);border:1px solid var(--silver-deep);background:transparent;
-  color:var(--silver);padding:0 13px;min-height:var(--a-tap);cursor:pointer;
-  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;white-space:nowrap;text-decoration:none;
+  color:var(--ink);padding:0 14px;min-height:var(--a-tap);cursor:pointer;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  white-space:nowrap;text-decoration:none;
   transition:background .2s var(--ease),color .2s var(--ease),border-color .2s var(--ease);}
 .adm-btn:hover:not(:disabled){background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
 .adm-btn:disabled{opacity:.45;cursor:wait;}
 /* the affirmative one — approving, assigning */
 .adm-btn.go{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
-.adm-btn.go:hover:not(:disabled){box-shadow:var(--shadow-hard);}
+.adm-btn.go:hover:not(:disabled){box-shadow:0 6px 16px rgba(43,95,220,.28);}
 /* the one that takes something away */
 .adm-btn.stop{border-color:var(--alert-line);color:var(--alert-ink);}
 .adm-btn.stop:hover:not(:disabled){background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert);}
@@ -376,10 +495,10 @@
 
 /* a plain text control that lives inside a row */
 .adm-quiet{background:none;border:none;padding:0 4px;min-height:var(--a-tap);
-  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:.16em;
-  text-transform:uppercase;color:var(--muted);cursor:pointer;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  color:var(--muted);cursor:pointer;
   transition:color .2s var(--ease);}
-.adm-quiet:hover{color:var(--silver);}
+.adm-quiet:hover{color:var(--ink);}
 
 /* ── asking before something lands on somebody ─────────────────────── */
 /* Suspending a driver and putting a name on a 6am airport run are both
@@ -389,7 +508,7 @@
 .adm-confirm td{background:var(--raised);border-bottom:1px solid var(--line);padding:14px 12px;}
 .adm-confirm .cbody{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
 .adm-confirm .ct{flex:1;min-width:min(100%,30ch);}
-.adm-confirm .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+.adm-confirm .ck{font-weight:600;font-size:var(--t-meta);
   color:var(--silver);}
 .adm-confirm p{margin:6px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--ink);}
 .adm-confirm .cacts{display:flex;gap:8px;flex:none;flex-wrap:wrap;}
@@ -402,7 +521,7 @@
 .adm-note{display:flex;align-items:flex-start;gap:12px;margin:0 0 16px;padding:12px 14px;
   border:1px solid var(--line);border-radius:var(--a-r-md);background:var(--surface);
   animation:admfade .25s var(--ease);}
-.adm-note .nk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+.adm-note .nk{font-weight:600;font-size:var(--t-meta);
   color:var(--silver);}
 .adm-note p{margin:4px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--ink);}
 .adm-note .nb{flex:1;min-width:0;}
@@ -419,7 +538,7 @@
    carries the database's own words, because the fix is in Supabase and
    not on this screen. */
 .adm-empty{padding:44px 24px;text-align:center;color:var(--muted);}
-.adm-empty .es{font-family:var(--serif);font-size:var(--t-title);color:var(--ink);margin-bottom:6px;}
+.adm-empty .es{font-weight:600;font-size:var(--t-body);color:var(--ink);margin-bottom:6px;}
 .adm-empty .et{font-size:var(--t-meta);line-height:1.65;max-width:52ch;margin:0 auto;}
 .adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);
   word-break:break-word;opacity:.75;margin-top:10px;}
@@ -437,11 +556,11 @@
   margin-bottom:20px;flex:none;}
 .adm-gate .gi svg{width:27px;height:27px;}
 .adm-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
-.adm-gate h1{font-family:var(--serif);font-weight:300;font-size:var(--t-head);margin:0 0 10px;line-height:var(--lh-snug);}
+.adm-gate h1{font-weight:700;font-size:var(--t-head);letter-spacing:var(--a-ls-page);margin:0 0 10px;line-height:var(--lh-snug);}
 .adm-gate p{color:var(--muted);font-size:var(--t-meta);line-height:1.7;max-width:42ch;margin:0;}
-/* the wordmark is 16px wherever it stands, the gate included */
+/* the wordmark is the same size wherever it stands, the gate included */
 .adm-mark.gate{margin-bottom:24px;}
-.adm-mark.gate small{font-size:var(--t-micro);letter-spacing:var(--ls-micro);margin-top:5px;}
+.adm-mark.gate small{font-size:var(--t-meta);margin-top:5px;}
 /* the first thing seen on every cold open */
 .adm-hold{color:var(--muted);animation:admbreathe 2.4s var(--ease) infinite;}
 @keyframes admbreathe{0%,100%{opacity:.45;}50%{opacity:1;}}
@@ -453,8 +572,8 @@
 .adm-diag{width:100%;max-width:460px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--a-r-md);padding:14px 16px;text-align:left;margin-top:20px;}
 .adm-diag .row + .row{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
-.adm-diag .k{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.adm-diag .k{display:block;font-weight:600;font-size:var(--t-meta);
+  color:var(--muted);margin-bottom:4px;}
 .adm-diag .v{display:block;font-size:var(--t-meta);color:var(--ink);word-break:break-word;}
 .adm-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);color:var(--silver);}
 
@@ -484,10 +603,10 @@
   background:var(--surface);box-shadow:var(--a-card);}
 .adm-pane > h2{margin:0;padding:11px 14px;background:var(--raised);
   border-bottom:1px solid var(--line);
-  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--silver);
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  color:var(--silver);
   display:flex;align-items:center;gap:9px;}
-.adm-pane > h2 .n{margin-left:auto;font-size:var(--t-meta);letter-spacing:.1em;color:var(--muted);
+.adm-pane > h2 .n{margin-left:auto;font-size:var(--t-meta);color:var(--muted);
   border:1px solid var(--line);border-radius:var(--a-r-pill);padding:2px 7px;background:var(--surface);}
 .adm-pane .plist{max-height:min(62vh,620px);overflow-y:auto;}
 
@@ -500,10 +619,10 @@
 .adm-pick.on{background:var(--raised);box-shadow:inset 2px 0 0 var(--silver);}
 .adm-pick .ptop{display:flex;align-items:baseline;gap:9px;margin-bottom:5px;}
 .adm-pick .pwhen{font-size:var(--t-meta);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
-.adm-pick .pday{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.adm-pick .pday{font-weight:600;font-size:var(--t-meta);color:var(--silver);}
 .adm-pick .pfare{margin-left:auto;font-size:var(--t-meta);font-weight:600;color:var(--silver);font-variant-numeric:tabular-nums;}
 .adm-pick .proute{font-size:var(--t-meta);color:var(--ink);line-height:1.35;}
-.adm-pick .pmeta{font-size:var(--t-meta);color:var(--muted);margin-top:4px;letter-spacing:.04em;}
+.adm-pick .pmeta{font-size:var(--t-meta);color:var(--muted);margin-top:4px;}
 .adm-pick[disabled]{cursor:default;opacity:.55;}
 
 /* a driver in the right-hand pane */
@@ -516,12 +635,12 @@
 .adm-pick .pdrv .pn{display:block;font-size:var(--t-meta);color:var(--ink);line-height:1.25;}
 .adm-pick .pdrv .pc{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:2px;}
 /* the half that is missing, said where the choice is being made */
-.adm-pick .pgap{display:block;margin-top:6px;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--alert-ink);}
+.adm-pick .pgap{display:block;margin-top:6px;font-weight:600;font-size:var(--t-meta);
+  color:var(--alert-ink);}
 
 /* the foot of the right pane: what is about to happen, and the button */
 .adm-do{border-top:1px solid var(--line);background:var(--raised);padding:14px;}
-.adm-do .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.adm-do .dk{font-weight:600;font-size:var(--t-meta);color:var(--silver);}
 .adm-do p{margin:6px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--ink);}
 .adm-do .warn{margin-top:8px;font-size:var(--t-meta);line-height:1.5;color:var(--alert-ink);}
 .adm-do .adm-btn{width:100%;margin-top:12px;min-height:40px;}
@@ -557,14 +676,13 @@
   .adm-mark small{display:inline;margin:0 0 0 10px;}
   .adm-railfoot{margin-left:auto;padding:0;flex-direction:row;align-items:center;gap:12px;
     width:auto;max-width:50%;}
-  .adm-nav{order:3;width:100%;flex:none;flex-direction:row;gap:2px;padding:0;
+  .adm-nav{order:3;width:100%;flex:none;flex-direction:row;gap:2px;padding:6px 0 10px;
     overflow-x:auto;overflow-y:hidden;scrollbar-width:none;}
   .adm-nav::-webkit-scrollbar{display:none;}
-  .adm-nav a{flex:none;border-radius:0;padding:12px 12px;}
-  .adm-nav a.on{background:none;}
-  /* the marker moves with the layout: a rule UNDER the tab, the way a
-     table's own headings are underscored */
-  .adm-nav a.on::before{left:12px;right:12px;top:auto;bottom:0;width:auto;height:2px;}
+  /* the pale pill folds with the rail: a tab-shaped pill in the strip.
+     Without it the folded strip dropped the pill's background and kept
+     its dark ink, and the current tab vanished into the midnight. */
+  .adm-nav a{flex:none;padding:8px 12px;border-radius:var(--a-r-pill);}
   .adm-navgap{width:1px;height:auto;margin:8px 6px;align-self:stretch;}
   .adm-pad{padding:26px 20px calc(48px + env(safe-area-inset-bottom,0px));}
 }
@@ -586,12 +704,19 @@
 @media(max-width:440px){
   .adm-table,.adm-table tbody,.adm-table tr,.adm-table td{display:block;width:100%;}
   .adm-table thead{display:none;}
-  .adm-table tbody tr{border-bottom:1px solid var(--line);padding:10px 0;}
-  .adm-table tbody tr:last-child{border-bottom:none;}
-  .adm-table tbody td{border-bottom:none;padding:3px 12px;}
+  /* stacked, each row is one rounded band; the tint moves from the
+     cells to the row so the corners are the row's */
+  .adm-table{padding:0 8px;}
+  .adm-table tbody tr{padding:10px 0;margin:6px 0;border-radius:var(--a-r-md);background:var(--surface);}
+  .adm-table tbody td,.adm-table tbody td:first-child,.adm-table tbody td:last-child{padding:3px 12px;border-radius:0;background:none !important;}
+  .adm-table tbody tr.tone-plain,.adm-table tbody tr.tone-next{background:var(--a-blue-tint);}
+  .adm-table tbody tr.tone-live,.adm-table tbody tr.tone-aboard{background:var(--signal-tint);}
+  .adm-table tbody tr.tone-done{background:var(--a-cream);}
+  .adm-table tbody tr.tone-warn{background:var(--a-pink);}
+  .adm-table tbody tr.tone-alert{background:var(--alert-tint);}
   /* the heading comes back as a label beside its value */
   .adm-table tbody td[data-h]::before{content:attr(data-h) "  ";
-    font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
+    font-weight:600;font-size:var(--t-meta);
     color:var(--muted);margin-right:8px;}
   .adm-table .right{text-align:left;}
   .adm-acts{justify-content:flex-start;padding-top:6px;}
@@ -623,7 +748,7 @@
 .adm-docs{padding:14px 16px;}
 .adm-docs .dhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   padding-bottom:10px;border-bottom:1px solid var(--line);}
-.adm-docs .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
+.adm-docs .dk{font-weight:600;font-size:var(--t-meta);color:var(--silver);}
 .adm-docs .dn{font-size:var(--t-meta);line-height:1.5;color:var(--muted);}
 
 .adm-docs .dlist{list-style:none;margin:0;padding:0;}
@@ -677,11 +802,12 @@
    Everything below was added when the portal grew from three screens to
    eight. The rule it is all written against, in the owner's words:
    premium is less noise, better hierarchy, excellent typography,
-   spacing and precision — NOT more cards, gradients or animation. So
-   the vocabulary here is deliberately small: a rule, a label, a row,
-   and air. There are exactly two boxed surfaces in it, and both are
-   things that genuinely sit on the page rather than groupings that
-   wanted a border.
+   spacing and precision — NOT more gradients or animation. The "not
+   more cards" half of that was reversed by the same owner in October
+   2026, when the board went to paper and took the reference dashboard's
+   card grid: lists, tables and panels now sit on white cards, because
+   on a light page a rule-and-air layout has nothing to stand on. The
+   vocabulary is otherwise still small: a card, a label, a row, and air.
    ══════════════════════════════════════════════════════════════════════ */
 
 /* ── a section, which is a rule with a name on it ──────────────────── */
@@ -689,8 +815,10 @@
 .adm-sect:first-child{margin-top:0;}
 .adm-secth{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
   padding-bottom:10px;margin-bottom:var(--a-block);border-bottom:1px solid var(--line);}
-.adm-secth h2{margin:0;font-family:var(--sans);font-weight:600;font-size:var(--t-micro);
-  letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
+/* a section title, set like the reference's card titles — sentence case,
+   medium, ink — rather than the uppercase silver label it used to be */
+.adm-secth h2{margin:0;font-family:var(--sans);font-weight:600;font-size:var(--t-body);
+  color:var(--ink);}
 .adm-sectx{margin-left:auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   font-size:var(--t-meta);color:var(--muted);}
 
@@ -710,11 +838,14 @@
    the same air a new section gets — .adm-sect:first-child zeroes its own
    margin inside a detail column and would otherwise butt straight up */
 .adm-figs + .adm-detail,.adm-figs + .adm-sect{margin-top:var(--a-band);}
-.adm-fig .k{font-weight:500;font-size:var(--t-meta);color:var(--muted);}
-/* Cormorant, because these are the numbers that matter — and proportional
-   figures, because a standalone number set tabular looks loose at size */
-.adm-fig .v{margin-top:8px;font-family:var(--serif);font-weight:600;font-size:var(--t-head);
-  line-height:var(--lh-tight);color:var(--ink);}
+.adm-fig .k{font-weight:500;font-size:var(--t-body);color:var(--ink);}
+/* The reference's figure: Inter semibold, tabular digits, tight tracking.
+   This was Cormorant with proportional digits until the owner asked for
+   the reference's type (October 2026); tabular is the reference's
+   choice, and it keeps a row of tiles aligned digit for digit. */
+.adm-fig .v{margin-top:10px;font-weight:600;font-size:var(--a-t-figure-sm);
+  line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;
+  letter-spacing:var(--a-ls-figure);}
 .adm-fig .n{margin-top:5px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 /* a figure that is only ever a problem when it isn't zero. The word
    under it still says so — the colour is the second signal, never the
@@ -726,25 +857,29 @@
    the shape the brief asks for by name — time, passenger, route,
    vehicle, driver, status — and it is a list rather than a table
    because the eye reads it down the clock, not across the columns. */
-.adm-list{display:flex;flex-direction:column;}
+.adm-list{display:flex;flex-direction:column;gap:6px;}
 /* 88px for the time column, because its second line is the longest
-   word the board puts there — "TOMORROW" in letterspaced micro is ~80px,
-   and at 74px it ran into the guest's route on a phone */
+   word the board puts there — "Tomorrow" — and at 74px it ran into the
+   guest's route on a phone */
 .adm-row{display:grid;grid-template-columns:88px minmax(0,1.5fr) minmax(0,1.6fr) auto;
   align-items:center;gap:18px;width:100%;text-align:left;
-  padding:14px 8px;border:none;border-bottom:1px solid var(--line);background:none;color:inherit;
+  padding:12px 14px;border:none;border-radius:var(--a-r-md);background:none;color:inherit;
   font-family:var(--sans);font-size:var(--t-meta);cursor:pointer;
-  transition:background .18s var(--ease-ui);}
-.adm-row:last-child{border-bottom:none;}
+  transition:background .18s var(--ease-ui),filter .18s var(--ease-ui);}
 .adm-row:hover{background:var(--a-hover);}
-/* a row that needs a human. The rule down its edge is the mark; the
-   chip inside it carries the word. */
-.adm-row.wants{box-shadow:inset 2px 0 0 var(--alert);}
+/* the same pastel bands as the table, keyed to the pill in the row; the
+   pill carries the word, the band is the scan */
+.adm-row.tone-plain,.adm-row.tone-next{background:var(--a-blue-tint);}
+.adm-row.tone-live,.adm-row.tone-aboard{background:var(--signal-tint);}
+.adm-row.tone-done{background:var(--a-cream);}
+.adm-row.tone-warn{background:var(--a-pink);}
+.adm-row.tone-alert{background:var(--alert-tint);}
+.adm-row[class*="tone-"]:hover{filter:brightness(.98);}
 .adm-row.past{opacity:.62;}
-.adm-rtime{font-family:var(--serif);font-weight:600;font-size:var(--t-lead);color:var(--ink);
+.adm-rtime{font-weight:600;font-size:var(--t-meta);color:var(--ink);
   line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
-.adm-rtime small{display:block;font-family:var(--sans);font-weight:500;font-size:var(--t-micro);
-  letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--muted);margin-top:4px;}
+.adm-rtime small{display:block;font-family:var(--sans);font-weight:500;font-size:var(--t-meta);
+  color:var(--muted);margin-top:4px;}
 .adm-rmain{min-width:0;}
 .adm-rmain .a{display:block;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -786,7 +921,7 @@
   gap:var(--a-band);align-items:start;}
 .adm-aside{display:flex;flex-direction:column;gap:var(--a-band);min-width:0;}
 .adm-back{display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;
-  font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
+  font-weight:600;font-size:var(--t-meta);
   color:var(--muted);text-decoration:none;transition:color .2s var(--ease-ui);}
 .adm-back:hover{color:var(--silver);}
 
@@ -811,7 +946,7 @@
    mouse that is an acceptable cost for a field that matches the table it
    searches; the booking form, used on a phone, keeps 16px for exactly
    this reason. See the exception noted beside the floor in tokens.css. */
-.adm-search{display:block;position:relative;min-width:min(100%,260px);}
+.adm-search{display:block;position:relative;min-width:min(100%,320px);}
 .adm-search .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .adm-search input{width:100%;min-height:var(--a-tap);padding:8px 14px;
   border:1px solid var(--line);border-radius:var(--a-r-pill);background:var(--raised);
@@ -841,18 +976,21 @@
    goes when the thing it is about is fixed. Each one says its own grade
    in a word; the rule down the left is the second signal, never the
    first. */
-.adm-att{display:flex;flex-direction:column;}
+/* October 2026: the grade is a band now, like a status row in the
+   reference's table — red for "now", cream for "soon", grey after —
+   and the grade word still leads each one. */
+.adm-att{display:flex;flex-direction:column;gap:6px;}
 .adm-attrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:start;
-  width:100%;text-align:left;padding:15px 8px 15px 14px;background:none;border:none;
-  border-bottom:1px solid var(--line);color:inherit;font-family:var(--sans);cursor:pointer;
-  box-shadow:inset 2px 0 0 var(--soft);transition:background .18s var(--ease-ui);}
-.adm-attrow:last-child{border-bottom:none;}
-.adm-attrow:hover{background:var(--a-hover);}
-.adm-attrow.now{box-shadow:inset 2px 0 0 var(--alert);}
-.adm-attrow.soon{box-shadow:inset 2px 0 0 var(--silver);}
-.adm-attgrade{flex:none;font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
-  text-transform:uppercase;color:var(--muted);padding-top:3px;min-width:4.5em;}
+  width:100%;text-align:left;padding:14px 14px;background:var(--raised);border:none;
+  border-radius:var(--a-r-md);color:inherit;font-family:var(--sans);cursor:pointer;
+  transition:filter .18s var(--ease-ui);}
+.adm-attrow:hover{filter:brightness(.98);}
+.adm-attrow.now{background:var(--alert-tint);}
+.adm-attrow.soon{background:var(--a-cream);}
+.adm-attgrade{flex:none;font-weight:600;font-size:var(--t-meta);
+  color:var(--muted);padding-top:1px;min-width:4.5em;}
 .adm-attrow.now .adm-attgrade{color:var(--alert-ink);}
+.adm-attrow.soon .adm-attgrade{color:var(--a-amber-ink);}
 .adm-atth{display:block;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);}
 .adm-attd{display:block;margin-top:5px;font-size:var(--t-meta);color:var(--muted);
   line-height:var(--lh-body);max-width:var(--measure);}
@@ -906,8 +1044,8 @@
 .adm-set{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));
   gap:var(--a-band) var(--a-band);}
 .adm-setg{min-width:0;}
-.adm-setg h3{margin:0 0 4px;font-family:var(--sans);font-weight:600;font-size:var(--t-micro);
-  letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
+.adm-setg h3{margin:0 0 4px;font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
+  color:var(--silver);}
 /* what can and cannot be changed from here, said once per group rather
    than implied by whether a control is greyed out */
 .adm-setg .where{margin:0 0 14px;font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);
@@ -926,7 +1064,6 @@
   .adm-row{grid-template-columns:88px minmax(0,1fr);gap:12px;row-gap:6px;padding:12px 6px;}
   .adm-row > .adm-rsub{grid-column:2;}
   .adm-rend{grid-column:2;justify-self:start;}
-  .adm-rtime{font-size:var(--t-meta);}
   .adm-hour{grid-template-columns:54px minmax(0,1fr);gap:12px;}
   .adm-attrow{grid-template-columns:minmax(0,1fr);gap:6px;}
   .adm-attgo{display:none;}
@@ -989,11 +1126,10 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-notes b{color:var(--silver);font-weight:600;}
 
 /* ── the chip for a ride nobody is driving ─────────────────────────────
-   Its own tone, not the alert one. "Cancelled" and "needs a driver" are
-   both problems and they are not the same problem — one is over, the
-   other is the only thing on the board with a deadline on it. The word
-   is what carries it either way. */
-.adm-chip.warn{background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert-line);}
+   Its own tone, not the alert one — now pink rather than red (see the
+   status pills above). "Cancelled" and "needs a driver" are both
+   problems and they are not the same problem: one is over, the other is
+   the only thing on the board with a deadline on it. */
 
 /* ── asking before something lands on somebody, outside a table ──────── */
 /* The table's version is .adm-confirm, which is a <tr>. This is the same
@@ -1002,7 +1138,7 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-ask{border:1px solid var(--line);border-left:2px solid var(--silver);border-radius:var(--a-r-md);
   background:var(--raised);padding:16px;}
 .adm-ask.bad{border-left-color:var(--alert);background:var(--alert-tint);}
-.adm-ask .ck{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
+.adm-ask .ck{font-weight:600;font-size:var(--t-meta);
   color:var(--silver);}
 .adm-ask.bad .ck{color:var(--alert-ink);}
 .adm-ask p{margin:8px 0 0;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--ink);}
@@ -1025,7 +1161,7 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-face{width:72px;height:72px;border-radius:50%;flex:none;object-fit:cover;
   background:var(--raised);border:1px solid var(--line);
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:var(--t-head);font-weight:600;color:var(--silver);}
+  font-size:var(--t-head);font-weight:600;color:var(--silver);}
 /* no photo is a fact about what a guest will see, not a missing asset */
 .adm-face.gap{border-color:var(--alert-line);color:var(--alert-ink);}
 .adm-idfacts{flex:1;min-width:0;}
@@ -1051,10 +1187,10 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-weekday.on{background:var(--surface);border-color:var(--silver-deep);}
 /* today is marked by a rule, not only by a colour */
 .adm-weekday.now{box-shadow:inset 0 2px 0 var(--silver);}
-.adm-weekday .wd{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
-  text-transform:uppercase;color:var(--muted);}
+.adm-weekday .wd{font-weight:600;font-size:var(--t-meta);
+  color:var(--muted);}
 .adm-weekday.on .wd{color:var(--silver);}
-.adm-weekday .wn{font-family:var(--serif);font-size:var(--t-lead);font-weight:600;color:var(--ink);
+.adm-weekday .wn{font-size:var(--t-lead);font-weight:600;color:var(--ink);letter-spacing:var(--a-ls-figure);
   line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
 .adm-weekday .wc{font-size:var(--t-meta);color:var(--muted);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;}
@@ -1066,9 +1202,11 @@ a.adm-row{text-decoration:none;color:inherit;}
   transition:background .18s var(--ease-ui);}
 .adm-slot + .adm-slot{margin-top:4px;}
 .adm-slot:hover{background:var(--a-hover);}
-.adm-slot.wants{box-shadow:inset 2px 0 0 var(--alert);}
+/* the ride nobody is driving is the pink band here too, as it is in
+   every other list on the board (October 2026); it was a red rule */
+.adm-slot.wants{background:var(--a-pink);}
 .adm-slot.past{opacity:.55;}
-.adm-slot .st{font-family:var(--serif);font-weight:600;font-size:var(--t-lead);color:var(--ink);
+.adm-slot .st{font-weight:600;font-size:var(--t-meta);color:var(--ink);
   line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
 .adm-slot .sm{min-width:0;}
 .adm-slot .sm .a{display:block;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);}
@@ -1086,7 +1224,7 @@ a.adm-row{text-decoration:none;color:inherit;}
   .adm-week{gap:3px;overflow-x:auto;scrollbar-width:none;}
   .adm-week::-webkit-scrollbar{display:none;}
   .adm-weekday{min-width:62px;}
-  .adm-weekday .wc,.adm-weekday .wg{font-size:var(--t-micro);}
+  .adm-weekday .wc,.adm-weekday .wg{font-size:var(--t-meta);}
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1095,23 +1233,31 @@ a.adm-row{text-decoration:none;color:inherit;}
    with graphs, after a light analytics dashboard he pointed at: white
    cards with soft, large corners on a near-white page, a row of
    readings across the top, donuts with small legends, rounded columns,
-   a smooth line and progress rings. That is the vocabulary below — in
-   Cabby's colours, not the reference's, and on the board's own tokens,
-   so the cards are the same material as the tables and panels around
-   them rather than a second design language dropped onto the page.
+   a smooth line and progress rings. That is the vocabulary below, on
+   the board's own tokens, so the cards are the same material as the
+   tables and panels around them.
 
-   The house rule that survives the move is the one about colour. Only
-   signal (live) and alert (wrong) mean anything; the series itself is
-   harbour blue, and a chart that wanted a rainbow is a chart that was
-   asked the wrong question. See the --c-* tokens in THE PAPER LAYER.
+   The first pass kept Cabby's own colours and its two-colour rule. The
+   owner then asked for the reference's colours and type as well, so the
+   series is the reference's royal blue, the fleet donut amber, the line
+   and the first ring purple, the second ring green — each sampled from
+   the reference and run through the dataviz validator, which is
+   recorded with the --c-* tokens in THE PAPER LAYER. What survives from
+   the old rule is the part that was never about taste: colour is never
+   the only carrier. Every slice has its word and number in the legend,
+   every delta its arrow, every chart a table view.
    ══════════════════════════════════════════════════════════════════════ */
 .adm-dash{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--a-block);}
 .adm-dash > .span-4{grid-column:span 4;}
+.adm-dash > .span-6{grid-column:span 6;}
 .adm-dash > .span-5{grid-column:span 5;}
 .adm-dash > .span-7{grid-column:span 7;}
 .adm-dash > .span-12{grid-column:span 12;}
-.adm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--a-block);}
+/* two by two, beside the day's donut, as the reference sets its four
+   KPI tiles beside its two donuts */
+.adm-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--a-block);}
 .adm-rings{display:grid;grid-template-rows:1fr 1fr;gap:var(--a-block);min-width:0;}
+
 .adm-stack{display:flex;flex-direction:column;gap:var(--a-block);min-width:0;}
 
 /* visually hidden, for the sentence a screen reader gets instead of a
@@ -1124,13 +1270,14 @@ a.adm-row{text-decoration:none;color:inherit;}
    of a desk and in the whole of a phone */
 .adm-card{position:relative;min-width:0;display:flex;flex-direction:column;container-type:inline-size;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--a-r-lg);
-  box-shadow:var(--a-card);padding:18px 20px 20px;}
-.adm-cardh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+  box-shadow:var(--a-card);padding:22px 24px 24px;}
+.adm-cardh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;}
 .adm-cardt{min-width:0;}
-/* sentence case and ink, the way the reference titles its cards — the
-   uppercase silver label is for a rule across the page (.adm-secth),
-   and a card already has an edge doing that job */
-.adm-cardt h2{margin:0;font-size:var(--t-meta);font-weight:600;color:var(--ink);line-height:var(--lh-snug);}
+/* The reference titles a card in sentence case, medium weight, ink, one
+   rung above the running text — "Sales dynamics" — so a card title is
+   --t-body (16px) at 500. Titles are headings, not running text, which
+   is why they may sit above the desk's 14px. */
+.adm-cardt h2{margin:0;font-size:var(--t-body);font-weight:500;color:var(--ink);line-height:var(--lh-snug);}
 .adm-cardt p{margin:3px 0 0;font-size:var(--t-meta);color:var(--muted);line-height:var(--lh-snug);}
 .adm-cardx{display:flex;align-items:center;gap:12px;flex:none;font-size:var(--t-meta);color:var(--muted);}
 /* the chart's twin, one click away — every chart has a table view */
@@ -1138,16 +1285,15 @@ a.adm-row{text-decoration:none;color:inherit;}
   padding:4px 11px;min-height:28px;font-family:var(--sans);font-size:var(--t-meta);font-weight:500;
   color:var(--silver);cursor:pointer;transition:border-color .2s var(--ease-ui),color .2s var(--ease-ui);}
 .adm-viewbtn:hover{border-color:var(--silver-deep);color:var(--ink);}
-.adm-viewbtn[aria-pressed="true"]{background:var(--raised);color:var(--ink);}
+.adm-viewbtn[aria-pressed="true"]{background:var(--a-blue-tint);color:var(--a-blue-ink);border-color:transparent;}
 .adm-card .adm-fine{margin-top:12px;}
 
 /* A list inside a card is already on a surface; one standing on the
    page gets the same white card the rest of the board sits on. */
 .adm-list,.adm-att,.adm-day{background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--a-r-lg);box-shadow:var(--a-card);padding:4px 12px;}
-.adm-card .adm-list,.adm-card .adm-att{background:none;border:none;box-shadow:none;padding:0;
-  margin:-6px -8px -8px;}
-.adm-row,.adm-attrow{border-radius:var(--a-r-sm);}
+  border-radius:var(--a-r-lg);box-shadow:var(--a-card);padding:10px;}
+.adm-day{padding:4px 16px;}
+.adm-card .adm-list,.adm-card .adm-att{background:none;border:none;box-shadow:none;padding:0;}
 
 /* ── the three states, inside a card ───────────────────────────────── */
 /* held at the chart's own height so the grid does not jump when the
@@ -1157,7 +1303,7 @@ a.adm-row{text-decoration:none;color:inherit;}
   animation:admpulse 1.6s var(--ease) infinite;}
 .adm-cfail,.adm-cempty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   text-align:center;padding:14px 8px;}
-.adm-cfail .es,.adm-cempty .es{margin:0 0 6px;font-family:var(--serif);font-weight:600;font-size:var(--t-title);
+.adm-cfail .es,.adm-cempty .es{margin:0 0 6px;font-weight:600;font-size:var(--t-body);
   line-height:var(--lh-snug);color:var(--ink);}
 /* failed is said in the alert colour AND in words — "can't read" —
    because the empty state next to it is the same shape */
@@ -1169,84 +1315,117 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-cfail .adm-btn{margin-top:14px;}
 
 /* ── the stat tile ─────────────────────────────────────────────────── */
+/* The reference's KPI tile: a medium label top-left, a plain line icon
+   top-right, a big semibold figure, and one small line under it — the
+   change, in green or red with its arrow, then what it is compared
+   against in grey. */
 .adm-tile{min-width:0;display:flex;flex-direction:column;
   background:var(--surface);border:1px solid var(--line);border-radius:var(--a-r-lg);
-  box-shadow:var(--a-card);padding:18px 20px;}
+  box-shadow:var(--a-card);padding:22px 24px;}
 .adm-tilek{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
-  font-size:var(--t-meta);font-weight:500;color:var(--silver);line-height:var(--lh-snug);}
-.adm-tilek .ic{flex:none;display:flex;align-items:center;justify-content:center;width:34px;height:34px;
-  margin:-4px -6px 0 0;border-radius:var(--a-r-sm);background:var(--raised);color:var(--silver);}
-/* Cormorant, the number that matters; proportional figures, because a
-   standalone number set tabular looks loose at display size */
-.adm-tilev{margin-top:4px;font-family:var(--serif);font-weight:600;font-size:var(--t-display-sm);
-  line-height:var(--lh-tight);color:var(--ink);}
+  font-size:var(--t-body);font-weight:500;color:var(--ink);line-height:var(--lh-snug);}
+.adm-tilek .ic{flex:none;display:flex;color:var(--ink);margin:-2px -2px 0 0;}
+/* tabular digits and tight tracking, as the reference sets its figures */
+.adm-tilev{margin-top:12px;font-weight:600;font-size:var(--a-t-figure);letter-spacing:var(--a-ls-figure);
+  line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-tilev.wait i{display:block;width:55%;height:.9em;margin-top:.15em;border-radius:var(--a-r-pill);
   background:var(--raised);animation:admpulse 1.6s var(--ease) infinite;}
-.adm-tilen{margin-top:auto;padding-top:6px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+.adm-tilen{margin-top:auto;padding-top:8px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 .adm-tilen.bad{color:var(--alert-ink);}
 /* a count that is only ever a problem when it isn't zero — and the line
    under it still says so in words; the colour is the second signal */
 .adm-tile.alarm .adm-tilev{color:var(--alert-ink);}
-.adm-tile.alarm .ic{background:var(--alert-tint);color:var(--alert-ink);}
-.adm-delta{margin-top:6px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
-.adm-delta b{font-weight:600;color:var(--ink);}
-/* the arrow is aria-hidden decoration beside the word Up/Down, which is
-   what carries the direction, so the micro rung is legitimate here */
-.adm-delta .ar{font-size:var(--t-micro);color:var(--silver);margin-right:5px;}
+.adm-tile.alarm .ic{color:var(--alert-ink);}
+.adm-delta{margin-top:8px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+/* Green up, red down, the reference's convention — in the -ink steps,
+   because its own bright green is 2.72:1 as type. The arrow is
+   aria-hidden; a screen reader gets the word ("Up") from .adm-sr, so the
+   direction never rests on the colour or the glyph alone. */
+.adm-delta b{font-weight:600;margin-right:6px;font-variant-numeric:tabular-nums;}
+.adm-delta.up b{color:var(--signal-ink);}
+.adm-delta.down b{color:var(--alert-ink);}
+.adm-delta .ar{margin-right:3px;}
 
 /* ── chart colours, on the mark and never on the text ──────────────── */
 .adm-ch path.t-c1{fill:var(--c-1);} .adm-ch path.t-c2{fill:var(--c-2);}
 .adm-ch path.t-c3{fill:var(--c-3);} .adm-ch path.t-c4{fill:var(--c-4);}
 .adm-ch path.t-other{fill:var(--c-other);}
+.adm-ch path.t-amber{fill:var(--c-amber);} .adm-ch path.t-purple{fill:var(--c-purple);}
+/* the reference's column track: the full height of the scale, in the
+   palest blue, behind each column — so a short week reads against what
+   a full one would be */
+.adm-ch path.trk{fill:var(--c-track);}
 .adm-donut .seg.t-c1,.adm-ring .seg.t-c1{stroke:var(--c-1);}
 .adm-donut .seg.t-c2,.adm-ring .seg.t-c2{stroke:var(--c-2);}
 .adm-donut .seg.t-c3,.adm-ring .seg.t-c3{stroke:var(--c-3);}
 .adm-donut .seg.t-c4,.adm-ring .seg.t-c4{stroke:var(--c-4);}
 .adm-donut .seg.t-other{stroke:var(--c-other);}
+.adm-donut .seg.t-amber,.adm-ring .seg.t-amber{stroke:var(--c-amber);}
+.adm-donut .seg.t-purple,.adm-ring .seg.t-purple{stroke:var(--c-purple);}
+/* a ring's empty track is a pale step of its own hue, as the
+   reference's purple and green rings are */
+.adm-ring .track.t-purple{stroke:var(--a-purple-tint);}
+.adm-ring .track.t-c2{stroke:var(--a-green-tint-ring);}
 .adm-sw.t-c1,.adm-tip i.t-c1{background:var(--c-1);} .adm-sw.t-c2,.adm-tip i.t-c2{background:var(--c-2);}
 .adm-sw.t-c3,.adm-tip i.t-c3{background:var(--c-3);} .adm-sw.t-c4,.adm-tip i.t-c4{background:var(--c-4);}
 .adm-sw.t-other,.adm-tip i.t-other{background:var(--c-other);}
-.adm-sw{display:block;flex:none;width:10px;height:10px;border-radius:3px;}
+.adm-sw.t-amber,.adm-tip i.t-amber{background:var(--c-amber);}
+.adm-sw.t-purple,.adm-tip i.t-purple{background:var(--c-purple);}
+/* the reference's legend key: a short rounded bar, not a square */
+.adm-sw{display:block;flex:none;width:14px;height:8px;border-radius:4px;}
 
 /* ── the donut ─────────────────────────────────────────────────────── */
-.adm-donut{flex:1;display:flex;align-items:center;gap:20px;}
-.adm-donutfig{position:relative;flex:none;width:148px;height:148px;}
+/* the reference's donut card: the total big at the top, the legend down
+   the left, the ring on the right */
+.adm-donutwrap{flex:1;display:flex;flex-direction:column;}
+.adm-donuthead{margin-bottom:14px;}
+.adm-donuthead b{display:block;font-weight:600;font-size:var(--a-t-figure-sm);letter-spacing:var(--a-ls-figure);
+  line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
+.adm-donuthead span{display:block;margin-top:4px;font-size:var(--t-meta);color:var(--muted);}
+.adm-donut{flex:1;display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:20px;}
+.adm-donutfig{position:relative;flex:none;width:140px;height:140px;}
 .adm-donutfig svg{display:block;overflow:visible;}
-.adm-donut .track,.adm-ring .track{stroke:var(--c-track);}
+.adm-donut .track,.adm-ring .track{stroke:#F2F2F2;}
 .adm-donut .seg{transition:stroke-width .2s var(--ease-ui),opacity .2s var(--ease-ui);}
 .adm-donut .seg.dim{opacity:.32;}
 .adm-donutc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
   justify-content:center;text-align:center;pointer-events:none;}
-.adm-donutc b{font-family:var(--serif);font-weight:600;font-size:var(--t-head);line-height:1;color:var(--ink);}
+.adm-donutc b{font-weight:600;font-size:var(--t-lead);line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-donutc span{margin-top:4px;max-width:92px;font-size:var(--t-meta);line-height:1.2;color:var(--muted);}
 .adm-legend{flex:1;min-width:0;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
-.adm-legend li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 3em;align-items:center;gap:9px;
-  padding:5px 6px;border-radius:var(--a-r-sm);font-size:var(--t-meta);line-height:1.3;
+.adm-legend li{display:grid;grid-template-columns:14px 2.6em minmax(0,1fr) auto;align-items:center;gap:7px;
+  padding:4px 4px;border-radius:var(--a-r-sm);font-size:var(--t-meta);line-height:1.3;
   transition:background .18s var(--ease-ui);}
 .adm-legend li.on{background:var(--a-hover);}
 .adm-legend .lb{color:var(--silver);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .adm-legend .vl{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;}
-.adm-legend .pc{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;}
+.adm-legend .pc{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;}
+.adm-legend .vl{font-weight:500;color:var(--muted);}
 
-/* Under ~340px of card the legend beside the ring would cut its own
+/* Under ~380px of card the legend beside the ring would cut its own
    words to "On t…"; it goes under the ring instead, full width, so every
-   label is read whole. */
-@container (max-width:340px){
+   label is read whole. Above it the two sit side by side, legend left,
+   as the reference lays them out. */
+@container (max-width:380px){
   .adm-donut{flex-direction:column;align-items:stretch;gap:14px;}
   .adm-donutfig{align-self:center;}
 }
 
 /* ── the ring ──────────────────────────────────────────────────────── */
-.adm-ring{flex:1;display:flex;align-items:center;gap:16px;}
-.adm-ringfig{position:relative;flex:none;width:64px;height:64px;}
+/* the reference's ring card: the figure under the title, the ring up in
+   the card's top-right corner with its share written inside it. Placed
+   against the card (the nearest positioned box) rather than in the
+   header's flow, so the title keeps the full width of the card. */
+.adm-ring{flex:1;display:block;padding-right:76px;}
+.adm-ringfig{position:absolute;top:18px;right:20px;width:64px;height:64px;}
 .adm-ringfig svg{display:block;}
 .adm-ringfig .pc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:var(--t-meta);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-ringt{min-width:0;}
 .adm-ringt .k{font-size:var(--t-meta);color:var(--silver);}
-.adm-ringt .v{font-family:var(--serif);font-weight:600;font-size:var(--t-head);line-height:var(--lh-tight);
-  color:var(--ink);}
-.adm-ringt .n{margin-top:2px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+.adm-ringt .v{font-weight:600;font-size:var(--a-t-figure-sm);letter-spacing:var(--a-ls-figure);
+  line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
+.adm-ringt .n{margin-top:6px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 .adm-rings .adm-card{padding-bottom:18px;}
 .adm-rings .adm-cardh{margin-bottom:10px;}
 
@@ -1262,15 +1441,22 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-ch line.grid{stroke:var(--c-grid);stroke-width:1;shape-rendering:crispEdges;}
 .adm-ch line.base{stroke:var(--c-axis);stroke-width:1;shape-rendering:crispEdges;}
 .adm-ch .col path{transition:opacity .2s var(--ease-ui),filter .2s var(--ease-ui);}
-.adm-ch .col.hot path{filter:brightness(1.15);}
-/* a period still filling is drawn lighter, and the tooltip and the
-   table both say "so far" — a short last bar must never read as a slump */
-.adm-ch .col.partial path{opacity:.42;}
-.adm-ch.has-sel .col:not(.sel) path{opacity:.35;}
-.adm-ch .ln{fill:none;stroke:var(--c-1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;}
-.adm-ch .wash-a{stop-color:var(--c-1);stop-opacity:.14;}
-.adm-ch .wash-b{stop-color:var(--c-1);stop-opacity:.02;}
-.adm-ch .dot{fill:var(--c-1);stroke:var(--surface);stroke-width:2;}
+.adm-ch .col.hot path:not(.trk){filter:brightness(1.12);}
+/* a period still filling is drawn in the lighter periwinkle, and the
+   tooltip and the table both say "so far" — a short last column must
+   never read as a slump */
+.adm-ch .col.partial path.t-c1{fill:var(--c-3);}
+.adm-ch.has-sel .col:not(.sel) path:not(.trk){opacity:.35;}
+/* The reference's purple line, over a soft purple wash that fades to
+   nothing at the baseline. The wash is the only gradient here, and it
+   is the area-fill the dataviz method allows (a ~10% tint of the series
+   hue); the stroke itself stays one colour, because a stroke that
+   changed colour along its length would look like it was encoding
+   something. */
+.adm-ch .ln{fill:none;stroke:var(--c-purple);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;}
+.adm-ch .wash-a{stop-color:var(--c-purple);stop-opacity:.18;}
+.adm-ch .wash-b{stop-color:var(--c-purple);stop-opacity:0;}
+.adm-ch .dot{fill:var(--c-purple);stroke:var(--surface);stroke-width:2;}
 .adm-ch .xh{stroke:var(--silver-deep);stroke-width:1;shape-rendering:crispEdges;}
 
 /* the hit targets: the whole column of air, not the painted pixels */
@@ -1292,22 +1478,22 @@ button.adm-hit{cursor:pointer;}
 .adm-tip i{display:block;flex:none;width:12px;height:2px;border-radius:2px;}
 
 /* the key under a two-series chart — mirrors the mark, text in ink */
-.adm-keys{display:flex;flex-wrap:wrap;gap:6px 18px;list-style:none;margin:12px 0 0;padding:0;
+.adm-keys{display:flex;flex-wrap:wrap;gap:6px 18px;list-style:none;margin:14px 0 0;padding:0;
   font-size:var(--t-meta);color:var(--silver);}
 .adm-keys li{display:flex;align-items:center;gap:7px;}
 
 /* the table view */
 .adm-ctable{max-height:300px;overflow:auto;}
 .adm-mini{width:100%;border-collapse:collapse;font-size:var(--t-meta);}
-.adm-mini th{position:sticky;top:0;background:var(--surface);text-align:left;font-weight:600;color:var(--muted);
+.adm-mini th{position:sticky;top:0;background:var(--surface);text-align:left;font-weight:500;color:var(--muted);
   padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
 .adm-mini td{padding:7px 8px;border-bottom:1px solid var(--line-soft);color:var(--ink);
   font-variant-numeric:tabular-nums;}
 .adm-mini .right{text-align:right;}
 
 @media(max-width:1100px){
-  .adm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
   .adm-dash > .span-4{grid-column:span 6;}
+  .adm-dash > .span-6{grid-column:span 12;}
   .adm-dash > .span-5,.adm-dash > .span-7{grid-column:span 12;}
   /* the two rings sit side by side under the donuts rather than as a
      lone half-width column */

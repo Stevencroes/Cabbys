@@ -37,11 +37,12 @@ import {
   useId, useLayoutEffect, useRef, useState,
   type KeyboardEvent, type PointerEvent, type ReactNode,
 } from "react";
+import { usd } from "./lib/money";
 
 /* ── shared pieces ───────────────────────────────────────────────────── */
 
 /** The five chart colours, by role. Each maps to a --c-* token. */
-export type Tone = "c1" | "c2" | "c3" | "c4" | "other";
+export type Tone = "c1" | "c2" | "c3" | "c4" | "amber" | "purple" | "other";
 
 /**
  * The width a chart actually has, so it can be drawn at that width.
@@ -91,14 +92,21 @@ export function niceScale(max: number, { integer = false, count = 4 } = {}): num
   return ticks;
 }
 
-/** "$1,250" on an axis, where the board's usd() would print "$1250". */
-export const usdTick = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
+/** "$1,250" on an axis — the admin's own usd(), see lib/money.ts. */
+export const usdTick = usd;
 export const countTick = (n: number) => Math.round(n).toLocaleString("en-US");
 
-/** A column's top: 4px rounded data end, square on the baseline. */
+/**
+ * A column's top: a fully rounded data end, square on the baseline.
+ *
+ * The round end is the reference dashboard's pill-topped column (owner's
+ * direction, October 2026), wider than the 4px the dataviz method sets
+ * as its default; the foot stays square because a column grows from the
+ * baseline, and a rounded foot makes it look like it is floating.
+ */
 function columnPath(x: number, y: number, w: number, h: number, round: boolean): string {
   if (h <= 0) return "";
-  const r = round ? Math.min(4, h, w / 2) : 0;
+  const r = round ? Math.min(w / 2, h) : 0;
   return `M${x},${y + h}V${y + r}` +
     (r ? `Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}` : `H${x + w}`) +
     `V${y + h}Z`;
@@ -229,10 +237,12 @@ export interface Delta {
 /**
  * One reading: a label, a number, and at most one line under it.
  *
- * The delta is an arrow and a word as well as a number, and it is NOT
- * coloured green or red. Colour on this board means live or wrong, and
- * a slower week is neither — it is a fact, and it is set in ink like
- * the other facts. The arrow carries the direction for every reader.
+ * The delta is the reference dashboard's: "↑ 8.2%" in green, "↓ 0.2%" in
+ * red, then what it is compared against in grey. Green and red are the
+ * owner's direction (October 2026) and replace the ink-only delta this
+ * board first had. The colour is never alone: the arrow shows the
+ * direction to an eye, and the word "Up" or "Down" is there for a
+ * screen reader, which gets neither the glyph nor the colour.
  */
 export function Tile({ label, value, icon, note, delta, alarm, wait, fail }: {
   label: string;
@@ -278,9 +288,13 @@ function DeltaLine({ d }: { d: Delta }) {
   if (pct === 0) return <div className="adm-delta">Level with {d.against}</div>;
   const up = d.change > 0;
   return (
-    <div className="adm-delta">
-      <span className="ar" aria-hidden="true">{up ? "▲" : "▼"}</span>
-      <b>{up ? "Up" : "Down"} {pct}%</b> on {d.against}
+    <div className={`adm-delta ${up ? "up" : "down"}`}>
+      <b>
+        <span className="ar" aria-hidden="true">{up ? "↑" : "↓"}</span>
+        <span className="adm-sr">{up ? "Up" : "Down"} </span>
+        {pct}%
+      </b>
+      vs {d.against}
     </div>
   );
 }
@@ -305,16 +319,19 @@ export interface Slice {
  * is never the only place a number lives. Hovering a slice puts its
  * figure in the middle; moving off puts the total back.
  */
-export function Donut({ slices, total, totalLabel, label }: {
+export function Donut({ slices, total, totalLabel, note, label }: {
   slices: Slice[];
   total: number;
   totalLabel: string;
+  /** the grey line under the total, as the reference has under "4.890" */
+  note?: string;
   /** what the whole donut is, for a screen reader */
   label: string;
 }) {
   const [hot, setHot] = useState<string | null>(null);
-  const size = 148;
-  const stroke = 16;
+  const size = 140;
+  // the reference's ring is thick — about a third of its radius
+  const stroke = 22;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const drawn = slices.filter((s) => s.value > 0);
@@ -325,6 +342,11 @@ export function Donut({ slices, total, totalLabel, label }: {
   const active = slices.find((s) => s.key === hot) ?? null;
 
   return (
+    <div className="adm-donutwrap">
+    <div className="adm-donuthead">
+      <b>{total} {totalLabel}</b>
+      {note && <span>{note}</span>}
+    </div>
     <div className="adm-donut">
       <div className="adm-donutfig">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label}>
@@ -353,10 +375,14 @@ export function Donut({ slices, total, totalLabel, label }: {
             })}
           </g>
         </svg>
-        <div className="adm-donutc" aria-hidden="true">
-          <b>{active ? active.value : total}</b>
-          <span>{active ? active.label : totalLabel}</span>
-        </div>
+        {/* empty, as the reference's is, until a slice is pointed at —
+            the total already leads the card */}
+        {active && (
+          <div className="adm-donutc" aria-hidden="true">
+            <b>{active.value}</b>
+            <span>{active.label}</span>
+          </div>
+        )}
       </div>
       <ul className="adm-legend">
         {slices.map((s) => (
@@ -367,12 +393,13 @@ export function Donut({ slices, total, totalLabel, label }: {
             onPointerLeave={() => setHot(null)}
           >
             <i className={`adm-sw t-${s.tone}`} aria-hidden="true" />
+            <span className="pc">{total ? Math.round((s.value / total) * 100) : 0}%</span>
             <span className="lb">{s.label}</span>
             <b className="vl">{s.value}</b>
-            <span className="pc">{total ? Math.round((s.value / total) * 100) : 0}%</span>
           </li>
         ))}
       </ul>
+    </div>
     </div>
   );
 }
@@ -404,7 +431,7 @@ export function Ring({ value, of, tone = "c1", label, figure, note }: {
     <div className="adm-ring">
       <div className="adm-ringfig">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-          <circle cx={size / 2} cy={size / 2} r={r} className="track" strokeWidth={stroke} fill="none" />
+          <circle cx={size / 2} cy={size / 2} r={r} className={`track t-${tone}`} strokeWidth={stroke} fill="none" />
           {share > 0 && (
             <circle
               cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
@@ -452,7 +479,7 @@ export interface Column {
  * exist to replace.
  */
 export function Columns({
-  columns, format, tick = format, integer, height = 200, selected, onSelect, describe,
+  columns, format, tick = format, integer, height = 200, selected, onSelect, describe, track,
 }: {
   columns: Column[];
   format: (n: number) => string;
@@ -464,6 +491,8 @@ export function Columns({
   onSelect?: (key: string) => void;
   /** the sentence a screen reader hears for one column */
   describe: (c: Column) => string;
+  /** the reference's pale full-height track behind each column */
+  track?: boolean;
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hot, setHot] = useState<number | null>(null);
@@ -477,7 +506,8 @@ export function Columns({
   const plotH = height - bottom - plotTop;
   const plotW = Math.max(width - left - 4, 40);
   const band = plotW / Math.max(columns.length, 1);
-  const barW = Math.min(24, Math.max(4, band * 0.56));
+  // thin, as the reference draws them: a column is a mark, not a block
+  const barW = Math.min(14, Math.max(4, band * 0.42));
   const y = (v: number) => plotTop + plotH - (v / top) * plotH;
   // Tick labels thin out rather than collide: every k-th, always the last.
   const widest = Math.max(...columns.map((c) => textWidth(c.tick)), 1);
@@ -503,6 +533,7 @@ export function Columns({
               key={c.key}
               className={`col${c.partial ? " partial" : ""}${hot === i ? " hot" : ""}${selected === c.key ? " sel" : ""}`}
             >
+              {track && <path className="trk" d={columnPath(cx - barW / 2, plotTop, barW, plotH, true)} />}
               {parts.map((s, j) => {
                 const h = (s.value / top) * plotH;
                 // a 2px gap in the card colour between stacked parts
@@ -571,6 +602,45 @@ function Tip({ x, y, width, children }: { x: number; y: number; width: number; c
 
 /* ── the line ────────────────────────────────────────────────────────── */
 
+/**
+ * A smooth path through every point that never overshoots them.
+ *
+ * The reference draws its line as a curve, and the owner asked for that
+ * look. A plain Catmull-Rom or Bézier smoothing would bulge past a peak
+ * and under a trough — a day with 2 rides drawn dipping toward 1 — which
+ * is a chart inventing data. Monotone cubic interpolation (Fritsch and
+ * Carlson) keeps the curve inside each pair of neighbouring values, so it
+ * is smooth without saying anything the numbers do not.
+ */
+function smoothPath(pts: [number, number][]): string {
+  const n = pts.length;
+  if (n < 3) return pts.map(([px, py], i) => `${i ? "L" : "M"}${px},${py}`).join("");
+  const dx: number[] = [];
+  const m: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(pts[i + 1][0] - pts[i][0]);
+    m.push((pts[i + 1][1] - pts[i][1]) / dx[i]);
+  }
+  const t: number[] = [m[0]];
+  for (let i = 1; i < n - 1; i++) t.push(m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2);
+  t.push(m[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+    const a = t[i] / m[i];
+    const b = t[i + 1] / m[i];
+    const h = a * a + b * b;
+    if (h > 9) { const k = 3 / Math.sqrt(h); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+  }
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
+    const h = dx[i] / 3;
+    d += `C${x0 + h},${y0 + t[i] * h} ${x1 - h},${y1 - t[i + 1] * h} ${x1},${y1}`;
+  }
+  return d;
+}
+
 export interface Point {
   key: string;
   tick: string;
@@ -611,7 +681,7 @@ export function Line({ points, format, integer, height = 200, label }: {
   const step = points.length > 1 ? plotW / (points.length - 1) : 0;
   const x = (i: number) => left + step * i;
   const y = (v: number) => plotTop + plotH - (v / top) * plotH;
-  const line = points.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.value)}`).join("");
+  const line = smoothPath(points.map((p, i) => [x(i), y(p.value)]));
   const area = points.length ? `${line}L${x(points.length - 1)},${y(0)}L${x(0)},${y(0)}Z` : "";
   const widest = Math.max(...points.map((p) => textWidth(p.tick)), 1);
   const every = Math.max(1, Math.ceil((widest + 14) / Math.max(step, 1)));
@@ -677,7 +747,7 @@ export function Line({ points, format, integer, height = 200, label }: {
       {hot !== null && points[hot] && (
         <Tip x={x(hot)} y={y(points[hot].value)} width={width}>
           <span className="tl">{points[hot].label}</span>
-          <span className="tr"><i className="t-c1" aria-hidden="true" /><b>{format(points[hot].value)}</b></span>
+          <span className="tr"><i className="t-purple" aria-hidden="true" /><b>{format(points[hot].value)}</b></span>
         </Tip>
       )}
       {hot !== null && points[hot] && (
@@ -692,7 +762,7 @@ export function Line({ points, format, integer, height = 200, label }: {
    is the one thing guaranteed to arrive in somebody else's colours. */
 
 const icon = (d: ReactNode) => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5"
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5"
     strokeLinecap="round" strokeLinejoin="round">{d}</svg>
 );
 

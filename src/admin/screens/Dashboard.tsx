@@ -52,7 +52,7 @@ import { jobTime, relativeWhen, shortAirport } from "../../driver/JobCard";
 import {
   addDays, arubaDayOf, dayOfMonth, formatDateShort, monthShort, todayInAruba, weekdayLong, weekdayShort,
 } from "../../lib/datetime";
-import { usd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { useBoard } from "../BoardContext";
 import {
   HISTORY_DAYS, HISTORY_ROW_LIMIT, isClosed, isLive, loadRideHistory, mergeRides, needsDriver,
@@ -155,7 +155,7 @@ export default function Dashboard() {
       ) : (
         <div className="adm-dash">
           {/* the readings */}
-          <div className="adm-tiles span-12">
+          <div className="adm-tiles span-6">
             <Tile
               label="Rides today"
               value={String(todays.length)}
@@ -183,6 +183,28 @@ export default function Dashboard() {
             />
           </div>
 
+          {/* how today is made up — beside the tiles, where the reference
+              puts its donuts */}
+          <Card
+            title="Today, by state"
+            className="span-6"
+            empty={mix.all === 0 ? { line: "Nothing dated today.", hint: "A booking for today lands here the moment it is made." } : null}
+          >
+            <Donut
+              label={`Today's ${mix.all} rides by state`}
+              total={mix.all}
+              totalLabel={mix.all === 1 ? "ride" : "rides"}
+              note="dated today, by where each one has got to"
+              slices={[
+                { key: "driven", label: "Driven", value: mix.driven, tone: "c1" },
+                { key: "live", label: "On the road", value: mix.live, tone: "c2" },
+                { key: "booked", label: "Booked", value: mix.booked, tone: "c3" },
+                { key: "open", label: "Need a driver", value: mix.open, tone: "c4" },
+                { key: "cancelled", label: "Cancelled", value: mix.cancelled, tone: "other" },
+              ]}
+            />
+          </Card>
+
           {/* 1 — what needs a person. Absent when nothing does. */}
           {attention.length > 0 && (
             <Card
@@ -207,29 +229,11 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* how today and the fleet are made up, at a glance */}
-          <Card
-            title="Today, by state"
-            className="span-4"
-            empty={mix.all === 0 ? { line: "Nothing dated today.", hint: "A booking for today lands here the moment it is made." } : null}
-          >
-            <Donut
-              label={`Today's ${mix.all} rides by state`}
-              total={mix.all}
-              totalLabel={mix.all === 1 ? "ride" : "rides"}
-              slices={[
-                { key: "driven", label: "Driven", value: mix.driven, tone: "c1" },
-                { key: "live", label: "On the road", value: mix.live, tone: "c2" },
-                { key: "booked", label: "Booked", value: mix.booked, tone: "c3" },
-                { key: "open", label: "Need a driver", value: mix.open, tone: "c4" },
-                { key: "cancelled", label: "Cancelled", value: mix.cancelled, tone: "other" },
-              ]}
-            />
-          </Card>
-
+          {/* the fleet, and two rings: who could drive, and how far along
+              today is — the reference's row of progress cards */}
           <Card
             title="The fleet"
-            className="span-4"
+            className="span-6"
             fail={driversError ? { what: "drivers", detail: driversError, onRetry: () => void refresh() } : null}
             empty={drivers.length === 0 ? { line: "No drivers on the books yet.", hint: "A driver appears here the moment they apply." } : null}
           >
@@ -237,15 +241,20 @@ export default function Dashboard() {
               label={`${drivers.length} drivers by status`}
               total={drivers.length}
               totalLabel={drivers.length === 1 ? "driver" : "drivers"}
+              note="on the books, by whether they can work"
+              // Amber leads this one, the reference's amber donut. Not its
+              // three ambers: on white the paler two fail the validator
+              // (see the chart note in admin.css), so the other two
+              // slices take periwinkle and red, which pass beside it.
               slices={[
-                { key: "approved", label: "Approved", value: fleet.approved, tone: "c1" },
+                { key: "approved", label: "Approved", value: fleet.approved, tone: "amber" },
                 { key: "pending", label: "Waiting for review", value: fleet.pending, tone: "c3" },
                 { key: "suspended", label: "On hold", value: fleet.suspended, tone: "c4" },
               ]}
             />
           </Card>
 
-          <div className="adm-rings span-4">
+          <div className="adm-rings span-6">
             <Card
               title="Driven today"
               empty={mix.all - mix.cancelled === 0 ? { line: "Nothing to drive today." } : null}
@@ -253,6 +262,7 @@ export default function Dashboard() {
               <Ring
                 value={mix.driven}
                 of={mix.all - mix.cancelled}
+                tone="purple"
                 figure={`${mix.driven} of ${mix.all - mix.cancelled}`}
                 note="cancellations aside"
               />
@@ -356,6 +366,7 @@ export default function Dashboard() {
           >
             <Columns
               height={240}
+              track
               format={usdTick}
               columns={weeks.map((w) => ({
                 key: w.week,
@@ -404,7 +415,9 @@ function Legend({ items }: { items: [string, string][] }) {
 export function Row({ ride: r, showDay }: { ride: AdminRide; showDay?: boolean }) {
   const state = rideState(r);
   return (
-    <Link className={`adm-row${needsDriver(r) ? " wants" : ""}`} to={`/admin/rides/${r.id}`}>
+    // The row wears its status as a pastel band, keyed to the same tone
+    // as the pill at its end — the reference's status-tinted table rows.
+    <Link className={`adm-row tone-${state.tone || "plain"}`} to={`/admin/rides/${r.id}`}>
       <span className="adm-rtime">
         {r.scheduledAt ? jobTime(r.scheduledAt) : "—"}
         <small>{showDay ? (arubaDayOf(r.scheduledAt) || "no date") : relativeWhen(r.scheduledAt)}</small>

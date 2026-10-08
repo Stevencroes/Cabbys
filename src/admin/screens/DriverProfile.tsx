@@ -35,7 +35,7 @@ import {
   type DriverProfile as Driver, type DriverStatus,
 } from "../../driver/lib/driver";
 import { acceptedCount, DRIVER_DOCUMENTS } from "../../driver/lib/documents";
-import { usd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { todayInAruba, weekDays } from "../../lib/datetime";
 import { useBoard } from "../BoardContext";
 import { isClosed, loadRideHistory, setDriverStatus, type AdminRide } from "../lib/admin";
@@ -263,7 +263,7 @@ export default function DriverProfileScreen() {
                 {[...ahead, ...theirPast.slice(0, 10)].map((r) => {
                   const st = rideState(r);
                   return (
-                    <Link className={`adm-row${isClosed(r) ? " past" : ""}`} key={r.id} to={`/admin/rides/${r.id}`}>
+                    <Link className={`adm-row tone-${st.tone || "plain"}${isClosed(r) ? " past" : ""}`} key={r.id} to={`/admin/rides/${r.id}`}>
                       <span className="adm-rtime">
                         {r.scheduledAt ? jobTime(r.scheduledAt) : "—"}
                         <small>{jobDateShort(r.scheduledAt) || "no date"}</small>

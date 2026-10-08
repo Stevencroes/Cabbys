@@ -30,7 +30,8 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { jobDateShort, jobTime, shortAirport } from "../../driver/JobCard";
-import { awgToUsd, usd } from "../../lib/quote";
+import { awgToUsd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { useBoard } from "../BoardContext";
 import { isClosed, isLive, needsDriver, type AdminRide } from "../lib/admin";
 import { Chip, Empty, Head, Search, Skeleton, Unreadable, rideState } from "../ui";
@@ -170,7 +171,6 @@ export default function Rides() {
                         <th scope="col">When</th>
                         <th scope="col">Passenger</th>
                         <th scope="col">Route</th>
-                        <th scope="col" className="adm-drop">Vehicle</th>
                         <th scope="col">Driver</th>
                         <th scope="col" className="right adm-drop">Price</th>
                         <th scope="col">Status</th>
@@ -184,7 +184,10 @@ export default function Rides() {
                         return (
                           <tr
                             key={r.id}
-                            className={`${open ? "wants " : ""}adm-open`}
+                            // The status tint is the reference's pastel row,
+                            // keyed to the pill in the Status column; the
+                            // pill carries the word.
+                            className={`tone-${state.tone || "plain"} adm-open`}
                             onClick={() => navigate(`/admin/rides/${r.id}`)}
                           >
                             <td data-h="When" className="nowrap">
@@ -213,11 +216,19 @@ export default function Rides() {
                                 <span className="a">
                                   {shortAirport(r.pickup) || "—"} → {shortAirport(r.dropoff) || "—"}
                                 </span>
-                                <span className="b">{r.flightNumber || "—"}</span>
+                                {/* The class booked rides under the route
+                                    rather than in a column of its own. At
+                                    1440px eight columns left the Driver cell
+                                    a word wide — "Nobody / not / claimed /
+                                    yet" down four lines — and the vehicle
+                                    class is the least-compared fact in the
+                                    row. */}
+                                <span className="b">
+                                  {[r.vehicle, r.flightNumber].filter(Boolean).join(" · ") || "—"}
+                                </span>
                               </span>
                             </td>
-                            <td data-h="Vehicle" className="adm-drop">{r.vehicle || "—"}</td>
-                            <td data-h="Driver">
+                            <td data-h="Driver" className="nowrap">
                               {r.driverId ? (
                                 <span className="adm-two">
                                   <span className="a">{r.driverName || "Assigned, no name stamped"}</span>

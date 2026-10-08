@@ -34,7 +34,7 @@ import { jobDateShort, jobTime, shortAirport } from "../../driver/JobCard";
 import {
   addDays, formatDateShort, monthDays, todayInAruba, weekDays, weekdayShort,
 } from "../../lib/datetime";
-import { usd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { useBoard } from "../BoardContext";
 import { HISTORY_DAYS, loadRideHistory, mergeRides, type AdminRide } from "../lib/admin";
 import { booked, byDay, COMMISSION_LABEL, lines, total, totalOver } from "../lib/ledger";
@@ -175,6 +175,7 @@ export default function Earnings() {
             >
               <Columns
                 height={220}
+                track
                 format={usdTick}
                 selected={day}
                 onSelect={(d) => setDay(day === d ? null : d)}
@@ -227,7 +228,9 @@ export default function Earnings() {
                     </thead>
                     <tbody>
                       {rows.map((l) => (
-                        <tr key={l.ride.id}>
+                        // every line here is a completed ride, so every
+                        // row wears the reference's "Delivered" cream
+                        <tr key={l.ride.id} className="tone-done">
                           <td data-h="Date" className="nowrap">
                             <span className="adm-two">
                               <span className="a">{jobDateShort(l.ride.completedAt ?? l.ride.scheduledAt) || "—"}</span>

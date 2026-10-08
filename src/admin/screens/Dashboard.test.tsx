@@ -139,7 +139,9 @@ describe("the dashboard", async () => {
     await renderBoard();
     const t = tile("Earned, last 7 days");
     expect(within(t).getByText("$200")).toBeInTheDocument();
-    expect(within(t).getByText(/up 100%/i)).toBeInTheDocument();
+    // green with an arrow to an eye; the word "Up" for a screen reader,
+    // which gets neither the glyph nor the colour
+    expect(t.querySelector(".adm-delta.up")?.textContent).toMatch(/Up 100%/);
   });
 
   // A chart is never the only place a number lives.
