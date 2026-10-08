@@ -275,7 +275,10 @@ export default function DriverProfileScreen() {
                       <span className="adm-rmain adm-rsub adm-drop">
                         <span className="b">{r.vehicle || "—"}</span>
                       </span>
-                      <span className="adm-rmain adm-rsub adm-drop" />
+                      {/* Four cells for .adm-row's four columns. A fifth, empty
+                          one used to sit here and pushed the chip onto a second
+                          grid row, under the time and hanging out past the
+                          list's left edge. */}
                       <span className="adm-rend"><Chip tone={st.tone}>{st.label}</Chip></span>
                     </Link>
                   );

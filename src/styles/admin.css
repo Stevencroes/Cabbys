@@ -20,6 +20,20 @@
        operate;
      · colour carries state and only two are allowed to — signal = live,
        alert = wrong. Everything else is ground, silver and ink.
+
+   October 2026, at the owner's direction: THE BOARD IS PAPER, THE RAIL
+   STAYS MIDNIGHT. Read at a desk for hours, under office light, a white
+   working surface is easier on the eye than a navy one, and the owner
+   pointed at a light analytics dashboard as the look he wanted. The
+   rail keeps Night Sea so the portal still reads as Cabby's from across
+   the room — the midnight bar down the left is the brand; the paper
+   beside it is the desk. How that is done without a second stylesheet
+   is under THE PAPER LAYER, directly below.
+
+   And RUNNING TEXT IS 14px HERE (--t-meta), not the 16px --t-body the
+   rest of Cabby's sets sentences in — the one owner-requested exception
+   to that floor, recorded in tokens.css beside the floor itself. Display
+   rungs (titles, the figures that matter) keep their larger sizes.
    ========================================================================== */
 .adm{
   /* Tighter than the driver portal's radii, which are drawn for cards
@@ -55,6 +69,132 @@
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE PAPER LAYER
+   The board (.adm-screen) re-points the Night Sea token NAMES at light
+   values; the rail, the skip link and the sign-in gate sit outside it
+   and keep midnight. Re-pointing rather than renaming is the point:
+   every rule in this file was written against --ink, --line, --surface
+   and the rest, so every one of them follows the paper without being
+   touched, and nothing below this block contains a raw colour. A second
+   set of names would have meant a second copy of every rule.
+
+   The gate stays midnight on purpose. It hosts AuthForm, which is the
+   site's own sign-in drawn for the dark ground; re-skinning it in here
+   would be a second sign-in form wearing the first one's markup.
+
+   The ladder runs the other way on paper: the page is a whisper of
+   cool grey (#F5F7FA, which reads white beside the navy rail), cards
+   are white and lift off it, and --raised is the slightly DARKER rung
+   for inputs, table heads and hovered rows. Same three roles as Night
+   Sea, mirrored.
+
+   Contrast, WCAG 2.1, measured (dataviz validate_palette.js contrast()),
+   not estimated. Text needs 4.5:1; marks and borders that identify a
+   control need 3:1.
+
+                     ground  surface  raised   deep
+       --ink          16.84   18.07    16.06   15.48
+       --silver        6.60    7.08     6.29    6.07
+       --muted         5.08    5.46     4.85    4.67   <- body copy
+       --silver-deep   3.56    3.82     3.39    3.27   <- control borders
+       --signal-ink    5.92    6.36     5.65    5.44
+       --alert-ink     6.15    6.60     5.86    5.65
+       --signal        3.70    3.97     3.53    3.40   <- marks only
+       --alert         3.98    4.27     3.80    3.66   <- marks only
+       --soft          1.66    1.79     1.59    1.53   <- fails, by design
+
+     Text on its own tint, the chips and banners:
+       --signal-ink on --signal-tint   5.64 on a card, 5.28 on the page
+       --alert-ink  on --alert-tint    5.90 on a card, 5.52 on the page
+
+   --muted is again the one with the least margin, and it is measured
+   against --deep, the darkest rung it can land on. --soft keeps its
+   Night Sea job — disabled, faint, never text — and fails here for the
+   same reason it fails there. The Night Sea teal (#4FA5A5) was 2.9:1 on
+   white and could not even be a mark; the paper signal is a deeper step
+   of the same teal, and the paper alert the same clay, a step down.
+
+   --sheen, the one gradient for primary actions and the selected
+   segment, becomes midnight on paper: a silver button on a white card
+   vanishes, and a navy one repeats the rail — so the primary action and
+   the brand bar are visibly the same material. --on-sheen flips to
+   match, and stays the only ink allowed on it.
+   ══════════════════════════════════════════════════════════════════════ */
+.adm-screen{
+  --ground:#F5F7FA;      /* the page — reads white beside the rail */
+  --deep:#E9EEF3;        /* code blocks, the deepest well */
+  --surface:#FFFFFF;     /* cards, panels, tables */
+  --raised:#EEF2F6;      /* inputs, table heads, segmented strips */
+  --line:#DFE5EC;        /* hairlines, card edges */
+  --line-soft:rgba(223,229,236,.7);
+  --soft:#B9C3CE;        /* disabled, faint icons — never text */
+
+  --ink:#0B1724;         /* midnight, as ink */
+  --highlight:#1C2B3B;
+  --silver:#4A5A6B;      /* labels, eyebrows, small caps */
+  --muted:#5D6B7A;       /* secondary text */
+  --placeholder:#5D6B7A;
+  --silver-deep:#768494; /* control borders, pressed states */
+
+  --signal:#0E8F86;
+  --signal-ink:#0A6B65;
+  --signal-tint:rgba(14,143,134,.10);
+  --signal-line:rgba(14,143,134,.38);
+  --signal-glow:rgba(14,143,134,.14);
+  --signal-knob:rgba(14,143,134,.22);
+  --signal-halo:rgba(14,143,134,.45);
+  --alert:#C9564B;
+  --alert-ink:#A3392F;
+  --alert-tint:rgba(201,86,75,.09);
+  --alert-line:rgba(201,86,75,.38);
+
+  --sheen:linear-gradient(180deg,#13263A 0%,#081420 100%);
+  --hairline:linear-gradient(90deg,transparent,#C9D1DA 22%,#AAB5C1 50%,#C9D1DA 78%,transparent);
+  --on-sheen:#F5F5F3;
+  --on-sheen-wash:rgba(245,245,243,.2);
+
+  /* Depth on paper comes from a shadow, not from the dark: the Night
+     Sea's 40% black drop would read as a smudge on white. Two layers —
+     a contact line and a wide, faint lift — which is how the reference
+     dashboard's cards sit off its page. */
+  --shadow-hard:0 10px 28px rgba(11,23,36,.12);
+  --shadow-hard-lg:0 18px 44px rgba(11,23,36,.14);
+  --a-card:0 1px 2px rgba(11,23,36,.04),0 6px 22px rgba(11,23,36,.05);
+  /* a hovered row on a white card — one step toward --raised */
+  --a-hover:#F3F6F9;
+
+  /* ── the chart colours ────────────────────────────────────────────────
+     By role, never by rank, and the roles are the house's: only signal
+     (live) and alert (wrong) mean anything. Harbour blue is the series
+     itself, its lighter step is "booked, not yet driven", grey is the
+     de-emphasised "over" (cancelled).
+
+     Validated, not eyeballed — dataviz validate_palette.js, light mode,
+     against the white card, in the order the donut draws them
+     (c1, c2, c3, c4): lightness band, chroma floor and CVD all PASS;
+     worst adjacent CVD ΔE 14.1 (deutan, c3↔c2), worst normal-vision ΔE
+     15.5 (c2↔c1), both clear of their floors. The fleet donut's order
+     (c1, c3, c4) passes at 20.4 / 22.5. --c-3 is 2.63:1 on white, under
+     the 3:1 for marks, so it is never shown without its number written
+     beside it in ink (every legend does) and a table view one click
+     away — the relief the validator's WARN obliges. --c-other is the
+     de-emphasis grey and is exempt from the chroma floor by role. */
+  --c-1:#2F5F96;         /* harbour blue — the series, "driven" */
+  --c-2:var(--signal);   /* on the road — live */
+  --c-3:#73A2E0;         /* booked, not yet driven */
+  --c-4:var(--alert);    /* nobody driving it — wrong */
+  --c-other:#A9B4C0;     /* cancelled, over */
+  --c-grid:#E8EDF2;      /* gridlines — one step off the card */
+  --c-axis:#C5CED8;      /* the baseline */
+  --c-track:#EEF2F6;     /* a meter's unfilled track */
+
+  background:var(--ground);
+  color:var(--ink);
+  min-height:100dvh;
+}
+
 .adm *{box-sizing:border-box;}
 .adm :focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 
@@ -73,7 +213,10 @@
    room for a count beside the two entries that ever need one, which a
    horizontal strip could only have carried by becoming a toolbar. */
 .adm-frame{display:grid;grid-template-columns:var(--a-rail) minmax(0,1fr);
-  align-items:start;min-height:100dvh;}
+  align-items:start;min-height:100dvh;
+  /* the rail's own colour, so the column under a sticky rail on a long
+     page is the same midnight rather than a second, darker one */
+  background:var(--deep);}
 .adm-rail{position:sticky;top:0;align-self:start;height:100dvh;
   display:flex;flex-direction:column;gap:var(--a-block);
   border-right:1px solid var(--line);background:var(--deep);
@@ -124,12 +267,17 @@
 .adm .big{font-family:var(--serif);font-weight:300;font-size:var(--t-display-sm);line-height:var(--lh-display);
   margin:10px 0 0;letter-spacing:var(--ls-display);}
 .adm .big em{font-style:italic;color:var(--silver);}
-.adm .sub{color:var(--muted);font-size:var(--t-body);font-weight:400;line-height:var(--lh-body);
+.adm .sub{color:var(--muted);font-size:var(--t-meta);font-weight:400;line-height:var(--lh-body);
   margin:10px 0 0;max-width:var(--measure);}
 
 /* ── the filter strip ──────────────────────────────────────────────── */
 .adm-seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--a-r-pill);
   background:var(--surface);overflow:hidden;}
+/* a filter strip directly above the table it filters. Without the gap
+   the pill sat on the table's top edge — invisible on midnight, where
+   both were the same ground, and a collision once the table became a
+   white card on paper. */
+.adm-seg + .adm-tablewrap{margin-top:var(--a-block);}
 .adm-seg button{background:none;border:none;padding:8px 14px;min-height:var(--a-tap);
   font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);cursor:pointer;transition:.2s var(--ease);}
@@ -143,7 +291,8 @@
 /* The whole point of this portal. A table, not a stack of cards: an
    operator is comparing rows, and a card layout makes the eye travel
    the long way round to answer "which of these has no driver". */
-.adm-tablewrap{border:1px solid var(--line);border-radius:var(--a-r-md);overflow:hidden;}
+.adm-tablewrap{border:1px solid var(--line);border-radius:var(--a-r-lg);overflow:hidden;
+  background:var(--surface);box-shadow:var(--a-card);}
 /* Only this box scrolls sideways, and only when it has to. The page
    itself must never scroll horizontally. */
 .adm-scroll{overflow-x:auto;}
@@ -155,19 +304,19 @@
 .adm-table tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
 .adm-table tbody tr:last-child td{border-bottom:none;}
 .adm-table tbody tr{transition:background .18s var(--ease);}
-.adm-table tbody tr:hover{background:var(--surface);}
+.adm-table tbody tr:hover{background:var(--a-hover);}
 /* the row the operator is acting on stays visible while a confirmation
    sits under it */
-.adm-table tbody tr.picked{background:var(--surface);box-shadow:inset 2px 0 0 var(--silver);}
+.adm-table tbody tr.picked{background:var(--a-hover);box-shadow:inset 2px 0 0 var(--silver);}
 /* a row that needs a human — the reason this screen exists */
 .adm-table tbody tr.wants{box-shadow:inset 2px 0 0 var(--alert);}
-.adm-table .num{font-family:var(--serif);font-weight:600;font-size:var(--t-body);color:var(--ink);
+.adm-table .num{font-weight:600;font-size:var(--t-meta);color:var(--ink);
   font-variant-numeric:tabular-nums;}
 .adm-table .right{text-align:right;}
 .adm-table .nowrap{white-space:nowrap;}
 
 /* two lines in one cell: the fact, and what qualifies it */
-.adm-two .a{display:block;color:var(--ink);font-size:var(--t-body);line-height:1.3;}
+.adm-two .a{display:block;color:var(--ink);font-size:var(--t-meta);line-height:1.3;}
 .adm-two .b{display:block;color:var(--muted);font-size:var(--t-meta);line-height:1.3;margin-top:2px;
   letter-spacing:.04em;}
 .adm-two .b.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;}
@@ -177,7 +326,7 @@
 .adm-person img,.adm-person .ph{width:32px;height:32px;border-radius:50%;flex:none;
   object-fit:cover;background:var(--raised);border:1px solid var(--line);}
 .adm-person .ph{display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:var(--t-meta);font-weight:600;color:var(--silver);}
+  font-size:var(--t-meta);font-weight:600;color:var(--silver);}
 /* no photo at all is a fact about the booking, not a missing asset */
 .adm-person .ph.gap{border-color:var(--alert-line);color:var(--alert-ink);}
 
@@ -222,12 +371,12 @@
 .adm-btn.stop:hover:not(:disabled){background:var(--alert-tint);color:var(--alert-ink);border-color:var(--alert);}
 /* a control the database would refuse is not shown; this is what stands
    in its place, and it says why rather than sitting there greyed out */
-.adm-why{font-size:var(--t-body);color:var(--muted);line-height:1.4;text-align:right;max-width:30ch;
+.adm-why{font-size:var(--t-meta);color:var(--muted);line-height:1.4;text-align:right;max-width:30ch;
   margin-left:auto;}
 
 /* a plain text control that lives inside a row */
 .adm-quiet{background:none;border:none;padding:0 4px;min-height:var(--a-tap);
-  font-family:var(--sans);font-weight:600;font-size:var(--t-body);letter-spacing:.16em;
+  font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:.16em;
   text-transform:uppercase;color:var(--muted);cursor:pointer;
   transition:color .2s var(--ease);}
 .adm-quiet:hover{color:var(--silver);}
@@ -242,7 +391,7 @@
 .adm-confirm .ct{flex:1;min-width:min(100%,30ch);}
 .adm-confirm .ck{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);}
-.adm-confirm p{margin:6px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--ink);}
+.adm-confirm p{margin:6px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--ink);}
 .adm-confirm .cacts{display:flex;gap:8px;flex:none;flex-wrap:wrap;}
 .adm-confirm.bad td{background:var(--alert-tint);}
 .adm-confirm.bad .ck{color:var(--alert-ink);}
@@ -255,7 +404,7 @@
   animation:admfade .25s var(--ease);}
 .adm-note .nk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--silver);}
-.adm-note p{margin:4px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--ink);}
+.adm-note p{margin:4px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--ink);}
 .adm-note .nb{flex:1;min-width:0;}
 .adm-note button{flex:none;background:none;border:none;color:var(--muted);font-size:var(--t-meta);
   min-width:30px;min-height:30px;cursor:pointer;}
@@ -271,8 +420,8 @@
    not on this screen. */
 .adm-empty{padding:44px 24px;text-align:center;color:var(--muted);}
 .adm-empty .es{font-family:var(--serif);font-size:var(--t-title);color:var(--ink);margin-bottom:6px;}
-.adm-empty .et{font-size:var(--t-body);line-height:1.65;max-width:52ch;margin:0 auto;}
-.adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);
+.adm-empty .et{font-size:var(--t-meta);line-height:1.65;max-width:52ch;margin:0 auto;}
+.adm-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);
   word-break:break-word;opacity:.75;margin-top:10px;}
 .adm-empty .adm-btn{margin-top:16px;}
 
@@ -289,7 +438,7 @@
 .adm-gate .gi svg{width:27px;height:27px;}
 .adm-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
 .adm-gate h1{font-family:var(--serif);font-weight:300;font-size:var(--t-head);margin:0 0 10px;line-height:var(--lh-snug);}
-.adm-gate p{color:var(--muted);font-size:var(--t-body);line-height:1.7;max-width:42ch;margin:0;}
+.adm-gate p{color:var(--muted);font-size:var(--t-meta);line-height:1.7;max-width:42ch;margin:0;}
 /* the wordmark is 16px wherever it stands, the gate included */
 .adm-mark.gate{margin-bottom:24px;}
 .adm-mark.gate small{font-size:var(--t-micro);letter-spacing:var(--ls-micro);margin-top:5px;}
@@ -306,8 +455,8 @@
 .adm-diag .row + .row{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);}
 .adm-diag .k{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
-.adm-diag .v{display:block;font-size:var(--t-body);color:var(--ink);word-break:break-word;}
-.adm-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);color:var(--silver);}
+.adm-diag .v{display:block;font-size:var(--t-meta);color:var(--ink);word-break:break-word;}
+.adm-diag .v.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);color:var(--silver);}
 
 /* The statement to run, spelled out with their own uid already in it.
    The whole portal exists to stop people typing SQL at production; the
@@ -317,10 +466,10 @@
 .adm-sql{width:100%;max-width:640px;margin-top:18px;text-align:left;
   background:var(--deep);border:1px solid var(--line);border-radius:var(--a-r-md);
   padding:13px 15px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:var(--t-body);line-height:1.6;color:var(--silver);
+  font-size:var(--t-meta);line-height:1.6;color:var(--silver);
   white-space:pre-wrap;word-break:break-word;}
 .adm-gate .adm-why{text-align:center;margin:14px auto 0;max-width:46ch;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);opacity:.8;}
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);opacity:.8;}
 .adm-gateacts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px;}
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -331,8 +480,8 @@
    ══════════════════════════════════════════════════════════════════════ */
 .adm-split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;
   align-items:start;}
-.adm-pane{border:1px solid var(--line);border-radius:var(--a-r-md);overflow:hidden;
-  background:var(--surface);}
+.adm-pane{border:1px solid var(--line);border-radius:var(--a-r-lg);overflow:hidden;
+  background:var(--surface);box-shadow:var(--a-card);}
 .adm-pane > h2{margin:0;padding:11px 14px;background:var(--raised);
   border-bottom:1px solid var(--line);
   font-family:var(--sans);font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
@@ -350,10 +499,10 @@
 .adm-pick:hover{background:var(--raised);}
 .adm-pick.on{background:var(--raised);box-shadow:inset 2px 0 0 var(--silver);}
 .adm-pick .ptop{display:flex;align-items:baseline;gap:9px;margin-bottom:5px;}
-.adm-pick .pwhen{font-family:var(--serif);font-size:var(--t-body);font-weight:600;color:var(--ink);}
+.adm-pick .pwhen{font-size:var(--t-meta);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-pick .pday{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
-.adm-pick .pfare{margin-left:auto;font-family:var(--serif);font-size:var(--t-body);font-weight:600;color:var(--silver);}
-.adm-pick .proute{font-size:var(--t-body);color:var(--ink);line-height:1.35;}
+.adm-pick .pfare{margin-left:auto;font-size:var(--t-meta);font-weight:600;color:var(--silver);font-variant-numeric:tabular-nums;}
+.adm-pick .proute{font-size:var(--t-meta);color:var(--ink);line-height:1.35;}
 .adm-pick .pmeta{font-size:var(--t-meta);color:var(--muted);margin-top:4px;letter-spacing:.04em;}
 .adm-pick[disabled]{cursor:default;opacity:.55;}
 
@@ -362,9 +511,9 @@
 .adm-pick .pdrv .ph{width:32px;height:32px;border-radius:50%;flex:none;object-fit:cover;
   background:var(--raised);border:1px solid var(--line);
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-size:var(--t-meta);font-weight:600;color:var(--silver);}
+  font-size:var(--t-meta);font-weight:600;color:var(--silver);}
 .adm-pick .pdrv .pi{flex:1;min-width:0;}
-.adm-pick .pdrv .pn{display:block;font-size:var(--t-body);color:var(--ink);line-height:1.25;}
+.adm-pick .pdrv .pn{display:block;font-size:var(--t-meta);color:var(--ink);line-height:1.25;}
 .adm-pick .pdrv .pc{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:2px;}
 /* the half that is missing, said where the choice is being made */
 .adm-pick .pgap{display:block;margin-top:6px;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);
@@ -373,8 +522,8 @@
 /* the foot of the right pane: what is about to happen, and the button */
 .adm-do{border-top:1px solid var(--line);background:var(--raised);padding:14px;}
 .adm-do .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
-.adm-do p{margin:6px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--ink);}
-.adm-do .warn{margin-top:8px;font-size:var(--t-body);line-height:1.5;color:var(--alert-ink);}
+.adm-do p{margin:6px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--ink);}
+.adm-do .warn{margin-top:8px;font-size:var(--t-meta);line-height:1.5;color:var(--alert-ink);}
 .adm-do .adm-btn{width:100%;margin-top:12px;min-height:40px;}
 
 @media(max-width:900px){
@@ -475,44 +624,44 @@
 .adm-docs .dhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   padding-bottom:10px;border-bottom:1px solid var(--line);}
 .adm-docs .dk{font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--silver);}
-.adm-docs .dn{font-size:var(--t-body);line-height:1.5;color:var(--muted);}
+.adm-docs .dn{font-size:var(--t-meta);line-height:1.5;color:var(--muted);}
 
 .adm-docs .dlist{list-style:none;margin:0;padding:0;}
 .adm-docs .drow{padding:12px 0;border-bottom:1px solid var(--line);}
 .adm-docs .drow:last-child{border-bottom:none;}
 
 .adm-docs .dl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.adm-docs .dt{font-size:var(--t-body);color:var(--ink);}
-.adm-docs .dwhen{font-size:var(--t-body);color:var(--muted);}
-.adm-docs .dnone{margin:6px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);}
+.adm-docs .dt{font-size:var(--t-meta);color:var(--ink);}
+.adm-docs .dwhen{font-size:var(--t-meta);color:var(--muted);}
+.adm-docs .dnone{margin:6px 0 0;font-size:var(--t-meta);line-height:1.5;color:var(--muted);}
 /* the sentence the driver was sent. Shown to the operator too, so they
    can see what they already told somebody before telling them again. */
 .adm-docs .dreason{margin:7px 0 0;padding:8px 10px;border-radius:var(--a-r-sm);
   background:var(--alert-tint);border:1px solid var(--alert-line);
-  font-size:var(--t-body);line-height:1.5;color:var(--ink);}
+  font-size:var(--t-meta);line-height:1.5;color:var(--ink);}
 .adm-docs .adm-acts{justify-content:flex-start;margin-top:9px;}
 /* a signed link is a live link with a clock on it — say so where it is */
-.adm-docs .dexpiry{margin:7px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);}
+.adm-docs .dexpiry{margin:7px 0 0;font-size:var(--t-meta);line-height:1.5;color:var(--muted);}
 
 .adm-docs .dback{margin-top:10px;padding:11px 12px;border:1px solid var(--alert-line);
   border-radius:var(--a-r-md);background:var(--surface);}
 .adm-docs .dback label{display:block;font-size:var(--t-meta);line-height:1.5;color:var(--silver);margin-bottom:7px;}
 .adm-docs .dback textarea{width:100%;background:var(--raised);border:1px solid var(--line);
-  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:var(--t-body);
+  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:var(--t-meta);
   line-height:1.5;padding:9px 11px;resize:vertical;}
 .adm-docs .dback textarea::placeholder{color:var(--placeholder);}
 .adm-docs .dback textarea:focus{outline:none;border-color:var(--silver-deep);}
 .adm-docs .dback textarea:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 /* why the button underneath is refusing, rather than a disabled control
    with no explanation attached to it */
-.adm-docs .dwhy{margin:8px 0 0;font-size:var(--t-body);line-height:1.5;color:var(--muted);}
+.adm-docs .dwhy{margin:8px 0 0;font-size:var(--t-meta);line-height:1.5;color:var(--muted);}
 
-.adm-docs .dbad{margin:10px 0 0;font-size:var(--t-body);line-height:1.55;color:var(--alert-ink);}
-.adm-docs .dbad.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-body);
+.adm-docs .dbad{margin:10px 0 0;font-size:var(--t-meta);line-height:1.55;color:var(--alert-ink);}
+.adm-docs .dbad.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);
   color:var(--muted);word-break:break-word;}
 
 /* the paperwork line inside the approval confirmation */
-.adm-confirm .cdocs{margin-top:8px;font-size:var(--t-body);line-height:1.55;color:var(--silver);}
+.adm-confirm .cdocs{margin-top:8px;font-size:var(--t-meta);line-height:1.55;color:var(--silver);}
 
 @media(max-width:440px){
   /* the stacked-cell rules above turn every td into a block with its own
@@ -545,23 +694,27 @@
 .adm-sectx{margin-left:auto;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
   font-size:var(--t-meta);color:var(--muted);}
 
-/* ── the compact figure strip ──────────────────────────────────────────
-   Four readings across one rule. NOT four cards: a card implies
-   something you can open, and a count of today's rides is not an
-   object. The dividers are hairlines between the cells, so the strip
-   reads as one instrument rather than as a row of tiles. */
-.adm-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-  border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
-.adm-fig{padding:16px 22px;border-left:1px solid var(--line);min-width:0;}
-/* the strip is a reading, not a heading, so whatever follows it needs
+/* ── the figure row ────────────────────────────────────────────────────
+   Four readings, each on its own white tile. This was a strip divided by
+   hairlines — "a card implies something you can open" — until the board
+   went to paper in October 2026. On a white page a hairline strip has
+   nothing to sit on and reads as loose text; the owner's reference
+   dashboard puts each reading on a tile, and the tiles here are the same
+   tile the dashboard's KPI row uses (.adm-tile), so a figure looks the
+   same on every screen it appears on. They still open nothing — there is
+   no hover state, which is how a tile says it is a reading. */
+.adm-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--a-gap);}
+.adm-fig{padding:18px 20px;min-width:0;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--a-r-lg);box-shadow:var(--a-card);}
+/* the row is a reading, not a heading, so whatever follows it needs
    the same air a new section gets — .adm-sect:first-child zeroes its own
    margin inside a detail column and would otherwise butt straight up */
 .adm-figs + .adm-detail,.adm-figs + .adm-sect{margin-top:var(--a-band);}
-.adm-fig:first-child{border-left:none;padding-left:0;}
-.adm-fig .k{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
-  text-transform:uppercase;color:var(--muted);}
+.adm-fig .k{font-weight:500;font-size:var(--t-meta);color:var(--muted);}
+/* Cormorant, because these are the numbers that matter — and proportional
+   figures, because a standalone number set tabular looks loose at size */
 .adm-fig .v{margin-top:8px;font-family:var(--serif);font-weight:600;font-size:var(--t-head);
-  line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
+  line-height:var(--lh-tight);color:var(--ink);}
 .adm-fig .n{margin-top:5px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 /* a figure that is only ever a problem when it isn't zero. The word
    under it still says so — the colour is the second signal, never the
@@ -574,13 +727,16 @@
    vehicle, driver, status — and it is a list rather than a table
    because the eye reads it down the clock, not across the columns. */
 .adm-list{display:flex;flex-direction:column;}
-.adm-row{display:grid;grid-template-columns:82px minmax(0,1.5fr) minmax(0,1.6fr) auto;
+/* 88px for the time column, because its second line is the longest
+   word the board puts there — "TOMORROW" in letterspaced micro is ~80px,
+   and at 74px it ran into the guest's route on a phone */
+.adm-row{display:grid;grid-template-columns:88px minmax(0,1.5fr) minmax(0,1.6fr) auto;
   align-items:center;gap:18px;width:100%;text-align:left;
   padding:14px 8px;border:none;border-bottom:1px solid var(--line);background:none;color:inherit;
   font-family:var(--sans);font-size:var(--t-meta);cursor:pointer;
   transition:background .18s var(--ease-ui);}
 .adm-row:last-child{border-bottom:none;}
-.adm-row:hover{background:var(--surface);}
+.adm-row:hover{background:var(--a-hover);}
 /* a row that needs a human. The rule down its edge is the mark; the
    chip inside it carries the word. */
 .adm-row.wants{box-shadow:inset 2px 0 0 var(--alert);}
@@ -590,7 +746,7 @@
 .adm-rtime small{display:block;font-family:var(--sans);font-weight:500;font-size:var(--t-micro);
   letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--muted);margin-top:4px;}
 .adm-rmain{min-width:0;}
-.adm-rmain .a{display:block;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);
+.adm-rmain .a{display:block;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .adm-rmain .b{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -614,7 +770,7 @@
 .adm-time .at .dot{background:var(--signal);border-color:var(--signal);
   box-shadow:0 0 0 4px var(--signal-glow);}
 .adm-time .off .dot{background:var(--alert);border-color:var(--alert);}
-.adm-time .lb{display:block;font-size:var(--t-body);line-height:var(--lh-snug);color:var(--muted);}
+.adm-time .lb{display:block;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 .adm-time .done .lb,.adm-time .at .lb{color:var(--ink);}
 .adm-time .off .lb{color:var(--alert-ink);}
 .adm-time .tm{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;
@@ -639,17 +795,22 @@
 .adm-fact{display:flex;gap:16px;padding:9px 0;border-bottom:1px solid var(--line-soft);}
 .adm-fact:last-child{border-bottom:none;}
 .adm-fact .fk{flex:none;width:9.5em;font-size:var(--t-meta);color:var(--muted);line-height:var(--lh-snug);}
-.adm-fact .fv{flex:1;min-width:0;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);
+.adm-fact .fv{flex:1;min-width:0;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);
   word-break:break-word;}
 .adm-fact .fv .q{color:var(--muted);}
 
 /* the one boxed surface: something raised off the page because it is an
    object on it, not a grouping that wanted a border */
-.adm-panel{border:1px solid var(--line);border-radius:var(--a-r-md);background:var(--surface);
-  padding:18px;}
+.adm-panel{border:1px solid var(--line);border-radius:var(--a-r-lg);background:var(--surface);
+  padding:18px;box-shadow:var(--a-card);}
 .adm-panel + .adm-panel{margin-top:var(--a-block);}
 
 /* ── one search box, one meaning ───────────────────────────────────── */
+/* 14px, like every field on this board, and knowingly: iOS zooms the
+   page when a focused input is under 16px. On a desk tool read with a
+   mouse that is an acceptable cost for a field that matches the table it
+   searches; the booking form, used on a phone, keeps 16px for exactly
+   this reason. See the exception noted beside the floor in tokens.css. */
 .adm-search{display:block;position:relative;min-width:min(100%,260px);}
 .adm-search .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
 .adm-search input{width:100%;min-height:var(--a-tap);padding:8px 14px;
@@ -686,16 +847,16 @@
   border-bottom:1px solid var(--line);color:inherit;font-family:var(--sans);cursor:pointer;
   box-shadow:inset 2px 0 0 var(--soft);transition:background .18s var(--ease-ui);}
 .adm-attrow:last-child{border-bottom:none;}
-.adm-attrow:hover{background:var(--surface);}
+.adm-attrow:hover{background:var(--a-hover);}
 .adm-attrow.now{box-shadow:inset 2px 0 0 var(--alert);}
 .adm-attrow.soon{box-shadow:inset 2px 0 0 var(--silver);}
 .adm-attgrade{flex:none;font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);
   text-transform:uppercase;color:var(--muted);padding-top:3px;min-width:4.5em;}
 .adm-attrow.now .adm-attgrade{color:var(--alert-ink);}
-.adm-atth{display:block;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);}
+.adm-atth{display:block;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);}
 .adm-attd{display:block;margin-top:5px;font-size:var(--t-meta);color:var(--muted);
   line-height:var(--lh-body);max-width:var(--measure);}
-.adm-attgo{flex:none;align-self:center;color:var(--muted);font-size:var(--t-body);}
+.adm-attgo{flex:none;align-self:center;color:var(--muted);font-size:var(--t-meta);}
 
 /* ── what the flight table says, under the number the guest typed ──────
    The attention list told an operator a flight was cancelled; this is
@@ -724,7 +885,7 @@
 .adm-hour{display:grid;grid-template-columns:70px minmax(0,1fr);gap:20px;align-items:start;
   border-top:1px solid var(--line);padding:10px 0;}
 .adm-hour:first-child{border-top:none;}
-.adm-hourk{font-family:var(--serif);font-weight:600;font-size:var(--t-body);color:var(--silver);
+.adm-hourk{font-weight:600;font-size:var(--t-meta);color:var(--silver);
   font-variant-numeric:tabular-nums;padding-top:12px;}
 .adm-hour.quiet .adm-hourk{color:var(--muted);opacity:.55;}
 .adm-hourv{min-width:0;}
@@ -732,21 +893,6 @@
 /* the day picker: yesterday, today, tomorrow and a date */
 .adm-days{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .adm-days .now{font-size:var(--t-meta);color:var(--muted);margin-left:6px;}
-
-/* ── one simple chart, and only where it helps ─────────────────────────
-   Bars for a fortnight of revenue, drawn from the same completed rides
-   the totals are drawn from. No axes, no gridlines, no legend: the
-   question it answers is "which days were busy", and a chart that needs
-   a legend is answering a different one. */
-.adm-bars{display:flex;align-items:flex-end;gap:6px;height:96px;}
-.adm-bar{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;
-  height:100%;background:none;border:none;padding:0;cursor:pointer;}
-.adm-bar i{display:block;width:100%;background:var(--raised);border-top:1px solid var(--silver-deep);
-  border-radius:2px 2px 0 0;min-height:2px;transition:background .2s var(--ease-ui);}
-.adm-bar:hover i,.adm-bar.on i{background:var(--signal-tint);border-top-color:var(--signal);}
-.adm-barx{display:flex;gap:6px;margin-top:8px;}
-.adm-barx span{flex:1;min-width:0;text-align:center;font-size:var(--t-micro);color:var(--muted);
-  letter-spacing:0;overflow:hidden;}
 
 /* ── the paperwork count, wherever it appears ──────────────────────── */
 .adm-meter{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--muted);
@@ -772,23 +918,20 @@
   .adm-detail{grid-template-columns:minmax(0,1fr);gap:var(--a-band);}
   .adm-figs{grid-template-columns:repeat(2,minmax(0,1fr));}
   .adm-fig{padding:14px 16px;}
-  .adm-fig:nth-child(odd){border-left:none;padding-left:0;}
-  .adm-fig:nth-child(n+3){border-top:1px solid var(--line);}
 }
 
 @media(max-width:700px){
   /* the list stops being a grid and becomes what it always was under
      the columns: a time, a thing, and its state */
-  .adm-row{grid-template-columns:74px minmax(0,1fr);gap:12px;row-gap:6px;padding:12px 6px;}
+  .adm-row{grid-template-columns:88px minmax(0,1fr);gap:12px;row-gap:6px;padding:12px 6px;}
   .adm-row > .adm-rsub{grid-column:2;}
   .adm-rend{grid-column:2;justify-self:start;}
-  .adm-rtime{font-size:var(--t-body);}
+  .adm-rtime{font-size:var(--t-meta);}
   .adm-hour{grid-template-columns:54px minmax(0,1fr);gap:12px;}
   .adm-attrow{grid-template-columns:minmax(0,1fr);gap:6px;}
   .adm-attgo{display:none;}
   .adm-fact{flex-direction:column;gap:3px;}
   .adm-fact .fk{width:auto;}
-  .adm-bars{height:72px;}
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -840,7 +983,7 @@ a.adm-row{text-decoration:none;color:inherit;}
 
 /* what the booking, the driver or an operator wrote into rides.notes */
 .adm-notes{list-style:none;margin:0;padding:0;}
-.adm-notes li{padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:var(--t-body);
+.adm-notes li{padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:var(--t-meta);
   line-height:var(--lh-snug);color:var(--ink);}
 .adm-notes li:last-child{border-bottom:none;}
 .adm-notes b{color:var(--silver);font-weight:600;}
@@ -862,13 +1005,13 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-ask .ck{font-weight:600;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   color:var(--silver);}
 .adm-ask.bad .ck{color:var(--alert-ink);}
-.adm-ask p{margin:8px 0 0;font-size:var(--t-body);line-height:var(--lh-snug);color:var(--ink);}
+.adm-ask p{margin:8px 0 0;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--ink);}
 .adm-ask .adm-acts{margin-top:14px;}
 .adm-reason{display:block;margin-top:12px;}
 .adm-reason span{display:block;font-size:var(--t-meta);line-height:var(--lh-body);color:var(--silver);
   margin-bottom:7px;}
 .adm-reason textarea{width:100%;background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:var(--t-body);
+  border-radius:var(--a-r-sm);color:var(--ink);font-family:var(--sans);font-size:var(--t-meta);
   line-height:var(--lh-snug);padding:9px 11px;resize:vertical;}
 .adm-reason textarea::placeholder{color:var(--placeholder);}
 .adm-reason textarea:focus{outline:none;border-color:var(--silver-deep);}
@@ -897,14 +1040,14 @@ a.adm-row{text-decoration:none;color:inherit;}
    be the one thing on this board that says something only by colour. */
 .adm-week{display:flex;align-items:stretch;gap:4px;margin-bottom:var(--a-band);}
 .adm-weekstep{flex:none;width:34px;background:none;border:1px solid var(--line);
-  border-radius:var(--a-r-sm);color:var(--muted);cursor:pointer;font-size:var(--t-body);
+  border-radius:var(--a-r-sm);color:var(--muted);cursor:pointer;font-size:var(--t-meta);
   transition:color .2s var(--ease-ui),border-color .2s var(--ease-ui);}
 .adm-weekstep:hover{color:var(--ink);border-color:var(--silver-deep);}
 .adm-weekday{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;
   padding:10px 8px;border:1px solid var(--line);border-radius:var(--a-r-sm);
   background:none;color:inherit;cursor:pointer;text-align:left;font-family:var(--sans);
   transition:background .2s var(--ease-ui),border-color .2s var(--ease-ui);}
-.adm-weekday:hover{background:var(--surface);}
+.adm-weekday:hover{background:var(--a-hover);}
 .adm-weekday.on{background:var(--surface);border-color:var(--silver-deep);}
 /* today is marked by a rule, not only by a colour */
 .adm-weekday.now{box-shadow:inset 0 2px 0 var(--silver);}
@@ -922,13 +1065,13 @@ a.adm-row{text-decoration:none;color:inherit;}
   padding:10px 10px 10px 12px;border-radius:var(--a-r-sm);color:inherit;text-decoration:none;
   transition:background .18s var(--ease-ui);}
 .adm-slot + .adm-slot{margin-top:4px;}
-.adm-slot:hover{background:var(--surface);}
+.adm-slot:hover{background:var(--a-hover);}
 .adm-slot.wants{box-shadow:inset 2px 0 0 var(--alert);}
 .adm-slot.past{opacity:.55;}
 .adm-slot .st{font-family:var(--serif);font-weight:600;font-size:var(--t-lead);color:var(--ink);
   line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
 .adm-slot .sm{min-width:0;}
-.adm-slot .sm .a{display:block;font-size:var(--t-body);color:var(--ink);line-height:var(--lh-snug);}
+.adm-slot .sm .a{display:block;font-size:var(--t-meta);color:var(--ink);line-height:var(--lh-snug);}
 .adm-slot .sm .b{display:block;font-size:var(--t-meta);color:var(--muted);margin-top:3px;}
 /* a warning is a sentence; the accent rule beside the row says the same
    thing a second time, never the first */
@@ -944,4 +1087,240 @@ a.adm-row{text-decoration:none;color:inherit;}
   .adm-week::-webkit-scrollbar{display:none;}
   .adm-weekday{min-width:62px;}
   .adm-weekday .wc,.adm-weekday .wg{font-size:var(--t-micro);}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE CARD GRID, AND WHAT IS DRAWN IN IT
+   October 2026. The owner asked for the dashboard as a grid of cards
+   with graphs, after a light analytics dashboard he pointed at: white
+   cards with soft, large corners on a near-white page, a row of
+   readings across the top, donuts with small legends, rounded columns,
+   a smooth line and progress rings. That is the vocabulary below — in
+   Cabby's colours, not the reference's, and on the board's own tokens,
+   so the cards are the same material as the tables and panels around
+   them rather than a second design language dropped onto the page.
+
+   The house rule that survives the move is the one about colour. Only
+   signal (live) and alert (wrong) mean anything; the series itself is
+   harbour blue, and a chart that wanted a rainbow is a chart that was
+   asked the wrong question. See the --c-* tokens in THE PAPER LAYER.
+   ══════════════════════════════════════════════════════════════════════ */
+.adm-dash{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--a-block);}
+.adm-dash > .span-4{grid-column:span 4;}
+.adm-dash > .span-5{grid-column:span 5;}
+.adm-dash > .span-7{grid-column:span 7;}
+.adm-dash > .span-12{grid-column:span 12;}
+.adm-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--a-block);}
+.adm-rings{display:grid;grid-template-rows:1fr 1fr;gap:var(--a-block);min-width:0;}
+.adm-stack{display:flex;flex-direction:column;gap:var(--a-block);min-width:0;}
+
+/* visually hidden, for the sentence a screen reader gets instead of a
+   shape — the pulse while waiting, the day under the crosshair */
+.adm-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+
+/* ── the card ──────────────────────────────────────────────────────── */
+/* a container, so what is drawn inside can lay itself out by the width
+   the CARD has rather than the window — the same donut sits in a third
+   of a desk and in the whole of a phone */
+.adm-card{position:relative;min-width:0;display:flex;flex-direction:column;container-type:inline-size;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--a-r-lg);
+  box-shadow:var(--a-card);padding:18px 20px 20px;}
+.adm-cardh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+.adm-cardt{min-width:0;}
+/* sentence case and ink, the way the reference titles its cards — the
+   uppercase silver label is for a rule across the page (.adm-secth),
+   and a card already has an edge doing that job */
+.adm-cardt h2{margin:0;font-size:var(--t-meta);font-weight:600;color:var(--ink);line-height:var(--lh-snug);}
+.adm-cardt p{margin:3px 0 0;font-size:var(--t-meta);color:var(--muted);line-height:var(--lh-snug);}
+.adm-cardx{display:flex;align-items:center;gap:12px;flex:none;font-size:var(--t-meta);color:var(--muted);}
+/* the chart's twin, one click away — every chart has a table view */
+.adm-viewbtn{background:none;border:1px solid var(--line);border-radius:var(--a-r-pill);
+  padding:4px 11px;min-height:28px;font-family:var(--sans);font-size:var(--t-meta);font-weight:500;
+  color:var(--silver);cursor:pointer;transition:border-color .2s var(--ease-ui),color .2s var(--ease-ui);}
+.adm-viewbtn:hover{border-color:var(--silver-deep);color:var(--ink);}
+.adm-viewbtn[aria-pressed="true"]{background:var(--raised);color:var(--ink);}
+.adm-card .adm-fine{margin-top:12px;}
+
+/* A list inside a card is already on a surface; one standing on the
+   page gets the same white card the rest of the board sits on. */
+.adm-list,.adm-att,.adm-day{background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--a-r-lg);box-shadow:var(--a-card);padding:4px 12px;}
+.adm-card .adm-list,.adm-card .adm-att{background:none;border:none;box-shadow:none;padding:0;
+  margin:-6px -8px -8px;}
+.adm-row,.adm-attrow{border-radius:var(--a-r-sm);}
+
+/* ── the three states, inside a card ───────────────────────────────── */
+/* held at the chart's own height so the grid does not jump when the
+   read lands — the skeleton's rule, restated for a shape */
+.adm-cwait{display:flex;flex-direction:column;}
+.adm-cwait i{display:block;flex:1;min-height:96px;border-radius:var(--a-r-md);background:var(--raised);
+  animation:admpulse 1.6s var(--ease) infinite;}
+.adm-cfail,.adm-cempty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:14px 8px;}
+.adm-cfail .es,.adm-cempty .es{margin:0 0 6px;font-family:var(--serif);font-weight:600;font-size:var(--t-title);
+  line-height:var(--lh-snug);color:var(--ink);}
+/* failed is said in the alert colour AND in words — "can't read" —
+   because the empty state next to it is the same shape */
+.adm-cfail .es{color:var(--alert-ink);}
+.adm-cfail .et,.adm-cempty .et{margin:0;font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);
+  max-width:46ch;}
+.adm-cfail .et.mono{margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  word-break:break-word;}
+.adm-cfail .adm-btn{margin-top:14px;}
+
+/* ── the stat tile ─────────────────────────────────────────────────── */
+.adm-tile{min-width:0;display:flex;flex-direction:column;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--a-r-lg);
+  box-shadow:var(--a-card);padding:18px 20px;}
+.adm-tilek{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  font-size:var(--t-meta);font-weight:500;color:var(--silver);line-height:var(--lh-snug);}
+.adm-tilek .ic{flex:none;display:flex;align-items:center;justify-content:center;width:34px;height:34px;
+  margin:-4px -6px 0 0;border-radius:var(--a-r-sm);background:var(--raised);color:var(--silver);}
+/* Cormorant, the number that matters; proportional figures, because a
+   standalone number set tabular looks loose at display size */
+.adm-tilev{margin-top:4px;font-family:var(--serif);font-weight:600;font-size:var(--t-display-sm);
+  line-height:var(--lh-tight);color:var(--ink);}
+.adm-tilev.wait i{display:block;width:55%;height:.9em;margin-top:.15em;border-radius:var(--a-r-pill);
+  background:var(--raised);animation:admpulse 1.6s var(--ease) infinite;}
+.adm-tilen{margin-top:auto;padding-top:6px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+.adm-tilen.bad{color:var(--alert-ink);}
+/* a count that is only ever a problem when it isn't zero — and the line
+   under it still says so in words; the colour is the second signal */
+.adm-tile.alarm .adm-tilev{color:var(--alert-ink);}
+.adm-tile.alarm .ic{background:var(--alert-tint);color:var(--alert-ink);}
+.adm-delta{margin-top:6px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+.adm-delta b{font-weight:600;color:var(--ink);}
+/* the arrow is aria-hidden decoration beside the word Up/Down, which is
+   what carries the direction, so the micro rung is legitimate here */
+.adm-delta .ar{font-size:var(--t-micro);color:var(--silver);margin-right:5px;}
+
+/* ── chart colours, on the mark and never on the text ──────────────── */
+.adm-ch path.t-c1{fill:var(--c-1);} .adm-ch path.t-c2{fill:var(--c-2);}
+.adm-ch path.t-c3{fill:var(--c-3);} .adm-ch path.t-c4{fill:var(--c-4);}
+.adm-ch path.t-other{fill:var(--c-other);}
+.adm-donut .seg.t-c1,.adm-ring .seg.t-c1{stroke:var(--c-1);}
+.adm-donut .seg.t-c2,.adm-ring .seg.t-c2{stroke:var(--c-2);}
+.adm-donut .seg.t-c3,.adm-ring .seg.t-c3{stroke:var(--c-3);}
+.adm-donut .seg.t-c4,.adm-ring .seg.t-c4{stroke:var(--c-4);}
+.adm-donut .seg.t-other{stroke:var(--c-other);}
+.adm-sw.t-c1,.adm-tip i.t-c1{background:var(--c-1);} .adm-sw.t-c2,.adm-tip i.t-c2{background:var(--c-2);}
+.adm-sw.t-c3,.adm-tip i.t-c3{background:var(--c-3);} .adm-sw.t-c4,.adm-tip i.t-c4{background:var(--c-4);}
+.adm-sw.t-other,.adm-tip i.t-other{background:var(--c-other);}
+.adm-sw{display:block;flex:none;width:10px;height:10px;border-radius:3px;}
+
+/* ── the donut ─────────────────────────────────────────────────────── */
+.adm-donut{flex:1;display:flex;align-items:center;gap:20px;}
+.adm-donutfig{position:relative;flex:none;width:148px;height:148px;}
+.adm-donutfig svg{display:block;overflow:visible;}
+.adm-donut .track,.adm-ring .track{stroke:var(--c-track);}
+.adm-donut .seg{transition:stroke-width .2s var(--ease-ui),opacity .2s var(--ease-ui);}
+.adm-donut .seg.dim{opacity:.32;}
+.adm-donutc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;pointer-events:none;}
+.adm-donutc b{font-family:var(--serif);font-weight:600;font-size:var(--t-head);line-height:1;color:var(--ink);}
+.adm-donutc span{margin-top:4px;max-width:92px;font-size:var(--t-meta);line-height:1.2;color:var(--muted);}
+.adm-legend{flex:1;min-width:0;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;}
+.adm-legend li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 3em;align-items:center;gap:9px;
+  padding:5px 6px;border-radius:var(--a-r-sm);font-size:var(--t-meta);line-height:1.3;
+  transition:background .18s var(--ease-ui);}
+.adm-legend li.on{background:var(--a-hover);}
+.adm-legend .lb{color:var(--silver);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.adm-legend .vl{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;}
+.adm-legend .pc{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;}
+
+/* Under ~340px of card the legend beside the ring would cut its own
+   words to "On t…"; it goes under the ring instead, full width, so every
+   label is read whole. */
+@container (max-width:340px){
+  .adm-donut{flex-direction:column;align-items:stretch;gap:14px;}
+  .adm-donutfig{align-self:center;}
+}
+
+/* ── the ring ──────────────────────────────────────────────────────── */
+.adm-ring{flex:1;display:flex;align-items:center;gap:16px;}
+.adm-ringfig{position:relative;flex:none;width:64px;height:64px;}
+.adm-ringfig svg{display:block;}
+.adm-ringfig .pc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:var(--t-meta);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.adm-ringt{min-width:0;}
+.adm-ringt .k{font-size:var(--t-meta);color:var(--silver);}
+.adm-ringt .v{font-family:var(--serif);font-weight:600;font-size:var(--t-head);line-height:var(--lh-tight);
+  color:var(--ink);}
+.adm-ringt .n{margin-top:2px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
+.adm-rings .adm-card{padding-bottom:18px;}
+.adm-rings .adm-cardh{margin-bottom:10px;}
+
+/* ── columns and the line ──────────────────────────────────────────── */
+.adm-ch{position:relative;width:100%;}
+.adm-ch svg{display:block;overflow:visible;}
+/* 14px on the axis too: a tick is information, and the floor is the floor */
+.adm-ch text{font-family:var(--sans);font-size:var(--t-meta);}
+.adm-ch text.tk{fill:var(--muted);font-variant-numeric:tabular-nums;}
+.adm-ch text.vl{fill:var(--ink);font-weight:600;}
+/* gridlines and axis: solid hairlines, one step off the card. Never
+   dashed — a dashed rule reads as a threshold or a forecast. */
+.adm-ch line.grid{stroke:var(--c-grid);stroke-width:1;shape-rendering:crispEdges;}
+.adm-ch line.base{stroke:var(--c-axis);stroke-width:1;shape-rendering:crispEdges;}
+.adm-ch .col path{transition:opacity .2s var(--ease-ui),filter .2s var(--ease-ui);}
+.adm-ch .col.hot path{filter:brightness(1.15);}
+/* a period still filling is drawn lighter, and the tooltip and the
+   table both say "so far" — a short last bar must never read as a slump */
+.adm-ch .col.partial path{opacity:.42;}
+.adm-ch.has-sel .col:not(.sel) path{opacity:.35;}
+.adm-ch .ln{fill:none;stroke:var(--c-1);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;}
+.adm-ch .wash-a{stop-color:var(--c-1);stop-opacity:.14;}
+.adm-ch .wash-b{stop-color:var(--c-1);stop-opacity:.02;}
+.adm-ch .dot{fill:var(--c-1);stroke:var(--surface);stroke-width:2;}
+.adm-ch .xh{stroke:var(--silver-deep);stroke-width:1;shape-rendering:crispEdges;}
+
+/* the hit targets: the whole column of air, not the painted pixels */
+.adm-hits{position:absolute;inset:0;pointer-events:none;}
+.adm-hit{position:absolute;display:block;pointer-events:auto;margin:0;padding:0;background:none;border:none;
+  border-radius:var(--a-r-sm);cursor:default;}
+button.adm-hit{cursor:pointer;}
+.adm-scrub{position:absolute;cursor:crosshair;border-radius:var(--a-r-sm);}
+
+/* The readout. Values lead in ink; the series is a short stroke of its
+   colour, never a filled box and never coloured text. */
+.adm-tip{position:absolute;z-index:var(--z-content);transform:translate(-50%,calc(-100% - 12px));
+  pointer-events:none;white-space:nowrap;padding:8px 11px;border-radius:var(--a-r-sm);
+  background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-hard);}
+.adm-tip .tl{display:block;font-size:var(--t-meta);color:var(--muted);line-height:1.35;}
+.adm-tip .tr{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:var(--t-meta);
+  line-height:1.35;color:var(--silver);}
+.adm-tip .tr b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.adm-tip i{display:block;flex:none;width:12px;height:2px;border-radius:2px;}
+
+/* the key under a two-series chart — mirrors the mark, text in ink */
+.adm-keys{display:flex;flex-wrap:wrap;gap:6px 18px;list-style:none;margin:12px 0 0;padding:0;
+  font-size:var(--t-meta);color:var(--silver);}
+.adm-keys li{display:flex;align-items:center;gap:7px;}
+
+/* the table view */
+.adm-ctable{max-height:300px;overflow:auto;}
+.adm-mini{width:100%;border-collapse:collapse;font-size:var(--t-meta);}
+.adm-mini th{position:sticky;top:0;background:var(--surface);text-align:left;font-weight:600;color:var(--muted);
+  padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+.adm-mini td{padding:7px 8px;border-bottom:1px solid var(--line-soft);color:var(--ink);
+  font-variant-numeric:tabular-nums;}
+.adm-mini .right{text-align:right;}
+
+@media(max-width:1100px){
+  .adm-tiles{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .adm-dash > .span-4{grid-column:span 6;}
+  .adm-dash > .span-5,.adm-dash > .span-7{grid-column:span 12;}
+  /* the two rings sit side by side under the donuts rather than as a
+     lone half-width column */
+  .adm-dash > .adm-rings{grid-column:span 12;grid-template-rows:none;grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:760px){
+  .adm-dash{gap:var(--a-gap);}
+  .adm-tiles{gap:var(--a-gap);}
+  .adm-dash > .span-4{grid-column:span 12;}
+  .adm-figs{gap:var(--a-gap);}
+  .adm-card{padding:16px 14px 16px;}
+  .adm-tile{padding:14px;}
+}
+@media(max-width:440px){
+  .adm-dash > .adm-rings{grid-template-columns:minmax(0,1fr);}
 }
