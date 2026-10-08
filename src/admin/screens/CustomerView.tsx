@@ -25,7 +25,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { jobDate, jobDateShort, jobTime, shortAirport } from "../../driver/JobCard";
-import { usd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { useBoard } from "../BoardContext";
 import { isClosed, loadRideHistory, mergeRides, moneyStillOutstanding, type AdminRide } from "../lib/admin";
 import { customerByKey, customersFrom } from "../lib/customers";
@@ -179,7 +179,7 @@ export default function CustomerView() {
 function RideLine({ r }: { r: AdminRide }) {
   const st = rideState(r);
   return (
-    <Link className={`adm-row${isClosed(r) ? " past" : ""}`} to={`/admin/rides/${r.id}`}>
+    <Link className={`adm-row tone-${st.tone || "plain"}${isClosed(r) ? " past" : ""}`} to={`/admin/rides/${r.id}`}>
       <span className="adm-rtime">
         {r.scheduledAt ? jobTime(r.scheduledAt) : "—"}
         <small>{jobDateShort(r.scheduledAt) || "no date"}</small>

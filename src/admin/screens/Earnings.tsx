@@ -1,10 +1,14 @@
 // Earnings — what the company took, and what it owes.
 //
 // ONE CHART, and only because it answers a question the numbers do not:
-// which days were busy. Fourteen bars, no axis, no gridline, no legend.
-// A chart that needs a legend is answering a question nobody asked, and
-// a dashboard of six charts is the thing the brief this board was
-// rebuilt against says not to build in as many words.
+// which days were busy. Fourteen columns, one series, no legend — a
+// chart that needs a legend here is answering a question nobody asked.
+// It gained an axis in October 2026, when the board went to paper and
+// the charts became the dashboard's (src/admin/charts.tsx): fourteen
+// unlabelled heights could say "busier" but not "how much", and the
+// owner reads this screen for how much. The axis is round dollars, the
+// one tallest day carries its figure on its cap, and every column is
+// still a button that opens its day.
 //
 // COMPLETED WORK ONLY, and the screen says so under every total. A
 // revenue figure that counts tonight's bookings is the figure that makes
@@ -30,10 +34,11 @@ import { jobDateShort, jobTime, shortAirport } from "../../driver/JobCard";
 import {
   addDays, formatDateShort, monthDays, todayInAruba, weekDays, weekdayShort,
 } from "../../lib/datetime";
-import { usd } from "../../lib/quote";
+import { usd } from "../lib/money";
 import { useBoard } from "../BoardContext";
 import { HISTORY_DAYS, loadRideHistory, mergeRides, type AdminRide } from "../lib/admin";
 import { booked, byDay, COMMISSION_LABEL, lines, total, totalOver } from "../lib/ledger";
+import { Card, Columns, MiniTable, usdTick } from "../charts";
 import { Empty, Figures, Head, Section, Skeleton, Unreadable } from "../ui";
 
 type Span = "today" | "week" | "month";
@@ -88,7 +93,6 @@ export default function Earnings() {
     () => Array.from({ length: BARS }, (_, i) => addDays(today, i - (BARS - 1))),
     [today],
   );
-  const peak = Math.max(...bars.map((d) => total(days.get(d) ?? []).grossUsd), 1);
 
   const rows = useMemo(
     () => lines(shownDays.flatMap((d) => days.get(d) ?? [])).slice(0, ROWS),
@@ -147,37 +151,53 @@ export default function Earnings() {
             ]}
           />
 
-          <Section
-            title="The last fortnight"
-            aside={
-              day
-                ? <button type="button" className="adm-quiet" onClick={() => setDay(null)}>Show the whole period</button>
-                : <span>Tap a day to open it</span>
-            }
-          >
-            <div className="adm-bars" role="group" aria-label="Revenue by day">
-              {bars.map((d) => {
-                const t = total(days.get(d) ?? []);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    className={`adm-bar${day === d ? " on" : ""}`}
-                    aria-pressed={day === d}
-                    // The figure in words, because a bar height is not
-                    // readable by anything but an eye.
-                    aria-label={`${formatDateShort(d)}: ${usd(t.grossUsd)} over ${t.rides} rides`}
-                    onClick={() => setDay(day === d ? null : d)}
-                  >
-                    <i style={{ height: `${Math.max(2, (t.grossUsd / peak) * 100)}%` }} />
-                  </button>
-                );
-              })}
-            </div>
-            <div className="adm-barx" aria-hidden="true">
-              {bars.map((d) => <span key={d}>{weekdayShort(d).slice(0, 1)}</span>)}
-            </div>
-          </Section>
+          <div className="adm-sect">
+            <Card
+              title="The last fortnight"
+              sub="Completed rides, by the day they were driven"
+              empty={bars.every((d) => total(days.get(d) ?? []).rides === 0)
+                ? { line: "Nothing driven in the last fortnight.", hint: "A day's column fills in as its rides are completed." }
+                : null}
+              aside={
+                day
+                  ? <button type="button" className="adm-quiet" onClick={() => setDay(null)}>Show the whole period</button>
+                  : <span>Pick a day to open it</span>
+              }
+              table={() => (
+                <MiniTable
+                  head={["Day", "Rides", "Charged"]}
+                  rows={bars.map((d) => {
+                    const t = total(days.get(d) ?? []);
+                    return [formatDateShort(d), t.rides, usd(t.grossUsd)];
+                  })}
+                />
+              )}
+            >
+              <Columns
+                height={220}
+                track
+                format={usdTick}
+                selected={day}
+                onSelect={(d) => setDay(day === d ? null : d)}
+                columns={bars.map((d) => {
+                  const t = total(days.get(d) ?? []);
+                  return {
+                    key: d,
+                    tick: weekdayShort(d).slice(0, 2),
+                    label: formatDateShort(d),
+                    partial: d === today,
+                    segments: [{ name: `from ${t.rides} ride${t.rides === 1 ? "" : "s"}`, value: t.grossUsd, tone: "c1" as const }],
+                  };
+                })}
+                // The figure in words, because a column height is not
+                // readable by anything but an eye.
+                describe={(c) => {
+                  const t = total(days.get(c.key) ?? []);
+                  return `${c.label}: ${usd(t.grossUsd)} over ${t.rides} rides`;
+                }}
+              />
+            </Card>
+          </div>
 
           <Section
             title={day ? `Rides on ${formatDateShort(day)}` : "Rides in this period"}
@@ -208,7 +228,9 @@ export default function Earnings() {
                     </thead>
                     <tbody>
                       {rows.map((l) => (
-                        <tr key={l.ride.id}>
+                        // every line here is a completed ride, so every
+                        // row wears the reference's "Delivered" cream
+                        <tr key={l.ride.id} className="tone-done">
                           <td data-h="Date" className="nowrap">
                             <span className="adm-two">
                               <span className="a">{jobDateShort(l.ride.completedAt ?? l.ride.scheduledAt) || "—"}</span>

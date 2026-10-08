@@ -267,6 +267,14 @@ export async function loadUpcomingRides(): Promise<RideList> {
  */
 export const HISTORY_DAYS = 120;
 
+/**
+ * The most rows one history read returns. Exported because a chart drawn
+ * from this read has to know when it hit the ceiling: at the cap, the
+ * OLDEST days are the ones cut, and a weekly chart that drew them anyway
+ * would show a quiet first month that was really a truncated query.
+ */
+export const HISTORY_ROW_LIMIT = RIDE_LIMIT * 2;
+
 export async function loadRideHistory(days = HISTORY_DAYS): Promise<RideList> {
   const from = addDays(todayInAruba(), -days);
   const { data, error } = await supabase
@@ -275,7 +283,7 @@ export async function loadRideHistory(days = HISTORY_DAYS): Promise<RideList> {
     .lt("scheduled_date", todayInAruba())
     .gte("scheduled_date", from)
     .order("scheduled_date", { ascending: false })
-    .limit(RIDE_LIMIT * 2);
+    .limit(HISTORY_ROW_LIMIT);
   if (error) return { rides: [], error: error.message || "The rides table could not be read." };
   if (!Array.isArray(data)) return { rides: [], error: null };
   const rides = (data as Row[]).map(toRide).sort((a, b) =>

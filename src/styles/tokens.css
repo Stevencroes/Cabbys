@@ -120,7 +120,31 @@
      There is no step between 14px and 16px on purpose. 15px is where
      "this is a bit long, I'll shrink it" lands, and shrinking it is the
      habit that produced the 7.5px. If a block does not fit at 14, the box
-     is wrong, not the type. */
+     is wrong, not the type.
+
+     THE ONE EXCEPTION to the 16px sentence floor is the admin desk
+     (.adm, src/styles/admin.css), by the owner's direction in October
+     2026: running text there is --t-meta, 14px. It is a dense tool read
+     at a desk, at arm's length from a monitor, with a mouse — set at
+     16px beside 14px tables and labels, its sentences read as the odd
+     ones out, which is what the owner saw and asked to have fixed. The
+     exception is made in admin.css by using --t-meta, NOT by re-pointing
+     --t-body, so this scale means the same thing in every stylesheet and
+     the marketing site and the driver portal (read on a phone, at a kerb,
+     in a car mount) keep their 16px. Two things the exception does not
+     touch: 14px is still the floor there too, and the admin's form
+     fields are 14px knowingly — iOS zooms a focused input under 16px,
+     which is acceptable on a desk tool and would not be on the booking
+     form.
+
+     The admin desk also sets aside the PAIRING above, by the same owner,
+     in the same month: it took the typography and colours of a reference
+     analytics dashboard he pointed at, so the admin is Inter throughout
+     (no Cormorant, not even for its figures) and adds its own scoped
+     rungs, --a-t-page and --a-t-figure*, for that dashboard's bold title
+     and big tabular figures. Those live in admin.css under .adm and mean
+     nothing outside it. Everywhere else, Cormorant still carries display
+     and this scale is still the whole vocabulary. */
   --t-micro:0.75rem;      /* 12px — uppercase letterspaced labels ONLY */
   --t-meta:0.875rem;      /* 14px — supporting text, the absolute floor */
   --t-body:1rem;          /* 16px — body copy, any sentence, form fields */
