@@ -48,8 +48,17 @@ interface PlaceComboboxProps {
   /** id of the error paragraph, so a screen reader reads the reason */
   describedBy?: string;
   invalid?: boolean;
-  /** a mark before the value — the hero card sets a pin on FROM and TO */
+  /** a mark before the value */
   icon?: React.ReactNode;
+  /** The hero card lays this picker's panels out in its own open body
+      rather than as a dropdown off the field, so there is no viewport to
+      measure against and no flip to make — the card owns the geometry. */
+  docked?: boolean;
+  /** shown INSTEAD of the common stops, before a letter is typed — the
+      hero card's resting words. A host that brings its own empty state
+      wants that and only that; the chips under it made it a menu. null:
+      no resting panel at all, the plain dropdown that waits for a letter. */
+  lead?: React.ReactNode;
 }
 
 interface Row {
@@ -192,7 +201,7 @@ const markForGeo = (k: GeoSuggestion["kind"]) =>
   k === "poi" ? "hotel" : k === "address" ? "road" : "pin";
 
 
-export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid, icon }: PlaceComboboxProps) {
+export default function PlaceCombobox({ label, value, onSelect, placeholder, inputRef, describedBy, invalid, icon, docked, lead }: PlaceComboboxProps) {
   const uid = useId();
   const listId = `${uid}-listbox`;
   const [open, setOpen] = useState(false);
@@ -275,6 +284,8 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
    * and a measured height would fight the layout.
    */
   const [drop, setDrop] = useState<{ up: boolean; max: number | null }>({ up: false, max: null });
+  /** the page has been scrolled once for this list — see measure() */
+  const nudged = useRef(false);
   const options = useMemo(() => rows.filter((r) => r.kind !== "group"), [rows]);
   // Geocoded rows land a beat after the catalog ones, so the highlight can
   // be pointing past the end of a list that just changed under it.
@@ -318,7 +329,14 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   useEffect(() => {
     let from: { x: number; y: number } | null = null;
     const at = (e: PointerEvent) => ({ x: e.clientX ?? 0, y: e.clientY ?? 0 });
-    function onDown(e: PointerEvent) { from = at(e); }
+    // A press that STARTS in the picker is never a tap outside it, wherever
+    // it ends. Opening the hero card moves the field under the finger — on
+    // a phone the card becomes the screen between pointerdown and pointerup
+    // — so the release landed beside the input, read as "outside", and shut
+    // the list the same tap had just opened.
+    function onDown(e: PointerEvent) {
+      from = wrapRef.current?.contains(e.target as Node) ? null : at(e);
+    }
     function onCancel() { from = null; }
     function onUp(e: PointerEvent) {
       const start = from;
@@ -371,7 +389,16 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Escape") { closeList(); return; }
+    if (e.key === "Escape") {
+      // Marked handled only when there was something to put away — a list
+      // or the area form. The common stops are the field's resting panel,
+      // so an Escape over them belongs to whatever holds the field: the
+      // hero card closes on it, rather than eating a keypress to hide a
+      // panel nobody asked for and closing on the second.
+      if (showList || customQuery !== null) e.preventDefault();
+      closeList();
+      return;
+    }
     if (!showList) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, options.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
@@ -386,7 +413,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   }
 
   useEffect(() => {
-    if (!showList) { setDrop({ up: false, max: null }); return; }
+    if (!showList || docked) { nudged.current = false; setDrop({ up: false, max: null }); return; }
     const measure = () => {
       const r = wrapRef.current?.getBoundingClientRect();
       if (!r) return;
@@ -400,7 +427,23 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       const vv = window.visualViewport;
       const seen = vv ? vv.height + vv.offsetTop : innerHeight;
       const below = seen - r.bottom - GAP - EDGE;
-      const above = r.top - GAP - EDGE;
+      // Above ends at the fixed nav, not the screen's edge: measured to the
+      // edge, a list flipped up started 16px from the top and its first
+      // rows sat under the nav — on every phone, and on a 600px laptop.
+      const navFoot = document.querySelector(".nav")?.getBoundingClientRect().bottom ?? 0;
+      const above = r.top - GAP - Math.max(EDGE, navFoot + 8);
+      // Room for neither: a phone on its side, the field mid-screen. Flipped
+      // up, the list ran under the fixed nav and showed one row of five.
+      // Scroll the field to the top once (its scroll-margin clears the nav)
+      // and let the scroll this fires measure again with the room below.
+      // Instant: the page scrolls smoothly, and the active row's own
+      // scrollIntoView, run as results land, stopped a smooth scroll 47px
+      // into its 170.
+      if (below < FLOOR && above < FLOOR && !nudged.current) {
+        nudged.current = true;
+        wrapRef.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
+        return;
+      }
       const up = below < WANT && above > below;
       const room = up ? above : below;
       // A list shorter than a few rows is not worth flipping the world for,
@@ -421,7 +464,7 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       vv?.removeEventListener("resize", measure);
       vv?.removeEventListener("scroll", measure);
     };
-  }, [showList]);
+  }, [showList, docked]);
 
   // keep the active option visible under arrow-key travel
   useEffect(() => {
@@ -431,9 +474,21 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
 
   const activeId = options[activeIdx] ? `${uid}-opt-${options[activeIdx].id}` : undefined;
   const typedNothingFound = typing && q.length >= MIN_QUERY && options.length === 0 && !searching;
+  // The island search did not run (no key, an HTTP error, no network), so
+  // "nothing matches" would be a guess dressed as an answer: only the
+  // catalog was looked at. The empty row has to say which of the two it is.
+  const searchDown = status.s === "off" || status.s === "http" || status.s === "network";
 
   return (
-    <div className={`combo${open ? " open" : ""}`} ref={wrapRef}>
+    <div className={`combo${open ? " open" : ""}`} ref={wrapRef}
+      onBlur={(e) => {
+        // Tabbing on to the next field leaves this one. Without this its
+        // panel stayed up beside the next field's — two panels in one body.
+        // A null relatedTarget is a click on nothing focusable, which the
+        // outside-tap listener above decides.
+        const next = e.relatedTarget as Node | null;
+        if (open && next && wrapRef.current && !wrapRef.current.contains(next)) closeList();
+      }}>
       <div className={`cfield${invalid ? " invalid" : ""}`}>
         <div className="cwrap">
           <label htmlFor={`${uid}-in`}>{label}</label>
@@ -569,7 +624,9 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           )}
           {typedNothingFound && (
             <li className="cempty">
-              Nothing on the island matches “{q}”.{" "}
+              {searchDown && q.length >= MIN_GEO
+                ? <>Address search is offline, so only our own list was checked — nothing in it matches “{q}”.{" "}</>
+                : <>Nothing on the island matches “{q}”.{" "}</>}
               {q.length < MIN_CUSTOM
                 ? "Keep typing — a few more letters and you can use it as your own address."
                 : "Use it as your own address below."}
@@ -594,24 +651,26 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
       {/* The sheet takes the whole screen, so it cannot open on nothing.
           On the desktop dropdown this stays hidden — there, showing nothing
           IS the right answer until a letter is typed. */}
-      {open && customQuery === null && !showList && (
+      {open && customQuery === null && !showList && lead !== null && (
         <div className="cpanel chint">
-          <div className="cgroup">Common stops</div>
-          <div className="cquick">
-            {COMMON_PICKUPS.map((pl) => (
-              <button key={pl.id} type="button"
-                {...tap(() => commitPlace(pl))}>
-                <QuickIcon id={pl.id} />
-                <span className="qn">{pl.name}</span>
-                {/* the area only earns its column when it says something the
-                    name does not — "Palm Beach · Palm Beach" is furniture */}
-                {pl.area !== pl.name && (
-                  <span className="oarea">{pl.area === "Airport" ? "AUA" : pl.area}</span>
-                )}
-              </button>
-            ))}
-          </div>
-          <p>Somewhere else? Type it — an address prices by area, so villas and condos come out honest.</p>
+          {lead ? <div className="clead">{lead}</div> : (<>
+            <div className="cgroup">Common stops</div>
+            <div className="cquick">
+              {COMMON_PICKUPS.map((pl) => (
+                <button key={pl.id} type="button"
+                  {...tap(() => commitPlace(pl))}>
+                  <QuickIcon id={pl.id} />
+                  <span className="qn">{pl.name}</span>
+                  {/* the area only earns its column when it says something the
+                      name does not — "Palm Beach · Palm Beach" is furniture */}
+                  {pl.area !== pl.name && (
+                    <span className="oarea">{pl.area === "Airport" ? "AUA" : pl.area}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p>Somewhere else? Type it — an address prices by area, so villas and condos come out honest.</p>
+          </>)}
         </div>
       )}
 

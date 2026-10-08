@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from "react";
 import { SplitHeading } from "./motion";
 import QuoteCard from "./booking/QuoteCard";
 
@@ -9,35 +10,62 @@ const TRUST = [
 ];
 
 export default function Hero() {
+  // While the card is open the hero belongs to it: the headline and the
+  // trust row fold away and the card rises into the room they leave, the
+  // way the reference composes its open state. The copy is still in the
+  // DOM — folding it is a layout change, not a route.
+  const [booking, setBooking] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const onOpenChange = useCallback((open: boolean) => {
+    setBooking(open);
+    // Opened from a scrolled page, the card would rise out of the top of the
+    // screen as the headline folds. Bring the hero's top back first.
+    const top = ref.current?.getBoundingClientRect().top ?? 0;
+    // Only ever a desktop or tablet — the card does not open where it would
+    // not fit (QuoteCard's CLOSED_QUERY).
+    if (open && top < 0) {
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    }
+  }, []);
+
   return (
-    <header className="hero" id="top">
+    <header className={`hero${booking ? " is-booking" : ""}`} id="top" ref={ref}>
       {/* The photograph is the hero's ground, not an element inside it: the
           copy and the booking card sit over it, and it fades into the navy
           rather than ending on an edge. */}
       <div className="hero-photo" aria-hidden="true" />
 
       <div className="hero-grid">
+        {/* Two boxes: the outer one folds (grid rows 1fr to 0fr), the inner
+            one clips — a grid track cannot animate a box that clips itself. */}
         <div className="hero-copy">
-          <div className="hero-eyebrow rise">
-            <span className="eyebrow">Private transfers in Aruba</span>
+          <div className="hero-copy-in">
+            <div className="hero-eyebrow rise">
+              <span className="eyebrow">Private transfers in Aruba</span>
+            </div>
+            {/* The LCP element. It starts 120ms in — behind the eyebrow, as
+                the staging asks — and its words are 45ms apart, so the whole
+                line has landed inside ~600ms. Nothing waits on it and it
+                waits on nothing: see the .hero stage block in globals.css. */}
+            <SplitHeading
+              as="h1"
+              className=""
+              step={0.045}
+              delay={0.12}
+              parts={[{ text: "Your ride is ready " }, { text: "when you are.", br: true }]}
+            />
           </div>
-          {/* The LCP element. It starts 120ms in — behind the eyebrow, as
-              the staging asks — and its words are 45ms apart, so the whole
-              line has landed inside ~600ms. Nothing waits on it and it
-              waits on nothing: see the .hero stage block in globals.css. */}
-          <SplitHeading
-            as="h1"
-            className=""
-            step={0.045}
-            delay={0.12}
-            parts={[{ text: "Your ride is ready " }, { text: "when you are.", br: true }]}
-          />
-          <p className="hero-sub rise">
-            From the airport to your hotel, villa, or anywhere on the island — at a fixed price.
-          </p>
-          {/* --i is the mark's place in the queue; CSS turns it into the
-              offset. Written here rather than by the reveal observer,
-              which the hero deliberately opts out of. */}
+        </div>
+
+        <QuoteCard onOpenChange={onOpenChange} />
+
+        {/* Under the card now, not over it: the reference puts nothing between
+            the headline and the bar, and the three marks still earn a line.
+            --i is the mark's place in the queue; CSS turns it into the
+            offset. Written here rather than by the reveal observer, which
+            the hero deliberately opts out of. */}
+        <div className="hero-foot">
           <div className="hero-trust stagger">
             {TRUST.map((t, i) => (
               <span key={t.label} style={{ "--i": i } as React.CSSProperties}>
@@ -50,8 +78,6 @@ export default function Hero() {
             ))}
           </div>
         </div>
-
-        <QuoteCard />
       </div>
     </header>
   );

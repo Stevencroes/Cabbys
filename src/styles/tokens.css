@@ -87,6 +87,18 @@
   --scrim-heavy:rgba(2,11,20,.95);/* full-screen ride offer */
   --line-soft:rgba(35,49,61,.66); /* dashed and half-weight rules */
   --on-sheen-wash:rgba(8,12,16,.22); /* count badge riding on --sheen */
+  /* The hero booking card's glass, at rest and open. --surface at .62 is
+     the most the photograph can show through and still hold the card's
+     type: measured over the brightest stretch of the driveway it is lighter
+     than --raised, which is why the card's placeholders are --silver and
+     not --placeholder (see .qcard in globals.css). Open, it thickens to .86
+     so a list of hotels reads off it rather than through it. The ring is
+     the open card's edge — the reference draws it in its brand blue; ours
+     is the silver every focus ring on the site already is. */
+  --glass:rgba(9,23,34,.62);
+  --glass-open:rgba(6,18,29,.86);
+  --glass-rule:rgba(215,217,216,.24);
+  --glass-ring:rgba(215,217,216,.62);
 
   /* ---------- type ---------- */
   /* The pairing IS the identity (§05): an editorial serif for display, a

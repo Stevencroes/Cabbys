@@ -346,4 +346,28 @@ describe("PlaceCombobox", () => {
       await waitFor(() => expect(screen.getByText(/use .* as an address/i)).toBeInTheDocument());
     });
   });
+
+  // A search that failed is not a search that found nothing. With the
+  // island unsearchable only the catalog was looked at, and the empty row
+  // has to say so rather than tell the traveller their street is not here.
+  it("does not report a failed island search as no results", async () => {
+    island.status = "network";
+    render(<Harness />);
+    fireEvent.focus(box());
+    // three letters: enough to search the island, too few for the "use it
+    // as an address" row, so the empty row is what answers
+    type("qwx");
+    const empty = () => document.querySelector(".cempty:not(.csearching)")?.textContent ?? "";
+    await waitFor(() => expect(empty()).toMatch(/address search is offline, so only our own list was checked/i));
+    expect(empty()).not.toMatch(/nothing on the island matches/i);
+  });
+
+  it("says nothing matches only when the island was actually searched", async () => {
+    island.status = "empty";
+    render(<Harness />);
+    fireEvent.focus(box());
+    type("qwx");
+    const empty = () => document.querySelector(".cempty:not(.csearching)")?.textContent ?? "";
+    await waitFor(() => expect(empty()).toMatch(/nothing on the island matches “qwx”/i));
+  });
 });

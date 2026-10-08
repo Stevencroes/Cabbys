@@ -116,8 +116,8 @@ h2.sec em{font-style:italic;}
    exists — no class to flip, no observer to register, nothing that can be
    late. The observer skips anything inside .hero for the same reason.
 
-   The order is the reading order: eyebrow, headline, subtext, the three
-   marks, then the card. The headline starts 120ms in and its words are
+   The order is the reading order: eyebrow, headline, the card, then the
+   three marks under it. The headline starts 120ms in and its words are
    45ms apart, so the line is complete inside ~600ms — first, and fast. */
 @keyframes stage-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
 @keyframes stage-word{from{opacity:0;transform:translateY(105%);}to{opacity:1;transform:none;}}
@@ -128,9 +128,8 @@ h2.sec em{font-style:italic;}
    one class against two and silently loses its place in the queue. */
 .hero .hero-eyebrow{animation-delay:40ms;}
 /* the words carry their own inline animation-delay from SplitHeading */
-.hero .hero-sub{animation-delay:400ms;}
-.hero .hero-trust > *{animation-delay:calc(470ms + var(--i,0) * 70ms);}
-.hero .quote{animation-delay:560ms;}
+.hero .quote{animation-delay:400ms;}
+.hero .hero-trust > *{animation-delay:calc(560ms + var(--i,0) * 70ms);}
 
 /* ---- the photograph is alive, not moving ---------------------------
    One background move, not two: a slow scale and no parallax. The parallax
@@ -614,13 +613,13 @@ h2.sec em{font-style:italic;}
    svh, not vh: on iOS vh measures the screen with the URL bar hidden,
    so 100vh spills past the fold on first paint. A floor, not a cap —
    a phone holds headline plus card and grows past it. */
-/* Asymmetric on purpose: the grid centres itself in whatever is left
-   between these, so a heavier bottom pad lifts the whole block above
-   the optical middle. The phone override below keeps its own values. */
 /* §07 — the hero photograph. A ground the copy sits on, not a picture in a
-   box: two scrims ride over it, one pulling the left side down to the navy so
-   the headline has something to sit on, one pulling the foot down so the
-   image ends IN the page rather than on a line.
+   box. The copy is centred over it now — headline, trip type, the bar — so
+   the scrims are centred too: the old left-hand pull to navy was there for a
+   left-aligned headline and left the centred one half on the photograph,
+   half on a wall of navy. One vertical pull darkens the sky the headline
+   sits in and takes the foot down into the page; a soft vignette holds the
+   edges so the bar never meets a bright patch at its ends.
    The radial underneath is not decoration — it is what paints while a 240KB
    photograph is still arriving, and what the section falls back to if it
    never does. */
@@ -630,11 +629,12 @@ h2.sec em{font-style:italic;}
    edge, which gave the whole page a sideways scroll, and 23px over the
    hairline that closes the hero. The frame never moves and clips; only
    the picture inside it grows. */
-.hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  transition:opacity var(--dur-reveal) var(--ease-reveal);}
 .hero-photo::before{content:"";position:absolute;inset:0;
   background-image:
-    linear-gradient(90deg,var(--ground) 0%,rgba(2,11,20,.90) 30%,rgba(2,11,20,.30) 60%,rgba(2,11,20,.50) 100%),
-    linear-gradient(0deg,var(--ground) 0%,rgba(2,11,20,.12) 40%,rgba(2,11,20,.50) 100%),
+    linear-gradient(180deg,rgba(2,11,20,.72) 0%,rgba(2,11,20,.34) 30%,rgba(2,11,20,.40) 62%,var(--ground) 100%),
+    radial-gradient(85% 75% at 50% 45%,transparent 0%,rgba(2,11,20,.55) 100%),
     url("/hero.jpg"),
     radial-gradient(120% 90% at 74% 34%,#12293C 0%,#081726 46%,var(--ground) 78%);
   background-size:cover,cover,cover,cover;
@@ -643,18 +643,20 @@ h2.sec em{font-style:italic;}
   background-position:center,center,72% center,center;
   background-repeat:no-repeat;}
 @media(max-width:760px){.hero-photo::before{background-position:center,center,64% center,center;}}
+/* Open, the card is what you are looking at; the photograph steps back. */
+.hero.is-booking .hero-photo{opacity:.6;}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
-  padding:var(--nav-total) 0 150px;
-  border-bottom:1px solid var(--line);}
-/* the right column is sized to the card, not to a share of the row —
-   a fr split left ~100px of dead air between the two halves */
+  padding:var(--nav-total) 0 clamp(40px,10vh,120px);
+  border-bottom:1px solid var(--line);
+  transition:padding-bottom var(--dur-reveal) var(--ease-reveal);}
 /* z-index here is only to clear the hero's own backdrop, but it opens a
    stacking context, and a fixed full-screen sheet raised inside one cannot
    climb out of it — the place picker's sheet asked for z-index 300 and got
    painted under the nav's 100, because 300 was only ever 300 *within this
    grid*. While a full-screen layer owns the viewport the hero's internal
    order is not visible anyway, so the context is dropped and the sheet
-   competes at the root, where it was always meant to. */
+   competes at the root, where it was always meant to. The open card on a
+   phone is that sheet now, and it locks the body for exactly this reason. */
 body.locked .hero-grid{z-index:auto;}
 /* The same trap one level down, and a nastier one: backdrop-filter does not
    merely make a stacking context, it makes a CONTAINING BLOCK for fixed
@@ -664,15 +666,16 @@ body.locked .hero-grid{z-index:auto;}
    for as long as the card has had a blur. Dropping the blur while a sheet is
    open costs nothing: the card is behind a full-screen layer at that moment
    and cannot be seen through it. */
-body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
-/* §07/§08 — the card is not a column beside the copy any more; it is a wide
-   panel across the foot of the hero, the way the mockup composes it. So the
-   grid becomes a stack that hangs from the bottom, and the photograph gets
-   the whole right-hand side to itself. */
+body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
+/* §07/§08 — one centred column, the reference's composition: headline,
+   trip type, the bar, and the three marks under it. It hangs from the
+   bottom, so the photograph keeps the top of the frame. --maxw and
+   --gutter are exactly what the nav uses, so the bar's ends line up with
+   the wordmark and the Book now button above it. */
 .hero-grid{position:relative;z-index:var(--z-content);flex:1;display:flex;flex-direction:column;
-  justify-content:flex-end;gap:clamp(26px,3.4vw,44px);max-width:var(--maxw);margin:0 auto;width:100%;
-  padding:clamp(90px,11vh,150px) var(--gutter) clamp(26px,4vh,44px);}
-.hero-copy{max-width:min(560px,58%);}
+  justify-content:flex-end;max-width:var(--maxw);margin:0 auto;width:100%;
+  padding:clamp(48px,9vh,130px) var(--gutter) 0;
+  transition:padding-top var(--dur-reveal) var(--ease-reveal);}
 @media(max-width:900px){
   /* MARGIN, not padding. .hero-photo is position:absolute;inset:0 on this
      box, so padding insets the words and leaves the photograph sitting
@@ -683,152 +686,175 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .hero{padding:0 0 22px;margin-top:var(--nav-total-sm);
     min-height:calc(100svh - var(--nav-total-sm));}
 }
-.hero-eyebrow{color:var(--silver);margin-bottom:20px;}
+/* ── the fold ──────────────────────────────────────────────────────────
+   Opening the card folds the headline and the trust row away, and the
+   card rises into the room. A height cannot transition to `auto`, so the
+   fold is a one-row grid going from 1fr to 0fr, which can; the inner box
+   clips, because a grid track cannot animate a box that clips itself.
+   visibility follows the fold out (delayed by its length) and leads it
+   back in (no delay), so a folded headline is not read out from inside a
+   zero-height box. */
+.hero-copy,.hero-foot{display:grid;grid-template-rows:1fr;text-align:center;
+  transition:grid-template-rows var(--dur-reveal) var(--ease-reveal),
+             opacity var(--dur-ui) var(--ease-ui),visibility 0s;}
+.hero-copy-in,.hero-foot > *{min-height:0;overflow:hidden;}
+/* the clip box needs room under the headline's descenders and the 16px
+   the staged rise starts from; the padding IS the gap to the toggle */
+.hero-copy-in{padding:0 0 clamp(24px,3.4vh,40px);}
+.hero.is-booking{padding-bottom:24px;}
+.hero.is-booking .hero-grid{padding-top:20px;}
+.hero.is-booking .hero-copy,.hero.is-booking .hero-foot{grid-template-rows:0fr;opacity:0;visibility:hidden;
+  transition:grid-template-rows var(--dur-reveal) var(--ease-reveal),
+             opacity var(--dur-press) var(--ease-ui),visibility 0s linear var(--dur-reveal);}
+@media(prefers-reduced-motion:reduce){
+  .hero,.hero-grid,.hero-photo,.hero-copy,.hero-foot,
+  .hero.is-booking .hero-copy,.hero.is-booking .hero-foot{transition:none;}
+}
+.hero-eyebrow{color:var(--silver);margin-bottom:18px;}
 
 .hero-eyebrow .eyebrow{font-size:var(--t-micro);font-weight:500;letter-spacing:.26em;text-transform:uppercase;color:var(--silver);}
 /* 500, not 300: at hero size the light cut read as delicate. The mockup's
    headline is architectural — it has to hold the photograph down. */
-.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,74px);line-height:1.02;
-  letter-spacing:-.02em;margin:0;color:var(--ink);}
+.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,5vw,72px);line-height:1.02;
+  letter-spacing:-.02em;margin:0;color:var(--ink);text-wrap:balance;}
 .hero h1 em{font-style:normal;color:var(--ink);}
-/* The clamp's floor was 14.5px, so on every phone — which is where this
-   sentence is actually read — the hero's one line of explanation was
-   below the body floor. The floor is now --t-body and the ceiling grows
-   from it. */
-.hero-sub{margin:20px 0 0;font-size:clamp(1rem,1.15vw,1.125rem);line-height:var(--lh-body);color:var(--silver);font-weight:400;}
+/* One line across a desktop, as the reference sets it; the break the
+   heading carries is for the phone, where one line would be 20px type. */
+@media(min-width:1100px){.hero h1 br{display:none;}}
 /* three marks, no boxes — the border-and-pill treatment was louder than
-   the claims it carried */
-.hero-trust{margin-top:26px;display:flex;gap:clamp(18px,2.4vw,34px);flex-wrap:wrap;}
-.hero-trust span{display:inline-flex;align-items:center;gap:9px;font-size:var(--t-body);letter-spacing:.02em;
+   the claims it carried. Under the card now, centred with everything else. */
+.hero-foot > .hero-trust{padding-top:22px;}
+.hero-trust{display:flex;justify-content:center;gap:clamp(18px,2.4vw,34px);flex-wrap:wrap;}
+.hero-trust span{display:inline-flex;align-items:center;gap:9px;font-size:var(--t-meta);letter-spacing:.02em;
   text-transform:none;font-weight:400;color:var(--silver);border:none;padding:0;}
-.hero-trust svg{color:var(--muted);flex:none;}
-/* Must stay BELOW the rules above: same specificity, so the last one wins.
-   Sitting on top of them, this whole block did nothing for a while. */
+.hero-trust svg{color:var(--silver);flex:none;}
 @media(max-width:980px){
-  .hero-grid{gap:22px;padding-top:clamp(80px,13vh,120px);}
-  .hero-copy{max-width:none;}
-  /* One column, DOM order, no swap: the headline says what this is before
-     the form asks anything. Leading on a bare fare box means a first-time
-     visitor meets a price for a service nobody has named yet — and the
-     desktop hierarchy is the right one, so the phone keeps it.
-     The headline shrinks instead, so the card still breaks the fold. */
+  .hero-grid{padding-top:clamp(40px,8vh,96px);}
   .hero h1{font-size:clamp(32px,8.2vw,46px);max-width:none;}
-  .hero-sub{margin-top:14px;}
-  .hero-trust{margin-top:20px;gap:14px;}
-  /* --t-meta, not --t-body: these three are badges, not sentences, and the
-     comment above is a promise the phone layout has to keep. Carrying them
-     at body size cost ~14px of height each and pushed .qbtn 46px under the
-     fold on a 360x640 handset — the card stopped breaking the fold, which
-     is the one thing this block exists to guarantee. */
-  .hero-trust span{font-size:var(--t-meta);gap:7px;}
+  .hero-trust{gap:14px;}
+  .hero-trust span{gap:7px;}
 }
 
 /* ============ BOOKING CARD (§08) ============ */
-/* A wide panel across the foot of the hero: trip type, five answers in a
-   row, and the way on. overflow stays visible so the date and time
-   popovers can leave the card. */
-.quote{position:relative;width:100%;max-width:none;background:rgba(9,23,34,.72);
-  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
-  border:1px solid var(--line);box-shadow:var(--shadow-hard-lg);padding:0;}
-.quote::before{content:"";position:absolute;top:0;left:var(--r-md);right:var(--r-md);height:1px;background:var(--hairline);}
+/* The reference's two states. At rest: a segmented pill over one glass bar —
+   pickup, drop-off, date, the hour, the way on — read across in a line.
+   Open: the same card, grown downward in place, its row where it was and a
+   body underneath that the field's own picker lays itself out in.
 
-/* one way / round trip — an underline, not a segmented pill */
-.qtabs{position:relative;display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid var(--line);}
-.qtabs button{appearance:none;background:none;border:none;color:var(--muted);
-  padding:16px 18px 14px;font-size:var(--t-meta);font-weight:500;letter-spacing:.01em;
-  position:relative;transition:color var(--dur-ui) var(--ease-ui);}
-.qtabs button:hover{color:var(--silver);}
-.qtabs button.on{color:var(--ink);}
-/* The mark used to be a ::after on whichever button was .on, which cannot
-   travel — it disappeared from under one word and appeared under the other.
-   One bar for both tabs, placed by QuoteCard from the active button's own
-   box. 1px wide and scaled, rather than sized, so the move is a transform
-   and stays off the layout. */
-.qtab-ink{position:absolute;left:0;bottom:-1px;width:1px;height:2px;background:var(--ink);
-  transform-origin:left center;opacity:0;
-  transition:transform var(--dur-slow-ui) var(--ease-ui);}
-@media(prefers-reduced-motion:reduce){.qtab-ink{transition:none;}}
+   Geometry is all here rather than in the pickers, which ship as
+   self-contained dropdowns for the booking flow and still are there. Inside
+   .qcard they give up their dropdown position and take the card's body:
+   see "the pickers, docked" below. */
+.quote{position:relative;width:100%;display:flex;flex-direction:column;gap:16px;
+  /* the open body's height: the screen, less everything stacked above and
+     below it — nav, the hero's open padding, the toggle and its gap, the
+     field row. Floored so a short window still gets a usable list; capped
+     so a tall monitor does not get a 900px panel with a calendar in it. */
+  --qbody-h:clamp(300px,calc(100svh - var(--nav-total) - 262px - var(--qhint-h)),600px);
+  --qhint-h:0px;}
+/* a validation line under the row is one more thing the body makes room
+   for — without this the open card ran 40px past the fold the moment the
+   button explained what was missing */
+.quote:has(.qhint){--qhint-h:44px;}
 
-/* the five answers. Dividers rather than boxes: one field, read across. */
-/* Widths follow what the cells actually hold. The date trigger renders
-   "Sat 29 Aug" plus its icon at 112px and had 85 to do it in, which is the
-   crush; From and To carry the longest strings on the card and get the
-   slack the other three do not need. */
-.qrow{display:grid;grid-template-columns:1.3fr 1.3fr .8fr .78fr .82fr;align-items:stretch;}
-.qcell{position:relative;padding:14px 16px 16px;min-width:0;}
-.qcell + .qcell::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--line);}
-/* Focus is a rule drawn under the cell you are in, growing from the left in
-   the same 220ms as every other underline on the site. It is an ADDITION to
-   the global :focus-visible ring, never a replacement: the ring is what a
-   keyboard user navigates by and this is only the card acknowledging which
-   of five answers is being given. */
-.qcell::after{content:"";position:absolute;left:16px;right:16px;bottom:0;height:1px;
-  background:var(--silver);transform:scaleX(0);transform-origin:left center;
-  transition:transform var(--dur-ui) var(--ease-ui);}
-.qcell:focus-within::after{transform:scaleX(1);}
-.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l,.qcell .dtf-label{
+/* ── trip type ── a segmented pill, centred, the selected half in sheen:
+   the material the primary action and the selected time already use. */
+.qtop{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;}
+.qmode{grid-column:2;position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;
+  border:1px solid var(--glass-rule);border-radius:var(--r-pill);background:var(--glass);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);}
+.qmode button{position:relative;z-index:1;min-height:40px;padding:0 22px;border-radius:var(--r-pill);
+  font-size:var(--t-body);font-weight:500;color:var(--highlight);white-space:nowrap;
   transition:color var(--dur-ui) var(--ease-ui);}
-.qcell:focus-within .combo .cfield label,.qcell:focus-within .qfld label,
-.qcell:focus-within .qpax-l,.qcell:focus-within .dtf-label{color:var(--silver);}
-@media(prefers-reduced-motion:reduce){.qcell::after{transition:none;}}
-/* the trigger must never be the thing that wraps — the cell is sized for it */
-.qcell .dtf-trigger,.qcell .qpax select{min-width:0;}
-/* the card's own fields shed the standalone control chrome — no rules
-   under them, no boxes; the divider does the separating */
-.qcell .combo{margin:0;}
-.qcell .combo .cfield{border-bottom:none;gap:0;}
-.qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{display:block;font-size:var(--t-meta);font-weight:600;
-  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--muted);margin:0 0 8px;}
+.qmode button[aria-pressed="true"]{color:var(--on-sheen);}
+@media(hover:hover){.qmode button[aria-pressed="false"]:hover{color:var(--ink);}}
+/* Equal halves, so the pill is half the strip and its move is 100% of its
+   own width — no measuring. The underline this replaces had to be placed
+   from the active tab's measured box and re-measured when Inter landed and
+   changed the words' width; a pill in an even grid has nothing to measure. */
+.qmode-pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);
+  border-radius:var(--r-pill);background:var(--sheen);
+  transition:transform var(--dur-slow-ui) var(--ease-ui);}
+.qmode[data-on="return"] .qmode-pill{transform:translateX(100%);}
+.qclose{grid-column:3;justify-self:end;display:inline-flex;align-items:center;gap:8px;
+  min-height:var(--tap);padding:0 16px;border-radius:var(--r-pill);
+  color:var(--highlight);font-size:var(--t-meta);font-weight:500;
+  transition:color var(--dur-ui) var(--ease-ui),background-color var(--dur-ui) var(--ease-ui);}
+.qclose:hover{color:var(--ink);background:var(--nav-rule);}
 
-/* ── the cell IS the control ──────────────────────────────────────────
-   A cell is 182x74 and only 37px of it did anything: an 18px label strip
-   and a 19px value strip with a 7px dead gap between them, the cell's own
-   14px/16px padding dead above and below. Tapping the obvious middle of
-   "DATE / Fri 11 Sep" — the gap — did nothing at all, and neither strip
-   alone meets the 24px floor in WCAG 2.2 SC 2.5.8.
+/* ── the card ── */
+.qcard{position:relative;background:var(--glass);
+  -webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);
+  border:1px solid var(--glass-rule);border-radius:var(--r-md);box-shadow:var(--shadow-hard-lg);
+  transition:border-color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
+             background-color var(--dur-slow-ui) var(--ease-ui);}
+.qcard::before{content:"";position:absolute;top:-1px;left:var(--r-md);right:var(--r-md);height:1px;
+  background:var(--hairline);opacity:.7;pointer-events:none;}
+/* The card takes focus only from code, when the field that opened it
+   cannot take it back (QuoteCard's collapse). The global ring would also
+   square its corners — it sets border-radius — so the card keeps its own. */
+.qcard:focus{outline:none;}
+.qcard:focus-visible{outline:2px solid var(--silver);outline-offset:3px;border-radius:var(--r-md);}
+/* Open: thicker glass and the silver ring every focus on the site wears. */
+.qcard.is-open{background:var(--glass-open);border-color:var(--glass-ring);
+  box-shadow:0 0 0 3px var(--nav-rule),var(--shadow-hard-lg);}
 
-   Nothing here changes the layout. Each control takes the cell's padding
-   as its OWN padding and gives the space straight back with an equal
-   negative margin, so every pixel of the cell belongs to a control and
-   not one of them moves. The label is <label for>, so its half activates
-   the control too.
-   The padding/margin pairs live on the three rules further down that set
-   these same properties last — putting them here instead lost the cascade
-   to them and grew the cell by 22px. */
-.qcell .combo .cfield input{font-size:var(--t-body);padding:0;}
-.qcell .combo .cfield .cmark{color:var(--muted);}
-.qcell .combo .cfield .clear{display:none;}
-.qcell .qfld input,.qcell .qfld select{background:none;border:none;padding:0;min-height:0;font-size:var(--t-body);}
-/* DateField and TimeField ship as self-contained controls with their own
-   box. Inside the card the divider is the boundary, so the box goes and
-   only the value and its mark remain. */
-.qcell .dtf-label{display:block;font-size:var(--t-meta);font-weight:600;letter-spacing:.13em;white-space:nowrap;
-  text-transform:uppercase;color:var(--muted);padding:14px 16px 8px;margin:-14px -16px 0;}
-.qcell .dtf-trigger{background:none;border:none;border-radius:0;min-height:0;width:100%;
-  padding:0 16px 16px;margin:0 -16px -16px;
-  font-size:var(--t-body);color:var(--ink);gap:8px;white-space:nowrap;}
-.qcell .dtf-trigger.empty{color:var(--placeholder);}
-.qcell .dtf-trigger:hover{background:none;}
-.qcell .qpax{display:block;color:var(--ink);padding:14px 16px 16px;margin:-14px -16px -16px;}
-/* A <select> is as wide as its widest OPTION whatever width says, so
-   "12 Passengers" was pushing this cell out past the card's own padding and
-   the chosen value sat flush against the edge. min-width lets it shrink. */
-.qcell .qpax select{width:100%;min-width:0;min-height:0;padding:0;background:none;border:none;
-  color:var(--ink);font-size:var(--t-body);font-family:var(--sans);appearance:none;
-  text-overflow:ellipsis;}
-.qcell .qpax select:hover{border:none;}
+/* the row: two places | date, hour | the way on. Thin rules between the
+   three groups, as the reference draws them, and none inside a group. */
+.qrow{display:grid;align-items:end;column-gap:20px;row-gap:16px;padding:22px 26px 24px;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1.1fr) 1px minmax(0,.86fr) minmax(0,.86fr) 1px auto;}
+.qsep{align-self:stretch;width:1px;background:var(--glass-rule);}
+.qgo{align-self:center;display:flex;}
 
-.qgo{display:flex;justify-content:flex-end;padding:0 20px 20px;}
-.qbtn{width:auto;min-width:232px;display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  background:var(--sheen);color:var(--on-sheen);border:none;padding:15px 26px;min-height:var(--tap);
+/* ── a field: label over value, a hairline under the value ──
+   Sentence-case labels in --highlight and placeholders in --silver, not the
+   site's uppercase --muted labels and --placeholder. The card is glass over
+   a photograph, and its ground is lighter than --raised wherever the
+   driveway shows through; --placeholder measured 3.8:1 there, under the
+   4.5 floor. --silver clears it at 6.0. */
+/* scroll-margin: the open sheet scrolls the field it was opened from to
+   its top, and flush against the card's rounded edge the label was cut */
+.qf{min-width:0;scroll-margin-top:14px;}
+.qf .combo{margin:0;}
+.qf .combo .cfield label,.qf .dtf-label{display:block;margin:0 0 6px;padding:0;
+  font-size:var(--t-meta);font-weight:500;letter-spacing:.01em;text-transform:none;
+  line-height:1.3;color:var(--highlight);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qf .combo .cfield{gap:0;border-bottom:1px solid var(--glass-rule);
+  transition:border-color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui);}
+.qf .combo .cfield input{min-height:40px;padding:4px 0 8px;font-size:var(--t-body);color:var(--ink);}
+.qf .combo .cfield input::placeholder{color:var(--silver);}
+/* the at-rest "clear" would sit on every filled field of a bar this
+   narrow; the wipe that appears while typing is the one that earns room */
+.qf .combo .cfield .clear{display:none;}
+.qf .combo .cfield .cwipe{width:36px;height:36px;margin-right:-8px;}
+.qf .dtf-trigger{min-height:40px;padding:4px 0 8px;gap:8px;background:none;border:none;
+  border-bottom:1px solid var(--glass-rule);border-radius:0;
+  font-size:var(--t-body);color:var(--ink);white-space:nowrap;
+  transition:border-color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui);}
+.qf .dtf-trigger > span{min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.qf .dtf-trigger.empty{color:var(--silver);}
+.qf .dtf-trigger:hover{background:none;}
+.qf .dtf-trigger svg{color:var(--highlight);transition:transform var(--dur-ui) var(--ease-ui);}
+.qf .dtf-trigger[aria-expanded="true"] svg{transform:rotate(180deg);}
+.qf .tmf-exactly{display:none;}
+/* The field you are in: its hairline goes to ink and doubles, drawn as a
+   shadow so nothing moves. An addition to the global focus ring on the
+   date and time buttons, never a replacement for it — the inputs have
+   always carried their focus this way. */
+.qf:focus-within .combo .cfield,.qf:focus-within .dtf-trigger{border-bottom-color:var(--ink);box-shadow:0 1px 0 var(--ink);}
+
+/* ── the way on ── */
+.qbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  min-height:var(--tap);padding:0 24px;white-space:nowrap;
+  background:var(--sheen);color:var(--on-sheen);border:none;
   font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
 /* ── the two silver buttons ────────────────────────────────────────────
-   "Get your fixed price" in the hero and "Book your transfer" in the
-   closing band are the same decision asked twice, so they are one rule and
-   not two that happen to match today. Scale, not translateY: a button that
-   rises is a card lifting off a surface, a button that grows is the button
-   answering you. 1.025 is the whole move — at 1.05 the type visibly
-   resamples on a non-retina screen. */
+   "View options" in the hero and "Book your transfer" in the closing band
+   are the same decision asked twice, so they are one rule and not two that
+   happen to match today. Scale, not translateY: a button that rises is a
+   card lifting off a surface, a button that grows is the button answering
+   you. 1.025 is the whole move — at 1.05 the type visibly resamples on a
+   non-retina screen. */
 .qbtn,.closer .cbtn{
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
              filter var(--dur-ui) var(--ease-ui);}
@@ -836,7 +862,6 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .qbtn:active,.closer .cbtn:active{transform:scale(.995);transition-duration:var(--dur-press);}
 /* the arrow leads — it moves further than the button does, which is what
    makes the pair read as "forward" rather than "bigger" */
-.qbtn svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .qbtn:hover svg{transform:translateX(4px);}
 /* Departed. The press opens the flow immediately — this state is not a
    wait, it is what the button looks like behind the overlay it opened, and
@@ -853,37 +878,123 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qbtn:hover,.closer .cbtn:hover{transform:none;}
   .qbtn:hover svg{transform:none;}
 }
-.qloc{display:inline-flex;align-items:center;min-height:32px;padding:0 20px;margin:0 0 4px;
-  border:none;background:none;color:var(--silver);font-size:var(--t-meta);font-weight:500;text-decoration:underline;
-  text-underline-offset:3px;text-decoration-color:var(--soft);}
-.qloc{transition:color var(--dur-ui) var(--ease-ui),text-decoration-color var(--dur-ui) var(--ease-ui);}
-.qloc:hover{color:var(--ink);text-decoration-color:var(--silver);}
-.qhint{font-size:var(--t-body);color:var(--silver);margin:0;padding:0 20px 10px;font-weight:500;}
+.qhint{margin:-6px 0 0;padding:0 26px 18px;font-size:var(--t-body);color:var(--highlight);font-weight:500;}
+.qloc{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 6px;
+  border:none;background:none;color:var(--highlight);font-size:var(--t-meta);font-weight:500;
+  text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--silver-deep);
+  transition:color var(--dur-ui) var(--ease-ui),text-decoration-color var(--dur-ui) var(--ease-ui);}
+.qloc:hover{color:var(--ink);text-decoration-color:var(--ink);}
 
-/* §09 — the phone gets its own composition, not a squeezed desktop card:
-   FROM, TO, DATE + TIME, PASSENGERS, then a full-width action. */
-@media(max-width:980px){
-  .qrow{grid-template-columns:1fr 1fr;}
-  .qcell{grid-column:1 / -1;padding:14px 18px;}
-  /* stacked, the rule between rows has to cross BOTH date and time — a
-     pseudo on the date cell only reaches half way. Borders span the cell,
-     so they carry the horizontal rules and the pseudo is left to do the one
-     vertical divider the row still needs. */
-  .qcell + .qcell::before{display:none;}
-  .qcell + .qcell{border-top:1px solid var(--line);}
-  .qcell-date{grid-column:1;}
-  .qcell-time{grid-column:2;}
-  .qcell-time::before{display:block;left:0;top:14px;bottom:14px;width:1px;height:auto;}
-  .qgo{padding:14px 18px 18px;}
-  .qbtn{width:100%;min-width:0;}
-  .qtabs button{flex:1;text-align:center;padding:15px 10px 13px;}
-  .qtabs button.on::after{left:10px;right:10px;}
+/* ── the open body ──
+   Zero tall at rest, --qbody-h open, and the height is what animates: the
+   card grows downward from the row, which stays exactly where it was. */
+.qbody{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  padding:0 24px;transition:height var(--dur-reveal) var(--ease-reveal);}
+.qcard.is-open .qbody{height:var(--qbody-h);}
+.qwelcome{display:flex;flex-direction:column;align-items:center;text-align:center;}
+.qwelcome .qwelcome-t{margin:0;font-family:var(--serif);font-weight:500;font-size:var(--t-display-sm);
+  line-height:1.18;letter-spacing:var(--ls-display);color:var(--ink);text-wrap:balance;}
+/* A picker's panel lies over the body; the welcome under it is hidden
+   rather than shown through a panel that has no fill of its own. */
+.qcard:has(.qrow .cpanel,.qrow .dtf-pop) .qbody > .qwelcome{visibility:hidden;}
+@media(prefers-reduced-motion:reduce){
+  .qbody,.qmode-pill,.qmode button,.qcard,.qf .combo .cfield,.qf .dtf-trigger,
+  .qf .dtf-trigger svg,.qclose,.qloc{transition:none;}
 }
+
+/* ── the pickers, docked (wherever the card opens) ──
+   Inside the card each picker's panel stops hanging off its field and lies
+   in the open body instead: absolutely placed against the card, from the
+   foot of the field row (--qhead-h, measured by QuoteCard) to the foot of
+   the card, so it grows WITH the card as it opens rather than standing at
+   full height in front of it. It starts under the field that opened it
+   (--qx, that field's left edge) — clamped so the calendar under the hour
+   does not run off the card's right edge. Everything between the panel and
+   the card is position:static so the card is the box they all measure
+   from. No fill, no border, no shadow: the card is the panel now. */
+@media(min-width:1100px) and (min-height:641px),(min-width:761px) and (min-height:721px){
+  .qcard .combo,.qcard .datefield,.qcard .timefield{position:static;}
+  .qcard .cpanel,.qcard .dtf-pop{position:absolute;z-index:1;top:var(--qhead-h,100%);bottom:0;
+    left:clamp(16px,var(--qx,0px),calc(100% - var(--qpw) - 16px));width:var(--qpw);
+    min-width:0;max-width:calc(100% - 32px);height:auto;max-height:none;
+    padding:8px 0 22px;transform:none;
+    background:none;border:none;border-radius:0;box-shadow:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none;}
+  .qcard .cpanel{--qpw:540px;}
+  .qcard .dtf-pop{--qpw:352px;display:flex;flex-direction:column;}
+  .qcard .tmf-pop{--qpw:340px;}
+  /* The month gives up height before the card does. Square 50px days made
+     the calendar ~390px tall whatever the window, so on a 650px laptop the
+     last week hung below the card's edge. Rows now share the panel's
+     height between 30 and 46px — a mouse needs no more than 30 — and the
+     grid takes what the head and weekday row leave. */
+  .qcard .dtf-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,46px);align-content:start;}
+  .qcard .dtf-day{min-height:0;aspect-ratio:auto;font-size:var(--t-body);}
+  .qcard .dtf-month{font-size:var(--t-title);}
+  .qcard .tmf-list{max-height:none;flex:1;min-height:0;}
+  .qcard .tmf-list button{min-height:44px;font-size:var(--t-body);}
+  .qcard .cpanel .cattrib{border-top-color:var(--glass-rule);}
+  /* Before a letter is typed: the field's own words, centred across the
+     whole card — the reference's empty state, and only that. */
+  .qcard .cpanel.chint{left:0;width:100%;max-width:none;justify-content:center;align-items:center;
+    text-align:center;padding:16px 24px 28px;overflow-y:auto;}
+  .qcard .chint .clead{display:flex;flex-direction:column;align-items:center;gap:14px;}
+}
+/* The words as the card's resting panel, at every width — the phone-only
+   rule further down is for the standalone picker. */
+.qcard .combo.open .chint{display:flex;}
+/* No panel on a closed card that could open, whatever a picker's own state
+   says — it has no body for the panel to lie in yet, and it would hang out
+   of the bar. Where the card never opens (no .can-open) the pickers are
+   plain dropdowns and this does not apply. After the rule above and more
+   specific than it, or the resting panel wins and hangs under the bar. */
+.quote.can-open .qcard:not(.is-open) .combo .cpanel,.quote.can-open .qcard:not(.is-open) .qf .dtf-pop{display:none;}
+
+/* ── tablet: two rows ── places across the top, then date, hour and the
+   way on. A six-column grid so both rows split evenly. */
+@media(min-width:761px) and (max-width:1099px){
+  .qrow{grid-template-columns:repeat(6,minmax(0,1fr));}
+  .qf-from{grid-column:1 / 4;}
+  .qf-to{grid-column:4 / 7;}
+  .qf-date{grid-column:1 / 3;}
+  .qf-time{grid-column:3 / 5;}
+  .qgo{grid-column:5 / 7;align-self:end;}
+  .qgo .qbtn{width:100%;}
+  .qsep{display:none;}
+  .quote{--qbody-h:clamp(300px,calc(100svh - var(--nav-total-sm) - 340px - var(--qhint-h)),600px);}
+}
+
+/* ── phone: a stack at rest ── */
+@media(max-width:760px){
+  .quote{gap:12px;}
+  .qmode button{min-height:var(--tap);padding:0 20px;}
+  .qrow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;row-gap:14px;padding:18px 18px 18px;}
+  .qf-from,.qf-to,.qgo{grid-column:1 / -1;}
+  .qsep{display:none;}
+  .qgo{margin-top:6px;}
+  .qgo .qbtn{width:100%;}
+  .qf .combo .cfield input,.qf .dtf-trigger{min-height:var(--tap);}
+  .qhint{padding:0 18px 16px;}
+}
+
+/* ── where the card stays shut ──
+   Phones, and windows too short for the row and a panel under it, never
+   open the card (QuoteCard's CLOSED_QUERY): each picker opens as its own
+   dropdown or calendar instead. The phone's calendar is position:fixed and
+   centred, and the card's glass is a backdrop-filter, which makes the card
+   the containing block for anything fixed inside it — the "centred"
+   calendar was laid out in the card, not the screen. The glass goes while
+   a calendar or hour list is up; the picker covers it anyway. */
+.quote:not(.can-open) .qcard:has(.dtf-pop){-webkit-backdrop-filter:none;backdrop-filter:none;}
+/* where the place list scrolls its field to the top for room (PlaceCombobox),
+   the top is under the fixed nav — so the field stops clear of it */
+.quote:not(.can-open) .combo{scroll-margin-top:calc(var(--nav-total) + 10px);}
+@media(max-width:900px){.quote:not(.can-open) .combo{scroll-margin-top:calc(var(--nav-total-sm) + 10px);}}
+
 /* Beside the headline the card has to match its weight, and a mouse needs
    none of what a thumb does. Touch keeps the 46px targets and the 16px
    fields — under 16px, iOS zooms the page the moment one takes focus. */
 @media(min-width:981px){
-  .quote{padding:19px 18px 17px;}
   .qtitle{font-size:var(--t-body);letter-spacing:.2em;margin-bottom:12px;}
   .combo{margin-bottom:10px;}
   .combo .cfield label,.qfld label{font-size:var(--t-meta);letter-spacing:.12em;}
@@ -894,7 +1005,6 @@ body.locked .quote{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qfld input,.qfld select{font-size:var(--t-body);padding:9px 10px;min-height:40px;}
   .qprice{margin:15px 0 12px;}
   .qprice .pv{font-size:34px;}
-  .qbtn{padding:13px;min-height:42px;font-size:var(--t-meta);letter-spacing:var(--ls-label);}
   .qfoot{margin-top:10px;font-size:var(--t-meta);}
 }
 
@@ -2214,10 +2324,11 @@ input.txt:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 
 /* hero + landing */
 /* the trust marks lost their pills with their borders */
-.quote{border-radius:var(--r-md);}
+.qcard{border-radius:var(--r-md);}
 .qfld input,.qfld select{border-radius:var(--r-sm);}
 /* §15 restraint: the action is a rectangle with a soft corner, not a
-   lozenge — the pill read as a consumer app rather than a marque. */
+   lozenge — the pill read as a consumer app rather than a marque. The
+   reference this card follows draws a pill; this rule outranks it. */
 .qbtn{border-radius:var(--r-sm);}
 .fcard{border-radius:var(--r-md);}
 .fcard{border-radius:var(--r-md);overflow:hidden;}
@@ -2272,91 +2383,55 @@ input.txt{border-radius:var(--r-sm);}
 :focus-visible{outline:2px solid var(--silver);outline-offset:3px;border-radius:6px;}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 
-/* NOT extended to the From/To cells, deliberately — reverted once already.
-   Growing those two to their cell edges left the pair of them wall to wall
-   live: 120px of card in which every pixel focused one combobox or the
-   other, with no neutral band at the boundary between two DIFFERENT
-   destinations. On a phone focusing either one throws up the full-screen
-   place picker, so a thumb resting on the card to scroll it, or a tap a few
-   pixels off, opened a sheet. Those cells were never the broken ones — one
-   contiguous 43px strip each, over the 24px floor — and the change was for
-   symmetry with the date cell, which had a genuine dead middle. The
-   symmetry was not worth a card that reacts to everything. The gap between
-   adjacent controls is doing a job: it is what makes a boundary miss land
-   on nothing instead of on the wrong thing. */
-
 /* ── short phones: the card has to FIT ────────────────────────────────
    The hero is sized by its content, not by 100svh, so on a short screen
    the content simply ran past the bottom: on a 375x667 (iPhone SE) the
-   card ended 181px below the fold, and what you saw was a cropped panel
-   with no button on it — the one control the page exists to reach.
-   On a 390x844 (iPhone 14) it was still 27px short.
+   card once ended 181px below the fold, and what you saw was a cropped
+   panel with no button on it — the one control the page exists to reach.
 
    The trigger is viewport HEIGHT, not width, because that is the actual
    constraint. A tall phone keeps the generous rhythm untouched; only the
    screens that cannot afford it are compressed, and they are compressed
    in the order the design can least afford to lose: air first, then the
-   repeated trust row, then type, and the card's own cells last.
+   repeated trust row, then type, and the card's own padding last. The
+   fields themselves keep their 46px — that is the touch floor, not air.
 
    It lives at the END of the file on purpose: a media query adds no
    specificity, so written up beside .hero-eyebrow every line of it lost
    to the ordinary rules further down and the block did nothing at all. */
 @media(max-width:900px) and (max-height:860px){
   /* 90px of air above the eyebrow is a desktop luxury on a 667px screen */
-  .hero-grid{padding-top:22px;gap:18px;}
+  .hero-grid{padding-top:22px;}
   .hero-eyebrow{margin-bottom:12px;}
   .hero h1{font-size:34px;}
-  .hero-sub{margin-top:14px;}
+  .hero-copy-in{padding-bottom:20px;}
   /* the three marks say what the four pillars say again 600px further
      down, so this is the one whole element worth losing to keep the
      button on screen */
-  .hero-trust{display:none;}
-  .qtabs{padding-top:4px;}
-  .qgo{padding-bottom:14px;}
-  /* Cells shed 10px each. The padding/margin pairs stay in step with the
-     hit-area fix — the label strip is still 34px and the value strip 31,
-     both clear of the 24px floor. */
-  .qcell{padding:10px 16px 12px;}
-  .qcell .dtf-label{padding:10px 16px 6px;margin:-10px -16px 0;}
-  .qcell .dtf-trigger{padding:0 16px 12px;margin:0 -16px -12px;}
-  .qcell .qpax{padding:10px 16px 12px;margin:-10px -16px -12px;}
-  .qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{margin-bottom:6px;}
+  .hero-foot{display:none;}
+  .qrow{row-gap:10px;padding-top:14px;padding-bottom:16px;}
 }
 
-/* And a second step for the genuinely small — a 667px iPhone SE cleared
-   the first tier by 4px, which is not clearance, it is a coincidence. One
+/* And a second step for the genuinely small — a 667px iPhone SE. One
    larger text setting and the button is under the fold again. */
 @media(max-width:900px) and (max-height:700px){
-  .hero-grid{padding-top:14px;gap:14px;}
+  .hero-grid{padding-top:14px;}
   .hero h1{font-size:31px;}
-  .hero-sub{margin-top:10px;font-size:var(--t-body);}
   .hero-eyebrow{margin-bottom:9px;}
-  .qgo{padding-bottom:10px;}
+  .hero-copy-in{padding-bottom:16px;}
+  .quote{gap:10px;}
 }
 
 /* And a third, for the 360x640 Android that is still the floor of this
-   market. The two tiers above were tuned against 11.5px labels and a 12px
-   button; at the legible sizes those same tiers left the button 46px under
-   the fold, which on the one screen the page exists to reach is the whole
-   page failing.
-
-   The order the block above sets out is air, then the trust row, then
-   type, then cells. Air and the trust row are already spent by the time
-   this tier applies, and type is where the floors are — 14px labels and
-   16px values are the point of this pass and do not move. So it comes out
-   of the cells, which is the last thing the design wanted to give up and
-   the only thing left to give. They keep 32px+ of contiguous hit area,
-   well clear of the 24px floor the comment above defends. */
+   market. Air and the trust row are already spent by the time this tier
+   applies, and type is where the floors are — 14px labels and 16px values
+   do not move. So it comes out of the card's own padding and the gaps
+   between the fields, never out of the fields' 46px. */
 @media(max-width:900px) and (max-height:660px){
-  .hero-grid{padding-top:10px;gap:12px;}
+  .hero-grid{padding-top:10px;}
   .hero h1{font-size:29px;}
-  .qtabs{padding-top:0;}
-  .qcell{padding:5px 16px 7px;}
-  .qcell .dtf-label{padding:5px 16px 3px;margin:-5px -16px 0;}
-  .qcell .dtf-trigger{padding:0 16px 7px;margin:0 -16px -7px;}
-  .qcell .qpax{padding:5px 16px 7px;margin:-5px -16px -7px;}
-  .qcell .combo .cfield label,.qcell .qfld label,.qcell .qpax-l{margin-bottom:3px;}
-  .qgo{padding-bottom:8px;}
+  .qrow{row-gap:6px;padding-top:10px;padding-bottom:12px;}
+  .qf .combo .cfield label,.qf .dtf-label{margin-bottom:2px;}
 }
 
 /* ── the guest's pickup pin ───────────────────────────────────────────

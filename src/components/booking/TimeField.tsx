@@ -30,6 +30,8 @@ interface TimeFieldProps {
   /** hides the AST caption where a nearby field already carries it */
   hideZone?: boolean;
   placeholder?: string;
+  /** a chevron in place of the clock — see DateField */
+  chevron?: boolean;
 }
 
 const STEP_MINUTES = 15;
@@ -59,7 +61,7 @@ function anchorOf(value: string): string {
 }
 
 export default function TimeField({
-  id, label, value, onChange, describedBy, invalid, hideZone, placeholder = "Choose a time",
+  id, label, value, onChange, describedBy, invalid, hideZone, placeholder = "Choose a time", chevron,
 }: TimeFieldProps) {
   const uid = useId();
   const [open, setOpen] = useState(false);
@@ -88,6 +90,11 @@ export default function TimeField({
       list.scrollTop = row.offsetTop - list.clientHeight / 2 + row.clientHeight / 2;
     }
     row?.focus({ preventScroll: true });
+    // preventScroll kept the row where it was centred — and so also kept the
+    // page where it was, with the list hanging off the bottom of a short
+    // window (the hero card on a 600px laptop). The calendar never had this:
+    // its plain focus() scrolls. "nearest" moves nothing that already shows.
+    list?.closest(".tmf-pop")?.scrollIntoView?.({ block: "nearest" });
     // deliberately on open only: re-centring on every pick would yank the
     // list under the pointer between two adjacent times
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +134,12 @@ export default function TimeField({
   const offGrid = !!value && !SLOTS.includes(value);
 
   return (
-    <div className="timefield" ref={wrapRef}>
+    <div className="timefield" ref={wrapRef}
+      onBlur={(e) => {
+        // the same as DateField: tabbing on closes the list behind you
+        const next = e.relatedTarget as Node | null;
+        if (open && next && !wrapRef.current?.contains(next)) setOpen(false);
+      }}>
       <span className="dtf-label" id={`${uid}-label`}>{label}</span>
       <button
         id={id}
@@ -142,10 +154,17 @@ export default function TimeField({
         onClick={() => setOpen((o) => !o)}
       >
         <span id={`${uid}-val`}>{value ? formatTime(value) : placeholder}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
-        </svg>
+        {chevron ? (
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 7.5l5 5 5-5" />
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+          </svg>
+        )}
       </button>
 
       {open && (
