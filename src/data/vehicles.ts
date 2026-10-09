@@ -10,6 +10,14 @@ export type Vehicle = {
   photo: string;
 };
 
+/** Bumped whenever the files in public/fleet change. A browser keeps an
+    image by its URL, and the files keep their names (the README asks for
+    exactly these), so after the left-facing set replaced the right-facing
+    one, returning visitors got the new card framing drawn around their
+    cached OLD photos — cars facing right, cropped on the right, so the
+    crop took their fronts. A new query string is a new image to them. */
+const PHOTO_V = "?v=2";
+
 // The four categories, carrying the four cars this fleet actually runs.
 // A tier is a CATEGORY, not a car: drivers arrive in their own vehicles, so
 // `desc` names a representative one and says "or similar" because it means it.
@@ -33,10 +41,10 @@ export type Vehicle = {
 // written before this keep their old strings, which those screens render as
 // plain text.
 export const VEHICLES: Vehicle[] = [
-  { id: "sedan",    name: "Executive Sedan", pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: "/fleet/sedan.webp" },
-  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: "/fleet/suv.webp" },
-  { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: "/fleet/transit.webp" },
-  { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: "/fleet/sprinter.webp" },
+  { id: "sedan",    name: "Executive Sedan", pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: `/fleet/sedan.webp${PHOTO_V}` },
+  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: `/fleet/suv.webp${PHOTO_V}` },
+  { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: `/fleet/transit.webp${PHOTO_V}` },
+  { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: `/fleet/sprinter.webp${PHOTO_V}` },
 ];
 
 /** The largest party and load the fleet can take — what the guest and bag

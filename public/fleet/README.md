@@ -20,6 +20,10 @@ would lose its face instead of its tail. A replacement that faces the other
 way needs mirroring — and a mirrored plate reads backwards, so ask for a
 render that faces left instead.
 
+**Replacing a file? Bump `PHOTO_V` in `src/data/vehicles.ts`.** Browsers keep
+an image by its URL, so a new photo under the old name is invisible to anyone
+who has visited before — they get the new card layout around the old car.
+
 Filenames are lower case and the code asks for them exactly. `SUV.png` worked
 on a Mac and 404'd everywhere else; Linux and the deploy host are both
 case-sensitive.
