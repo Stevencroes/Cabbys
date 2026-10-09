@@ -405,19 +405,18 @@ h2.sec em{font-style:italic;}
   .dtf-pop{position:fixed;z-index:var(--z-sheet);top:50%;left:16px;right:16px;
     transform:translateY(-50%);min-width:0;width:auto;}
   .dtf-day{min-height:42px;}
-  /* Centred, a calendar that changes height moves its own header: once
-     months drew only their own weeks, paging from January (six rows) to
-     February (five) slid the ‹ › buttons 20px under the thumb that was
-     tapping them. The phone's grid keeps six rows of room, so the header
-     stays put. Six rows is the squares' width (the days are aspect-ratio
-     1, never under .dtf-day's 38px) times six plus five 2px gaps; cqw
-     measures the popover, the only box whose width the squares follow.
-     38, not the 42 on the line above: .dtf-day further down restates
-     min-height:38px and wins, so 42 is not what the phone draws, and a
-     formula built on it left 12px of extra room. Days are still only the
-     month's own — the room under a short month is empty. */
-  .datefield .dtf-pop{container-type:inline-size;}
-  .datefield .dtf-grid{min-height:calc(max(38px, (100cqw - 12px) / 7) * 6 + 10px);align-content:start;}
+  /* The phone calendar is as tall as its month — four, five or six weeks
+     — and no taller. It briefly kept six rows of room so the ‹ › header
+     would not move while paging (centred, a box that changes height moves
+     its top edge too: ~20px per week); the owner chose a tight calendar
+     over a still header, and the empty rows under a short month went.
+     It stays centred rather than hung from a fixed top. Pinning the top
+     would need either a guessed offset or the height of a six-week month,
+     which is the arithmetic that just left. And "fixed" is not fixed to
+     the screen everywhere: in the hero, .quote.rise keeps the identity
+     transform its entrance animation ends on, which makes the card the
+     containing block, so this centres on the card there and on the screen
+     in the booking overlay. One top value cannot be right in both. */
 }
 .dtf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
 .dtf-month{font-family:var(--serif);font-size:19px;font-weight:600;}
