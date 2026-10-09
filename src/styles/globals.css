@@ -405,6 +405,19 @@ h2.sec em{font-style:italic;}
   .dtf-pop{position:fixed;z-index:var(--z-sheet);top:50%;left:16px;right:16px;
     transform:translateY(-50%);min-width:0;width:auto;}
   .dtf-day{min-height:42px;}
+  /* Centred, a calendar that changes height moves its own header: once
+     months drew only their own weeks, paging from January (six rows) to
+     February (five) slid the ‹ › buttons 20px under the thumb that was
+     tapping them. The phone's grid keeps six rows of room, so the header
+     stays put. Six rows is the squares' width (the days are aspect-ratio
+     1, never under .dtf-day's 38px) times six plus five 2px gaps; cqw
+     measures the popover, the only box whose width the squares follow.
+     38, not the 42 on the line above: .dtf-day further down restates
+     min-height:38px and wins, so 42 is not what the phone draws, and a
+     formula built on it left 12px of extra room. Days are still only the
+     month's own — the room under a short month is empty. */
+  .datefield .dtf-pop{container-type:inline-size;}
+  .datefield .dtf-grid{min-height:calc(max(38px, (100cqw - 12px) / 7) * 6 + 10px);align-content:start;}
 }
 .dtf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
 .dtf-month{font-family:var(--serif);font-size:19px;font-weight:600;}
@@ -414,11 +427,16 @@ h2.sec em{font-style:italic;}
 .dtf-nav:disabled{opacity:.3;cursor:not-allowed;}
 .dtf-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
 .dtf-dow span{text-align:center;font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;color:var(--muted);}
-.dtf-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+/* A column of week rows, each its own seven-column grid. The days were
+   one flat 7-column grid until the rows became real role="row" elements;
+   each row keeps the seven columns so a short last week still leaves its
+   days under the right weekday, and the blanks before the 1st hold their
+   columns without being days. */
+.dtf-grid{display:grid;gap:2px;}
+.dtf-week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
 .dtf-day{display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-height:38px;
   border:none;border-radius:50%;background:transparent;color:var(--ink);font-size:var(--t-meta);font-weight:500;transition:.15s var(--ease);}
 .dtf-day:hover:not(:disabled){background:var(--raised);}
-.dtf-day.out{color:var(--muted);opacity:.55;}
 
 /* ── time picker ── one tap for a quarter hour, exact when a flight needs it */
 .timefield{position:relative;}
@@ -978,21 +996,27 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
        time:  padding, five rows and four gaps, the exact row's 12px
               margin and 12px rule-and-padding, and its two lines
        date:  padding, the 38px month head and its 10px margin, the
-              weekday row and its 4px, six weeks of --dtf-row and 2px gaps
+              weekday row and its 4px, the month's 4-6 weeks (--dtf-weeks) of
+              --dtf-row and 2px gaps
      The welcome and the place words before a letter is typed take the
      place height, so typing the first letter does not move the card.
      --qbody-h is still the ceiling: a short window keeps its old cut, and
      the list scrolls inside whatever the screen can give. */
-  .qcard{--dtf-row:46px;--qpanel-pad:30px;
+  .qcard{--dtf-row:46px;--dtf-weeks:6;--qpanel-pad:30px;
     --qfit-place:calc(var(--qpanel-pad) + 6px + var(--cgroup-h) * var(--cgroups, 1)
       + var(--crow-h) * 5 + var(--cattrib-h));
     --qfit-time:calc(var(--qpanel-pad) + var(--tmf-row) * var(--tmf-rows)
       + var(--tmf-gap) * (var(--tmf-rows) - 1) + 24px + var(--tmf-exact-h));
     --qfit-date:calc(var(--qpanel-pad) + 48px + var(--t-meta) * var(--lh-body) + 4px
-      + var(--dtf-row) * 6 + 10px);
+      + var(--dtf-row) * var(--dtf-weeks) + 2px * (var(--dtf-weeks) - 1));
     --qbody-fit:var(--qfit-place);}
   .qcard:has(.timefield .dtf-pop){--qbody-fit:var(--qfit-time);}
   .qcard:has(.datefield .dtf-pop){--qbody-fit:var(--qfit-date);}
+  /* The calendar draws only the weeks its month has (DateField's
+     data-weeks): a February that opens on a Sunday is four rows, and a
+     card still sized for six left two empty rows of glass under it. */
+  .qcard:has(.dtf-grid[data-weeks="4"]){--dtf-weeks:4;}
+  .qcard:has(.dtf-grid[data-weeks="5"]){--dtf-weeks:5;}
   /* The same height transition carries the card between pickers, so
      moving from the hour to the pickup grows it rather than jumping. */
   .qcard.is-open .qbody{height:min(var(--qbody-fit), var(--qbody-h));}
