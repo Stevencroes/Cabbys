@@ -430,9 +430,15 @@ h2.sec em{font-style:italic;}
    in the open hero card the list had no cap at all — it filled the whole
    card body with a dozen times, which the owner read as "too much at
    once". The height is counted in rows rather than pixels, so a change to
-   --tmf-row (the card sets 44px for a thumb) keeps it at exactly five. */
-.tmf-list{--tmf-row:40px;--tmf-gap:2px;--tmf-rows:5;
-  position:relative;display:flex;flex-direction:column;gap:var(--tmf-gap);
+   --tmf-row (the card sets 44px for a thumb) keeps it at exactly five.
+   The three numbers live on :root, not on .tmf-list, because the open
+   hero card sizes its body from them too (--qfit-time) — declared on the
+   list they were invisible to the card, which is an ancestor of it. */
+:root{--tmf-row:40px;--tmf-gap:2px;--tmf-rows:5;
+  /* the "Exact time" row's text: its label wraps to two lines in the
+     340px docked panel, so the row is given that height outright */
+  --tmf-exact-h:calc(var(--t-meta) * var(--lh-body) * 2);}
+.tmf-list{position:relative;display:flex;flex-direction:column;gap:var(--tmf-gap);
   max-height:calc(var(--tmf-row) * var(--tmf-rows) + var(--tmf-gap) * (var(--tmf-rows) - 1));
   overflow-y:auto;overscroll-behavior:contain;padding-right:2px;
   scrollbar-width:thin;scrollbar-color:var(--soft) transparent;
@@ -937,13 +943,20 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
      last week hung below the card's edge. Rows now share the panel's
      height between 30 and 46px — a mouse needs no more than 30 — and the
      grid takes what the head and weekday row leave. */
-  .qcard .dtf-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,46px);align-content:start;}
+  .qcard .dtf-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,var(--dtf-row));align-content:start;}
   .qcard .dtf-day{min-height:0;aspect-ratio:auto;font-size:var(--t-body);}
   .qcard .dtf-month{font-size:var(--t-title);}
   /* The row grows for the card; the five-row cap above follows it. It
      used to be max-height:none and fill the body to the card's foot.
-     min-height:0 still lets a short window take rows back off it. */
-  .qcard .tmf-list{--tmf-row:44px;flex:0 1 auto;min-height:0;}
+     min-height:0 still lets a short window take rows back off it.
+     --tmf-row is set on the card rather than the list so the card's own
+     --qfit-time reads the same 44px the list is drawn at. */
+  .qcard{--tmf-row:44px;}
+  .qcard .tmf-list{flex:0 1 auto;min-height:0;}
+  /* the label wraps; the row is given the two lines outright so the
+     card's arithmetic below has a number to add rather than a guess */
+  .qcard .tmf-exact{height:calc(12px + var(--tmf-exact-h));}
+  .qcard .tmf-exact label{line-height:var(--lh-body);}
   .qcard .tmf-list button{font-size:var(--t-body);}
   .qcard .cpanel .cattrib{border-top-color:var(--glass-rule);}
   /* Before a letter is typed: the field's own words, centred across the
@@ -951,7 +964,54 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qcard .cpanel.chint{left:0;width:100%;max-width:none;justify-content:center;align-items:center;
     text-align:center;padding:16px 24px 28px;overflow-y:auto;}
   .qcard .chint .clead{display:flex;flex-direction:column;align-items:center;gap:14px;}
+
+  /* ── how far the card opens: as far as the open picker needs ──
+     The body used to open to one height for every picker — the screen,
+     less the chrome, up to 600px — sized for the days when the hour list
+     ran to the card's foot. Once the lists stopped at five rows it opened
+     568px on a 900px screen to show a 305px time list: 264px of empty
+     glass under "Exact time". Each picker now says how tall it is, worked
+     out from the same numbers its rows are drawn from, so a change to a row
+     moves the card with it instead of leaving a gap behind again.
+       place: the panel's 8+22 padding, the list's 6px top padding, its
+              group labels (--cgroups), five rows, and the footer
+       time:  padding, five rows and four gaps, the exact row's 12px
+              margin and 12px rule-and-padding, and its two lines
+       date:  padding, the 38px month head and its 10px margin, the
+              weekday row and its 4px, six weeks of --dtf-row and 2px gaps
+     The welcome and the place words before a letter is typed take the
+     place height, so typing the first letter does not move the card.
+     --qbody-h is still the ceiling: a short window keeps its old cut, and
+     the list scrolls inside whatever the screen can give. */
+  .qcard{--dtf-row:46px;--qpanel-pad:30px;
+    --qfit-place:calc(var(--qpanel-pad) + 6px + var(--cgroup-h) * var(--cgroups, 1)
+      + var(--crow-h) * 5 + var(--cattrib-h));
+    --qfit-time:calc(var(--qpanel-pad) + var(--tmf-row) * var(--tmf-rows)
+      + var(--tmf-gap) * (var(--tmf-rows) - 1) + 24px + var(--tmf-exact-h));
+    --qfit-date:calc(var(--qpanel-pad) + 48px + var(--t-meta) * var(--lh-body) + 4px
+      + var(--dtf-row) * 6 + 10px);
+    --qbody-fit:var(--qfit-place);}
+  .qcard:has(.timefield .dtf-pop){--qbody-fit:var(--qfit-time);}
+  .qcard:has(.datefield .dtf-pop){--qbody-fit:var(--qfit-date);}
+  /* The same height transition carries the card between pickers, so
+     moving from the hour to the pickup grows it rather than jumping. */
+  .qcard.is-open .qbody{height:min(var(--qbody-fit), var(--qbody-h));}
+  /* The room the body no longer takes goes UNDER the card. The hero hangs
+     its column from the bottom (.hero-grid), and --qbody-h is exactly the
+     height that lands the open row under the nav — so a shorter body alone
+     dropped the whole row 226px down the screen, and moving from the hour
+     to the pickup slid the field you were reaching for out from under the
+     pointer. Body plus this margin is always --qbody-h, and both ride the
+     same curve for the same time, so the sum holds through every frame and
+     the row stays exactly where it was; only the card's foot moves. */
+  .qcard.is-open{margin-bottom:max(0px, calc(var(--qbody-h) - var(--qbody-fit)));}
+  .qcard{transition:border-color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
+             background-color var(--dur-slow-ui) var(--ease-ui),
+             margin-bottom var(--dur-reveal) var(--ease-reveal);}
 }
+/* restated after the docked block, which would otherwise win over the
+   reduced-motion rule above by coming later at the same specificity */
+@media(prefers-reduced-motion:reduce){.qcard{transition:none;}}
 /* The words as the card's resting panel, at every width — the phone-only
    rule further down is for the standalone picker. */
 .qcard .combo.open .chint{display:flex;}
@@ -1068,9 +1128,21 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
    The bottom fade is the time list's "there is more" in the same 10px
    that the row's own padding leaves empty, so a list with nothing below
    loses no ink to it. */
-.clist{--crow-h:calc(var(--t-body) * 1.3 + 2px + var(--t-meta) * var(--lh-body) + 20px);
+/* On :root for the same reason as the time list's: the open hero card
+   sizes its body from these (--qfit-place). --cattrib-h is the footer
+   under the list, one line of --t-meta. */
+:root{--crow-h:calc(var(--t-body) * 1.3 + 2px + var(--t-meta) * var(--lh-body) + 20px);
   --cgroup-h:calc(var(--t-meta) * var(--lh-body) + 20px);
-  flex:0 1 auto;min-height:0;
+  --cattrib-h:calc(var(--t-meta) * var(--lh-body) + 22px);}
+/* Group labels above the fifth option, counted by PlaceCombobox into
+   data-groups. Set on the list for its own cap, and on the hero card that
+   holds it so the card's open body is cut to the same list. Five is the
+   most there can be: one label per option. */
+.clist[data-groups="2"],.qcard:has(.clist[data-groups="2"]){--cgroups:2;}
+.clist[data-groups="3"],.qcard:has(.clist[data-groups="3"]){--cgroups:3;}
+.clist[data-groups="4"],.qcard:has(.clist[data-groups="4"]){--cgroups:4;}
+.clist[data-groups="5"],.qcard:has(.clist[data-groups="5"]){--cgroups:5;}
+.clist{flex:0 1 auto;min-height:0;
   max-height:calc(6px + var(--cgroup-h) * var(--cgroups, 1) + var(--crow-h) * 5);
   overflow-y:auto;overscroll-behavior:contain;
   list-style:none;margin:0;padding:6px 0;
@@ -1118,7 +1190,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .clist .csearching{color:var(--silver);}
 /* Where the answers come from, said once, quietly, under everything — the
    place every map and search UI has taught people to look for it. */
-.cpanel .cattrib{flex:none;padding:10px 16px 11px;
+.cpanel .cattrib{flex:none;padding:10px 16px 11px;line-height:var(--lh-body);
   font-size:var(--t-meta);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
   border-top:1px solid var(--line-soft);}
 /* the search could not run — say so where the "we searched" line goes,

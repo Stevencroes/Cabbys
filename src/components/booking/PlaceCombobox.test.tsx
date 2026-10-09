@@ -51,7 +51,7 @@ describe("PlaceCombobox", () => {
     // the list shows four and a half
     type("a");
     const list = screen.getByRole("listbox");
-    expect(list.style.getPropertyValue("--cgroups")).toBe("2");
+    expect(list).toHaveAttribute("data-groups", "2");
     // the cap is a scroll, not a cut — nothing is sliced off the list
     expect(opts().length).toBeGreaterThan(5);
   });

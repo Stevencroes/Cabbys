@@ -572,7 +572,10 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           style={drop.max ? { maxHeight: drop.max } : undefined}
         >
         <ul className="clist" id={listId} role="listbox" aria-label={label} ref={listRef}
-          style={{ "--cgroups": capGroups } as React.CSSProperties}>
+          // an attribute, not an inline --cgroups: the hero card has to
+          // read the count too (it opens to fit this list), and a card can
+          // match on a descendant's attribute but not inherit its style
+          data-groups={capGroups}>
           {rows.map((row) => {
             if (row.kind === "group") {
               return <li key={row.id} className="cgroup" role="presentation">{row.group}</li>;
