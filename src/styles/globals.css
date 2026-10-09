@@ -425,16 +425,25 @@ h2.sec em{font-style:italic;}
 .tmf-pop{min-width:324px;padding:12px;}
 /* One column you scroll, the way every other booking site does it. The
    fades top and bottom say "there is more above and below" without a
-   scrollbar having to say it. */
-.tmf-list{position:relative;display:flex;flex-direction:column;gap:2px;
-  max-height:266px;overflow-y:auto;overscroll-behavior:contain;padding-right:2px;
+   scrollbar having to say it.
+   FIVE ROWS, NEVER MORE. A flat 266px showed six and a half, and docked
+   in the open hero card the list had no cap at all — it filled the whole
+   card body with a dozen times, which the owner read as "too much at
+   once". The height is counted in rows rather than pixels, so a change to
+   --tmf-row (the card sets 44px for a thumb) keeps it at exactly five. */
+.tmf-list{--tmf-row:40px;--tmf-gap:2px;--tmf-rows:5;
+  position:relative;display:flex;flex-direction:column;gap:var(--tmf-gap);
+  max-height:calc(var(--tmf-row) * var(--tmf-rows) + var(--tmf-gap) * (var(--tmf-rows) - 1));
+  overflow-y:auto;overscroll-behavior:contain;padding-right:2px;
   scrollbar-width:thin;scrollbar-color:var(--soft) transparent;
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
   mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);}
 .tmf-list::-webkit-scrollbar{width:6px;}
 .tmf-list::-webkit-scrollbar-thumb{background:var(--soft);border-radius:3px;}
 .tmf-list::-webkit-scrollbar-track{background:transparent;}
-.tmf-list button{flex:none;min-height:40px;border:1px solid transparent;background:transparent;
+/* height, not min-height: the cap above is arithmetic on this number, and
+   a row allowed to grow would quietly make it four and a half */
+.tmf-list button{flex:none;height:var(--tmf-row);border:1px solid transparent;background:transparent;
   color:var(--silver);border-radius:var(--r-xs);font-size:var(--t-meta);font-weight:500;
   letter-spacing:.02em;white-space:nowrap;transition:.14s var(--ease);
   /* ranged left: a column of times is a list to read down, and centring
@@ -931,8 +940,11 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   .qcard .dtf-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,46px);align-content:start;}
   .qcard .dtf-day{min-height:0;aspect-ratio:auto;font-size:var(--t-body);}
   .qcard .dtf-month{font-size:var(--t-title);}
-  .qcard .tmf-list{max-height:none;flex:1;min-height:0;}
-  .qcard .tmf-list button{min-height:44px;font-size:var(--t-body);}
+  /* The row grows for the card; the five-row cap above follows it. It
+     used to be max-height:none and fill the body to the card's foot.
+     min-height:0 still lets a short window take rows back off it. */
+  .qcard .tmf-list{--tmf-row:44px;flex:0 1 auto;min-height:0;}
+  .qcard .tmf-list button{font-size:var(--t-body);}
   .qcard .cpanel .cattrib{border-top-color:var(--glass-rule);}
   /* Before a letter is typed: the field's own words, centred across the
      whole card — the reference's empty state, and only that. */
@@ -1046,14 +1058,39 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   border:1px solid var(--nav-rule);box-shadow:var(--shadow-hard-lg);}
 /* opened upward, because there was no room below — see PlaceCombobox */
 .cpanel.up{top:auto;bottom:calc(100% + 10px);}
-.clist{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
-  list-style:none;margin:0;padding:6px 0;}
+/* FIVE ROWS, THEN SCROLL. "pa" matched nineteen hotels and the list ran
+   the height of the panel — 420px of two-line rows hanging over the card
+   while the traveller was still typing. The cap is the list's top
+   padding, the group labels above the fifth option (--cgroups, counted by
+   PlaceCombobox) and five option rows, all derived from the type the rows
+   are set in rather than measured once in px — so a reader with a larger
+   default font still gets five, not four and a sliver.
+   The bottom fade is the time list's "there is more" in the same 10px
+   that the row's own padding leaves empty, so a list with nothing below
+   loses no ink to it. */
+.clist{--crow-h:calc(var(--t-body) * 1.3 + 2px + var(--t-meta) * var(--lh-body) + 20px);
+  --cgroup-h:calc(var(--t-meta) * var(--lh-body) + 20px);
+  flex:0 1 auto;min-height:0;
+  max-height:calc(6px + var(--cgroup-h) * var(--cgroups, 1) + var(--crow-h) * 5);
+  overflow-y:auto;overscroll-behavior:contain;
+  list-style:none;margin:0;padding:6px 0;
+  -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent 100%);
+  mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent 100%);}
+/* The custom-address row is sticky at the foot (below), so it lies over
+   whichever option sits in the bottom slot. scrollIntoView({block:
+   "nearest"}) counts that option as already visible and leaves the arrow
+   key's highlight underneath the sticky row — rare in a 420px list, every
+   time in a five-row one. Scroll padding is what scrollIntoView aims
+   inside, so it now stops a row short of the sticky one. */
+.clist:has(> li.custom){scroll-padding-bottom:var(--crow-h);}
 .cpanel .cgroup{font-weight:600;font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;color:var(--silver);
-  padding:13px 16px 7px;}
+  padding:13px 16px 7px;line-height:var(--lh-body);}
 /* Icon, then two lines: what it is called, and where it is. They used to
    share one row and compete for it — the name lost, mid-word. */
-.clist li[role="option"]{display:flex;align-items:center;gap:13px;padding:10px 16px;
-  min-height:var(--tap);font-weight:400;cursor:pointer;}
+/* height, not min-height: the five-row cap on .clist is arithmetic on
+   --crow-h, and both lines are nowrap, so nothing needs to grow it */
+.clist li[role="option"]{display:flex;align-items:center;gap:13px;padding:0 16px;
+  height:var(--crow-h);font-weight:400;cursor:pointer;}
 .clist li[role="option"] .oicon{flex:none;color:var(--muted);}
 .clist li[role="option"] .otext{min-width:0;display:flex;flex-direction:column;gap:2px;}
 .clist li[role="option"] .on{font-size:var(--t-body);line-height:1.3;color:var(--ink);
@@ -1831,7 +1868,15 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 
 .pnav{display:flex;gap:12px;margin-top:6px;}
-.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:var(--t-body);letter-spacing:.12em;
+/* --t-meta, not --t-body. At 16px uppercase, letterspaced .12em, the
+   booking flow's Continue / Pay read a size louder than everything around
+   them and the owner found them too big. 14px is the rung every other
+   uppercase action on the site already sits on — the hero's .qbtn and
+   .btn-ghost — so the flow's way on now matches the button that opened
+   it. .btn is the booking flow's alone (StepFoot and the custom-address
+   form), so this changes nothing outside it. The height is the padding
+   and --tap, not the type, so the target stays well over 44px. */
+.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:var(--t-meta);letter-spacing:.12em;
   text-transform:uppercase;transition:.3s;}
 .btn.primary{background:var(--sheen);color:var(--on-sheen);}
 .btn.primary:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}

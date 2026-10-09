@@ -87,7 +87,10 @@ export default function TimeField({
     const list = listRef.current;
     const row = list?.querySelector<HTMLElement>(`[data-t="${anchorOf(value)}"]`);
     if (list && row) {
-      list.scrollTop = row.offsetTop - list.clientHeight / 2 + row.clientHeight / 2;
+      // offsetHeight, not clientHeight: clientHeight leaves out the row's
+      // 1px borders, which set the answer 1px off centre — invisible in a
+      // long list, a 1px sliver of a sixth row in one cut at exactly five
+      list.scrollTop = row.offsetTop - list.clientHeight / 2 + row.offsetHeight / 2;
     }
     row?.focus({ preventScroll: true });
     // preventScroll kept the row where it was centred — and so also kept the
@@ -114,7 +117,13 @@ export default function TimeField({
   const roving = anchorOf(value);
 
   function onListKey(e: React.KeyboardEvent) {
-    const i = SLOTS.indexOf(roving);
+    // Travel from the row that has focus, not from the answer. Counting
+    // from `roving` (the answer) meant every ArrowDown landed on the same
+    // next slot, so the keyboard could reach one row either side of the
+    // value and never scroll the five-row list on to anything else.
+    const at = (document.activeElement as HTMLElement | null)?.dataset?.t;
+    const from = at && SLOTS.includes(at) ? at : roving;
+    const i = SLOTS.indexOf(from);
     const to =
       e.key === "ArrowDown" ? i + 1 :
       e.key === "ArrowUp" ? i - 1 :
@@ -125,7 +134,11 @@ export default function TimeField({
     if (to < 0 || to >= SLOTS.length || to === i) return;
     e.preventDefault();
     const el = listRef.current?.querySelector<HTMLElement>(`[data-t="${SLOTS[to]}"]`);
+    // plain focus() scrolls the row into the list's view, which is what
+    // keeps keyboard travel visible now the list shows five rows at a time
     el?.focus();
+    // one tab stop, still: the row being left gives its stop up
+    listRef.current?.querySelector<HTMLElement>(`[data-t="${from}"]`)?.setAttribute("tabindex", "-1");
     el?.setAttribute("tabindex", "0");
   }
 
