@@ -121,7 +121,20 @@ h2.sec em{font-style:italic;}
    45ms apart, so the line is complete inside ~600ms — first, and fast. */
 @keyframes stage-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
 @keyframes stage-word{from{opacity:0;transform:translateY(105%);}to{opacity:1;transform:none;}}
-.hero .rise,.hero .stagger > *{transition:none;animation:stage-rise 560ms var(--ease-reveal) both;}
+/* Fill `backwards`, not `both`, with the resting state DECLARED here —
+   the same move .stagger makes above, for a different fault. Held by a
+   forwards fill, the last frame is not `none` but the interpolated
+   translateY(0), a real transform, and a transformed box is the
+   containing block for every position:fixed thing inside it. .quote is a
+   .rise, so the phone's date and time pickers — fixed, meant to centre on
+   the screen — centred on the booking card instead: 322px wide, not 358,
+   and with the page scrolled they followed the card off the top. Ending
+   the animation hands the box back to these declared values, which are
+   computed `none` and trap nothing. The entrance looks the same; only
+   what is left behind afterwards changed. (The hero opts out of the
+   observer, so its .rise never gets .in — this rule is its resting state.) */
+.hero .rise,.hero .stagger > *{opacity:1;transform:none;transition:none;
+  animation:stage-rise 560ms var(--ease-reveal) backwards;}
 .hero .wsplit .w i{transition:none;animation:stage-word 560ms var(--ease-reveal) both;}
 /* Each of these has to outrank `.hero .rise` above, which sets
    animation-delay to 0 as part of its shorthand. A bare .hero-eyebrow is
@@ -400,23 +413,26 @@ h2.sec em{font-style:italic;}
 .dtf-pop{position:absolute;z-index:var(--z-modal);top:calc(100% + 8px);left:0;min-width:300px;
   padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-hard-lg);}
 /* On a phone the trigger can sit in a half-width cell, so anchoring the
-   popover to it pushes the calendar off-screen. Centre it instead. */
+   popover to it pushes the calendar off-screen. It is fixed to the screen
+   instead, and hung from just under the nav rather than centred: 16px
+   below the bar, the same 16px it keeps from either edge.
+   Hung, not centred, for two faults. A centred box that changes height
+   moves its top edge too, so paging the calendar between a four- and a
+   six-week month slid the ‹ › buttons ~20px per week under the thumb
+   tapping them — hung from the top, only the foot moves. And the time
+   picker's exact-time input sat at the centred box's foot, which is where
+   the phone's keyboard comes up when that input takes focus; up here it
+   stays above the keys. This was not possible while .quote.rise trapped
+   the popover (see .hero .rise): "fixed" meant "fixed to the card" in the
+   hero, so one top value could not be right there and in the overlay. */
 @media(max-width:520px){
-  .dtf-pop{position:fixed;z-index:var(--z-sheet);top:50%;left:16px;right:16px;
-    transform:translateY(-50%);min-width:0;width:auto;}
+  .dtf-pop{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-total-sm) + 16px);left:16px;right:16px;
+    transform:none;min-width:0;width:auto;}
   .dtf-day{min-height:42px;}
   /* The phone calendar is as tall as its month — four, five or six weeks
-     — and no taller. It briefly kept six rows of room so the ‹ › header
-     would not move while paging (centred, a box that changes height moves
-     its top edge too: ~20px per week); the owner chose a tight calendar
-     over a still header, and the empty rows under a short month went.
-     It stays centred rather than hung from a fixed top. Pinning the top
-     would need either a guessed offset or the height of a six-week month,
-     which is the arithmetic that just left. And "fixed" is not fixed to
-     the screen everywhere: in the hero, .quote.rise keeps the identity
-     transform its entrance animation ends on, which makes the card the
-     containing block, so this centres on the card there and on the screen
-     in the booking overlay. One top value cannot be right in both. */
+     — and no taller: the owner chose a tight calendar over reserving six
+     rows of room, which is why the header had to be steadied by hanging
+     the box from the top instead. */
 }
 .dtf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
 .dtf-month{font-family:var(--serif);font-size:19px;font-weight:600;}
