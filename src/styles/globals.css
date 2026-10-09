@@ -804,6 +804,18 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
    for — without this the open card ran 40px past the fold the moment the
    button explained what was missing */
 .quote:has(.qhint){--qhint-h:44px;}
+/* The card, and every dropdown it opens, sits a layer above the rest of
+   the hero column. Without a layer of its own, a picker's z-index meant
+   nothing against the trust row under the card: the marks come later in
+   the page, and while they animate in (opacity and transform, ~1.3s
+   after load) each one is its own stacking context, so on a short window
+   — where the card stays shut and the pickers drop down over the marks —
+   "Fixed price · Flight tracked" was painted across the calendar's month
+   and its ‹ › buttons. Until the phone-picker fix it was worse: the card
+   kept a leftover transform, its dropdowns were sealed inside it, and the
+   marks won for good rather than for a second. --z-content is the step
+   for content over the hero's own ground; position is already relative. */
+.quote{z-index:var(--z-content);}
 
 /* ── trip type ── a segmented pill, centred, the selected half in sheen:
    the material the primary action and the selected time already use. */
