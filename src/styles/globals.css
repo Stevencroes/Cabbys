@@ -121,7 +121,20 @@ h2.sec em{font-style:italic;}
    45ms apart, so the line is complete inside ~600ms — first, and fast. */
 @keyframes stage-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
 @keyframes stage-word{from{opacity:0;transform:translateY(105%);}to{opacity:1;transform:none;}}
-.hero .rise,.hero .stagger > *{transition:none;animation:stage-rise 560ms var(--ease-reveal) both;}
+/* Fill `backwards`, not `both`, with the resting state DECLARED here —
+   the same move .stagger makes above, for a different fault. Held by a
+   forwards fill, the last frame is not `none` but the interpolated
+   translateY(0), a real transform, and a transformed box is the
+   containing block for every position:fixed thing inside it. .quote is a
+   .rise, so the phone's date and time pickers — fixed, meant to centre on
+   the screen — centred on the booking card instead: 322px wide, not 358,
+   and with the page scrolled they followed the card off the top. Ending
+   the animation hands the box back to these declared values, which are
+   computed `none` and trap nothing. The entrance looks the same; only
+   what is left behind afterwards changed. (The hero opts out of the
+   observer, so its .rise never gets .in — this rule is its resting state.) */
+.hero .rise,.hero .stagger > *{opacity:1;transform:none;transition:none;
+  animation:stage-rise 560ms var(--ease-reveal) backwards;}
 .hero .wsplit .w i{transition:none;animation:stage-word 560ms var(--ease-reveal) both;}
 /* Each of these has to outrank `.hero .rise` above, which sets
    animation-delay to 0 as part of its shorthand. A bare .hero-eyebrow is
@@ -400,11 +413,26 @@ h2.sec em{font-style:italic;}
 .dtf-pop{position:absolute;z-index:var(--z-modal);top:calc(100% + 8px);left:0;min-width:300px;
   padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-hard-lg);}
 /* On a phone the trigger can sit in a half-width cell, so anchoring the
-   popover to it pushes the calendar off-screen. Centre it instead. */
+   popover to it pushes the calendar off-screen. It is fixed to the screen
+   instead, and hung from just under the nav rather than centred: 16px
+   below the bar, the same 16px it keeps from either edge.
+   Hung, not centred, for two faults. A centred box that changes height
+   moves its top edge too, so paging the calendar between a four- and a
+   six-week month slid the ‹ › buttons ~20px per week under the thumb
+   tapping them — hung from the top, only the foot moves. And the time
+   picker's exact-time input sat at the centred box's foot, which is where
+   the phone's keyboard comes up when that input takes focus; up here it
+   stays above the keys. This was not possible while .quote.rise trapped
+   the popover (see .hero .rise): "fixed" meant "fixed to the card" in the
+   hero, so one top value could not be right there and in the overlay. */
 @media(max-width:520px){
-  .dtf-pop{position:fixed;z-index:var(--z-sheet);top:50%;left:16px;right:16px;
-    transform:translateY(-50%);min-width:0;width:auto;}
+  .dtf-pop{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-total-sm) + 16px);left:16px;right:16px;
+    transform:none;min-width:0;width:auto;}
   .dtf-day{min-height:42px;}
+  /* The phone calendar is as tall as its month — four, five or six weeks
+     — and no taller: the owner chose a tight calendar over reserving six
+     rows of room, which is why the header had to be steadied by hanging
+     the box from the top instead. */
 }
 .dtf-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
 .dtf-month{font-family:var(--serif);font-size:19px;font-weight:600;}
@@ -414,27 +442,47 @@ h2.sec em{font-style:italic;}
 .dtf-nav:disabled{opacity:.3;cursor:not-allowed;}
 .dtf-dow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
 .dtf-dow span{text-align:center;font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;color:var(--muted);}
-.dtf-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+/* A column of week rows, each its own seven-column grid. The days were
+   one flat 7-column grid until the rows became real role="row" elements;
+   each row keeps the seven columns so a short last week still leaves its
+   days under the right weekday, and the blanks before the 1st hold their
+   columns without being days. */
+.dtf-grid{display:grid;gap:2px;}
+.dtf-week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
 .dtf-day{display:flex;align-items:center;justify-content:center;aspect-ratio:1;min-height:38px;
   border:none;border-radius:50%;background:transparent;color:var(--ink);font-size:var(--t-meta);font-weight:500;transition:.15s var(--ease);}
 .dtf-day:hover:not(:disabled){background:var(--raised);}
-.dtf-day.out{color:var(--muted);opacity:.55;}
 
 /* ── time picker ── one tap for a quarter hour, exact when a flight needs it */
 .timefield{position:relative;}
 .tmf-pop{min-width:324px;padding:12px;}
 /* One column you scroll, the way every other booking site does it. The
    fades top and bottom say "there is more above and below" without a
-   scrollbar having to say it. */
-.tmf-list{position:relative;display:flex;flex-direction:column;gap:2px;
-  max-height:266px;overflow-y:auto;overscroll-behavior:contain;padding-right:2px;
+   scrollbar having to say it.
+   FIVE ROWS, NEVER MORE. A flat 266px showed six and a half, and docked
+   in the open hero card the list had no cap at all — it filled the whole
+   card body with a dozen times, which the owner read as "too much at
+   once". The height is counted in rows rather than pixels, so a change to
+   --tmf-row (the card sets 44px for a thumb) keeps it at exactly five.
+   The three numbers live on :root, not on .tmf-list, because the open
+   hero card sizes its body from them too (--qfit-time) — declared on the
+   list they were invisible to the card, which is an ancestor of it. */
+:root{--tmf-row:40px;--tmf-gap:2px;--tmf-rows:5;
+  /* the "Exact time" row's text: its label wraps to two lines in the
+     340px docked panel, so the row is given that height outright */
+  --tmf-exact-h:calc(var(--t-meta) * var(--lh-body) * 2);}
+.tmf-list{position:relative;display:flex;flex-direction:column;gap:var(--tmf-gap);
+  max-height:calc(var(--tmf-row) * var(--tmf-rows) + var(--tmf-gap) * (var(--tmf-rows) - 1));
+  overflow-y:auto;overscroll-behavior:contain;padding-right:2px;
   scrollbar-width:thin;scrollbar-color:var(--soft) transparent;
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
   mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);}
 .tmf-list::-webkit-scrollbar{width:6px;}
 .tmf-list::-webkit-scrollbar-thumb{background:var(--soft);border-radius:3px;}
 .tmf-list::-webkit-scrollbar-track{background:transparent;}
-.tmf-list button{flex:none;min-height:40px;border:1px solid transparent;background:transparent;
+/* height, not min-height: the cap above is arithmetic on this number, and
+   a row allowed to grow would quietly make it four and a half */
+.tmf-list button{flex:none;height:var(--tmf-row);border:1px solid transparent;background:transparent;
   color:var(--silver);border-radius:var(--r-xs);font-size:var(--t-meta);font-weight:500;
   letter-spacing:.02em;white-space:nowrap;transition:.14s var(--ease);
   /* ranged left: a column of times is a list to read down, and centring
@@ -756,6 +804,18 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
    for — without this the open card ran 40px past the fold the moment the
    button explained what was missing */
 .quote:has(.qhint){--qhint-h:44px;}
+/* The card, and every dropdown it opens, sits a layer above the rest of
+   the hero column. Without a layer of its own, a picker's z-index meant
+   nothing against the trust row under the card: the marks come later in
+   the page, and while they animate in (opacity and transform, ~1.3s
+   after load) each one is its own stacking context, so on a short window
+   — where the card stays shut and the pickers drop down over the marks —
+   "Fixed price · Flight tracked" was painted across the calendar's month
+   and its ‹ › buttons. Until the phone-picker fix it was worse: the card
+   kept a leftover transform, its dropdowns were sealed inside it, and the
+   marks won for good rather than for a second. --z-content is the step
+   for content over the hero's own ground; position is already relative. */
+.quote{z-index:var(--z-content);}
 
 /* ── trip type ── a segmented pill, centred, the selected half in sheen:
    the material the primary action and the selected time already use. */
@@ -928,18 +988,81 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
      last week hung below the card's edge. Rows now share the panel's
      height between 30 and 46px — a mouse needs no more than 30 — and the
      grid takes what the head and weekday row leave. */
-  .qcard .dtf-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,46px);align-content:start;}
+  .qcard .dtf-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,var(--dtf-row));align-content:start;}
   .qcard .dtf-day{min-height:0;aspect-ratio:auto;font-size:var(--t-body);}
   .qcard .dtf-month{font-size:var(--t-title);}
-  .qcard .tmf-list{max-height:none;flex:1;min-height:0;}
-  .qcard .tmf-list button{min-height:44px;font-size:var(--t-body);}
+  /* The row grows for the card; the five-row cap above follows it. It
+     used to be max-height:none and fill the body to the card's foot.
+     min-height:0 still lets a short window take rows back off it.
+     --tmf-row is set on the card rather than the list so the card's own
+     --qfit-time reads the same 44px the list is drawn at. */
+  .qcard{--tmf-row:44px;}
+  .qcard .tmf-list{flex:0 1 auto;min-height:0;}
+  /* the label wraps; the row is given the two lines outright so the
+     card's arithmetic below has a number to add rather than a guess */
+  .qcard .tmf-exact{height:calc(12px + var(--tmf-exact-h));}
+  .qcard .tmf-exact label{line-height:var(--lh-body);}
+  .qcard .tmf-list button{font-size:var(--t-body);}
   .qcard .cpanel .cattrib{border-top-color:var(--glass-rule);}
   /* Before a letter is typed: the field's own words, centred across the
      whole card — the reference's empty state, and only that. */
   .qcard .cpanel.chint{left:0;width:100%;max-width:none;justify-content:center;align-items:center;
     text-align:center;padding:16px 24px 28px;overflow-y:auto;}
   .qcard .chint .clead{display:flex;flex-direction:column;align-items:center;gap:14px;}
+
+  /* ── how far the card opens: as far as the open picker needs ──
+     The body used to open to one height for every picker — the screen,
+     less the chrome, up to 600px — sized for the days when the hour list
+     ran to the card's foot. Once the lists stopped at five rows it opened
+     568px on a 900px screen to show a 305px time list: 264px of empty
+     glass under "Exact time". Each picker now says how tall it is, worked
+     out from the same numbers its rows are drawn from, so a change to a row
+     moves the card with it instead of leaving a gap behind again.
+       place: the panel's 8+22 padding, the list's 6px top padding, its
+              group labels (--cgroups), five rows, and the footer
+       time:  padding, five rows and four gaps, the exact row's 12px
+              margin and 12px rule-and-padding, and its two lines
+       date:  padding, the 38px month head and its 10px margin, the
+              weekday row and its 4px, the month's 4-6 weeks (--dtf-weeks) of
+              --dtf-row and 2px gaps
+     The welcome and the place words before a letter is typed take the
+     place height, so typing the first letter does not move the card.
+     --qbody-h is still the ceiling: a short window keeps its old cut, and
+     the list scrolls inside whatever the screen can give. */
+  .qcard{--dtf-row:46px;--dtf-weeks:6;--qpanel-pad:30px;
+    --qfit-place:calc(var(--qpanel-pad) + 6px + var(--cgroup-h) * var(--cgroups, 1)
+      + var(--crow-h) * 5 + var(--cattrib-h));
+    --qfit-time:calc(var(--qpanel-pad) + var(--tmf-row) * var(--tmf-rows)
+      + var(--tmf-gap) * (var(--tmf-rows) - 1) + 24px + var(--tmf-exact-h));
+    --qfit-date:calc(var(--qpanel-pad) + 48px + var(--t-meta) * var(--lh-body) + 4px
+      + var(--dtf-row) * var(--dtf-weeks) + 2px * (var(--dtf-weeks) - 1));
+    --qbody-fit:var(--qfit-place);}
+  .qcard:has(.timefield .dtf-pop){--qbody-fit:var(--qfit-time);}
+  .qcard:has(.datefield .dtf-pop){--qbody-fit:var(--qfit-date);}
+  /* The calendar draws only the weeks its month has (DateField's
+     data-weeks): a February that opens on a Sunday is four rows, and a
+     card still sized for six left two empty rows of glass under it. */
+  .qcard:has(.dtf-grid[data-weeks="4"]){--dtf-weeks:4;}
+  .qcard:has(.dtf-grid[data-weeks="5"]){--dtf-weeks:5;}
+  /* The same height transition carries the card between pickers, so
+     moving from the hour to the pickup grows it rather than jumping. */
+  .qcard.is-open .qbody{height:min(var(--qbody-fit), var(--qbody-h));}
+  /* The room the body no longer takes goes UNDER the card. The hero hangs
+     its column from the bottom (.hero-grid), and --qbody-h is exactly the
+     height that lands the open row under the nav — so a shorter body alone
+     dropped the whole row 226px down the screen, and moving from the hour
+     to the pickup slid the field you were reaching for out from under the
+     pointer. Body plus this margin is always --qbody-h, and both ride the
+     same curve for the same time, so the sum holds through every frame and
+     the row stays exactly where it was; only the card's foot moves. */
+  .qcard.is-open{margin-bottom:max(0px, calc(var(--qbody-h) - var(--qbody-fit)));}
+  .qcard{transition:border-color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
+             background-color var(--dur-slow-ui) var(--ease-ui),
+             margin-bottom var(--dur-reveal) var(--ease-reveal);}
 }
+/* restated after the docked block, which would otherwise win over the
+   reduced-motion rule above by coming later at the same specificity */
+@media(prefers-reduced-motion:reduce){.qcard{transition:none;}}
 /* The words as the card's resting panel, at every width — the phone-only
    rule further down is for the standalone picker. */
 .qcard .combo.open .chint{display:flex;}
@@ -1046,14 +1169,51 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   border:1px solid var(--nav-rule);box-shadow:var(--shadow-hard-lg);}
 /* opened upward, because there was no room below — see PlaceCombobox */
 .cpanel.up{top:auto;bottom:calc(100% + 10px);}
-.clist{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
-  list-style:none;margin:0;padding:6px 0;}
+/* FIVE ROWS, THEN SCROLL. "pa" matched nineteen hotels and the list ran
+   the height of the panel — 420px of two-line rows hanging over the card
+   while the traveller was still typing. The cap is the list's top
+   padding, the group labels above the fifth option (--cgroups, counted by
+   PlaceCombobox) and five option rows, all derived from the type the rows
+   are set in rather than measured once in px — so a reader with a larger
+   default font still gets five, not four and a sliver.
+   The bottom fade is the time list's "there is more" in the same 10px
+   that the row's own padding leaves empty, so a list with nothing below
+   loses no ink to it. */
+/* On :root for the same reason as the time list's: the open hero card
+   sizes its body from these (--qfit-place). --cattrib-h is the footer
+   under the list, one line of --t-meta. */
+:root{--crow-h:calc(var(--t-body) * 1.3 + 2px + var(--t-meta) * var(--lh-body) + 20px);
+  --cgroup-h:calc(var(--t-meta) * var(--lh-body) + 20px);
+  --cattrib-h:calc(var(--t-meta) * var(--lh-body) + 22px);}
+/* Group labels above the fifth option, counted by PlaceCombobox into
+   data-groups. Set on the list for its own cap, and on the hero card that
+   holds it so the card's open body is cut to the same list. Five is the
+   most there can be: one label per option. */
+.clist[data-groups="2"],.qcard:has(.clist[data-groups="2"]){--cgroups:2;}
+.clist[data-groups="3"],.qcard:has(.clist[data-groups="3"]){--cgroups:3;}
+.clist[data-groups="4"],.qcard:has(.clist[data-groups="4"]){--cgroups:4;}
+.clist[data-groups="5"],.qcard:has(.clist[data-groups="5"]){--cgroups:5;}
+.clist{flex:0 1 auto;min-height:0;
+  max-height:calc(6px + var(--cgroup-h) * var(--cgroups, 1) + var(--crow-h) * 5);
+  overflow-y:auto;overscroll-behavior:contain;
+  list-style:none;margin:0;padding:6px 0;
+  -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent 100%);
+  mask-image:linear-gradient(180deg,#000 calc(100% - 10px),transparent 100%);}
+/* The custom-address row is sticky at the foot (below), so it lies over
+   whichever option sits in the bottom slot. scrollIntoView({block:
+   "nearest"}) counts that option as already visible and leaves the arrow
+   key's highlight underneath the sticky row — rare in a 420px list, every
+   time in a five-row one. Scroll padding is what scrollIntoView aims
+   inside, so it now stops a row short of the sticky one. */
+.clist:has(> li.custom){scroll-padding-bottom:var(--crow-h);}
 .cpanel .cgroup{font-weight:600;font-size:var(--t-meta);letter-spacing:.18em;text-transform:uppercase;color:var(--silver);
-  padding:13px 16px 7px;}
+  padding:13px 16px 7px;line-height:var(--lh-body);}
 /* Icon, then two lines: what it is called, and where it is. They used to
    share one row and compete for it — the name lost, mid-word. */
-.clist li[role="option"]{display:flex;align-items:center;gap:13px;padding:10px 16px;
-  min-height:var(--tap);font-weight:400;cursor:pointer;}
+/* height, not min-height: the five-row cap on .clist is arithmetic on
+   --crow-h, and both lines are nowrap, so nothing needs to grow it */
+.clist li[role="option"]{display:flex;align-items:center;gap:13px;padding:0 16px;
+  height:var(--crow-h);font-weight:400;cursor:pointer;}
 .clist li[role="option"] .oicon{flex:none;color:var(--muted);}
 .clist li[role="option"] .otext{min-width:0;display:flex;flex-direction:column;gap:2px;}
 .clist li[role="option"] .on{font-size:var(--t-body);line-height:1.3;color:var(--ink);
@@ -1081,7 +1241,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .clist .csearching{color:var(--silver);}
 /* Where the answers come from, said once, quietly, under everything — the
    place every map and search UI has taught people to look for it. */
-.cpanel .cattrib{flex:none;padding:10px 16px 11px;
+.cpanel .cattrib{flex:none;padding:10px 16px 11px;line-height:var(--lh-body);
   font-size:var(--t-meta);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
   border-top:1px solid var(--line-soft);}
 /* the search could not run — say so where the "we searched" line goes,
@@ -1831,7 +1991,15 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 }
 
 .pnav{display:flex;gap:12px;margin-top:6px;}
-.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:var(--t-body);letter-spacing:.12em;
+/* --t-meta, not --t-body. At 16px uppercase, letterspaced .12em, the
+   booking flow's Continue / Pay read a size louder than everything around
+   them and the owner found them too big. 14px is the rung every other
+   uppercase action on the site already sits on — the hero's .qbtn and
+   .btn-ghost — so the flow's way on now matches the button that opened
+   it. .btn is the booking flow's alone (StepFoot and the custom-address
+   form), so this changes nothing outside it. The height is the padding
+   and --tap, not the type, so the target stays well over 44px. */
+.btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:var(--t-meta);letter-spacing:.12em;
   text-transform:uppercase;transition:.3s;}
 .btn.primary{background:var(--sheen);color:var(--on-sheen);}
 .btn.primary:hover{transform:translateY(-2px);box-shadow:var(--shadow-hard);}

@@ -4,7 +4,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   WEEKDAY_INITIALS, addDays, addMonths, dayOfMonth, formatDate, formatDateShort,
-  monthGrid, monthLabel, sameMonth, todayInAruba,
+  monthCells, monthLabel, sameMonth, todayInAruba,
 } from "../../lib/datetime";
 
 interface DateFieldProps {
@@ -103,7 +103,11 @@ export default function DateField({
     if (open) gridRef.current?.querySelector<HTMLElement>('[tabindex="0"]')?.focus();
   }, [cursor, open]);
 
-  const days = monthGrid(cursor);
+  // Weeks of seven, the last one short: only the month's own days are
+  // drawn (see monthCells), so a month needs four, five or six rows and the
+  // grid says which in data-weeks — the open hero card sizes itself from it.
+  const cells = monthCells(cursor);
+  const weeks = Array.from({ length: Math.ceil(cells.length / 7) }, (_, w) => cells.slice(w * 7, w * 7 + 7));
   const canGoBack = !sameMonth(cursor, floor) && cursor > floor;
 
   return (
@@ -169,35 +173,49 @@ export default function DateField({
             {WEEKDAY_INITIALS.map((d) => <span key={d}>{d}</span>)}
           </div>
 
+          {/* A grid owns rows and a row owns cells — the days used to sit
+              straight in the grid, which is not a structure a screen reader
+              can walk by row and column. Arrow keys need no special case at
+              the month's edges: they move the cursor a day or a week, and
+              the grid is drawn from the cursor's month, so stepping past the
+              31st turns the page and focus lands on the 1st. */}
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
           <div
             className="dtf-grid"
             id={gridId}
             role="grid"
+            aria-label={monthLabel(cursor)}
+            data-weeks={weeks.length}
             ref={gridRef}
             onKeyDown={onGridKey}
           >
-            {days.map((iso) => {
-              const outside = !sameMonth(iso, cursor);
-              const disabled = iso < floor;
-              const selected = iso === value;
-              const focused = iso === cursor;
-              return (
-                <button
-                  key={iso}
-                  type="button"
-                  role="gridcell"
-                  aria-selected={selected}
-                  aria-label={formatDate(iso)}
-                  disabled={disabled}
-                  tabIndex={focused ? 0 : -1}
-                  className={`dtf-day${outside ? " out" : ""}${selected ? " sel" : ""}${focused ? " cur" : ""}`}
-                  onClick={() => commit(iso)}
-                >
-                  {dayOfMonth(iso)}
-                </button>
-              );
-            })}
+            {weeks.map((week, w) => (
+              <div key={w} className="dtf-week" role="row">
+                {week.map((iso, i) => {
+                  // the weekdays before the 1st: room, not a day — nothing
+                  // to focus, nothing to read out
+                  if (!iso) return <span key={`blank-${i}`} className="dtf-blank" aria-hidden="true" />;
+                  const disabled = iso < floor;
+                  const selected = iso === value;
+                  const focused = iso === cursor;
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      role="gridcell"
+                      aria-selected={selected}
+                      aria-label={formatDate(iso)}
+                      disabled={disabled}
+                      tabIndex={focused ? 0 : -1}
+                      className={`dtf-day${selected ? " sel" : ""}${focused ? " cur" : ""}`}
+                      onClick={() => commit(iso)}
+                    >
+                      {dayOfMonth(iso)}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       )}

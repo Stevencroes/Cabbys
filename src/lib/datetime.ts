@@ -127,17 +127,21 @@ export function monthLabel(iso: string): string {
   return `${MONTHS_LONG[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-/** Six weeks of ISO dates covering the month `iso` falls in, Sunday-first. */
-export function monthGrid(iso: string): string[] {
-  const d = dateParts(iso);
-  const first = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 12));
-  const start = new Date(first);
-  start.setUTCDate(1 - first.getUTCDay());
-  return Array.from({ length: 42 }, (_, i) => {
-    const cell = new Date(start);
-    cell.setUTCDate(start.getUTCDate() + i);
-    return cell.toISOString().slice(0, 10);
-  });
+/**
+ * The month `iso` falls in, laid out for a Sunday-first calendar: a blank
+ * (null) for each weekday before the 1st, then the month's own days and
+ * nothing after the last.
+ *
+ * It used to pad to six full weeks with the neighbouring months' dates,
+ * so October opened on 27 28 29 30 of September and ran on to 7 November.
+ * Those spill-over days read as part of the month, and the owner asked for
+ * the calendar to run 1 to 31 and stop. The blanks stay because weekdays
+ * still have to sit under their headers; the trailing ones go because
+ * nothing follows the last day.
+ */
+export function monthCells(iso: string): (string | null)[] {
+  const lead = new Date(`${iso.slice(0, 7)}-01T12:00:00Z`).getUTCDay();
+  return [...Array.from({ length: lead }, () => null), ...monthDays(iso)];
 }
 
 export function sameMonth(a: string, b: string): boolean {
@@ -191,10 +195,10 @@ export function arubaDayOf(iso: string | null | undefined): string {
  * Every ISO date in the month `iso` falls in — that month's own days, and
  * only those.
  *
- * Not monthGrid, which pads to six full weeks with the neighbouring
- * months' dates so a calendar can draw square rows. A month's earnings
- * are the month's, and borrowing four days from August into September's
- * total is the kind of error nobody catches until a driver does.
+ * A month's earnings are the month's, and borrowing four days from
+ * August into September's total is the kind of error nobody catches until
+ * a driver does. (The booking calendar's monthCells is built on this, so
+ * it cannot borrow them either.)
  */
 export function monthDays(iso: string): string[] {
   const d = dateParts(iso);

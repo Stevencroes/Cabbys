@@ -38,6 +38,10 @@ const MIN_GEO = 3;
     feel like it is keeping up, long enough that typing a street name is
     one request rather than fourteen. */
 const GEO_DEBOUNCE = 220;
+/** Option rows the list shows before it scrolls. The cap itself is CSS
+    (.clist); this is only here to count the group labels it must make
+    room for — see capGroups. */
+const VISIBLE_ROWS = 5;
 
 interface PlaceComboboxProps {
   label: string;
@@ -287,6 +291,18 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
   /** the page has been scrolled once for this list — see measure() */
   const nudged = useRef(false);
   const options = useMemo(() => rows.filter((r) => r.kind !== "group"), [rows]);
+  /** Group labels above the fifth option. The list is cut at five option
+      rows, and a cut that counted only one label showed four and a half
+      whenever a short group came first — "a" opens on Airport & port, two
+      rows, then Hotels & resorts. Counting them here keeps it five. */
+  const capGroups = useMemo(() => {
+    let seen = 0, groups = 0;
+    for (const r of rows) {
+      if (r.kind === "group") groups++;
+      else if (++seen === VISIBLE_ROWS) break;
+    }
+    return Math.max(groups, 1);
+  }, [rows]);
   // Geocoded rows land a beat after the catalog ones, so the highlight can
   // be pointing past the end of a list that just changed under it.
   const activeIdx = Math.min(active, Math.max(options.length - 1, 0));
@@ -417,7 +433,11 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
     const measure = () => {
       const r = wrapRef.current?.getBoundingClientRect();
       if (!r) return;
-      const GAP = 10, EDGE = 16, WANT = 420, FLOOR = 220;
+      // WANT is the panel's whole natural height now that the list caps
+      // itself at five rows (.clist): five rows, two group labels and a
+      // two-line footer come to ~480px. At 420 the panel was the tighter
+      // cap and squeezed the list to four on a phone with room to spare.
+      const GAP = 10, EDGE = 16, WANT = 500, FLOOR = 220;
       // visualViewport, not innerHeight. An on-screen keyboard shrinks the
       // VISUAL viewport and leaves the layout viewport alone, so innerHeight
       // still reports the full screen and a list measured against it runs
@@ -551,7 +571,11 @@ export default function PlaceCombobox({ label, value, onSelect, placeholder, inp
           className={`cpanel${drop.up ? " up" : ""}`}
           style={drop.max ? { maxHeight: drop.max } : undefined}
         >
-        <ul className="clist" id={listId} role="listbox" aria-label={label} ref={listRef}>
+        <ul className="clist" id={listId} role="listbox" aria-label={label} ref={listRef}
+          // an attribute, not an inline --cgroups: the hero card has to
+          // read the count too (it opens to fit this list), and a card can
+          // match on a descendant's attribute but not inherit its style
+          data-groups={capGroups}>
           {rows.map((row) => {
             if (row.kind === "group") {
               return <li key={row.id} className="cgroup" role="presentation">{row.group}</li>;

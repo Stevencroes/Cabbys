@@ -81,6 +81,21 @@ describe("TimeField", () => {
     expect(slots.filter((b) => b.getAttribute("tabindex") === "0")).toHaveLength(1);
   });
 
+  it("travels on under the arrow keys rather than one row from the answer", () => {
+    setup("09:30");
+    openIt();
+    const list = screen.getByRole("listbox");
+    // each press counts from the row that has focus — it used to count
+    // from the answer, so the third press still landed on 9:45
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    expect(document.activeElement).toHaveTextContent("10:15 AM");
+    // and still one stop in the tab order
+    const slots = screen.getAllByRole("option");
+    expect(slots.filter((b) => b.getAttribute("tabindex") === "0")).toHaveLength(1);
+  });
+
   it("marks itself invalid for the step validator", () => {
     render(<TimeField id="t" label="Pickup time" value="" onChange={vi.fn()} invalid />);
     expect(screen.getByRole("button", { name: /pickup time/i })).toHaveAttribute("aria-invalid", "true");

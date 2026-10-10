@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatDate, formatTime, formatDateTime, todayInAruba, arubaInstant,
-  to12Hour, to24Hour, addDays, addMonths, monthGrid, monthLabel, isHhmm,
+  to12Hour, to24Hour, addDays, addMonths, monthCells, monthLabel, isHhmm,
   weekStart, weekDays, weekRangeLabel, weekdayShort, weekdayLong, monthDays,
 } from "./datetime";
 
@@ -63,12 +63,18 @@ describe("dates and times (Phase 1)", () => {
     expect(monthLabel("2026-08-07")).toBe("August 2026");
   });
 
-  it("builds a six-week grid that contains the whole month", () => {
-    const grid = monthGrid("2026-08-07");
-    expect(grid).toHaveLength(42);
-    expect(grid).toContain("2026-08-01");
-    expect(grid).toContain("2026-08-31");
-    expect(new Date(`${grid[0]}T12:00:00Z`).getUTCDay()).toBe(0); // Sunday-first
+  it("lays a month out 1 to its last day, blanks only before the 1st", () => {
+    // August 2026 opens on a Saturday: six blanks, then 1 to 31, then nothing
+    const aug = monthCells("2026-08-07");
+    expect(aug.slice(0, 6)).toEqual([null, null, null, null, null, null]);
+    expect(aug[6]).toBe("2026-08-01");
+    expect(aug[aug.length - 1]).toBe("2026-08-31");
+    expect(aug).toHaveLength(6 + 31);
+    // no September in it, and no July
+    expect(aug.filter((c) => c && !c.startsWith("2026-08"))).toHaveLength(0);
+    // a month that opens on a Sunday has no blanks at all
+    expect(monthCells("2026-02-14")[0]).toBe("2026-02-01");
+    expect(monthCells("2026-02-14")).toHaveLength(28);
   });
 
   // The roster is read Monday to Sunday, and getUTCDay() counts Sunday as
@@ -97,9 +103,8 @@ describe("dates and times (Phase 1)", () => {
     expect(weekRangeLabel("2026-12-31")).toBe("28 Dec 2026 – 3 Jan 2027");
   });
 
-  // Not monthGrid, which pads to six full weeks with the neighbouring
-  // months' dates. Borrowing four days of August into September's
-  // earnings is the kind of error nobody catches until a driver does.
+  // Borrowing four days of August into September's earnings is the kind
+  // of error nobody catches until a driver does.
   it("gives a month its own days and nobody else's", () => {
     const sep = monthDays("2026-09-17");
     expect(sep).toHaveLength(30);

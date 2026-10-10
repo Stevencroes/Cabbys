@@ -43,6 +43,19 @@ const tap = (el: Element | Document) => { fireEvent.pointerDown(el); fireEvent.p
 const type = (s: string) => fireEvent.change(box(), { target: { value: s } });
 
 describe("PlaceCombobox", () => {
+  it("keeps every match reachable and makes room for each group label in the five-row cap", () => {
+    render(<Harness />);
+    fireEvent.focus(box());
+    // "a" opens on Airport & port (two rows), then Hotels & resorts: two
+    // labels sit above the fifth option, so the cap has to count both or
+    // the list shows four and a half
+    type("a");
+    const list = screen.getByRole("listbox");
+    expect(list).toHaveAttribute("data-groups", "2");
+    // the cap is a scroll, not a cut — nothing is sliced off the list
+    expect(opts().length).toBeGreaterThan(5);
+  });
+
   it("suggests nothing until something is typed", () => {
     render(<Harness />);
     fireEvent.focus(box());
