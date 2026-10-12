@@ -142,8 +142,8 @@
      ones out, which is what the owner saw and asked to have fixed. The
      exception is made in admin.css by using --t-meta, NOT by re-pointing
      --t-body, so this scale means the same thing in every stylesheet and
-     the marketing site and the driver portal (read on a phone, at a kerb,
-     in a car mount) keep their 16px. Two things the exception does not
+     the marketing site keeps its 16px (the driver portal later took the
+     admin's 14px too — see below). Two things the exception does not
      touch: 14px is still the floor there too, and the admin's form
      fields are 14px knowingly — iOS zooms a focused input under 16px,
      which is acceptable on a desk tool and would not be on the booking
@@ -162,10 +162,10 @@
      this scale live HERE, below, rather than scoped to .adm. They were
      --a-t-page and --a-t-figure* inside admin.css; a second copy in
      driver.css would have been two numbers for one rung, which is how a
-     scale drifts. The driver portal keeps one difference on purpose: its
-     running text stays --t-body on a phone, which is read at a kerb and
-     zooms any focused input under 16px; on a desk-width window it takes
-     the admin's --t-meta like the rest of the system (see driver.css).
+     scale drifts. Its running text is the admin's --t-meta too, at every
+     width; only its form fields keep --t-body on a phone, because iOS
+     zooms the page when a focused input is under 16px (see --d-field in
+     driver.css).
      The marketing site is untouched: Cormorant still carries its display
      and this scale is still its whole vocabulary. */
   --t-micro:0.75rem;      /* 12px — uppercase letterspaced labels ONLY */
