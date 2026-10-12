@@ -88,33 +88,53 @@ export default function History({ driver }: { driver: DriverProfile }) {
   /** true while a "show more" is in flight, so the button can say so */
   const [loadingMore, setLoadingMore] = useState(false);
   const [query, setQuery] = useState("");
+  /**
+   * The drawer could not be read — which is not "No trips yet". The error
+   * used to be destructured away, so a driver opening History to settle
+   * a dispute on hotel wifi was told they had never completed a trip:
+   * the exact sentence that starts the argument this screen exists to
+   * end. Same rule as the roster and the pool.
+   */
+  const [failed, setFailed] = useState<string | null>(null);
+  /** a "show more" that did not land — the page already shown stays */
+  const [moreFailed, setMoreFailed] = useState<string | null>(null);
+  /** bumped by "Try again" */
+  const [attempt, setAttempt] = useState(0);
 
   const load = useCallback(
-    async (want: number) => {
-      const { jobs } = drawer === "completed"
-        ? await loadCompleted(driver.id, want)
-        : await loadCancelled(driver.id, want);
-      return jobs;
-    },
+    (want: number) => (drawer === "completed"
+      ? loadCompleted(driver.id, want)
+      : loadCancelled(driver.id, want)),
     [driver.id, drawer],
   );
 
   useEffect(() => {
     let stale = false;
     setRides(null);
+    setFailed(null);
+    setMoreFailed(null);
     setLimit(PAGE);
-    void load(PAGE).then((jobs) => { if (!stale) setRides(jobs); });
+    void load(PAGE).then(({ jobs, error }) => {
+      if (stale) return;
+      setFailed(error);
+      setRides(jobs);
+    });
     return () => { stale = true; };
-  }, [load]);
+  }, [load, attempt]);
 
   /** There may be more behind this page — ask for the next one. */
   async function more() {
     setLoadingMore(true);
+    setMoreFailed(null);
     const want = limit + PAGE;
-    const jobs = await load(want);
+    const { jobs, error } = await load(want);
+    setLoadingMore(false);
+    // A failed page is not a shorter list: replacing the rides with []
+    // would empty the screen, and keeping a short answer would read as
+    // "that's every trip". Keep what is shown and say the next page failed.
+    if (error) { setMoreFailed(error); return; }
     setRides(jobs);
     setLimit(want);
-    setLoadingMore(false);
   }
 
   const found = useMemo(() => (rides ?? []).filter((r) => matches(r, query)), [rides, query]);
@@ -154,104 +174,130 @@ export default function History({ driver }: { driver: DriverProfile }) {
           >Cancelled</button>
         </div>
 
-        {rides !== null && rides.length > 0 && (
-          <>
-            <div className="drv-stats">
-              <div className="drv-srow">
-                <div className="drv-scell">
-                  <div className="drv-sk">{query ? "Trips found" : "Trips shown"}</div>
-                  <div className="drv-sv">{found.length}</div>
-                </div>
-                <div className="drv-scell">
-                  {/* A cancelled ride paid nothing, and a column headed
-                      "Paid for them" reading $0 invites the question it
-                      was supposed to answer. */}
-                  <div className="drv-sk">{drawer === "completed" ? "Paid for them" : "Would have paid"}</div>
-                  <div className="drv-sv"><small>$</small>{Math.round(total).toLocaleString("en-US")}</div>
+        {/* The figures and the search are the aside: above the list on a
+            phone, beside it on a desk (THE COLUMNS), where a receipt list
+            the width of the page would be a row of words and a gap. */}
+        <div className="drv-cols">
+          {!failed && rides !== null && rides.length > 0 && (
+            <aside className="drv-aside" aria-label="Find a trip">
+              <div className="drv-stats">
+                <div className="drv-srow">
+                  <div className="drv-scell">
+                    <div className="drv-sk">{query ? "Trips found" : "Trips shown"}</div>
+                    <div className="drv-sv">{found.length}</div>
+                  </div>
+                  <div className="drv-scell">
+                    {/* A cancelled ride paid nothing, and a column headed
+                        "Paid for them" reading $0 invites the question it
+                        was supposed to answer. */}
+                    <div className="drv-sk">{drawer === "completed" ? "Paid for them" : "Would have paid"}</div>
+                    <div className="drv-sv"><small>$</small>{Math.round(total).toLocaleString("en-US")}</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="drv-find">
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search a place, a car, a reference"
-                aria-label="Search your completed trips"
-              />
-              {query && (
-                <button type="button" onClick={() => setQuery("")} aria-label="Clear the search">✕</button>
-              )}
-            </div>
-          </>
-        )}
+              <div className="drv-find">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search a place, a car, a reference"
+                  aria-label={drawer === "completed" ? "Search your completed trips" : "Search your cancelled rides"}
+                />
+                {query && (
+                  <button type="button" onClick={() => setQuery("")} aria-label="Clear the search">✕</button>
+                )}
+              </div>
+            </aside>
+          )}
 
-        {rides === null ? (
-          <div className="drv-empty"><p className="et">Loading your trips.</p></div>
-        ) : rides.length === 0 ? (
-          <div className="drv-empty">
-            <div className="es">{drawer === "completed" ? "No trips yet." : "Nothing cancelled."}</div>
-            <p className="et">
-              {drawer === "completed"
-                ? "Every completed job lands here with its fare, as your own record."
-                : "No ride of yours has been called off. They land here when one is."}
-            </p>
-          </div>
-        ) : found.length === 0 ? (
-          // Not "no trips" — the drawer is full, this search just missed.
-          <div className="drv-empty">
-            <div className="es">Nothing matches “{query}”.</div>
-            <p className="et">Try a place name, the car, or the booking reference.</p>
-          </div>
-        ) : (
-          <>
-            {months.map(([month, list]) => (
-              <section key={month}>
-                <div className="drv-band">
-                  <span className="bk">{month}</span>
-                  <span className="bn">{list.length}</span>
-                  <span className="bv">
-                    ${Math.round(list.reduce((s, r) => s + (r.payoutUsd ?? 0), 0)).toLocaleString("en-US")}
-                  </span>
-                </div>
-                {list.map((r) => (
-                  <RideRow
-                    key={r.id}
-                    job={r}
-                    mark={(r.contactName || "·").trim().charAt(0).toUpperCase()}
-                    meta={[
-                      whenLabel(drawer === "completed" ? r.completedAt ?? r.scheduledAt : r.scheduledAt),
-                      r.vehicle,
-                      drawer === "cancelled" ? "Cancelled" : null,
-                    ].filter(Boolean).join(" · ")}
-                    onOpen={() => navigate(`/drive/ride/${r.id}`)}
-                  />
-                ))}
-              </section>
-            ))}
-
-            {/* Say where the bottom is. A list that just stops is a list a
-                driver has to guess the end of. */}
-            {exhausted ? (
-              <p className="sub foot" style={{ marginTop: 20 }}>
-                {drawer === "completed"
-                  ? "That's every trip you've completed."
-                  : "That's every ride that was called off."}
-              </p>
+          <div className="drv-main">
+            {rides === null ? (
+              <div className="drv-empty" aria-busy="true"><p className="et">Loading your trips.</p></div>
+            ) : failed ? (
+              // Not "no trips" — the drawer could not be read at all.
+              <div className="drv-empty" role="alert">
+                <div className="es">Can't read your trips.</div>
+                <p className="et">
+                  Every trip you've driven is still on record — this portal just can't load them.
+                  Check your signal, then try again.
+                </p>
+                <p className="et mono">{failed}</p>
+                <button type="button" className="drv-cta ghost" onClick={() => setAttempt((n) => n + 1)}>
+                  Try again
+                </button>
+              </div>
+            ) : rides.length === 0 ? (
+              <div className="drv-empty">
+                <div className="es">{drawer === "completed" ? "No trips yet." : "Nothing cancelled."}</div>
+                <p className="et">
+                  {drawer === "completed"
+                    ? "Every completed job lands here with its fare, as your own record."
+                    : "No ride of yours has been called off. They land here when one is."}
+                </p>
+              </div>
+            ) : found.length === 0 ? (
+              // Not "no trips" — the drawer is full, this search just missed.
+              <div className="drv-empty">
+                <div className="es">Nothing matches “{query}”.</div>
+                <p className="et">Try a place name, the car, or the booking reference.</p>
+              </div>
             ) : (
-              <button
-                type="button"
-                className="drv-cta ghost"
-                style={{ marginTop: 20 }}
-                disabled={loadingMore}
-                onClick={() => void more()}
-              >
-                {loadingMore ? "…" : "Show earlier trips"}
-              </button>
+              <>
+                {months.map(([month, list]) => (
+                  <section key={month}>
+                    <div className="drv-band">
+                      <span className="bk">{month}</span>
+                      <span className="bn">{list.length}</span>
+                      <span className="bv">
+                        ${Math.round(list.reduce((s, r) => s + (r.payoutUsd ?? 0), 0)).toLocaleString("en-US")}
+                      </span>
+                    </div>
+                    {list.map((r) => (
+                      <RideRow
+                        key={r.id}
+                        job={r}
+                        mark={(r.contactName || "·").trim().charAt(0).toUpperCase()}
+                        meta={[
+                          whenLabel(drawer === "completed" ? r.completedAt ?? r.scheduledAt : r.scheduledAt),
+                          r.vehicle,
+                          drawer === "cancelled" ? "Cancelled" : null,
+                        ].filter(Boolean).join(" · ")}
+                        onOpen={() => navigate(`/drive/ride/${r.id}`)}
+                      />
+                    ))}
+                  </section>
+                ))}
+
+                {moreFailed && (
+                  <div className="drv-refused" role="alert">
+                    <div className="rk">Couldn't load earlier trips</div>
+                    <p>The trips above are all still here. Check your signal and try again.</p>
+                  </div>
+                )}
+                {/* Say where the bottom is. A list that just stops is a list a
+                    driver has to guess the end of. */}
+                {exhausted ? (
+                  <p className="sub foot" style={{ marginTop: 20 }}>
+                    {drawer === "completed"
+                      ? "That's every trip you've completed."
+                      : "That's every ride that was called off."}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className="drv-cta ghost"
+                    style={{ marginTop: 20 }}
+                    disabled={loadingMore}
+                    onClick={() => void more()}
+                  >
+                    {loadingMore ? "…" : "Show earlier trips"}
+                  </button>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );
