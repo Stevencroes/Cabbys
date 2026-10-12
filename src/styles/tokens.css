@@ -162,10 +162,9 @@
      this scale live HERE, below, rather than scoped to .adm. They were
      --a-t-page and --a-t-figure* inside admin.css; a second copy in
      driver.css would have been two numbers for one rung, which is how a
-     scale drifts. Its running text is the admin's --t-meta too, at every
-     width; only its form fields keep --t-body on a phone, because iOS
-     zooms the page when a focused input is under 16px (see --d-field in
-     driver.css).
+     scale drifts. Its running text and form fields are the admin's --t-meta
+     too, at every width, accepting the iOS focus zoom as the admin does
+     (see --d-text in driver.css).
      The marketing site is untouched: Cormorant still carries its display
      and this scale is still its whole vocabulary. */
   --t-micro:0.75rem;      /* 12px — uppercase letterspaced labels ONLY */
