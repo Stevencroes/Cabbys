@@ -139,7 +139,7 @@ export default function History({ driver }: { driver: DriverProfile }) {
     <div className="drv-view">
       <div className="drv-pad">
         <div className="kick">History</div>
-        <h1 className="big" style={{ fontSize: 30 }}>
+        <h1 className="big">
           {drawer === "completed" ? "Completed." : "Called off."}
         </h1>
 
