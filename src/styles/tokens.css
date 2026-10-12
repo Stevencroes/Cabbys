@@ -152,11 +152,22 @@
      The admin desk also sets aside the PAIRING above, by the same owner,
      in the same month: it took the typography and colours of a reference
      analytics dashboard he pointed at, so the admin is Inter throughout
-     (no Cormorant, not even for its figures) and adds its own scoped
-     rungs, --a-t-page and --a-t-figure*, for that dashboard's bold title
-     and big tabular figures. Those live in admin.css under .adm and mean
-     nothing outside it. Everywhere else, Cormorant still carries display
-     and this scale is still the whole vocabulary. */
+     (no Cormorant, not even for its figures).
+
+     THE DRIVER PORTAL FOLLOWED IT, at the owner's direction (October
+     2026): "make the driver portal's typography the same as the admin's".
+     So the two portals are one typographic system — Inter only, sentence
+     case rather than uppercase letterspaced labels, medium card titles,
+     semibold tabular figures — and the rungs that system needs beyond
+     this scale live HERE, below, rather than scoped to .adm. They were
+     --a-t-page and --a-t-figure* inside admin.css; a second copy in
+     driver.css would have been two numbers for one rung, which is how a
+     scale drifts. The driver portal keeps one difference on purpose: its
+     running text stays --t-body on a phone, which is read at a kerb and
+     zooms any focused input under 16px; on a desk-width window it takes
+     the admin's --t-meta like the rest of the system (see driver.css).
+     The marketing site is untouched: Cormorant still carries its display
+     and this scale is still its whole vocabulary. */
   --t-micro:0.75rem;      /* 12px — uppercase letterspaced labels ONLY */
   --t-meta:0.875rem;      /* 14px — supporting text, the absolute floor */
   --t-body:1rem;          /* 16px — body copy, any sentence, form fields */
@@ -169,6 +180,22 @@
   --t-display-sm:clamp(1.6rem,5.6vw,2.2rem);
   --t-display-md:clamp(1.95rem,7vw,2.9rem);
   --t-display-lg:clamp(2.4rem,9vw,4.2rem);
+
+  /* ---------- the portals' rungs ----------
+     The admin desk and the driver portal share one sans hierarchy (see
+     the note above): a bold page title between --t-head and the display
+     sizes, and figures large enough to be the first thing read. Read by
+     admin.css and driver.css; the marketing site has no use for them. */
+  --t-page:2rem;          /* 32px — a portal page title, Inter 700 */
+  --t-figure:2.25rem;     /* 36px — a stat tile's figure, Inter 600 */
+  --t-figure-sm:1.625rem; /* 26px — a figure in a compact tile or card */
+  /* 48px — the ONE figure a screen exists to show: a driver's period
+     total, an incoming offer's payout. The admin has no such figure. */
+  --t-figure-xl:3rem;
+  /* Inter's default spacing is drawn for text sizes and opens up past
+     ~24px, so big figures and the page title set tight */
+  --ls-figure:-.02em;
+  --ls-page:-.015em;
 
   /* ---------- leading ----------
      Body copy at 1.4 was the other half of the complaint: the FAQ and the

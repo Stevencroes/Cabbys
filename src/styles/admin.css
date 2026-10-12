@@ -16,9 +16,11 @@
    What this file used to carry over from driver.css — Cormorant for
    every number that matters, and colour allowed to only two meanings,
    signal = live and alert = wrong — NO LONGER HOLDS IN THE ADMIN. Both
-   were overridden by the owner in October 2026, below. They still hold
-   on the marketing site and in the driver portal, which this file
-   cannot reach.
+   were overridden by the owner in October 2026, below. The colour rule
+   still holds on the marketing site and in the driver portal, which
+   this file cannot reach; the typography does not — the driver portal
+   took this board's type in the same month, through the shared rungs in
+   tokens.css.
 
    October 2026, at the owner's direction, in two steps:
 
@@ -48,7 +50,8 @@
    And RUNNING TEXT IS 14px HERE (--t-meta), not the 16px --t-body the
    rest of Cabby's sets sentences in — the one owner-requested exception
    to that floor, recorded in tokens.css beside the floor itself. Card
-   titles and figures take larger rungs; see --a-t-* under .adm.
+   titles and figures take larger rungs; see --t-page and --t-figure*
+   in tokens.css.
    ========================================================================== */
 .adm{
   /* Tighter than the driver portal's radii, which are drawn for cards
@@ -59,20 +62,11 @@
      cards are drawn soft and large-cornered and the owner asked for that
      look (October 2026); rows and inputs keep the tighter radii above. */
   --a-r-lg:20px;
-  /* ── the admin's own type rungs ───────────────────────────────────────
-     Added October 2026 for the reference dashboard's hierarchy, which the
-     site scale has no rung for: a bold page title between --t-head and
-     the fluid display sizes, and KPI figures large enough to be the
-     first thing read in a tile. Scoped to .adm so the site's scale
-     still means what it says everywhere else. Every size on the board
-     comes from these or from tokens.css; none is a raw px. */
-  --a-t-page:2rem;        /* 32px — the page title, Inter 700 */
-  --a-t-figure:2.25rem;   /* 36px — a KPI tile's figure, Inter 600 */
-  --a-t-figure-sm:1.625rem; /* 26px — the figure inside a donut or ring card */
-  /* tight tracking on big figures, as the reference sets them: Inter's
-     default spacing is drawn for text sizes and opens up past ~24px */
-  --a-ls-figure:-.02em;
-  --a-ls-page:-.015em;
+  /* The board's type rungs — the bold page title and the big tabular
+     figures — are --t-page, --t-figure* and --ls-* in tokens.css. They
+     were scoped here as --a-t-*; the driver portal took the same
+     typography (October 2026) and two copies of a rung is how a scale
+     drifts, so both portals now read the one set. */
   /* the one width the whole board lines up to */
   --a-maxw:1180px;
   /* an operator's pointer target — a mouse, not a thumb, so the 46px
@@ -310,7 +304,7 @@
   border-right:1px solid var(--line);background:var(--deep);
   padding:calc(env(safe-area-inset-top,0px) + 26px) 0 20px;}
 .adm-railtop{padding:0 20px;flex:none;}
-.adm-mark{font-weight:700;letter-spacing:var(--a-ls-page);
+.adm-mark{font-weight:700;letter-spacing:var(--ls-page);
   font-size:var(--t-lead);color:var(--ink);flex:none;display:block;}
 /* the apostrophe in the reference's accent — the one blue in the rail */
 .adm-mark .ap{color:#7FA4FF;}
@@ -357,8 +351,8 @@
    uppercase letterspaced labels anywhere, and the owner asked for its
    typography, so the kicker became a quiet meta line */
 .adm .kick{font-weight:500;font-size:var(--t-meta);color:var(--muted);}
-.adm .big{font-weight:700;font-size:var(--a-t-page);line-height:var(--lh-tight);
-  margin:6px 0 0;letter-spacing:var(--a-ls-page);}
+.adm .big{font-weight:700;font-size:var(--t-page);line-height:var(--lh-tight);
+  margin:6px 0 0;letter-spacing:var(--ls-page);}
 /* the emphasis was Cormorant italic in silver; in one sans it is just
    the title, so it no longer looks different from the words around it */
 .adm .big em{font-style:normal;color:inherit;}
@@ -556,7 +550,7 @@
   margin-bottom:20px;flex:none;}
 .adm-gate .gi svg{width:27px;height:27px;}
 .adm-gate .gi.stop{border-color:var(--alert-line);color:var(--alert-ink);background:var(--alert-tint);}
-.adm-gate h1{font-weight:700;font-size:var(--t-head);letter-spacing:var(--a-ls-page);margin:0 0 10px;line-height:var(--lh-snug);}
+.adm-gate h1{font-weight:700;font-size:var(--t-head);letter-spacing:var(--ls-page);margin:0 0 10px;line-height:var(--lh-snug);}
 .adm-gate p{color:var(--muted);font-size:var(--t-meta);line-height:1.7;max-width:42ch;margin:0;}
 /* the wordmark is the same size wherever it stands, the gate included */
 .adm-mark.gate{margin-bottom:24px;}
@@ -843,9 +837,9 @@
    This was Cormorant with proportional digits until the owner asked for
    the reference's type (October 2026); tabular is the reference's
    choice, and it keeps a row of tiles aligned digit for digit. */
-.adm-fig .v{margin-top:10px;font-weight:600;font-size:var(--a-t-figure-sm);
+.adm-fig .v{margin-top:10px;font-weight:600;font-size:var(--t-figure-sm);
   line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;
-  letter-spacing:var(--a-ls-figure);}
+  letter-spacing:var(--ls-figure);}
 .adm-fig .n{margin-top:5px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 /* a figure that is only ever a problem when it isn't zero. The word
    under it still says so — the colour is the second signal, never the
@@ -1190,7 +1184,7 @@ a.adm-row{text-decoration:none;color:inherit;}
 .adm-weekday .wd{font-weight:600;font-size:var(--t-meta);
   color:var(--muted);}
 .adm-weekday.on .wd{color:var(--silver);}
-.adm-weekday .wn{font-size:var(--t-lead);font-weight:600;color:var(--ink);letter-spacing:var(--a-ls-figure);
+.adm-weekday .wn{font-size:var(--t-lead);font-weight:600;color:var(--ink);letter-spacing:var(--ls-figure);
   line-height:var(--lh-tight);font-variant-numeric:tabular-nums;}
 .adm-weekday .wc{font-size:var(--t-meta);color:var(--muted);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;}
@@ -1326,7 +1320,7 @@ a.adm-row{text-decoration:none;color:inherit;}
   font-size:var(--t-body);font-weight:500;color:var(--ink);line-height:var(--lh-snug);}
 .adm-tilek .ic{flex:none;display:flex;color:var(--ink);margin:-2px -2px 0 0;}
 /* tabular digits and tight tracking, as the reference sets its figures */
-.adm-tilev{margin-top:12px;font-weight:600;font-size:var(--a-t-figure);letter-spacing:var(--a-ls-figure);
+.adm-tilev{margin-top:12px;font-weight:600;font-size:var(--t-figure);letter-spacing:var(--ls-figure);
   line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-tilev.wait i{display:block;width:55%;height:.9em;margin-top:.15em;border-radius:var(--a-r-pill);
   background:var(--raised);animation:admpulse 1.6s var(--ease) infinite;}
@@ -1379,7 +1373,7 @@ a.adm-row{text-decoration:none;color:inherit;}
    the left, the ring on the right */
 .adm-donutwrap{flex:1;display:flex;flex-direction:column;}
 .adm-donuthead{margin-bottom:14px;}
-.adm-donuthead b{display:block;font-weight:600;font-size:var(--a-t-figure-sm);letter-spacing:var(--a-ls-figure);
+.adm-donuthead b{display:block;font-weight:600;font-size:var(--t-figure-sm);letter-spacing:var(--ls-figure);
   line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-donuthead span{display:block;margin-top:4px;font-size:var(--t-meta);color:var(--muted);}
 .adm-donut{flex:1;display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;gap:20px;}
@@ -1423,7 +1417,7 @@ a.adm-row{text-decoration:none;color:inherit;}
   font-size:var(--t-meta);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-ringt{min-width:0;}
 .adm-ringt .k{font-size:var(--t-meta);color:var(--silver);}
-.adm-ringt .v{font-weight:600;font-size:var(--a-t-figure-sm);letter-spacing:var(--a-ls-figure);
+.adm-ringt .v{font-weight:600;font-size:var(--t-figure-sm);letter-spacing:var(--ls-figure);
   line-height:var(--lh-tight);color:var(--ink);font-variant-numeric:tabular-nums;}
 .adm-ringt .n{margin-top:6px;font-size:var(--t-meta);line-height:var(--lh-snug);color:var(--muted);}
 .adm-rings .adm-card{padding-bottom:18px;}
