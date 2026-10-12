@@ -368,24 +368,58 @@
   color:var(--ink);margin:6px 0 3px;letter-spacing:var(--ls-figure);font-variant-numeric:tabular-nums;}
 .drv-etot .ed{font-size:var(--t-meta);color:var(--muted);}
 
-.drv-chart{display:flex;align-items:flex-end;gap:7px;height:104px;margin-bottom:22px;}
-.drv-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
-  gap:7px;height:100%;}
-.drv-bar .bfill{width:100%;background:var(--line);border-radius:5px 5px 0 0;
-  transition:height .6s var(--ease);}
-.drv-bar.mid .bfill{background:var(--soft);}
-.drv-bar.peak .bfill{background:var(--silver);}
-.drv-bar .bl{font-size:var(--t-meta);color:var(--muted);font-weight:500;}
-/* The bars are buttons now, so they need to look touchable and say which
-   one is open. Reset the button chrome the shared rules would give them
-   and keep the 44px target the rest of the portal uses — a bar is 104px
-   tall, so height is already there; it is the tap affordance that was not. */
-.drv-bar{border:none;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.drv-bar .bfill{transition:background .18s var(--d-ease,ease),opacity .18s;}
+/* ── the week's columns ────────────────────────────────────────────────
+   Drawn by the admin's rules for columns (src/admin/charts.tsx), so a
+   bar here and a bar on the board are the same mark:
+     · ONE SERIES, ONE COLOUR. The bars used to be three greys by rank —
+       the best day --silver, the rest --soft, which is 2.09:1 on the
+       ground and under the 3:1 a mark needs — so colour was encoding
+       "is this the peak", and most of the week was barely visible. Every
+       day with money is now --silver (8.75:1); a day without is no bar
+       at all over the baseline, not a stub that reads as a little money.
+     · THIN, CAPPED, ROUNDED AT THE DATA END. 24px at most with a 4px
+       radius on top and a square foot on the baseline; the button around
+       it stays the whole column of air, so the target is bigger than the
+       mark.
+     · SELECTION DIMS THE REST, as the board's does, rather than repainting
+       the chosen bar in a second colour.
+     · ONE NUMBER WRITTEN ON THE CHART — the open day's, else the best —
+       and every bar's own on hover and focus. Each bar's aria-label has
+       always said all of it. */
+.drv-chart{display:flex;align-items:stretch;gap:2px;height:156px;margin:4px 0 22px;}
+.drv-bar{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:8px;
+  height:100%;border:none;background:none;padding:0;cursor:pointer;color:inherit;font-family:var(--sans);
+  -webkit-tap-highlight-color:transparent;}
+.drv-bar .bplot{position:relative;flex:1;width:100%;display:flex;flex-direction:column;
+  justify-content:flex-end;align-items:center;gap:6px;border-bottom:1px solid var(--line);}
+.drv-bar .bfill{width:100%;max-width:24px;flex:none;background:var(--silver);border-radius:4px 4px 0 0;
+  transition:height .6s var(--ease),opacity .2s var(--ease-ui),background .2s var(--ease-ui);}
+.drv-bar .bv{font-weight:600;font-size:var(--t-meta);line-height:1;color:var(--ink);
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.drv-bar .bl{flex:none;min-height:1.2em;font-size:var(--t-meta);font-weight:500;line-height:1.2;color:var(--muted);
+  font-variant-numeric:tabular-nums;}
+.drv-bar:hover .bfill{background:var(--highlight);}
 .drv-bar:active .bfill{opacity:.7;}
+.drv-chart.has-sel .drv-bar:not(.open) .bfill{opacity:.35;}
 .drv-bar.open .bfill{background:var(--ink);}
-.drv-bar.open .bl{color:var(--ink);}
+.drv-bar.open .bl{color:var(--ink);font-weight:600;}
 .drv-bar:focus-visible{outline:2px solid var(--silver);outline-offset:3px;border-radius:6px;}
+/* the readout, for a pointer or a keyboard: value in ink on the card,
+   never in the series colour. A bar already carrying its number on the
+   chart does not repeat it. */
+.drv-bar:not(:has(.bv)):focus-visible::after{content:attr(data-v);position:absolute;left:50%;top:0;
+  transform:translate(-50%,-6px);z-index:1;pointer-events:none;white-space:nowrap;
+  padding:5px 9px;border-radius:var(--d-r-sm);background:var(--surface);border:1px solid var(--line);
+  box-shadow:var(--shadow-hard);font-weight:600;font-size:var(--t-meta);color:var(--ink);
+  font-variant-numeric:tabular-nums;}
+@media(hover:hover){
+  .drv-bar:not(:has(.bv)):hover::after{content:attr(data-v);position:absolute;left:50%;top:0;
+    transform:translate(-50%,-6px);z-index:1;pointer-events:none;white-space:nowrap;
+    padding:5px 9px;border-radius:var(--d-r-sm);background:var(--surface);border:1px solid var(--line);
+    box-shadow:var(--shadow-hard);font-weight:600;font-size:var(--t-meta);color:var(--ink);
+    font-variant-numeric:tabular-nums;}
+}
+@media(min-width:960px){ .drv-chart{height:190px;} }
 /* the way back out of a single day */
 .drv-allweek{margin:0 0 18px;min-height:40px;font-size:var(--d-text);}
 /* the rides behind the figure above — History's row, same fact, different
@@ -1026,13 +1060,12 @@
 .drv-made .sum dd{font-size:var(--t-title);color:var(--ink);letter-spacing:var(--ls-figure);}
 
 /* A month is thirty-one bars in the width a week uses for seven. They
-   stay tappable — the bar is 104px tall, so the target is there — and
+   stay tappable — the bar is 156px tall, so the target is there — and
    only every seventh is labelled, because a column four pixels wide
    cannot carry a letter. */
-.drv-chart.dense{gap:3px;}
-.drv-chart.dense .drv-bar{gap:5px;}
-.drv-chart.dense .bfill{border-radius:2px 2px 0 0;}
-.drv-chart.dense .bl{font-size:var(--t-meta);letter-spacing:0;}
+.drv-chart.dense{gap:2px;}
+.drv-chart.dense .drv-bar{gap:6px;}
+.drv-chart.dense .bfill{max-width:none;border-radius:2px 2px 0 0;}
 
 
 /* a ride that was called off, said before anything else on the screen */
