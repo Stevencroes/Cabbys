@@ -271,156 +271,166 @@ export default function Schedule({ driver }: { driver: DriverProfile }) {
         <div className="kick">{weekdayLong(today)} {dayOfMonth(today)} · Aruba</div>
         <h1 className="big">{greeting(arubaHourNow())}<br /><em>{firstName}.</em></h1>
 
-        {calledOff.length > 0 && (
-          <div className="drv-called" role="alert">
-            <div className="ck">{calledOff.length === 1 ? "A ride was cancelled" : `${calledOff.length} rides were cancelled`}</div>
-            <ul>
-              {calledOff.slice(0, 3).map((j) => (
-                <li key={j.id}>
-                  {dayName(arubaDayOf(j.scheduledAt), today)} {jobTime(j.scheduledAt)} · {shortAirport(j.pickup)} → {shortAirport(j.dropoff)}
-                </li>
-              ))}
-            </ul>
-            <p>Don't drive to {calledOff.length === 1 ? "it" : "them"}. They stay on the roster below, marked cancelled.</p>
-          </div>
-        )}
+        {/* The week at a glance — what was cancelled, and the four figures —
+            is the aside: above the roster on a phone, beside it on a desk
+            (THE COLUMNS in driver.css), so the list keeps a card's width. */}
+        <div className="drv-cols">
+          <aside className="drv-aside" aria-label="Your week at a glance">
+            {calledOff.length > 0 && (
+              <div className="drv-called" role="alert">
+                <div className="ck">{calledOff.length === 1 ? "A ride was cancelled" : `${calledOff.length} rides were cancelled`}</div>
+                <ul>
+                  {calledOff.slice(0, 3).map((j) => (
+                    <li key={j.id}>
+                      {dayName(arubaDayOf(j.scheduledAt), today)} {jobTime(j.scheduledAt)} · {shortAirport(j.pickup)} → {shortAirport(j.dropoff)}
+                    </li>
+                  ))}
+                </ul>
+                <p>Don't drive to {calledOff.length === 1 ? "it" : "them"}. They stay on your roster, marked cancelled.</p>
+              </div>
+            )}
 
-        <div className="drv-stats">
-          <div className="drv-srow">
-            <div className="drv-scell">
-              <div className="drv-sk">{onThisWeek ? "Earned this week" : "Earned that week"}</div>
-              <div className="drv-sv"><small>$</small>{Math.round(weekPaid)}</div>
-            </div>
-            <div className="drv-scell">
-              <div className="drv-sk">Jobs in week</div>
-              <div className="drv-sv">{weekJobs}</div>
-            </div>
-          </div>
-          <div className="drv-srow">
-            <div className="drv-scell">
-              <div className="drv-sk">Left today</div>
-              <div className="drv-sv">{leftToday}</div>
-            </div>
-            <div className="drv-scell">
-              <div className="drv-sk">Next job</div>
-              <div className="drv-sv sm">
-                {next
-                  ? `${arubaDayOf(next.scheduledAt) === today ? "Today" : weekdayShort(arubaDayOf(next.scheduledAt))} ${jobTime(next.scheduledAt)}`
-                  : "—"}
+            <div className="drv-stats">
+              <div className="drv-srow">
+                <div className="drv-scell">
+                  <div className="drv-sk">{onThisWeek ? "Earned this week" : "Earned that week"}</div>
+                  <div className="drv-sv"><small>$</small>{Math.round(weekPaid)}</div>
+                </div>
+                <div className="drv-scell">
+                  <div className="drv-sk">Jobs in week</div>
+                  <div className="drv-sv">{weekJobs}</div>
+                </div>
+              </div>
+              <div className="drv-srow">
+                <div className="drv-scell">
+                  <div className="drv-sk">Left today</div>
+                  <div className="drv-sv">{leftToday}</div>
+                </div>
+                <div className="drv-scell">
+                  <div className="drv-sk">Next job</div>
+                  <div className="drv-sv sm">
+                    {next
+                      ? `${arubaDayOf(next.scheduledAt) === today ? "Today" : weekdayShort(arubaDayOf(next.scheduledAt))} ${jobTime(next.scheduledAt)}`
+                      : "—"}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* ── the week: walk it, then pick a day out of it ── */}
-        <PeriodBar cursor={cursor} onChange={(d) => go(d)} />
+          </aside>
 
-        <div className="drv-week" role="group" aria-label="Days of the week">
-          {days.map((d) => {
-            const n = liveOn(d).length;
-            const selected = view === "day" && d === cursor;
-            const cls = [
-              "wday",
-              selected ? "on" : "",
-              d === today ? "now" : "",
-              n === 0 ? "idle" : "",
-            ].filter(Boolean).join(" ");
-            return (
-              <button
-                key={d}
-                type="button"
-                className={cls}
-                aria-pressed={selected}
-                aria-label={`${weekdayLong(d)} ${dayOfMonth(d)} — ${n} job${n === 1 ? "" : "s"}`}
-                onClick={() => go(d, selected ? "week" : "day")}
-              >
-                <span className="wl">{weekdayShort(d).slice(0, 2)}</span>
-                <span className="wn">{dayOfMonth(d)}</span>
-                <span className="wc">{n > 0 ? n : ""}</span>
-              </button>
-            );
-          })}
-        </div>
+          <div className="drv-main">
+            {/* ── the week: walk it, then pick a day out of it ── */}
+            <PeriodBar cursor={cursor} onChange={(d) => go(d)} />
 
-        {!onThisWeek && (
-          <button type="button" className="drv-cta ghost drv-allweek" onClick={() => go(today, view)}>
-            Back to this week
-          </button>
-        )}
-
-        {jobs === null ? (
-          <div className="drv-empty"><p className="et">Loading your schedule.</p></div>
-        ) : failed ? (
-          // Not "nothing assigned" — the schedule could not be read at all.
-          <div className="drv-empty" role="alert">
-            <div className="es">Can't read your schedule.</div>
-            <p className="et">
-              Your jobs may still be assigned — this portal just can't load them. Run the
-              latest docs/driver-schema.sql, then try again.
-            </p>
-            <p className="et mono" style={{ marginTop: 10, opacity: 0.7 }}>{failed}</p>
-            <button type="button" className="drv-cta ghost" style={{ marginTop: 14 }} onClick={() => void refresh()}>
-              Try again
-            </button>
-          </div>
-        ) : view === "day" ? (
-          <>
-            <div className="drv-dayhead">
-              <div>
-                <div className="dn">{dayName(cursor, today)}</div>
-                <div className="dd">{daySub(cursor, today)}</div>
-              </div>
-              <div className="dp">
-                <span className="dk">{liveOn(cursor).length} job{liveOn(cursor).length === 1 ? "" : "s"}</span>
-                {paidOn(cursor) > 0 && <span className="dv">${Math.round(paidOn(cursor))}</span>}
-              </div>
-            </div>
-            <DayRoster
-              list={jobsOn(cursor)}
-              past={cursor < today}
-              chipFor={chipFor}
-              onOpen={openRide}
-            />
-            <button type="button" className="drv-cta ghost drv-allweek" onClick={() => go(cursor, "week")}>
-              See the whole week
-            </button>
-          </>
-        ) : weekJobs === 0 ? (
-          <div className="drv-empty">
-            <div className="es">{onThisWeek ? "Nothing booked this week." : "That week is clear."}</div>
-            <p className="et">
-              {driver.isOnline
-                ? "You're online. New rides come to you, or claim one from the pool."
-                : "Go online to start receiving job requests."}
-            </p>
-          </div>
-        ) : (
-          <>
-            {days.map((d) => {
-              const list = jobsOn(d);
-              return (
-                <section key={d} className={`drv-daysec${d === today ? " now" : ""}${list.length === 0 ? " idle" : ""}`}>
-                  <button type="button" className="drv-dayrow" onClick={() => go(d, "day")}>
-                    <span className="dl">
-                      <span className="dw">{dayName(d, today)}</span>
-                      <span className="dm">{daySub(d, today)}</span>
-                    </span>
-                    <span className="dr">
-                      {paidOn(d) > 0 && <span className="dpay">${Math.round(paidOn(d))}</span>}
-                      <span className="dcount">{list.length || "Free"}</span>
-                    </span>
+            <div className="drv-week" role="group" aria-label="Days of the week">
+              {days.map((d) => {
+                const n = liveOn(d).length;
+                const selected = view === "day" && d === cursor;
+                const cls = [
+                  "wday",
+                  selected ? "on" : "",
+                  d === today ? "now" : "",
+                  n === 0 ? "idle" : "",
+                ].filter(Boolean).join(" ");
+                return (
+                  <button
+                    key={d}
+                    type="button"
+                    className={cls}
+                    aria-pressed={selected}
+                    aria-label={`${weekdayLong(d)} ${dayOfMonth(d)} — ${n} job${n === 1 ? "" : "s"}`}
+                    onClick={() => go(d, selected ? "week" : "day")}
+                  >
+                    <span className="wl">{weekdayShort(d).slice(0, 2)}</span>
+                    <span className="wn">{dayOfMonth(d)}</span>
+                    <span className="wc">{n > 0 ? n : ""}</span>
                   </button>
-                  {list.length > 0 && (
-                    <DayRoster list={list} past={d < today} chipFor={chipFor} onOpen={openRide} />
-                  )}
-                </section>
-              );
-            })}
-            <p className="sub foot" style={{ marginTop: 18 }}>
-              Tap any day to open it on its own clock.
-            </p>
-          </>
-        )}
+                );
+              })}
+            </div>
+
+            {!onThisWeek && (
+              <button type="button" className="drv-cta ghost drv-allweek" onClick={() => go(today, view)}>
+                Back to this week
+              </button>
+            )}
+
+            {jobs === null ? (
+              <div className="drv-empty"><p className="et">Loading your schedule.</p></div>
+            ) : failed ? (
+              // Not "nothing assigned" — the schedule could not be read at all.
+              <div className="drv-empty" role="alert">
+                <div className="es">Can't read your schedule.</div>
+                <p className="et">
+                  Your jobs may still be assigned — this portal just can't load them. Run the
+                  latest docs/driver-schema.sql, then try again.
+                </p>
+                <p className="et mono" style={{ marginTop: 10, opacity: 0.7 }}>{failed}</p>
+                <button type="button" className="drv-cta ghost" style={{ marginTop: 14 }} onClick={() => void refresh()}>
+                  Try again
+                </button>
+              </div>
+            ) : view === "day" ? (
+              <>
+                <div className="drv-dayhead">
+                  <div>
+                    <div className="dn">{dayName(cursor, today)}</div>
+                    <div className="dd">{daySub(cursor, today)}</div>
+                  </div>
+                  <div className="dp">
+                    <span className="dk">{liveOn(cursor).length} job{liveOn(cursor).length === 1 ? "" : "s"}</span>
+                    {paidOn(cursor) > 0 && <span className="dv">${Math.round(paidOn(cursor))}</span>}
+                  </div>
+                </div>
+                <DayRoster
+                  list={jobsOn(cursor)}
+                  past={cursor < today}
+                  chipFor={chipFor}
+                  onOpen={openRide}
+                />
+                <button type="button" className="drv-cta ghost drv-allweek" onClick={() => go(cursor, "week")}>
+                  See the whole week
+                </button>
+              </>
+            ) : weekJobs === 0 ? (
+              <div className="drv-empty">
+                <div className="es">{onThisWeek ? "Nothing booked this week." : "That week is clear."}</div>
+                <p className="et">
+                  {driver.isOnline
+                    ? "You're online. New rides come to you, or claim one from the pool."
+                    : "Go online to start receiving job requests."}
+                </p>
+              </div>
+            ) : (
+              <>
+                {days.map((d) => {
+                  const list = jobsOn(d);
+                  return (
+                    <section key={d} className={`drv-daysec${d === today ? " now" : ""}${list.length === 0 ? " idle" : ""}`}>
+                      <button type="button" className="drv-dayrow" onClick={() => go(d, "day")}>
+                        <span className="dl">
+                          <span className="dw">{dayName(d, today)}</span>
+                          <span className="dm">{daySub(d, today)}</span>
+                        </span>
+                        <span className="dr">
+                          {paidOn(d) > 0 && <span className="dpay">${Math.round(paidOn(d))}</span>}
+                          <span className="dcount">{list.length || "Free"}</span>
+                        </span>
+                      </button>
+                      {list.length > 0 && (
+                        <DayRoster list={list} past={d < today} chipFor={chipFor} onOpen={openRide} />
+                      )}
+                    </section>
+                  );
+                })}
+                <p className="sub foot" style={{ marginTop: 18 }}>
+                  Tap any day to open it on its own clock.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

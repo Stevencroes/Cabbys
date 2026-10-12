@@ -52,22 +52,74 @@
 .drv *{box-sizing:border-box;}
 .drv :focus-visible{outline:2px solid var(--silver);outline-offset:3px;}
 
-/* ── the mark + online toggle, always at the top ───────────────────── */
-.drv-top{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;
-  max-width:560px;width:100%;margin:0 auto;
-  padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;}
-.drv-mark{font-weight:700;
-  font-size:var(--t-lead);color:var(--ink);text-decoration:none;letter-spacing:var(--ls-page);}
-.drv-mark .ap{color:var(--silver);}
-.drv-mark small{display:block;font-size:var(--t-meta);
-  color:var(--muted);margin-top:4px;font-weight:500;}
+/* ══════════════════════════════════════════════════════════════════════
+   THE FRAME — one markup, three layouts
+   The portal used to be the phone layout at every width: .drv-view, the
+   top bar and every band were capped at 560px and centred, and the tab
+   bar ran edge to edge under them, so a 1440px window showed a phone
+   column with five words spread 280px apart along the bottom of the
+   screen. Nothing in it was broken; it simply never adapted.
 
-.drv-onoff{display:flex;align-items:center;gap:9px;}
+     phone  < 600   top bar pinned, thumb rail pinned to the foot, the
+                    screen full width with a 16-20px gutter.
+     tablet 600-959 the same two bars, the screen a 720px column, the tab
+                    labels clustered rather than spread across the bar.
+     desk   >= 960  a rail down the left — the admin's breakpoint and the
+                    admin's pattern (AdminShell) — and the screen a page
+                    up to --d-maxw wide; the wider screens split into two
+                    columns from 1180 (see THE COLUMNS).
+
+   The same header element is the top bar on a phone and the rail on a
+   desk; .drv-side is display:contents below 960, so its two children lay
+   out as the two bars they always were.
+   ══════════════════════════════════════════════════════════════════════ */
+.drv{
+  /* the column a phone-shaped band lines up to; widened on a desk */
+  --d-col:720px;
+  --d-maxw:1080px;
+  --d-rail:228px;
+  --d-gut:20px;
+  /* where the rail ends, for the bands that sit over the screen — zero
+     until there is a rail */
+  --d-side:0px;
+  /* the tab bar's own height, notch included, which everything pinned
+     above it clears */
+  --d-navh:calc(57px + env(safe-area-inset-bottom,0px));
+}
+@media(max-width:380px){ .drv{--d-gut:16px;} }
+
+/* the first stop for a keyboard, and the only way past the rail */
+.drv-skip{position:absolute;left:-9999px;top:0;z-index:var(--z-modal);
+  background:var(--sheen);color:var(--on-sheen);padding:12px 18px;border-radius:0 0 var(--d-r-sm) 0;
+  font-weight:600;font-size:var(--t-meta);text-decoration:none;}
+.drv-skip:focus{left:0;}
+
+.drv-frame{flex:1;display:flex;flex-direction:column;min-height:0;}
+.drv-side{display:contents;}
+.drv-sidefoot{display:none;}
+
+/* ── the mark + online toggle, always at the top ───────────────────── */
+/* Pinned. The shell's own header says the mark and the switch "never
+   move", and they did: the bar scrolled away with the first swipe, so
+   whether a driver was online was one scroll-to-top away from knowable. */
+.drv-top{position:sticky;top:0;z-index:var(--z-nav);flex:none;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  background:var(--nav-deep);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line-soft);
+  padding:calc(env(safe-area-inset-top,0px) + 12px) max(var(--d-gut),calc((100% - var(--d-col)) / 2 + var(--d-gut))) 12px;}
+.drv-mark{font-weight:700;
+  font-size:var(--t-lead);color:var(--ink);text-decoration:none;letter-spacing:var(--ls-page);
+  line-height:var(--lh-tight);}
+.drv-mark .ap{color:var(--silver);}
+.drv-mark small{display:block;font-size:var(--t-meta);letter-spacing:0;
+  color:var(--muted);margin-top:2px;font-weight:500;}
+
+.drv-onoff{display:flex;align-items:center;gap:10px;}
 .drv-onoff .st{font-size:var(--t-meta);font-weight:500;color:var(--muted);}
 /* online is a live state — the one thing on this bar allowed to wear signal */
 .drv-onoff .st.on{color:var(--signal-ink);}
 /* the switch itself is 28px tall but its hit area is a full 44 */
-.drv-tgl{position:relative;width:50px;height:28px;border-radius:var(--d-r-pill);
+.drv-tgl{position:relative;flex:none;width:50px;height:28px;border-radius:var(--d-r-pill);
   border:1px solid var(--line);background:var(--raised);padding:0;cursor:pointer;
   transition:background .3s var(--ease),border-color .3s var(--ease);}
 .drv-tgl::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;
@@ -77,33 +129,26 @@
 .drv-tgl::before{content:"";position:absolute;inset:-8px;}
 
 /* ── the scrolling screen ──────────────────────────────────────────── */
-.drv-screen{flex:1;display:flex;flex-direction:column;min-height:0;}
-/* The portal is a phone app, and every band that draws its own background
-   — the ride header, the step rail, the map — had no column to sit in.
-   .drv-top and .drv-pad were each capped at 560 and centred; those three
-   were not, so on anything wider than a phone the header ran to the far
-   left edge while the content it belonged to sat centred hundreds of
-   pixels away, and the map stretched to the full width of the window.
-   The map took that literally: it measures itself before asking Google
-   for an image, so a 2000px window asked for a 2000x170 letterbox, which
-   is past the size the static endpoint accepts at all.
-
-   One column on the view, and all three inherit it. The caps inside are
-   left where they are — they are correct, and they are what this matches. */
+.drv-screen{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;}
+.drv-screen:focus{outline:none;}
+/* Every band that draws its own background — the ride header, the step
+   rail, the map — sits inside this one column, so on a wide window the
+   header can never run to the far edge while the content it belongs to
+   sits centred hundreds of pixels away (it once did, and the map
+   stretched to the window and asked Google for a 2000x170 letterbox,
+   past the size the static endpoint accepts at all). */
 .drv-view{flex:1;display:flex;flex-direction:column;
-  width:100%;max-width:560px;margin-inline:auto;
+  width:100%;max-width:var(--d-col);margin-inline:auto;
   animation:drvfade .45s var(--ease);}
-/* Past the column's own width, an edge — so it reads as a deliberate
-   column and not as a screen that failed to fill the window. */
-@media(min-width:592px){
-  .drv-view{border-inline:1px solid var(--line-soft);}
-}
 @keyframes drvfade{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
-.drv-pad{max-width:560px;width:100%;margin:0 auto;
-  padding:0 20px calc(84px + env(safe-area-inset-bottom,0px));}
+/* the foot clears the tab bar, and — when a band is riding above the bar
+   — the band too, so the last card on a screen is never under it */
+.drv-pad{width:100%;margin:0 auto;
+  padding:18px var(--d-gut) calc(var(--d-navh) + 28px);}
+.drv.banded .drv-pad{padding-bottom:calc(var(--d-navh) + 150px);}
 
 /* ── type ──────────────────────────────────────────────────────────── */
-.drv .kick{font-weight:500;font-size:var(--t-meta);color:var(--silver);}
+.drv .kick{font-weight:500;font-size:var(--t-meta);color:var(--silver);margin:0;line-height:var(--lh-snug);}
 .drv .big{font-weight:700;font-size:var(--t-page);line-height:var(--lh-tight);
   margin:6px 0 0;letter-spacing:var(--ls-page);}
 .drv .big em{font-style:normal;color:inherit;}
@@ -119,15 +164,17 @@
 .drv .num{font-weight:600;font-variant-numeric:tabular-nums;}
 
 /* ── bottom nav — thumb reach ──────────────────────────────────────── */
-.drv-nav{position:fixed;left:0;right:0;bottom:0;z-index:80;display:flex;
-  background:var(--nav-deep);backdrop-filter:blur(16px);border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom,0px);}
-/* flex:1 1 auto, not flex:1. flex:1 sets the basis to 0 and hands every
-   tab an identical fifth of the bar — 72px — which SCHEDULE and EARNINGS
-   do not fit into even at 12px, so the two longest labels spilled over
-   their own cells and the first one was clipped by the screen edge. Sized
-   from content, each tab keeps its word and the slack is shared. */
-.drv-nav a{flex:1 1 auto;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;
+.drv-nav{position:fixed;left:0;right:0;bottom:0;z-index:var(--z-nav);display:flex;justify-content:center;
+  background:var(--nav-deep);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);
+  padding:0 max(4px,env(safe-area-inset-left,0px)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-right,0px));}
+/* flex:1 1 0 inside a capped bar. Content-sized tabs (flex:1 1 auto) were
+   the fix for SCHEDULE and EARNINGS overflowing a fifth of a 360px bar
+   in uppercase; in sentence case all five fit an equal fifth, and equal
+   cells are what keep the active dot from drifting as labels differ.
+   The cap is the tablet fix: past 600px the five stop spreading across
+   the whole bottom edge and sit together under the column. */
+.drv-nav a{flex:1 1 0;max-width:132px;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;
   /* --muted, not --soft. tokens.css carries a contrast table and a note
      saying in as many words that --soft "is not a text colour" and is
      scoped to disabled states and faint icons — it measures 2.39:1 on
@@ -135,27 +182,33 @@
      four links that are the ONLY navigation in this portal, at 8.5px, on
      a bar a driver reads one-handed in sunlight. --muted is 5.59:1 on the
      same ground and is what the table nominates for exactly this. */
-  justify-content:center;gap:4px;color:var(--muted);text-decoration:none;
+  justify-content:center;gap:5px;color:var(--muted);text-decoration:none;
   /* --t-meta, and sentence case. At 12px uppercase tracked .06em the five
      needed 318px of a 360px phone; in sentence case at 14px — the admin
      rail's own setting — they need about 250, so the label went UP a rung
      when the shouting came off. */
-  font-weight:500;font-size:var(--t-meta);
+  font-weight:500;font-size:var(--t-meta);white-space:nowrap;
   transition:color .25s var(--ease);}
+.drv-nav a:hover{color:var(--silver);}
 .drv-nav a.on{color:var(--ink);font-weight:600;}
+.drv-nav a:focus-visible{outline-offset:-4px;border-radius:var(--d-r-sm);}
 /* the dot is the marker, and it stays silver whatever the label does */
 .drv-nav .dot{width:4px;height:4px;border-radius:50%;background:var(--silver);opacity:0;
   transition:opacity .25s var(--ease);}
 .drv-nav a.on .dot{opacity:1;}
 
 /* ── stat grid ─────────────────────────────────────────────────────── */
-.drv-stats{position:relative;margin-top:22px;border:1px solid var(--line);border-radius:var(--d-r-md);overflow:hidden;}
+/* A grid with a 1px gap over a --line ground, not cells with borders:
+   the same block is two by two on a phone and one strip of four on a
+   tablet (THE FRAME, WIDER), and per-cell right/bottom borders can only
+   be right for one of those shapes. The rows stay in the markup and get
+   out of the way. */
+.drv-stats{position:relative;margin-top:22px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--d-r-md);overflow:hidden;}
 /* one of the system's two gradients: a brushed rule across the top */
-.drv-stats::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:var(--hairline);}
-.drv-srow{display:flex;}
-.drv-scell{flex:1;padding:16px 15px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);}
-.drv-scell:last-child{border-right:none;}
-.drv-srow:last-child .drv-scell{border-bottom:none;}
+.drv-stats::before{content:"";position:absolute;z-index:1;top:0;left:0;right:0;height:1px;background:var(--hairline);}
+.drv-srow{display:contents;}
+.drv-scell{min-width:0;padding:16px 16px 15px;background:var(--ground);}
 .drv-sk{font-size:var(--t-meta);color:var(--muted);font-weight:500;}
 .drv-sv{font-size:var(--t-figure-sm);font-weight:600;margin-top:8px;line-height:var(--lh-tight);color:var(--ink);letter-spacing:var(--ls-figure);font-variant-numeric:tabular-nums;}
 .drv-sv small{font-size:var(--d-text);color:var(--muted);}
@@ -246,7 +299,11 @@
 .drv-r:last-child{border-bottom:none;}
 .drv-r .rl{font-size:var(--t-meta);color:var(--muted);
   font-weight:500;align-self:center;}
-.drv-r .rv{font-size:var(--d-text);text-align:right;font-weight:400;color:var(--ink);}
+/* The value wraps rather than pushing the row past the screen: a long
+   address on Profile ran 117px off a 360px phone and was clipped, so the
+   driver could not read back the account they were signed in as. */
+.drv-r .rl{flex:none;}
+.drv-r .rv{min-width:0;overflow-wrap:anywhere;font-size:var(--d-text);text-align:right;font-weight:400;color:var(--ink);}
 /* the commission note beside the guest's total — present so the driver can
    check the arithmetic themselves, quiet so it never competes with their
    own figure directly above it */
@@ -295,12 +352,12 @@
 .drv-actionbar{position:sticky;bottom:0;margin-top:auto;z-index:70;
   padding:16px 20px calc(20px + env(safe-area-inset-bottom,0px));
   background:var(--ground);border-top:1px solid var(--line);}
-.drv-actionbar .inner{max-width:560px;margin:0 auto;}
+.drv-actionbar .inner{max-width:var(--d-col);margin:0 auto;}
 
 /* ── earnings ──────────────────────────────────────────────────────── */
 .drv-seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--d-r-pill);
   background:var(--surface);overflow:hidden;margin:12px 0 20px;}
-.drv-seg button{background:none;border:none;padding:11px 17px;min-height:40px;
+.drv-seg button{background:none;border:none;padding:11px 17px;min-height:44px;
   font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
   color:var(--muted);cursor:pointer;transition:.25s var(--ease);}
 .drv-seg button.on{background:var(--sheen);color:var(--on-sheen);}
@@ -424,7 +481,8 @@
 .drv-refused .rk{font-weight:500;font-size:var(--t-meta);
   color:var(--alert-ink);}
 .drv-refused p{margin:5px 0 0;font-size:var(--d-text);line-height:1.5;color:var(--ink);font-weight:400;}
-.drv-empty .et.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--d-text);word-break:break-word;}
+.drv-empty .et.mono{margin-top:10px;opacity:.75;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--t-meta);word-break:break-word;}
+.drv-empty .drv-cta{max-width:320px;margin:16px auto 0;}
 
 /* the day segments on the agenda */
 .drv-span{display:flex;width:100%;margin:20px 0 16px;}
@@ -435,10 +493,10 @@
   border-radius:var(--d-r-pill);padding:0 7px;min-width:20px;text-align:center;}
 
 /* claimed, but not now — a word, then out of the way */
-.drv-booked{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
+.drv-booked{position:fixed;left:calc(var(--d-side) + var(--d-gut));right:var(--d-gut);bottom:calc(var(--d-navh) + 12px);
   z-index:85;display:flex;align-items:center;justify-content:space-between;gap:12px;
   background:var(--surface);border:1px solid var(--signal-line);border-radius:var(--d-r-md);
-  padding:12px 14px;max-width:528px;margin:0 auto;animation:drvfade .3s var(--ease);}
+  padding:12px 14px;max-width:calc(var(--d-col) - 2 * var(--d-gut));margin:0 auto;animation:drvfade .3s var(--ease);}
 .drv-booked .bk{display:block;font-weight:500;font-size:var(--t-meta);
   color:var(--silver);}
 .drv-booked .bv{display:block;font-size:var(--d-text);font-weight:600;margin-top:2px;}
@@ -446,8 +504,8 @@
   min-width:44px;min-height:44px;cursor:pointer;}
 
 /* the grace bar — a lapsed offer, still reachable */
-.drv-grace{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
-  z-index:85;display:flex;align-items:center;gap:12px;max-width:528px;margin:0 auto;
+.drv-grace{position:fixed;left:calc(var(--d-side) + var(--d-gut));right:var(--d-gut);bottom:calc(var(--d-navh) + 12px);
+  z-index:85;display:flex;align-items:center;gap:12px;max-width:calc(var(--d-col) - 2 * var(--d-gut));margin:0 auto;
   background:var(--surface);border:1px solid var(--alert-line);border-radius:var(--d-r-md);
   padding:10px 10px 10px 15px;animation:drvfade .3s var(--ease);}
 .drv-grace .gi{flex:1;min-width:0;}
@@ -471,7 +529,7 @@
 
 /* ── walking the weeks ── */
 .drv-weekbar{display:flex;align-items:center;gap:10px;margin:22px 0 10px;}
-.drv-weekbar .wnav{flex:none;width:42px;height:42px;border-radius:50%;
+.drv-weekbar .wnav{flex:none;width:44px;height:44px;border-radius:50%;
   border:1px solid var(--line);background:var(--surface);color:var(--silver);
   font-size:var(--t-title);line-height:1;cursor:pointer;
   transition:border-color .25s var(--ease),color .25s var(--ease),background .25s var(--ease);}
@@ -483,7 +541,10 @@
   color:var(--silver);margin-top:4px;}
 
 /* ── the seven columns ── */
-.drv-week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:18px;}
+.drv-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:18px;}
+/* seven 44px targets need 308px plus their gaps; at 360 the 5px gaps
+   left each day 43 */
+@media(max-width:380px){ .drv-week{gap:3px;} }
 .drv-week .wday{display:flex;flex-direction:column;align-items:center;gap:3px;
   padding:9px 0 8px;min-height:64px;border-radius:var(--d-r-sm);
   border:1px solid var(--line);background:var(--surface);color:var(--ink);
@@ -527,7 +588,10 @@
    actually planning around. */
 .drv-slot{display:flex;gap:12px;align-items:flex-start;}
 .drv-clock{flex:none;width:70px;padding-top:14px;text-align:right;}
-.drv-clock .ct{font-size:var(--d-text);font-weight:600;color:var(--silver);
+/* --t-meta: "10:05 AM" in semibold Inter at body size is 80px and the
+   rail is 70, so the clock ran into the card beside it. The time is the
+   rail's label, not its headline — the card carries the job. */
+.drv-clock .ct{font-size:var(--t-meta);font-weight:600;color:var(--silver);
   line-height:1.1;display:block;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .drv-slotbody{flex:1;min-width:0;}
 /* the rail keeps running through the gap: a dashed line down the clock
@@ -618,7 +682,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 /* the way out of a bare route */
 .drv-dbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  max-width:560px;width:100%;margin:0 auto;
+  max-width:var(--d-col);width:100%;margin:0 auto;
   padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;}
 .drv-dbar button{display:inline-flex;align-items:center;gap:5px;background:none;border:none;
   color:var(--silver);font-family:var(--sans);font-weight:600;font-size:var(--t-meta);
@@ -631,7 +695,7 @@
 
 /* where the job stands */
 .drv-rail{display:flex;list-style:none;gap:4px;padding:16px 20px 14px;
-  max-width:560px;width:100%;margin:0 auto;}
+  max-width:var(--d-col);width:100%;margin:0 auto;}
 .drv-rail li{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
   position:relative;min-width:0;}
 /* the connector belongs to the step on its right, so the first has none */
@@ -726,7 +790,13 @@
    PROFILE — the one field that is theirs, and the way out
    ══════════════════════════════════════════════════════════════════════ */
 /* a text button that lives inside a row, not a control competing with it */
-.drv-inline{background:none;border:none;margin-left:12px;padding:0 2px;
+/* A 44px target that does not make the row 44px taller: the button is a
+   word in a line of text, and it was a 19px-tall one — the smallest
+   target in the portal, on the screen where a driver edits their phone
+   number with a thumb. The negative block margin hands the extra height
+   back to the row. */
+.drv-inline{display:inline-flex;align-items:center;min-height:44px;margin-block:-12px;
+  background:none;border:none;margin-left:12px;padding:0 4px;vertical-align:middle;
   font-family:var(--sans);font-weight:600;font-size:var(--d-text);
   color:var(--silver);cursor:pointer;
   transition:color .25s var(--ease);}
@@ -755,7 +825,7 @@
 /* ══════════════════════════════════════════════════════════════════════
    THE SWITCH THAT DIDN'T LAND
    ══════════════════════════════════════════════════════════════════════ */
-.drv-offline{display:flex;align-items:center;gap:10px;max-width:560px;width:100%;
+.drv-offline{display:flex;align-items:center;gap:10px;max-width:var(--d-col);width:100%;
   margin:0 auto 4px;padding:11px 8px 11px 16px;
   border:1px solid var(--alert-line);background:var(--alert-tint);
   border-radius:var(--d-r-md);animation:drvfade .3s var(--ease);}
@@ -855,8 +925,8 @@
    A driver who checked their earnings mid-ride, or whose phone reloaded
    at a red light, had no way back to the job except hunting the roster.
    ══════════════════════════════════════════════════════════════════════ */
-.drv-live{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
-  z-index:86;display:flex;align-items:center;gap:12px;max-width:528px;margin:0 auto;
+.drv-live{position:fixed;left:calc(var(--d-side) + var(--d-gut));right:var(--d-gut);bottom:calc(var(--d-navh) + 12px);
+  z-index:86;display:flex;align-items:center;gap:12px;max-width:calc(var(--d-col) - 2 * var(--d-gut));margin:0 auto;
   padding:11px 14px;text-align:left;cursor:pointer;
   background:var(--surface);border:1px solid var(--signal-line);border-radius:var(--d-r-md);
   box-shadow:0 0 0 1px var(--signal-glow),var(--shadow-hard);
@@ -966,7 +1036,7 @@
 
 
 /* a ride that was called off, said before anything else on the screen */
-.drv-closed{display:flex;flex-direction:column;gap:4px;max-width:560px;width:100%;
+.drv-closed{display:flex;flex-direction:column;gap:4px;max-width:var(--d-col);width:100%;
   margin:0 auto;padding:13px 20px;background:var(--alert-tint);
   border-top:1px solid var(--alert-line);border-bottom:1px solid var(--alert-line);}
 .drv-closed .ck{font-weight:500;font-size:var(--t-meta);
@@ -1028,14 +1098,24 @@
    because a job in flight always outranks a thing to go and fix. Not
    dismissable: it is true until it is not, and dismissing it would hide
    the one fact a guest at a kerb depends on. */
-.drv-nocar{position:fixed;left:16px;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));
-  z-index:85;display:flex;flex-direction:column;gap:3px;max-width:528px;margin:0 auto;
+.drv-nocar{position:fixed;left:calc(var(--d-side) + var(--d-gut));right:var(--d-gut);bottom:calc(var(--d-navh) + 12px);
+  z-index:85;display:flex;flex-direction:column;gap:3px;max-width:calc(var(--d-col) - 2 * var(--d-gut));margin:0 auto;
   padding:12px 15px;text-align:left;cursor:pointer;
   background:var(--surface);border:1px solid var(--alert-line);border-radius:var(--d-r-md);
   box-shadow:var(--shadow-hard);animation:drvfade .3s var(--ease);}
 .drv-nocar .ck{font-weight:500;font-size:var(--t-meta);
   color:var(--alert-ink);}
 .drv-nocar .cv{font-size:var(--d-text);line-height:1.5;color:var(--ink);font-weight:400;}
+/* On a phone the band is pinned over the screen for as long as it is
+   true, and at body size its sentence ran to four lines — a sixth of a
+   360x780 screen, permanently. The heading carries the fact and the
+   tap carries the fix, so below the tablet width the sentence drops to
+   the meta step and two lines; the whole of it is on Profile. */
+@media(max-width:599.98px){
+  .drv-nocar .cv{font-size:var(--t-meta);line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;
+    -webkit-line-clamp:2;line-clamp:2;overflow:hidden;}
+  .drv.banded .drv-pad{padding-bottom:calc(var(--d-navh) + 120px);}
+}
 
 @media(prefers-reduced-motion:reduce){
   .drv *,.drv *::before,.drv *::after{
@@ -1133,3 +1213,136 @@
 .drv-flight.alert .fn{color:var(--alert-ink);}
 .drv-flight.alert .fv{color:var(--alert-ink);}
 .drv-flight.alert .fd{color:var(--silver);}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE FRAME, WIDER
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── tablet: the same two bars, a real column ──────────────────────── */
+@media(min-width:600px){
+  .drv{--d-gut:28px;}
+  /* four figures across rather than two by two: there is the room, and
+     a strip reads as one line of facts where a grid reads as a form */
+  .drv-stats:has(> .drv-srow + .drv-srow){grid-template-columns:repeat(4,minmax(0,1fr));}
+  /* two figures on their own do not stretch to fill 720px */
+  .drv-stats:not(:has(> .drv-srow + .drv-srow)){max-width:520px;}
+  .drv-pad{padding-top:26px;}
+  /* a segmented control is a handful of words, not a full-width bar */
+  .drv-span{max-width:440px;}
+}
+
+/* ── desk: the rail ────────────────────────────────────────────────────
+   The admin's breakpoint and the admin's frame: a midnight rail down the
+   left, the page beside it. Not a hamburger, and not the phone's tab bar
+   stretched: a driver at a desk is reading the week, not working a
+   mount, and a vertical list keeps the five in one place at every width
+   from here up. */
+@media(min-width:960px){
+  .drv{
+    --d-side:var(--d-rail);
+    --d-navh:0px;
+    --d-gut:32px;
+    /* the bands and the ride header line up to the page now, not to a
+       phone column */
+    --d-col:var(--d-maxw);
+    /* the admin's running text — see --d-text at the top of this file */
+    --d-text:var(--t-meta);
+  }
+  .drv-frame{display:grid;grid-template-columns:var(--d-rail) minmax(0,1fr);align-items:start;
+    min-height:100dvh;background:var(--deep);}
+  .drv-side{position:sticky;top:0;align-self:start;height:100dvh;
+    display:flex;flex-direction:column;gap:22px;
+    background:var(--deep);border-right:1px solid var(--line);
+    padding:calc(env(safe-area-inset-top,0px) + 26px) 0 20px;}
+  .drv-top{position:static;flex-direction:column;align-items:stretch;gap:18px;
+    background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:none;padding:0 20px;}
+  .drv-mark small{margin-top:4px;}
+  /* the switch as a row of its own, boxed: on the rail it is the one
+     control that is not a place to go, and it should not read as one */
+  .drv-onoff{justify-content:space-between;padding:10px 12px 10px 14px;
+    border:1px solid var(--line);border-radius:var(--d-r-sm);background:var(--surface);}
+  .drv-onoff:has(.st.on){border-color:var(--signal-line);}
+
+  .drv-nav{position:static;flex:1;min-height:0;overflow-y:auto;flex-direction:column;justify-content:flex-start;
+    gap:2px;padding:0 10px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:none;}
+  /* 44px rows rather than the admin's 34: a driver's desk is as often a
+     tablet propped on a dashboard as it is a mouse */
+  .drv-nav a{flex:none;max-width:none;min-height:44px;flex-direction:row;justify-content:flex-start;
+    gap:10px;padding:0 12px;border-radius:var(--d-r-sm);}
+  .drv-nav a:hover{color:var(--ink);background:var(--surface);}
+  /* the active row is a pill, the admin rail's marker, in this portal's
+     own active fill — the same --sheen the selected segment wears */
+  .drv-nav a.on{background:var(--sheen);color:var(--on-sheen);}
+  .drv-nav .dot{display:none;}
+
+  .drv-sidefoot{display:flex;flex-direction:column;gap:2px;padding:0 20px;min-width:0;}
+  .drv-sidefoot .nm{font-size:var(--t-meta);font-weight:500;color:var(--silver);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .drv-sidefoot .em{font-size:var(--t-meta);color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* the ride screen owns a phone; on a desk it keeps the rail */
+  .drv-screen{min-height:100dvh;background:var(--ground);}
+  .drv-view{max-width:var(--d-maxw);}
+  .drv-pad{padding:34px var(--d-gut) 64px;}
+  .drv.banded .drv-pad{padding-bottom:150px;}
+  .drv-offline{margin:20px auto 0;width:calc(100% - 2 * var(--d-gut));}
+  /* the ride's one action stays a button-sized button on a wide page */
+  .drv-actionbar .inner{max-width:560px;}
+}
+/* below the desk, the ride screen is the whole phone: no bars at all */
+@media(max-width:959.98px){
+  .drv.bare .drv-side{display:none;}
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE COLUMNS
+   On a phone every screen is one column in reading order, and that order
+   is the markup's order: .drv-cols, .drv-main and .drv-aside are plain
+   blocks there, so nothing below 1180px moves. From 1180 — the first
+   width where a rail, a 640px main column and a 320px aside all fit —
+   the screens that have a second thing to show put it beside the first
+   instead of under it. A 930px-wide job card is not a better job card,
+   it is a phone card with the middle stretched out of it.
+
+   The aside is placed into column 2 explicitly, so it can come FIRST in
+   the markup — Schedule's figures, History's search — and still read
+   first on a phone, where it stacks above the list it summarises.
+   ══════════════════════════════════════════════════════════════════════ */
+.drv-cols{display:block;}
+.drv-main,.drv-aside{min-width:0;}
+@media(min-width:1180px){
+  .drv-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,348px);
+    column-gap:36px;align-items:start;margin-top:26px;}
+  .drv-cols > .drv-main{grid-column:1;grid-row:1;}
+  .drv-cols > .drv-aside{grid-column:2;grid-row:1;position:sticky;top:24px;}
+  /* in a 348px aside the figures go back to two by two */
+  .drv-aside .drv-stats:has(> .drv-srow + .drv-srow){grid-template-columns:repeat(2,minmax(0,1fr));}
+  .drv-aside .drv-stats{max-width:none;}
+  .drv-aside > :first-child{margin-top:0;}
+  .drv-main > :first-child{margin-top:0;}
+  /* the day list keeps a card readable rather than as wide as the page */
+  .drv-cols.wide-main{grid-template-columns:minmax(0,1fr) minmax(320px,400px);}
+  /* an aside that is a list, not a summary, scrolls with the page: a
+     sticky column taller than the window has a bottom nobody can reach */
+  .drv-cols > .drv-aside.scrolls{position:static;}
+}
+/* the pool's cards, side by side wherever two of them fit at phone
+   width — the card was drawn for 340px and does not improve past it */
+.drv-poolgrid{display:grid;grid-template-columns:minmax(0,1fr);column-gap:16px;}
+@media(min-width:720px){
+  .drv-poolgrid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr));}
+  .drv-poolgrid .drv-pool{display:flex;flex-direction:column;}
+  .drv-poolgrid .drv-pool .pc-body{flex:1;}
+}
+
+/* the ride screen, split: the map leaves the edge-to-edge band it is on
+   a phone and becomes a framed panel at the head of its column */
+@media(min-width:1180px){
+  .drv-ride{margin-top:0;padding:24px var(--d-gut) 0;}
+  .drv-ride .drv-pad{padding-inline:0;}
+  .drv-ride > .drv-aside > .drv-pad{padding-top:0 !important;}
+  .drv-ride .drv-pinmap{border:1px solid var(--line);border-radius:var(--d-r-md);}
+  .drv-ride .drv-main > .drv-pad:first-child{padding-top:0 !important;}
+}

@@ -216,16 +216,20 @@ export default function Pool() {
                   <span className="pd-k">{day}</span>
                   <span className="pd-n">{list.length}</span>
                 </div>
-                {list.map((j) => (
-                  <PoolCard
-                    key={j.id}
-                    job={j}
-                    busy={busy === j.id}
-                    disabled={busy !== null}
-                    leaving={leaving.includes(j.id)}
-                    onAccept={() => void accept(j)}
-                  />
-                ))}
+                {/* side by side wherever two fit at the width the card
+                    was drawn for, rather than one card stretched */}
+                <div className="drv-poolgrid">
+                  {list.map((j) => (
+                    <PoolCard
+                      key={j.id}
+                      job={j}
+                      busy={busy === j.id}
+                      disabled={busy !== null}
+                      leaving={leaving.includes(j.id)}
+                      onAccept={() => void accept(j)}
+                    />
+                  ))}
+                </div>
               </div>
             ))}
             <p className="sub foot" style={{ marginTop: 18 }}>

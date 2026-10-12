@@ -357,189 +357,201 @@ export default function RideDetail() {
         ))}
       </ol>
 
-      {/* The note beats the pin, so it comes first. */}
-      {ride.pickupNote && (
-        <div className="drv-pad" style={{ paddingTop: 16, paddingBottom: 0 }}>
-          <div className="drv-note" style={{ margin: "0 0 16px" }}>
-            <div className="nk">Guest note</div>
-            <div className="nv">“{ride.pickupNote}”</div>
-          </div>
-        </div>
-      )}
-
-      <PinMap fix={fix} place={target} />
-
-      <div className="drv-pad" style={{ paddingTop: 16, paddingBottom: 24 }}>
-        {/* The one thing the driver is trying to do right now, with the
-            last hundred metres spelled out and one button that goes
-            there. An address gets you to the property; "main lobby
-            entrance" is what stops you circling it. */}
-        <div className="drv-where">
-          <div className="wk">{aboard ? "Destination" : "Pick up"}</div>
-          <div className="wn">{target || "—"}</div>
-          {meet && <div className="wp">{meet.at}</div>}
-          {meet?.how && <div className="wh">{meet.how}</div>}
-          <a className="drv-cta green drv-navcta" href={navHref} target="_blank" rel="noreferrer">
-            Navigate ↗
-          </a>
-        </div>
-
-        <div className="drv-pax">
-          <span className="av">{initial}</span>
-          <span className="pi">
-            <span className="pn">{ride.contactName || "Guest"}</span>
-            <span className="pm">{party || "—"}</span>
-          </span>
-          {phone && (
-            <span className="pc">
-              <a href={`tel:${phone}`} aria-label={`Call ${ride.contactName || "guest"}`}>
-                <Phone /><b>Call</b>
-              </a>
-              <a
-                href={`https://wa.me/${phone.replace(/[^\d]/g, "")}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`Message ${ride.contactName || "guest"}`}
-              >
-                <Chat /><b>Chat</b>
-              </a>
-            </span>
-          )}
-        </div>
-
-        {/* Above the guest's own line, because it is the same fact with
-            somebody accountable for it. Only for a pickup AT the airport:
-            on a run TO the airport the guest's flight does not move the
-            time a car is needed, and a line that changes for it would be
-            noise on the one screen that cannot afford any.
-
-            pinPolicyFor asks the catalog rather than matching on the
-            word "airport", which is the same question the pin card asks
-            and the same answer. */}
-        {!aboard && pinPolicyFor(ride.pickup) === "airport" && (
-          <FlightLine flightNumber={ride.flightNumber} scheduledAt={ride.scheduledAt} />
-        )}
-
-        {/* Said at booking, and until now shown to nobody. It sits under
-            the guest rather than above the map because it is context, not
-            the landmark that closes the last 20 metres — that is the amber
-            card, and it stays up there alone. */}
-        {told.guest.length > 0 && (
-          <div className="drv-told">
-            <div className="tk">What the guest told us</div>
-            <ul>
-              {told.guest.map((line) => <li key={line}>{line}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {/* A job that has been handed back before is a job to arrive at
-            differently — and it is emphatically not the guest talking. */}
-        {told.handbacks.length > 0 && (
-          <div className="drv-told back">
-            <div className="tk">
-              {told.handbacks.length === 1 ? "Handed back once" : `Handed back ${told.handbacks.length} times`}
-            </div>
-            <ul>
-              {told.handbacks.map((line) => <li key={line}>{line}</li>)}
-            </ul>
-          </div>
-        )}
-
-        {/* Three sentences, pre-written, for the moment a driver would
-            otherwise ring a guest who is in the shower. */}
-        {quick.length > 0 && !aboard && (
-          <div className="drv-quick">
-            {quick.map(([label, href]) => (
-              <a key={label} href={href} target="_blank" rel="noreferrer">{label}</a>
-            ))}
-          </div>
-        )}
-
-        <div className="drv-rowset">
-          {/* It said "tracked", and nothing tracks it — there is no flight
-              feed in this app. The number is what the guest gave us, and
-              saying only that is the difference between a driver checking
-              the board themselves and one who thinks we will tell them. */}
-          {ride.flightNumber && (
-            <div className="drv-r">
-              <span className="rl">Flight</span>
-              <span className="rv">{formatFlightNumber(ride.flightNumber)}</span>
-            </div>
-          )}
-          <div className="drv-r"><span className="rl">Pick up</span><span className="rv">{ride.pickup}</span></div>
-          <div className="drv-r"><span className="rl">Drop off</span><span className="rv">{ride.dropoff}</span></div>
-          {ride.arrivedAt && (
-            <div className="drv-r">
-              <span className="rl">You arrived</span>
-              <span className="rv">{jobTime(ride.arrivedAt)}</span>
-            </div>
-          )}
-          {ride.vehicle && <div className="drv-r"><span className="rl">Vehicle</span><span className="rv">{ride.vehicle}</span></div>}
-          {/* The driver's money leads. The guest's total is shown under it
-              rather than hidden — a driver who can see both trusts the
-              first number, and this is the one screen with room for it. */}
-          <div className="drv-r">
-            <span className="rl">You earn</span>
-            <span className="rv hl">{ride.payoutUsd != null ? `$${Math.round(ride.payoutUsd)}` : "—"}</span>
-          </div>
-          <div className="drv-r">
-            <span className="rl">Guest pays</span>
-            <span className="rv">
-              {ride.fareAwg != null ? `$${Math.round(awgToUsd(ride.fareAwg))}` : "—"}
-              <small className="rsub"> · less {Math.round(COMMISSION_RATE * 100)}% Cabby's</small>
-            </span>
-          </div>
-        </div>
-
-        {/* Claiming was one-way until now: a driver whose car won't start
-            held a job nobody else could see. Offered only where the
-            database will actually allow it, so the portal never shows a
-            control that is going to be refused. */}
-        {canRelease(ride) && (
-          handback === null ? (
-            <button type="button" className="drv-handback" onClick={() => setHandback("")}>
-              Can't do this job?
-            </button>
-          ) : (
-            <div className="drv-give">
-              <div className="gk">Hand this job back</div>
-              <p>
-                It returns to the pool for another driver. Tell us why, so dispatch isn't
-                guessing.
-              </p>
-              <label className="sr-only" htmlFor="giveback">Why you can't do it</label>
-              <input
-                id="giveback"
-                type="text"
-                value={handback}
-                autoFocus
-                placeholder="Car won't start"
-                onChange={(e) => setHandback(e.target.value)}
-              />
-              <div className="row">
-                <button type="button" className="drv-cta ghost" onClick={() => setHandback(null)} disabled={busy}>
-                  Keep it
-                </button>
-                <button
-                  type="button"
-                  className="drv-cta red"
-                  onClick={() => void giveBack(handback)}
-                  disabled={busy || handback.trim().length < 3}
-                >
-                  {busy ? "…" : "Hand it back"}
-                </button>
+      {/* Finding the guest on the left, the booking's facts on the right
+          once a desk has the room (THE COLUMNS); on a phone it is one
+          column in exactly the order it always was. */}
+      <div className="drv-cols drv-ride">
+        <div className="drv-main">
+          {/* The note beats the pin, so it comes first. */}
+          {ride.pickupNote && (
+            <div className="drv-pad" style={{ paddingTop: 16, paddingBottom: 0 }}>
+              <div className="drv-note" style={{ margin: "0 0 16px" }}>
+                <div className="nk">Guest note</div>
+                <div className="nv">“{ride.pickupNote}”</div>
               </div>
             </div>
-          )
-        )}
+          )}
 
-        {/* Always reachable, and never mistakable for the ride's own
-            action: Cabby's is who you call when the job itself goes
-            wrong, and that is not a thing to go hunting for on Profile. */}
-        {help && (
-          <a className="drv-help" href={help} target="_blank" rel="noreferrer">Something wrong? Message Cabby's ↗</a>
-        )}
+          <PinMap fix={fix} place={target} />
+
+          <div className="drv-pad" style={{ paddingTop: 16, paddingBottom: 0 }}>
+            {/* The one thing the driver is trying to do right now, with the
+                last hundred metres spelled out and one button that goes
+                there. An address gets you to the property; "main lobby
+                entrance" is what stops you circling it. */}
+            <div className="drv-where">
+              <div className="wk">{aboard ? "Destination" : "Pick up"}</div>
+              <div className="wn">{target || "—"}</div>
+              {meet && <div className="wp">{meet.at}</div>}
+              {meet?.how && <div className="wh">{meet.how}</div>}
+              <a className="drv-cta green drv-navcta" href={navHref} target="_blank" rel="noreferrer">
+                Navigate ↗
+              </a>
+            </div>
+
+            <div className="drv-pax">
+              <span className="av">{initial}</span>
+              <span className="pi">
+                <span className="pn">{ride.contactName || "Guest"}</span>
+                <span className="pm">{party || "—"}</span>
+              </span>
+              {phone && (
+                <span className="pc">
+                  <a href={`tel:${phone}`} aria-label={`Call ${ride.contactName || "guest"}`}>
+                    <Phone /><b>Call</b>
+                  </a>
+                  <a
+                    href={`https://wa.me/${phone.replace(/[^\d]/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Message ${ride.contactName || "guest"}`}
+                  >
+                    <Chat /><b>Chat</b>
+                  </a>
+                </span>
+              )}
+            </div>
+
+            {/* Above the guest's own line, because it is the same fact with
+                somebody accountable for it. Only for a pickup AT the airport:
+                on a run TO the airport the guest's flight does not move the
+                time a car is needed, and a line that changes for it would be
+                noise on the one screen that cannot afford any.
+
+                pinPolicyFor asks the catalog rather than matching on the
+                word "airport", which is the same question the pin card asks
+                and the same answer. */}
+            {!aboard && pinPolicyFor(ride.pickup) === "airport" && (
+              <FlightLine flightNumber={ride.flightNumber} scheduledAt={ride.scheduledAt} />
+            )}
+
+            {/* Said at booking, and until now shown to nobody. It sits under
+                the guest rather than above the map because it is context, not
+                the landmark that closes the last 20 metres — that is the amber
+                card, and it stays up there alone. */}
+            {told.guest.length > 0 && (
+              <div className="drv-told">
+                <div className="tk">What the guest told us</div>
+                <ul>
+                  {told.guest.map((line) => <li key={line}>{line}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {/* A job that has been handed back before is a job to arrive at
+                differently — and it is emphatically not the guest talking. */}
+            {told.handbacks.length > 0 && (
+              <div className="drv-told back">
+                <div className="tk">
+                  {told.handbacks.length === 1 ? "Handed back once" : `Handed back ${told.handbacks.length} times`}
+                </div>
+                <ul>
+                  {told.handbacks.map((line) => <li key={line}>{line}</li>)}
+                </ul>
+              </div>
+            )}
+
+            {/* Three sentences, pre-written, for the moment a driver would
+                otherwise ring a guest who is in the shower. */}
+            {quick.length > 0 && !aboard && (
+              <div className="drv-quick">
+                {quick.map(([label, href]) => (
+                  <a key={label} href={href} target="_blank" rel="noreferrer">{label}</a>
+                ))}
+              </div>
+            )}
+
+        </div>
+        </div>
+
+        <aside className="drv-aside scrolls" aria-label="The booking">
+          <div className="drv-pad" style={{ paddingTop: 0, paddingBottom: 24 }}>
+            <div className="drv-rowset">
+              {/* It said "tracked", and nothing tracks it — there is no flight
+                  feed in this app. The number is what the guest gave us, and
+                  saying only that is the difference between a driver checking
+                  the board themselves and one who thinks we will tell them. */}
+              {ride.flightNumber && (
+                <div className="drv-r">
+                  <span className="rl">Flight</span>
+                  <span className="rv">{formatFlightNumber(ride.flightNumber)}</span>
+                </div>
+              )}
+              <div className="drv-r"><span className="rl">Pick up</span><span className="rv">{ride.pickup}</span></div>
+              <div className="drv-r"><span className="rl">Drop off</span><span className="rv">{ride.dropoff}</span></div>
+              {ride.arrivedAt && (
+                <div className="drv-r">
+                  <span className="rl">You arrived</span>
+                  <span className="rv">{jobTime(ride.arrivedAt)}</span>
+                </div>
+              )}
+              {ride.vehicle && <div className="drv-r"><span className="rl">Vehicle</span><span className="rv">{ride.vehicle}</span></div>}
+              {/* The driver's money leads. The guest's total is shown under it
+                  rather than hidden — a driver who can see both trusts the
+                  first number, and this is the one screen with room for it. */}
+              <div className="drv-r">
+                <span className="rl">You earn</span>
+                <span className="rv hl">{ride.payoutUsd != null ? `$${Math.round(ride.payoutUsd)}` : "—"}</span>
+              </div>
+              <div className="drv-r">
+                <span className="rl">Guest pays</span>
+                <span className="rv">
+                  {ride.fareAwg != null ? `$${Math.round(awgToUsd(ride.fareAwg))}` : "—"}
+                  <small className="rsub"> · less {Math.round(COMMISSION_RATE * 100)}% Cabby's</small>
+                </span>
+              </div>
+            </div>
+
+            {/* Claiming was one-way until now: a driver whose car won't start
+                held a job nobody else could see. Offered only where the
+                database will actually allow it, so the portal never shows a
+                control that is going to be refused. */}
+            {canRelease(ride) && (
+              handback === null ? (
+                <button type="button" className="drv-handback" onClick={() => setHandback("")}>
+                  Can't do this job?
+                </button>
+              ) : (
+                <div className="drv-give">
+                  <div className="gk">Hand this job back</div>
+                  <p>
+                    It returns to the pool for another driver. Tell us why, so dispatch isn't
+                    guessing.
+                  </p>
+                  <label className="sr-only" htmlFor="giveback">Why you can't do it</label>
+                  <input
+                    id="giveback"
+                    type="text"
+                    value={handback}
+                    autoFocus
+                    placeholder="Car won't start"
+                    onChange={(e) => setHandback(e.target.value)}
+                  />
+                  <div className="row">
+                    <button type="button" className="drv-cta ghost" onClick={() => setHandback(null)} disabled={busy}>
+                      Keep it
+                    </button>
+                    <button
+                      type="button"
+                      className="drv-cta red"
+                      onClick={() => void giveBack(handback)}
+                      disabled={busy || handback.trim().length < 3}
+                    >
+                      {busy ? "…" : "Hand it back"}
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Always reachable, and never mistakable for the ride's own
+                action: Cabby's is who you call when the job itself goes
+                wrong, and that is not a thing to go hunting for on Profile. */}
+            {help && (
+              <a className="drv-help" href={help} target="_blank" rel="noreferrer">Something wrong? Message Cabby's ↗</a>
+            )}
+          </div>
+        </aside>
       </div>
 
       <div className="drv-actionbar">

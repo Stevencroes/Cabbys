@@ -176,241 +176,253 @@ export default function Profile({ driver, onSaved }: ProfileProps) {
           <span className={`drv-badge ${driver.status}`}>{driver.status}</span>
         </div>
 
-        <div className="drv-rowset" style={{ marginTop: 22 }}>
-          {nameDraft === null ? (
-            <div className="drv-r">
-              <span className="rl">Name</span>
-              <span className="rv">
-                {name || "—"}
-                <button
-                  type="button"
-                  className="drv-inline"
-                  onClick={() => { setNameDraft(name); setNameProblem(null); }}
-                >
-                  {name ? "Change" : "Add"}
-                </button>
-              </span>
-            </div>
-          ) : (
-            <div className="drv-r edit">
-              <label className="rl" htmlFor="drv-name">Name</label>
-              <input
-                id="drv-name"
-                type="text"
-                value={nameDraft}
-                autoFocus
-                autoComplete="name"
-                onChange={(e) => setNameDraft(e.target.value)}
-                placeholder="The name your guests should ask for"
-              />
-              <span className="acts">
-                <button type="button" className="drv-inline" onClick={() => setNameDraft(null)} disabled={nameBusy}>
-                  Cancel
-                </button>
-                <button type="button" className="drv-inline go" onClick={() => void saveName()} disabled={nameBusy}>
-                  {nameBusy ? "…" : "Save"}
-                </button>
-              </span>
-            </div>
-          )}
-          {nameProblem && (
-            <div className="drv-refused" role="alert" style={{ marginTop: 12, marginBottom: 0 }}>
-              <div className="rk">Couldn't save your name</div>
-              <p>{nameProblem}</p>
-            </div>
-          )}
-          {draft === null ? (
-            <div className="drv-r">
-              <span className="rl">Phone</span>
-              <span className="rv">
-                {phone || "—"}
-                <button
-                  type="button"
-                  className="drv-inline"
-                  onClick={() => { setDraft(phone); setProblem(null); setSaved(false); }}
-                >
-                  {phone ? "Change" : "Add"}
-                </button>
-              </span>
-            </div>
-          ) : (
-            <div className="drv-r edit">
-              <label className="rl" htmlFor="drv-phone">Phone</label>
-              <input
-                id="drv-phone"
-                type="tel"
-                value={draft}
-                autoFocus
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="+297 560 7336"
-              />
-              <span className="acts">
-                <button type="button" className="drv-inline" onClick={() => setDraft(null)} disabled={busy}>
-                  Cancel
-                </button>
-                <button type="button" className="drv-inline go" onClick={() => void save()} disabled={busy}>
-                  {busy ? "…" : "Save"}
-                </button>
-              </span>
-            </div>
-          )}
-          {/* Read-only, and not for want of a form: the address is the
-              account itself, so changing it is an auth operation with a
-              confirmation mail attached, not a profile edit. It is here
-              because a driver asking support which account they are on
-              should not have to go and find out. */}
-          <div className="drv-r"><span className="rl">Email</span><span className="rv">{driver.email || "—"}</span></div>
-        </div>
+        {/* Who they are and the car, then the paperwork and the way out:
+            one column on a phone, side by side on a desk (THE COLUMNS). */}
+        <div className="drv-cols" style={{ marginTop: 22 }}>
+          <div className="drv-main">
+            <div className="drv-rowset">
+              {nameDraft === null ? (
+                <div className="drv-r">
+                  <span className="rl">Name</span>
+                  <span className="rv">
+                    {name || "—"}
+                    <button
+                      type="button"
+                      className="drv-inline"
+                      onClick={() => { setNameDraft(name); setNameProblem(null); }}
+                    >
+                      {name ? "Change" : "Add"}
+                    </button>
+                  </span>
+                </div>
+              ) : (
+                <div className="drv-r edit">
+                  <label className="rl" htmlFor="drv-name">Name</label>
+                  <input
+                    id="drv-name"
+                    type="text"
+                    value={nameDraft}
+                    autoFocus
+                    autoComplete="name"
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    placeholder="The name your guests should ask for"
+                  />
+                  <span className="acts">
+                    <button type="button" className="drv-inline" onClick={() => setNameDraft(null)} disabled={nameBusy}>
+                      Cancel
+                    </button>
+                    <button type="button" className="drv-inline go" onClick={() => void saveName()} disabled={nameBusy}>
+                      {nameBusy ? "…" : "Save"}
+                    </button>
+                  </span>
+                </div>
+              )}
+              {nameProblem && (
+                <div className="drv-refused" role="alert" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <div className="rk">Couldn't save your name</div>
+                  <p>{nameProblem}</p>
+                </div>
+              )}
+              {draft === null ? (
+                <div className="drv-r">
+                  <span className="rl">Phone</span>
+                  <span className="rv">
+                    {phone || "—"}
+                    <button
+                      type="button"
+                      className="drv-inline"
+                      onClick={() => { setDraft(phone); setProblem(null); setSaved(false); }}
+                    >
+                      {phone ? "Change" : "Add"}
+                    </button>
+                  </span>
+                </div>
+              ) : (
+                <div className="drv-r edit">
+                  <label className="rl" htmlFor="drv-phone">Phone</label>
+                  <input
+                    id="drv-phone"
+                    type="tel"
+                    value={draft}
+                    autoFocus
+                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="+297 560 7336"
+                  />
+                  <span className="acts">
+                    <button type="button" className="drv-inline" onClick={() => setDraft(null)} disabled={busy}>
+                      Cancel
+                    </button>
+                    <button type="button" className="drv-inline go" onClick={() => void save()} disabled={busy}>
+                      {busy ? "…" : "Save"}
+                    </button>
+                  </span>
+                </div>
+              )}
+              {/* Said under the row that was saved, as the name's is. It used
+                  to land below the whole paperwork checklist — on a phone,
+                  four screens under the Save that caused it, so a refused
+                  number looked like a Save that did nothing. */}
+              {problem && (
+                <div className="drv-refused" role="alert" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <div className="rk">Couldn't save that</div>
+                  <p>{problem}</p>
+                </div>
+              )}
+              {saved && (
+                <div className="drv-refused ok" role="status" style={{ marginTop: 12, marginBottom: 0 }}>
+                  <div className="rk">Saved</div>
+                  <p>Guests and dispatch will reach you on {phone}.</p>
+                </div>
+              )}
+              {/* Read-only, and not for want of a form: the address is the
+                  account itself, so changing it is an auth operation with a
+                  confirmation mail attached, not a profile edit. It is here
+                  because a driver asking support which account they are on
+                  should not have to go and find out. */}
+              <div className="drv-r"><span className="rl">Email</span><span className="rv">{driver.email || "—"}</span></div>
+          </div>
 
-        {/* ── the car a guest will be looking for ── */}
-        <div className="drv-car">
-          <div className="car-h">
-            <span className="ck">Your car</span>
-            {!editingCar && (
-              <button type="button" className="drv-inline" onClick={() => { setEditingCar(true); setCarSaved(false); setCarProblem(null); }}>
-                {shown ? "Change" : "Add"}
-              </button>
+          {/* ── the car a guest will be looking for ── */}
+          <div className="drv-car">
+            <div className="car-h">
+              <span className="ck">Your car</span>
+              {!editingCar && (
+                <button type="button" className="drv-inline" onClick={() => { setEditingCar(true); setCarSaved(false); setCarProblem(null); }}>
+                  {shown ? "Change" : "Add"}
+                </button>
+              )}
+            </div>
+
+            {/* What the guest sees, shown the way they will see it — a face,
+                a colour and a plate, not a form. */}
+            <div className="car-face">
+              {photo
+                ? <img src={photo} alt="" />
+                : <span className="ph" aria-hidden="true">{(driver.fullName || "?").trim().charAt(0).toUpperCase()}</span>}
+              <span className="car-id">
+                <span className="cn">{shown || "No car on record"}</span>
+                <span className="cp">{car.plate || "No plate"}</span>
+                {!photo && <span className="cw">No photo yet</span>}
+              </span>
+            </div>
+
+            {editingCar ? (
+              <>
+                <div className="car-grid">
+                  <label htmlFor="v-colour">Colour</label>
+                  <input id="v-colour" value={car.colour} placeholder="Black"
+                    onChange={(e) => setCar({ ...car, colour: e.target.value })} />
+                  <label htmlFor="v-make">Make</label>
+                  <input id="v-make" value={car.make} placeholder="Mercedes"
+                    onChange={(e) => setCar({ ...car, make: e.target.value })} />
+                  <label htmlFor="v-model">Model</label>
+                  <input id="v-model" value={car.model} placeholder="V-Class"
+                    onChange={(e) => setCar({ ...car, model: e.target.value })} />
+                  <label htmlFor="v-plate">Plate</label>
+                  <input id="v-plate" value={car.plate} placeholder="A-42871"
+                    onChange={(e) => setCar({ ...car, plate: e.target.value })} />
+                  <label htmlFor="v-year">Year</label>
+                  <input id="v-year" value={car.year} inputMode="numeric" placeholder="2023"
+                    onChange={(e) => setCar({ ...car, year: e.target.value })} />
+                  <label htmlFor="v-seats">Seats</label>
+                  <input id="v-seats" value={car.seats} inputMode="numeric" placeholder="7"
+                    onChange={(e) => setCar({ ...car, seats: e.target.value })} />
+                  <label htmlFor="v-bags">Bags</label>
+                  <input id="v-bags" value={car.bags} inputMode="numeric" placeholder="6"
+                    onChange={(e) => setCar({ ...car, bags: e.target.value })} />
+                </div>
+
+                <input
+                  ref={pick}
+                  id="v-photo"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => void choosePhoto(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  className={`drv-cta ${photo ? "ghost" : "green"} car-photo`}
+                  onClick={() => pick.current?.click()}
+                  disabled={carBusy}
+                >
+                  {carBusy ? "…" : photo ? "Change your photo" : "Add your photo"}
+                </button>
+
+                <div className="car-acts">
+                  <button type="button" className="drv-cta ghost" onClick={() => setEditingCar(false)} disabled={carBusy}>
+                    Cancel
+                  </button>
+                  <button type="button" className="drv-cta green" onClick={() => void saveCar()} disabled={carBusy}>
+                    {carBusy ? "…" : "Save"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <dl className="car-spec">
+                <div><dt>Year</dt><dd>{driver.year ?? "—"}</dd></div>
+                <div><dt>Seats</dt><dd>{driver.seats ?? "—"}</dd></div>
+                <div><dt>Bags</dt><dd>{driver.bags ?? "—"}</dd></div>
+              </dl>
             )}
+
+            {carProblem && (
+              <div className="drv-refused" role="alert" style={{ marginTop: 12, marginBottom: 0 }}>
+                <div className="rk">Couldn't save the car</div>
+                <p>{carProblem}</p>
+              </div>
+            )}
+            {carSaved && (
+              <div className="drv-refused ok" role="status" style={{ marginTop: 12, marginBottom: 0 }}>
+                <div className="rk">Saved</div>
+                <p>Guests will be looking for {shown || "your car"}{car.plate ? `, plate ${car.plate}` : ""}.</p>
+              </div>
+            )}
+
+            <p className="car-note">
+              Your photo and your plate are both needed: the plate identifies the car, and the
+              photo identifies you. This is what your guests see in their booking and what they
+              look for at the kerb — it's stamped onto every ride you take, so changing it here
+              changes your upcoming rides too.
+            </p>
           </div>
 
-          {/* What the guest sees, shown the way they will see it — a face,
-              a colour and a plate, not a form. */}
-          <div className="car-face">
-            {photo
-              ? <img src={photo} alt="" />
-              : <span className="ph" aria-hidden="true">{(driver.fullName || "?").trim().charAt(0).toUpperCase()}</span>}
-            <span className="car-id">
-              <span className="cn">{shown || "No car on record"}</span>
-              <span className="cp">{car.plate || "No plate"}</span>
-              {!photo && <span className="cw">No photo yet</span>}
-            </span>
           </div>
 
-          {editingCar ? (
-            <>
-              <div className="car-grid">
-                <label htmlFor="v-colour">Colour</label>
-                <input id="v-colour" value={car.colour} placeholder="Black"
-                  onChange={(e) => setCar({ ...car, colour: e.target.value })} />
-                <label htmlFor="v-make">Make</label>
-                <input id="v-make" value={car.make} placeholder="Mercedes"
-                  onChange={(e) => setCar({ ...car, make: e.target.value })} />
-                <label htmlFor="v-model">Model</label>
-                <input id="v-model" value={car.model} placeholder="V-Class"
-                  onChange={(e) => setCar({ ...car, model: e.target.value })} />
-                <label htmlFor="v-plate">Plate</label>
-                <input id="v-plate" value={car.plate} placeholder="A-42871"
-                  onChange={(e) => setCar({ ...car, plate: e.target.value })} />
-                <label htmlFor="v-year">Year</label>
-                <input id="v-year" value={car.year} inputMode="numeric" placeholder="2023"
-                  onChange={(e) => setCar({ ...car, year: e.target.value })} />
-                <label htmlFor="v-seats">Seats</label>
-                <input id="v-seats" value={car.seats} inputMode="numeric" placeholder="7"
-                  onChange={(e) => setCar({ ...car, seats: e.target.value })} />
-                <label htmlFor="v-bags">Bags</label>
-                <input id="v-bags" value={car.bags} inputMode="numeric" placeholder="6"
-                  onChange={(e) => setCar({ ...car, bags: e.target.value })} />
+          <aside className="drv-aside scrolls" aria-label="Paperwork and account">
+            {/* ── the paperwork ──
+                Here as well as on the gate, because approval is not the end
+                of it: insurance lapses, licences expire, and the answer to
+                "we need their cover note again" cannot be suspending a
+                working driver so the gate comes back. A driver who has been
+                sent a document back reads why here, and replaces it. */}
+            <Documents uid={driver.id} />
+
+            <p className="sub foot" style={{ marginBottom: 20 }}>
+              Message us to move your account to a different email.
+            </p>
+
+            {help && (
+              <a className="drv-cta ghost" href={help} target="_blank" rel="noreferrer">
+                Message Cabby's ↗
+              </a>
+            )}
+
+            {/* One tap from a tab bar used all shift, and the way back in is a
+                password nobody has at the airport at 6am. */}
+            {confirming ? (
+              <div className="drv-confirm" role="group" aria-label="Confirm sign out">
+                <p>Sign out of the driver portal? You'll need your email and password to get back in.</p>
+                <div className="row">
+                  <button type="button" className="drv-cta ghost" onClick={() => setConfirming(false)}>Stay signed in</button>
+                  <button type="button" className="drv-cta red" onClick={() => signOut()}>Sign out</button>
+                </div>
               </div>
-
-              <input
-                ref={pick}
-                id="v-photo"
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => void choosePhoto(e.target.files?.[0])}
-              />
-              <button
-                type="button"
-                className={`drv-cta ${photo ? "ghost" : "green"} car-photo`}
-                onClick={() => pick.current?.click()}
-                disabled={carBusy}
-              >
-                {carBusy ? "…" : photo ? "Change your photo" : "Add your photo"}
-              </button>
-
-              <div className="car-acts">
-                <button type="button" className="drv-cta ghost" onClick={() => setEditingCar(false)} disabled={carBusy}>
-                  Cancel
-                </button>
-                <button type="button" className="drv-cta green" onClick={() => void saveCar()} disabled={carBusy}>
-                  {carBusy ? "…" : "Save"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <dl className="car-spec">
-              <div><dt>Year</dt><dd>{driver.year ?? "—"}</dd></div>
-              <div><dt>Seats</dt><dd>{driver.seats ?? "—"}</dd></div>
-              <div><dt>Bags</dt><dd>{driver.bags ?? "—"}</dd></div>
-            </dl>
-          )}
-
-          {carProblem && (
-            <div className="drv-refused" role="alert" style={{ marginTop: 12, marginBottom: 0 }}>
-              <div className="rk">Couldn't save the car</div>
-              <p>{carProblem}</p>
-            </div>
-          )}
-          {carSaved && (
-            <div className="drv-refused ok" role="status" style={{ marginTop: 12, marginBottom: 0 }}>
-              <div className="rk">Saved</div>
-              <p>Guests will be looking for {shown || "your car"}{car.plate ? `, plate ${car.plate}` : ""}.</p>
-            </div>
-          )}
-
-          <p className="car-note">
-            Your photo and your plate are both needed: the plate identifies the car, and the
-            photo identifies you. This is what your guests see in their booking and what they
-            look for at the kerb — it's stamped onto every ride you take, so changing it here
-            changes your upcoming rides too.
-          </p>
+            ) : (
+              <button type="button" className="drv-cta ghost" onClick={() => setConfirming(true)}>Sign out</button>
+            )}
+          </aside>
         </div>
-
-        {/* ── the paperwork ──
-            Here as well as on the gate, because approval is not the end
-            of it: insurance lapses, licences expire, and the answer to
-            "we need their cover note again" cannot be suspending a
-            working driver so the gate comes back. A driver who has been
-            sent a document back reads why here, and replaces it. */}
-        <Documents uid={driver.id} />
-
-        {problem && (
-          <div className="drv-refused" role="alert" style={{ marginTop: 0, marginBottom: 14 }}>
-            <div className="rk">Couldn't save that</div>
-            <p>{problem}</p>
-          </div>
-        )}
-        {saved && (
-          <div className="drv-refused ok" role="status" style={{ marginTop: 0, marginBottom: 14 }}>
-            <div className="rk">Saved</div>
-            <p>Guests and dispatch will reach you on {phone}.</p>
-          </div>
-        )}
-
-        <p className="sub foot" style={{ marginBottom: 20 }}>
-          Message us to move your account to a different email.
-        </p>
-
-        {help && (
-          <a className="drv-cta ghost" href={help} target="_blank" rel="noreferrer">
-            Message Cabby's ↗
-          </a>
-        )}
-
-        {/* One tap from a tab bar used all shift, and the way back in is a
-            password nobody has at the airport at 6am. */}
-        {confirming ? (
-          <div className="drv-confirm" role="group" aria-label="Confirm sign out">
-            <p>Sign out of the driver portal? You'll need your email and password to get back in.</p>
-            <div className="row">
-              <button type="button" className="drv-cta ghost" onClick={() => setConfirming(false)}>Stay signed in</button>
-              <button type="button" className="drv-cta red" onClick={() => signOut()}>Sign out</button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" className="drv-cta ghost" onClick={() => setConfirming(true)}>Sign out</button>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,15 @@
 // The shell: the mark and the online switch never move, because whether
 // you are taking work is the one thing that must be true at a glance from
 // a car mount. Everything else scrolls beneath.
+//
+// One piece of markup, three layouts (see THE FRAME in driver.css). On a
+// phone the header is a bar pinned to the top and the nav a thumb rail
+// pinned to the foot. Past the desk breakpoint the same header becomes a
+// rail down the left — mark, switch, the five places, who is signed in —
+// the pattern AdminShell already uses, so the two portals hold their
+// navigation in the same place. It used to be the phone layout on every
+// screen: a 560px column centred in a 1440px window, with the five tabs
+// spread across the full width of the bottom edge, 280px apart.
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -161,36 +170,71 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
     }
   }
 
+  // A band riding over the foot of the screen needs room reserved under
+  // the last thing on the page, or it sits on top of it: on a phone the
+  // "can't spot you" band covered the last card on every screen and there
+  // was no scrolling it clear. The class reserves that room (driver.css).
+  const nocar = !live && !bare && gaps.length > 0;
+  const nodocs = !live && !bare && gaps.length === 0 && docGaps.length > 0;
+  const banded = nocar || nodocs || (live !== null && !bare) || booked !== null
+    || (!offers.offer && offers.missed !== null);
+
   return (
-    <div className="drv">
-      {!bare && (
-        <div className="drv-top">
-          <span className="drv-mark">
-            Cabby<span className="ap">'</span>s
-            <small>Driver</small>
-          </span>
-          <div className="drv-onoff">
-            <span className={`st${online ? " on" : ""}`}>{online ? "Online" : "Offline"}</span>
-            <button
-              type="button"
-              className={`drv-tgl${online ? " on" : ""}`}
-              onClick={() => void toggle()}
-              role="switch"
-              aria-checked={online}
-              aria-label={online ? "Go offline" : "Go online"}
-            />
+    <div className={["drv", bare ? "bare" : "", banded ? "banded" : ""].filter(Boolean).join(" ")}>
+      {/* The rail comes first in the document, so on a desk a keyboard
+          has six stops before the screen it came for. */}
+      <a className="drv-skip" href="#drv-main">Skip to the screen</a>
+      <div className="drv-frame">
+        {/* Rendered on the ride screen too, and hidden there below the
+            desk breakpoint: on a phone the ride owns the whole screen, on
+            a desk the rail costs it nothing and is the way to the rest. */}
+        <header className="drv-side">
+          <div className="drv-top">
+            <span className="drv-mark">
+              Cabby<span className="ap">'</span>s
+              <small>Driver</small>
+            </span>
+            <div className="drv-onoff">
+              <span className={`st${online ? " on" : ""}`}>{online ? "Online" : "Offline"}</span>
+              <button
+                type="button"
+                className={`drv-tgl${online ? " on" : ""}`}
+                onClick={() => void toggle()}
+                role="switch"
+                aria-checked={online}
+                aria-label={online ? "Go offline" : "Go online"}
+              />
+            </div>
           </div>
-        </div>
-      )}
 
-      {offFailed && !bare && (
-        <div className="drv-offline" role="alert">
-          <span>Couldn't reach Cabby's — you're still {online ? "online" : "offline"}. Check your signal and try again.</span>
-          <button type="button" onClick={() => setOffFailed(false)} aria-label="Dismiss">✕</button>
-        </div>
-      )}
+          <nav className="drv-nav" aria-label="Driver">
+            {TABS.map((t) => (
+              <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => (isActive ? "on" : "")}>
+                <span className="dot" aria-hidden="true" />
+                {t.label}
+              </NavLink>
+            ))}
+          </nav>
 
-      <div className="drv-screen">{children}</div>
+          {/* Who is signed in, on the desk rail only — the same line the
+              admin rail keeps, for the same reason: one identity system,
+              and "why is this empty" is sometimes "the other account". */}
+          <div className="drv-sidefoot">
+            {driver.fullName && <span className="nm">{driver.fullName}</span>}
+            {driver.email && <span className="em" title={driver.email}>{driver.email}</span>}
+          </div>
+        </header>
+
+        <main className="drv-screen" id="drv-main" tabIndex={-1}>
+          {offFailed && !bare && (
+            <div className="drv-offline" role="alert">
+              <span>Couldn't reach Cabby's — you're still {online ? "online" : "offline"}. Check your signal and try again.</span>
+              <button type="button" onClick={() => setOffFailed(false)} aria-label="Dismiss">✕</button>
+            </div>
+          )}
+          {children}
+        </main>
+      </div>
 
       {/* An unfilled car is the fault the whole stamp chain was built to
           fix, reproduced one driver at a time: claim_ride writes what the
@@ -198,7 +242,7 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
           watching an empty kerb. Said here rather than left to be
           discovered by somebody standing outside arrivals — and it yields
           to a job in flight, which is always the more urgent thing. */}
-      {!live && !bare && gaps.length > 0 && (
+      {nocar && (
         <button type="button" className="drv-nocar" onClick={() => navigate("/drive/profile")}>
           <span className="ck">Your guests can't spot you</span>
           <span className="cv">
@@ -214,7 +258,7 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
           back is the kind of thing that stops being a paperwork problem
           the morning somebody is pulled over. Named pieces, not a count,
           for the same reason the band above names them. */}
-      {!live && !bare && gaps.length === 0 && docGaps.length > 0 && (
+      {nodocs && (
         <button type="button" className="drv-nocar docs" onClick={() => navigate("/drive/profile")}>
           <span className="ck">Cabby's is still waiting on your paperwork</span>
           <span className="cv">
@@ -280,17 +324,6 @@ export default function DriverShell({ driver, children, bare }: ShellProps) {
           onAccept={() => void acceptOffer()}
           onDismiss={offers.dismiss}
         />
-      )}
-
-      {!bare && (
-        <nav className="drv-nav" aria-label="Driver">
-          {TABS.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.end} className={({ isActive }) => (isActive ? "on" : "")}>
-              <span className="dot" aria-hidden="true" />
-              {t.label}
-            </NavLink>
-          ))}
-        </nav>
       )}
     </div>
   );
