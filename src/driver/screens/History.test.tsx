@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { driverPayoutUsd, usdToAwg } from "../../lib/quote";
 
-const state: { rides: unknown[] } = { rides: [] };
+const state: { rides: unknown[]; error: string | null } = { rides: [], error: null };
 const asked: number[] = [];
 const navigate = vi.fn();
 
@@ -11,6 +11,7 @@ vi.mock("../lib/driver", async (orig) => ({
   ...(await orig<typeof import("../lib/driver")>()),
   loadCompleted: (_id: string, limit: number) => {
     asked.push(limit);
+    if (state.error) return Promise.resolve({ jobs: [], error: state.error });
     return Promise.resolve({ jobs: state.rides.slice(0, limit), error: null });
   },
 }));
@@ -49,6 +50,7 @@ beforeEach(() => {
     ride("b", "2026-08-03", 60, "Eagle Beach"),
     ride("c", "2026-07-28", 40, "Palm Beach"),
   ];
+  state.error = null;
   asked.length = 0;
   navigate.mockClear();
 });
@@ -109,5 +111,17 @@ describe("History", () => {
     renderHistory();
     fireEvent.click(await screen.findByRole("button", { name: /show earlier trips/i }));
     await waitFor(() => expect(asked).toEqual([60, 120]));
+  });
+
+  // History is opened to settle a dispute. "No trips yet" over a read
+  // that failed is the sentence that starts the argument.
+  it("does not call a failed read an empty history", async () => {
+    state.error = "network request failed";
+    renderHistory();
+    expect(await screen.findByText(/Can't read your trips/i)).toBeInTheDocument();
+    expect(screen.queryByText(/No trips yet/i)).toBeNull();
+    state.error = null;
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(await screen.findByText(/August 2026/)).toBeInTheDocument();
   });
 });

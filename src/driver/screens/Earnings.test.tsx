@@ -2,11 +2,11 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const state: { completed: unknown[] } = { completed: [] };
+const state: { completed: unknown[]; error: string | null } = { completed: [], error: null };
 
 vi.mock("../lib/driver", async (orig) => ({
   ...(await orig<typeof import("../lib/driver")>()),
-  loadCompleted: () => Promise.resolve({ jobs: state.completed, error: null }),
+  loadCompleted: () => Promise.resolve({ jobs: state.error ? [] : state.completed, error: state.error }),
 }));
 
 import Earnings from "./Earnings";
@@ -53,6 +53,7 @@ function thisWeek(offsetFromMonday: number): string {
 }
 
 beforeEach(() => {
+  state.error = null;
   state.completed = [
     ride("a", thisWeek(0), "16:00", 48),                  // Monday
     ride("b", thisWeek(2), "14:00", 48),                  // Wednesday
@@ -222,5 +223,21 @@ describe("Earnings", () => {
     const v = mount();
     expect(await screen.findByText(/Nothing earned yet/i)).toBeInTheDocument();
     expect(v.total()).toBe("$0");
+  });
+
+  // The one screen whose whole job is to be believed. A read that failed
+  // used to arrive here as an empty list and be printed as "Nothing
+  // earned yet" over a week of completed work.
+  it("says the trips could not be read, rather than that nothing was earned", async () => {
+    state.error = "permission denied for table rides";
+    const v = mount();
+    expect(await screen.findByText(/Can't read your earnings/i)).toBeInTheDocument();
+    expect(screen.getByText(/permission denied for table rides/)).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing earned yet/i)).toBeNull();
+    // and no figure at all, rather than a $0 that reads as an answer
+    expect(v.container.querySelector(".drv-etot")).toBeNull();
+    state.error = null;
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    await waitFor(() => expect(v.total()).toBe("$128"));
   });
 });
