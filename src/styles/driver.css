@@ -460,7 +460,9 @@
    same dark ground, so the local token overrides it used to need are gone. */
 .drv-auth-wrap{width:100%;max-width:320px;margin-top:24px;text-align:left;}
 
-.drv-diag{width:100%;max-width:320px;background:var(--surface);border:1px solid var(--line);
+/* 420, the width of the paperwork block that follows it on the pending
+   gate — at 320 the two stacked boxes had different edges */
+.drv-diag{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--d-r-md);padding:16px 18px;text-align:left;margin-top:22px;}
 .drv-diag .row + .row{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
 .drv-diag .k{display:block;font-weight:500;font-size:var(--t-meta);

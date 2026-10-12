@@ -198,8 +198,8 @@ export default function Pool() {
               Bookings aren't being blocked — this portal just can't read them. Run the
               latest docs/driver-schema.sql, then try again.
             </p>
-            <p className="et mono" style={{ marginTop: 10, opacity: 0.7 }}>{failed}</p>
-            <button type="button" className="drv-cta ghost" style={{ marginTop: 14 }} onClick={() => void refresh()}>
+            <p className="et mono">{failed}</p>
+            <button type="button" className="drv-cta ghost" onClick={() => void refresh()}>
               Try again
             </button>
           </div>
