@@ -37,21 +37,31 @@ function useIsPhone(): boolean {
   return phone;
 }
 
-/** §07's line icons — a 20px grid, one weight — for the two numbers a car
-    is chosen by. Two figures, not one: "guests" is a group. */
-const GUESTS = <><circle cx="8" cy="6.8" r="2.8" /><path d="M2.6 16.5c.5-3 2.7-4.7 5.4-4.7s4.9 1.7 5.4 4.7" /><path d="M12.7 4.3a2.8 2.8 0 0 1 0 5.1M14.7 11.9c1.5.6 2.4 2.1 2.7 4.6" /></>;
-const BAGS = <><rect x="4" y="6.6" width="12" height="10.4" rx="1.6" /><path d="M7.6 6.6V4.9c0-.7.5-1.2 1.2-1.2h2.4c.7 0 1.2.5 1.2 1.2v1.7M7.6 9.6v4.4M12.4 9.6v4.4" /></>;
+/** "1 bag", "4 bags". The fleet has no car that takes one of anything
+    today; the data is allowed to, and a card reading "1 bags" would be the
+    one thing on it nobody could unsee. */
+function unit(n: number, one: string): string {
+  return n === 1 ? one : `${one}s`;
+}
 
-function Spec({ icon, n, unit }: { icon: React.ReactNode; n: number; unit: string }) {
+/**
+ * What the car holds, in words: "6 guests · 4 bags".
+ *
+ * It was an 18px line icon and a bare number per figure, with the unit in
+ * sr-only text — so the words were in the button's name and nowhere a
+ * sighted guest could read them, and a silhouette of two heads beside a 3
+ * asked them to decode which number was people. The owner asked for the
+ * words, quietly: one line, no icons, no pills. The number keeps the
+ * brighter step so it is still the thing the eye lands on; the unit and
+ * the dot sit back. The dot is aria-hidden — the button's name reads
+ * "6 guests 4 bags", not "6 guests middle dot 4 bags".
+ */
+function Holds({ pax, bags }: { pax: number; bags: number }) {
   return (
-    <span className="fsp">
-      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor"
-        strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        {icon}
-      </svg>
-      {n}
-      {/* the icon is the unit for the eye; the button's name needs the word */}
-      <span className="sr-only"> {unit}</span>
+    <span className="fspec">
+      <span className="fsp"><span className="n">{pax}</span> {unit(pax, "guest")}</span>
+      <span className="fsep" aria-hidden="true">·</span>
+      <span className="fsp"><span className="n">{bags}</span> {unit(bags, "bag")}</span>
     </span>
   );
 }
@@ -130,10 +140,7 @@ export default function Fleet() {
                         cut. Guests AND bags: two people with four suitcases
                         do not fit the car that seats three. */}
                     <span className="fline">
-                      <span className="fspec">
-                        <Spec icon={GUESTS} n={v.pax} unit="guests" />
-                        <Spec icon={BAGS} n={v.bags} unit="bags" />
-                      </span>
+                      <Holds pax={v.pax} bags={v.bags} />
                       {from && (
                         <span className="ffrom">
                           <span className="fl">From</span>

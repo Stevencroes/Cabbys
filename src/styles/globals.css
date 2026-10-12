@@ -1508,12 +1508,32 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
    car holds and, across from that, what it costs. The fare keeps its
    "From": it is the airport-to-Palm-Beach quote, not this trip's price,
    and a bare number would claim it was. */
-.fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);}
+.fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);
+  /* the plate measures itself, so the line below can decide by the width
+     the CARD has — four across a laptop and one on a phone rail differ by
+     a hundred pixels, and the viewport says nothing about which it is */
+  container-type:inline-size;}
 .fname{display:block;font-size:var(--t-body);font-weight:600;letter-spacing:.01em;color:var(--ink);}
-.fline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;}
-.fspec{display:flex;gap:14px;font-size:var(--t-meta);color:var(--silver);font-variant-numeric:tabular-nums;}
-.fsp{display:inline-flex;align-items:center;gap:6px;}
-.fsp svg{flex:none;color:var(--silver);}
+.fline{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:10px;}
+/* What it holds, in words — "12 guests · 12 bags" — at the meta step,
+   one line and never wrapped: a capacity broken across two lines reads
+   as two facts about two cars. Quiet by colour, not by size: the unit and
+   the dot in --muted (5.12:1 on the card), the number one step up in
+   --silver so it is still what the eye compares across the row. */
+.fspec{display:flex;align-items:baseline;gap:7px;white-space:nowrap;
+  font-size:var(--t-meta);color:var(--muted);font-variant-numeric:tabular-nums;}
+.fspec .n{color:var(--silver);font-weight:500;}
+/* decoration, aria-hidden; --soft is not a text colour and this is not text */
+.fsep{color:var(--soft);}
+/* Words are wider than the icons were: the Sprinter's line needs 226px
+   with its fare beside it (measured, in the wider fallback face; Inter
+   sets it narrower), and the plate is 159px four-across at 900px and
+   184px on a 320px rail. Where both do not fit, the fare steps down under the
+   capacities rather than either one wrapping — same order, same words,
+   and every card in a row breaks alike because they share a width. */
+@container (max-width:235px){
+  .fline{flex-direction:column;align-items:flex-start;gap:6px;}
+}
 .ffrom{flex:none;display:flex;align-items:baseline;gap:5px;white-space:nowrap;}
 .ffrom .fl{font-size:var(--t-meta);color:var(--muted);}
 .ffrom .fv{font-size:var(--t-body);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
