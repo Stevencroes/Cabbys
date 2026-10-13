@@ -966,7 +966,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   background:var(--sheen);color:var(--on-sheen);border:none;
   font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
 /* ── the two silver buttons ────────────────────────────────────────────
-   "View options" in the hero and "Book your transfer" in the closing band
+   "See prices" in the hero and "Book your transfer" in the closing band
    are the same decision asked twice, so they are one rule and not two that
    happen to match today. Scale, not translateY: a button that rises is a
    card lifting off a surface, a button that grows is the button answering

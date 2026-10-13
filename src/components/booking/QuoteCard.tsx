@@ -416,7 +416,7 @@ export default function QuoteCard({ onOpenChange }: QuoteCardProps) {
             <div className="qgo">
               <button type="button" className={`qbtn${busy ? " busy" : ""}`}
                 aria-busy={busy} onClick={handleContinue}>
-                <span className="qbtn-l">View options</span>
+                <span className="qbtn-l">See prices</span>
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor"
                   strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M3 10h13M11 5l5 5-5 5" />
