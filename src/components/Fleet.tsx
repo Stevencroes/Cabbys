@@ -15,9 +15,13 @@ const SAMPLE_TO = "palm-beach";
 
 /** The width the carousel takes over at. The cards are portrait now, and two
     columns of them on a tablet were 460px of photograph each — the section
-    ran two screens tall to show four cars. Below 900px it is the rail, as
-    the reference draws its row: the next card cut off at the edge. */
-const PHONE = "(max-width:899px)";
+    ran two screens tall to show four cars. Below 1120px it is the rail, as
+    the reference draws its row: the next card cut off at the edge.
+
+    1120, not 900: four across between those widths left a card 159-191px
+    of plate, and "12 guests · 12 bags" has to share one line with its
+    fare (globals.css, the plate). Four columns start where four fit. */
+const PHONE = "(max-width:1119px)";
 
 /** Four full-width cards stacked down a phone is four screens of scrolling
     to compare four things, and the section stops being a row you can read

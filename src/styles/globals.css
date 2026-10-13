@@ -1452,7 +1452,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* ============ §11 — VEHICLE CARDS ============ */
 .fleet{background:var(--deep);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
 .fleet .inner{max-width:var(--maxw);margin:0 auto;padding:clamp(50px,6.6vh,84px) var(--gutter);}
-.fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:clamp(34px,4.4vw,52px);}
+.fgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:clamp(34px,4.4vw,52px);}
 /* the photograph is the card; the name and the fare ride a band across its
    foot, the way an automotive product card carries its plate */
 /* The lift is 2px, not 4. A product card is a heavy object photographed on
@@ -1508,38 +1508,40 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
    car holds and, across from that, what it costs. The fare keeps its
    "From": it is the airport-to-Palm-Beach quote, not this trip's price,
    and a bare number would claim it was. */
-.fmeta{display:block;padding:16px 18px 18px;border-top:1px solid var(--line);
-  /* the plate measures itself, so the line below can decide by the width
-     the CARD has — four across a laptop and one on a phone rail differ by
-     a hundred pixels, and the viewport says nothing about which it is */
-  container-type:inline-size;}
+.fmeta{display:block;padding:16px 14px 18px;border-top:1px solid var(--line);}
 .fname{display:block;font-size:var(--t-body);font-weight:600;letter-spacing:.01em;color:var(--ink);}
-.fline{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:10px;}
-/* What it holds, in words — "12 guests · 12 bags" — at the meta step,
-   one line and never wrapped: a capacity broken across two lines reads
-   as two facts about two cars. Quiet by colour, not by size: the unit and
-   the dot in --muted (5.12:1 on the card), the number one step up in
-   --silver so it is still what the eye compares across the row. */
-.fspec{display:flex;align-items:baseline;gap:7px;white-space:nowrap;
+/* ONE LINE, ALWAYS: what it holds on the left, what it costs on the
+   right, by the owner's direction — the fare stepping under the
+   capacities on a narrow card read as a second, unrelated fact.
+   It is made to FIT, not forced with nowrap and left to overflow. The
+   widest line is the Sprinter's, measured in the sandbox's fallback face
+   (DejaVu Sans, wider than Inter by about a seventh): "12 guests" 68.7 +
+   dot 4.5 + "12 bags" 55.9 + two 4px gaps, 8px to the fare, "From" 34.7
+   + 4 + "$82" at 14px 29.2 = 213px. Every card's line is at least 215px
+   wide: 14px side padding here, a 14px grid gap four-across, the rail up
+   to 1119px and never a card under 252px on it (below). In Inter the
+   same line is about 190px. A three-figure fare adds ~9px: Inter takes
+   it, the fallback face would not, so re-measure if the sample route's
+   "from" fare ever passes $99. */
+.fline{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:10px;
+  white-space:nowrap;}
+/* What it holds, in words — "12 guests · 12 bags" — quiet by colour, not
+   by size: the unit and the dot in --muted (5.12:1 on the card), the
+   number one step up in --silver so it is still what the eye compares
+   across the row. */
+.fspec{display:flex;align-items:baseline;gap:4px;
   font-size:var(--t-meta);color:var(--muted);font-variant-numeric:tabular-nums;}
 .fspec .n{color:var(--silver);font-weight:500;}
 /* decoration, aria-hidden; --soft is not a text colour and this is not text */
 .fsep{color:var(--soft);}
-/* Words are wider than the icons were: the Sprinter's line needs 226px
-   with its fare beside it (measured, in the wider fallback face; Inter
-   sets it narrower), and the plate is 159px four-across at 900px and
-   184px on a 320px rail. Where both do not fit, the fare steps down under the
-   capacities rather than either one wrapping — same order, same words,
-   and every card in a row breaks alike because they share a width. */
-@container (max-width:235px){
-  .fline{flex-direction:column;align-items:flex-start;gap:6px;}
-}
-.ffrom{flex:none;display:flex;align-items:baseline;gap:5px;white-space:nowrap;}
+.ffrom{flex:none;display:flex;align-items:baseline;gap:4px;}
 .ffrom .fl{font-size:var(--t-meta);color:var(--muted);}
-.ffrom .fv{font-size:var(--t-body);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+/* --t-meta, the capacities' own step: the fare is marked by weight and
+   ink rather than by being two pixels taller, which is the 4px the one
+   line needed */
+.ffrom .fv{font-size:var(--t-meta);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
 /* four across down to a small laptop; under that, the rail */
-@media(max-width:1040px){.fgrid{gap:14px;}}
-@media(max-width:899px){
+@media(max-width:1119px){
   /* ── the rail ──────────────────────────────────────────────────────
      Four full-width cards stacked is four screens of scrolling to compare
      four things. One swipeable rail instead, with the next card showing at
@@ -1560,9 +1562,14 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
     scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
     scrollbar-width:none;}
   .fgrid::-webkit-scrollbar{display:none;}
-  .fcard{flex:0 0 78%;scroll-snap-align:start;}
+  /* never under 252px, the width the plate's one line needs (above):
+     78% of a 320px phone is 222. The sliver of the next card shrinks to
+     18px there and is still the affordance. */
+  .fcard{flex:0 0 max(252px,78%);scroll-snap-align:start;}
   /* a tablet shows two and the edge of a third, as the reference's row does */
-  @media(min-width:521px){.fcard{flex-basis:calc((100% - 28px) / 2.3);}}
+  @media(min-width:521px){.fcard{flex-basis:max(252px,calc((100% - 28px) / 2.3));}}
+  /* a small laptop shows three and the edge of a fourth */
+  @media(min-width:900px){.fcard{flex-basis:max(252px,calc((100% - 42px) / 3.1));}}
   /* the lift on hover is a pointer idiom and costs a repaint mid-swipe */
   .fcard:hover{transform:none;}
 
