@@ -434,21 +434,21 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
   .par{will-change:auto;transform:none!important;}
 }
 @media(max-width:660px){.nsign{display:none;}.nright{gap:16px;}}
-/* at phone widths the sheet carries the account; the bar keeps brand + CTA */
-@media(max-width:560px){.nacct-wrap{display:none;}}
-/* the bar must still hold brand + CTA + burger at 375px */
-/* The button gives up side padding first; its height is --tap at every
-   width. The wordmark holds 16px at every width — under 380 it used to
-   drop to 14px; it gives up tracking instead, never size. */
+/* At phone widths the sheet carries the account and the CTA; the bar is
+   brand + burger. The pill was a second filled thing on a phone screen
+   whose hero already opens on the booking card, and it crowded the
+   wordmark down to 16px of tracking-starved caps at 320. The sheet's own
+   Book now (.sheet-cta) is the way in from the bar. */
+@media(max-width:560px){.nacct-wrap,.nbtn{display:none;}}
+/* The wordmark holds 16px at every width — under 380 it used to drop to
+   14px; it gives up tracking instead, never size. */
 @media(max-width:560px){
   .nright{gap:14px;}
   .brand{font-size:var(--t-body);letter-spacing:.22em;padding-left:.22em;}
-  .nbtn{padding:0 16px;}
 }
 @media(max-width:380px){
   .nright{gap:10px;}
   .brand{letter-spacing:.16em;padding-left:.16em;}
-  .nbtn{padding:0 14px;}
 }
 @media(min-width:1100px){.nav-sheet,.nav-scrim{display:none;}}
 
