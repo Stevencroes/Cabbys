@@ -1489,7 +1489,9 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   border-radius:var(--r-pill);background:var(--sheen);color:var(--on-sheen);font-size:var(--t-meta);font-weight:600;letter-spacing:.02em;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui);}
 .jbook:hover{transform:scale(1.025);box-shadow:var(--shadow-hard);}
-.jbook:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;}
+/* radius restated: without it the global :focus-visible 6px won and the
+   pill squared off the moment a keyboard reached it, as .nbtn's did */
+.jbook:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;border-radius:var(--r-pill);}
 .jbook svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .jbook:hover svg{transform:translateX(3px);}
 
@@ -1831,7 +1833,9 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   padding:clamp(60px,8vh,82px) 0 clamp(56px,7.4vh,78px);border-top:1px solid var(--line);}
 .closer h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,3.9vw,54px);line-height:1.03;
   letter-spacing:-.02em;margin:0;position:relative;z-index:var(--z-content);}
-.closer h2 em{font-style:italic;color:var(--silver);}
+/* italic carries the stress on its own; in silver the line read as two
+   phrases in two colours, so the em takes the heading's ink */
+.closer h2 em{font-style:italic;color:inherit;}
 .closer .ctag{margin-top:16px;font-weight:600;font-size:var(--t-micro);letter-spacing:.24em;text-transform:uppercase;color:var(--muted);position:relative;z-index:var(--z-content);}
 /* ── the closing band arrives in the hero's order ──────────────────────
    Headline, then the mark under it, then the button. The three are
