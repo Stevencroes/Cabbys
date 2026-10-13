@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, within, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Nav from "./Nav";
 
@@ -15,6 +15,39 @@ function renderNav(onSignIn = vi.fn()) {
   return render(
     <MemoryRouter>
       <Nav onSignIn={onSignIn} />
+    </MemoryRouter>,
+  );
+}
+
+/**
+ * An observer the test can drive. The setup file's stub never calls back,
+ * which is right for the reveal system and useless for the rail, whose
+ * whole state is what the observer says about the hero.
+ */
+type Fire = (isIntersecting: boolean) => void;
+function driveObserver() {
+  const seen: { target?: Element; rootMargin?: string; fire?: Fire; disconnected: boolean } = { disconnected: false };
+  class Driven {
+    constructor(cb: IntersectionObserverCallback, opts?: IntersectionObserverInit) {
+      seen.rootMargin = opts?.rootMargin;
+      seen.fire = (isIntersecting) =>
+        act(() => cb([{ isIntersecting } as IntersectionObserverEntry], this as unknown as IntersectionObserver));
+    }
+    observe(t: Element) { seen.target = t; }
+    unobserve() {}
+    disconnect() { seen.disconnected = true; }
+    takeRecords() { return []; }
+  }
+  vi.stubGlobal("IntersectionObserver", Driven);
+  return seen;
+}
+
+/** The landing page's shape: the rail, then the hero it reads (#top). */
+function renderOverHero() {
+  return render(
+    <MemoryRouter>
+      <Nav onSignIn={vi.fn()} />
+      <header id="top" data-testid="hero" />
     </MemoryRouter>,
   );
 }
@@ -146,5 +179,73 @@ describe("Nav", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: /sign in/i }));
     expect(onSignIn).toHaveBeenCalledOnce();
     expect(screen.queryByRole("dialog", { name: /menu/i })).toBeNull();
+  });
+
+  describe("over the hero and past it", () => {
+    // Restored one by one: restoreAllMocks would also strip the
+    // implementations off the module-level signOut and useAuth mocks.
+    let rect: { mockRestore(): void } | undefined;
+    function heroBottomAt(bottom: number) {
+      rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ bottom } as DOMRect);
+    }
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      rect?.mockRestore();
+      rect = undefined;
+    });
+
+    it("is a surface from the first frame on a page with no hero", () => {
+      const seen = driveObserver();
+      renderNav();
+      expect(screen.getByRole("navigation")).not.toHaveClass("on-hero");
+      // nothing to watch, so nothing watched — and nothing to clear it later
+      expect(seen.target).toBeUndefined();
+    });
+
+    it("starts clear when it loads over the hero", () => {
+      driveObserver();
+      // the hero's bottom edge is well below the bar
+      heroBottomAt(800);
+      renderOverHero();
+      expect(screen.getByRole("navigation")).toHaveClass("on-hero");
+    });
+
+    it("starts as a surface when it loads already past the hero", () => {
+      driveObserver();
+      // a reload halfway down the page: the hero ended above the screen
+      heroBottomAt(-400);
+      renderOverHero();
+      expect(screen.getByRole("navigation")).not.toHaveClass("on-hero");
+    });
+
+    it("takes its ground back once the hero is behind it, and gives it up again", () => {
+      const seen = driveObserver();
+      renderOverHero();
+      // it watches the hero, measured against the viewport less the bar
+      expect(seen.target).toBe(screen.getByTestId("hero"));
+      expect(seen.rootMargin).toMatch(/^-\d+px 0px 0px 0px$/);
+
+      const nav = screen.getByRole("navigation");
+      seen.fire!(true);
+      expect(nav).toHaveClass("on-hero");
+      seen.fire!(false);
+      expect(nav).not.toHaveClass("on-hero");
+      seen.fire!(true);
+      expect(nav).toHaveClass("on-hero");
+    });
+
+    it("stops watching when it unmounts", () => {
+      const seen = driveObserver();
+      const { unmount } = renderOverHero();
+      unmount();
+      expect(seen.disconnected).toBe(true);
+    });
+
+    it("never goes clear where there is no observer to bring the ground back", () => {
+      vi.stubGlobal("IntersectionObserver", undefined);
+      heroBottomAt(800);
+      renderOverHero();
+      expect(screen.getByRole("navigation")).not.toHaveClass("on-hero");
+    });
   });
 });
