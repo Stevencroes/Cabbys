@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useStartBooking } from "../booking/useStartBooking";
 import { useAuth } from "../booking/useAuth";
@@ -31,7 +31,11 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   const { account, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [tight, setTight] = useState(false);
+  // Off until measured: a page with no hero never turns it on, so the bar
+  // is a surface from its first frame there and is never transparent
+  // waiting on a script.
+  const [onHero, setOnHero] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -48,27 +52,36 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
     avatarRef.current?.focus();
   }
 
-  // Over the hero the rail is a bar on a photograph; past it, a bar on
-  // moving text — which is the point at which it needs a line under it and
-  // a little less height (see .nav.tight). The threshold is the hero's own
-  // bottom edge where there is a hero, and the first flick of scroll where
-  // there is not: the account pages mount this same nav with no header
-  // above them, and waiting a viewport there would mean it never tightens.
-  useEffect(() => {
-    let frame = 0;
-    const read = () => {
-      frame = 0;
-      const hero = document.getElementById("top");
-      const past = hero ? hero.offsetTop + hero.offsetHeight - 80 : 24;
-      setTight(window.scrollY > Math.max(24, past));
-    };
-    const onScroll = () => { if (!frame) frame = requestAnimationFrame(read); };
-    read();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
+  // Over the hero the rail is no bar at all — wordmark, links and the CTA
+  // sit straight on the photograph, the way the reference sets its nav.
+  // Past it, the rail is over moving text and needs a ground and a line
+  // under it (see .nav.on-hero). The switch is the hero's bottom edge
+  // passing under the bar's bottom edge, read by an IntersectionObserver
+  // whose root is the viewport less the bar. It replaces a scroll listener
+  // that compared scrollY with offsetTop + offsetHeight - 80: a forced
+  // layout read on every frame of scroll, and an 80 standing in for a bar
+  // that is 70px on a desktop and 60px on a phone, so the switch landed
+  // 10-20px away from the edge it was meant to mark.
+  //
+  // A layout effect, so the first paint on the landing page is already the
+  // clear bar: measured after paint, it would draw a solid bar and then
+  // fade it out on arrival. The account pages mount this nav with no hero
+  // (#top) and keep the surface.
+  useLayoutEffect(() => {
+    const hero = document.getElementById("top");
+    const bar = navRef.current;
+    if (!hero || !bar) return;
+    // Without an observer nothing would ever turn the ground back on, and
+    // a clear bar over the FAQ is unreadable — so no observer, no clear bar.
+    if (typeof IntersectionObserver === "undefined") return;
+    const clear = bar.offsetHeight;
+    setOnHero(hero.getBoundingClientRect().bottom > clear);
+    const io = new IntersectionObserver(
+      ([entry]) => setOnHero(entry.isIntersecting),
+      { rootMargin: `-${clear}px 0px 0px 0px` },
+    );
+    io.observe(hero);
+    return () => io.disconnect();
   }, []);
 
   // body lock + focus management while the sheet is open
@@ -135,19 +148,19 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
   }
 
   return (
-    <nav className={`nav${tight ? " tight" : ""}`}>
+    <nav ref={navRef} className={`nav${onHero ? " on-hero" : ""}`}>
       {/* The bar is full bleed so the hairline reaches both edges; its
           contents take the hero's own container, or the wordmark lands
-          160px left of the headline on a wide screen. */}
+          160px left of the headline on a wide screen. Three columns, the
+          outer two equal, so the links sit on the page's centre line and
+          not on whatever is left between the wordmark and the CTA. */}
       <div className="nav-inner">
-      <div className="nav-left">
-        <Link to="/" className="brand" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</Link>
+      <Link to="/" className="brand" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</Link>
 
-        <div className="nlinks">
-          {LINKS.map((l) => (
-            <Link key={l.href} to={l.href}>{l.label}</Link>
-          ))}
-        </div>
+      <div className="nlinks">
+        {LINKS.map((l) => (
+          <Link key={l.href} to={l.href}>{l.label}</Link>
+        ))}
       </div>
 
       <div className="nright">
