@@ -240,8 +240,12 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    14px, so the rail read as seven words of nearly one size. The fix is
    the rest of the bar stepping down to the label rung, not the wordmark
    stepping up — at 26px it shouted (b3a0e07, reverted on the owner's
-   word). 16px against 12px is lead enough. */
-.brand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);
+   word). 16px against 12px is lead enough.
+   The weight is 700, not 500, and that is the same owner's other half of
+   it: at 500 a 16px Cormorant is hairline strokes on a photograph and the
+   mark read faint, but size was already ruled out — so it gets heavier,
+   not bigger. Every wordmark below (footer, sign-in, receipt) matches. */
+.brand{font-family:var(--serif);font-weight:700;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);
   padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;
   display:inline-flex;align-items:center;min-height:var(--tap);}
 .brand .ap{color:var(--silver);}
@@ -1858,7 +1862,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .ftop{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;padding-bottom:38px;border-bottom:1px solid var(--line);}
 /* 18px raw, a size off the scale and a step larger than the wordmark in
    the bar. The mark is one size wherever it stands: --t-body, 16px. */
-.fbrand{font-family:var(--serif);font-weight:500;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);color:var(--ink);padding-left:.28em;}
+.fbrand{font-family:var(--serif);font-weight:700;letter-spacing:.28em;text-transform:uppercase;font-size:var(--t-body);color:var(--ink);padding-left:.28em;}
 .fbrand .ap{color:var(--silver);}
 .ftop p{margin:14px 0 0;font-size:var(--t-body);max-width:30ch;line-height:1.6;font-weight:400;}
 .fcols{display:flex;gap:50px;flex-wrap:wrap;}
@@ -2460,7 +2464,7 @@ img.tp-driver-ava{object-fit:cover;}
   background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--r-md);
   padding:28px;box-shadow:var(--shadow-hard-lg);}
 .tp-receipt::backdrop{background:var(--scrim);}
-.tp-receipt-brand{font-family:var(--serif);font-size:var(--t-body);letter-spacing:.28em;text-transform:uppercase;color:var(--silver);margin:0;}
+.tp-receipt-brand{font-family:var(--serif);font-weight:700;font-size:var(--t-body);letter-spacing:.28em;text-transform:uppercase;color:var(--silver);margin:0;}
 .tp-receipt-h{font-family:var(--serif);font-weight:300;font-size:clamp(1.6rem,4vw,2rem);margin:6px 0 8px;color:var(--ink);}
 .tp-receipt-note{font-size:var(--t-body);color:var(--muted);line-height:var(--lh-body);margin:0 0 4px;}
 /* Printed on paper, so black on white — the one place this stylesheet
@@ -2487,7 +2491,7 @@ img.tp-driver-ava{object-fit:cover;}
 .auth-close{position:absolute;top:12px;right:12px;width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;border:1px solid var(--line);color:var(--silver);background:transparent;transition:.3s var(--ease);}
 .auth-close:hover{background:var(--raised);color:var(--ink);}
 /* was 18px raw — see .fbrand: the wordmark is 16px everywhere */
-.auth-brand{font-family:var(--serif);font-weight:500;font-size:var(--t-body);letter-spacing:.28em;text-transform:uppercase;color:var(--ink);text-align:center;padding-left:.28em;}
+.auth-brand{font-family:var(--serif);font-weight:700;font-size:var(--t-body);letter-spacing:.28em;text-transform:uppercase;color:var(--ink);text-align:center;padding-left:.28em;}
 .auth-sub{margin:8px 0 4px;font-size:var(--t-body);line-height:1.6;color:var(--muted);font-weight:400;text-align:center;}
 .oauth{display:flex;flex-direction:column;gap:12px;margin-top:26px;}
 .oauth-btn{display:flex;align-items:center;justify-content:center;gap:13px;padding:14px;min-height:var(--tap);border:1px solid var(--silver-deep);background:transparent;font-size:var(--t-meta);font-weight:600;letter-spacing:.06em;color:var(--silver);transition:.3s var(--ease);}
