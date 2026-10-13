@@ -79,21 +79,37 @@ export default function Fleet() {
 
   /** Which card is in front, read from the rail itself rather than from a
       counter we increment — a thumb can stop anywhere, and the dots have to
-      follow the scroll, not the last button anyone pressed. */
+      follow the scroll, not the last button anyone pressed.
+      The leftmost card, not the last one seen: an observer marked whichever
+      card crossed into view LAST, so with three cards showing (the rail
+      runs to 1119px) the third dot lit while the first card sat at the
+      left. At the end of the rail the last dot lights, since the last card
+      can never reach the left edge. */
   useEffect(() => {
     const rail = railRef.current;
     if (!phone || !rail) return;
     const cards = [...rail.querySelectorAll<HTMLElement>(".fcard")];
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) setActive(cards.indexOf(e.target as HTMLElement));
-        }
-      },
-      { root: rail, threshold: 0.6 },
-    );
-    cards.forEach((c) => io.observe(c));
-    return () => io.disconnect();
+    let frame = 0;
+    const sync = () => {
+      frame = 0;
+      const left = rail.scrollLeft;
+      const scrolls = rail.scrollWidth > rail.clientWidth + 2;
+      if (scrolls && left + rail.clientWidth >= rail.scrollWidth - 2) {
+        setActive(cards.length - 1);
+        return;
+      }
+      const base = cards[0]?.offsetLeft ?? 0;
+      // the first card whose middle is still right of the rail's left edge
+      const i = cards.findIndex((c) => c.offsetLeft - base + c.offsetWidth / 2 > left);
+      setActive(Math.max(0, i));
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(sync); };
+    sync();
+    rail.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      rail.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, [phone]);
 
   const show = useCallback((i: number) => {
