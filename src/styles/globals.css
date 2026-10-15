@@ -168,71 +168,89 @@ h2.sec em{font-style:italic;}
   .tp-skeleton{animation:none !important;}
 }
 
-/* ============ NAV — an edge rail ============
-   Full bleed, flush to the top, aligned to the hero's own gutter. There is
-   no pill element any more: the hairline does the containing, so the bar
-   reads as the top edge of the page rather than an object floating on it.
-
-   It has two states, and the hero decides which (Nav.tsx):
+/* ============ NAV — a rail on the photograph, a pill past it ============
+   One element with two shapes, and the hero decides which (Nav.tsx).
 
    Over the hero it is not a bar at all. No ground, no blur, no line — the
-   wordmark, the links and the CTA sit straight on the photograph, as the
-   reference nav the owner pointed at in October 2026 does. A translucent
-   navy band across the top of a photograph read as a strip laid over it;
-   the photograph already carries its own darkening at the top
-   (.hero-photo::before), which is what holds the type.
+   wordmark, the links and the CTA sit straight on the photograph, on the
+   hero's own container, as the reference nav the owner pointed at in
+   October 2026 does. A translucent navy band across the top of a
+   photograph read as a strip laid over it; the photograph already carries
+   its own darkening at the top (.hero-photo::before), which is what holds
+   the type.
 
-   Past the hero it is a surface: --nav-bg behind a blur on a desktop,
-   --nav-solid on a phone, a --nav-rule hairline under it, and 8px less
-   height. That is where the bar sits on scrolling text and has to be held
-   off it. A page with no hero is in this state from its first frame.
+   Past the hero the same box draws itself in to a capsule floating clear
+   of the top edge: narrower, shorter, rounded, with --nav-bg behind a blur
+   and a --nav-rule edge. The owner asked for the pill back in October 2026
+   after seeing it animated; it had gone for a full-bleed rail whose
+   hairline did the containing. What it keeps from the rail is the clear
+   state on the photograph — the pill only forms where there is scrolling
+   text to hold it off. A page with no hero is a pill from its first frame.
 
-   The old rule was "the ground is permanent", written against a hairline
-   that faded in past a fixed 24px of scroll — an edge that arrived over
-   nothing in particular. This keys off the hero's own edge instead, so the
-   change happens exactly where what is under the bar changes. One 300ms
-   move; height on a fixed box reflows nothing but the bar itself, so it is
-   not the layout animation the rest of the system forbids. */
+   The change keys off the hero's own edge, not a scroll distance, so it
+   happens exactly where what is under the bar changes. Every property
+   that moves is interpolable, so it is one 300ms move on --ease-ui with
+   nothing snapping part-way — blur(0) rather than none, and a zero shadow
+   rather than no shadow, for that reason. Width and height on a fixed box
+   reflow nothing but the bar itself, so it is not the layout animation the
+   rest of the system forbids.
+
+   The geometry lives in custom properties on .nav so the phone block below
+   restates numbers, not selectors: the clear state is one selector,
+   .nav.on-hero:not(.is-open), and an open menu always takes the pill. */
 .nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
+  --pill-top:var(--nav-pill-top);--pill-h:var(--nav-pill-h);--rail-h:var(--nav-h);
+  --pill-w:calc(100% - 2 * var(--gutter));--pill-max:var(--nav-pill-w);
+  --pill-pad-l:26px;--pill-pad-r:8px;--pill-bg:var(--nav-bg);
+  /* the box is only there to hold the pill and the scrim: full width and
+     transparent, it would otherwise swallow clicks on the page either side
+     of the capsule */
+  pointer-events:none;
   /* the box reaches the physical top of the screen; the padding keeps the
-     contents below the notch. --nav-total is the two added together, and is
-     what everything else measures against. */
-  height:var(--nav-total-tight);padding-top:var(--safe-top);
-  background-color:var(--nav-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--nav-rule);
-  transition:height var(--dur-slow-ui) var(--ease-ui),
-             background-color var(--dur-slow-ui) var(--ease-ui),
-             border-bottom-color var(--dur-slow-ui) var(--ease-ui),
-             backdrop-filter var(--dur-slow-ui) var(--ease-ui),
+     contents below the notch */
+  padding-top:calc(var(--safe-top) + var(--pill-top));
+  transition:padding-top var(--dur-slow-ui) var(--ease-ui);}
+.nav > *{pointer-events:auto;}
+.nav.on-hero:not(.is-open){padding-top:var(--safe-top);}
+/* A floating pill leaves the band above it open, and under a notch that
+   band is the status bar: page text would scroll through behind the clock.
+   This paints it in the colour theme-color gives the browser's own strip.
+   It is 0px tall wherever env() is 0, which is every desktop. Over the
+   hero it goes, and the photograph runs up under the status bar as before. */
+.nav::before{content:"";position:absolute;top:0;left:0;right:0;height:var(--safe-top);
+  background:var(--nav-solid);transition:opacity var(--dur-slow-ui) var(--ease-ui);}
+.nav.on-hero:not(.is-open)::before{opacity:0;}
+/* backdrop-filter makes the pill a containing block for fixed descendants.
+   Nothing fixed lives inside it — the scrim is the pill's sibling, and the
+   menu is in-flow inside it rather than a fixed sheet — so the old
+   body.locked rule that stripped the blur to free the scrim has gone. */
+.nav-pill{position:relative;z-index:1;display:flex;flex-direction:column;
+  width:var(--pill-w);max-width:var(--pill-max);margin:0 auto;
+  padding:0 var(--pill-pad-r) 0 var(--pill-pad-l);
+  border:1px solid var(--nav-rule);border-radius:var(--nav-pill-r);
+  background-color:var(--pill-bg);box-shadow:var(--shadow-hard);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:width var(--dur-slow-ui) var(--ease-ui),max-width var(--dur-slow-ui) var(--ease-ui),
+             padding var(--dur-slow-ui) var(--ease-ui),border-radius var(--dur-slow-ui) var(--ease-ui),
+             border-color var(--dur-slow-ui) var(--ease-ui),background-color var(--dur-slow-ui) var(--ease-ui),
+             box-shadow var(--dur-slow-ui) var(--ease-ui),backdrop-filter var(--dur-slow-ui) var(--ease-ui),
              -webkit-backdrop-filter var(--dur-slow-ui) var(--ease-ui);}
-/* blur(0), not none: none cannot be interpolated, and the ground would
-   snap on while the colour was still fading in. */
-.nav.on-hero{height:var(--nav-total);background-color:transparent;border-bottom-color:transparent;
-  backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);}
-/* backdrop-filter, even blur(0), makes the bar a containing block for its
-   fixed descendants — and the menu sheet and its scrim are two of them. So
-   between 901px and 1099px, where the bar keeps its blur and the burger
-   shows, the scrim's inset:0 meant "cover the bar" and the page behind the
-   open sheet was left bright and clickable. While anything has the page
-   locked the bar is under a full-screen layer anyway; the blur goes. Same
-   trap, same fix, as body.locked .qcard. And it goes at once: filter
-   lists interpolate through none, so with the transition left on, the
-   scrim stayed trapped in the bar for the whole 300ms of the fade. */
-body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:none;}
-@media(prefers-reduced-motion:reduce){.nav{transition:none;}}
-
 /* --maxw and --gutter are exactly what .hero-grid uses, so the wordmark
    sits over the headline and the CTA over the fare card. Alignment is the
-   point of the rail, so these must never become numbers. */
-/* above the menu scrim, so the burger stays a toggle rather than something
-   the scrim swallows — the pill carried this and it went with it */
+   point of the rail, so these must never become numbers. The gutter gives
+   back the 1px of transparent border, or the wordmark lands a pixel in
+   from the headline. */
+.nav.on-hero:not(.is-open) .nav-pill{width:100%;max-width:var(--maxw);padding:0 calc(var(--gutter) - 1px);
+  border-color:transparent;border-radius:0;background-color:transparent;box-shadow:0 0 0 rgba(0,0,0,0);
+  backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);}
 /* 1fr auto 1fr: the two outer tracks are equal, so the links' column is
    centred on the page whatever the wordmark and the right cluster weigh.
    In a space-between row the links sat in the gap left over between them,
    which moves every time Sign in becomes an avatar. */
-.nav-inner{position:relative;z-index:var(--z-sheet);
-  max-width:var(--maxw);height:100%;margin:0 auto;padding:0 var(--gutter);
-  display:grid;grid-template-columns:1fr auto 1fr;column-gap:32px;align-items:center;}
+.nav-inner{height:var(--pill-h);
+  display:grid;grid-template-columns:1fr auto 1fr;column-gap:24px;align-items:center;
+  transition:height var(--dur-slow-ui) var(--ease-ui),column-gap var(--dur-slow-ui) var(--ease-ui);}
+.nav.on-hero:not(.is-open) .nav-inner{height:var(--rail-h);column-gap:32px;}
 .nav-inner > .brand{grid-column:1;justify-self:start;}
 /* The wordmark is also the link home, and as a bare inline it was a 22px
    tall target. The padding is vertical only so the mark does not move. */
@@ -249,12 +267,11 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
   padding-left:.28em;text-decoration:none;color:var(--nav-ink);white-space:nowrap;
   display:inline-flex;align-items:center;min-height:var(--tap);}
 .brand .ap{color:var(--silver);}
-.nlinks{grid-column:2;display:flex;gap:30px;align-items:center;}
-/* The underline is drawn, not switched on. text-decoration has no
-   transformable box, so it can only appear — and an underline that appears
-   is a state change where the eye expects a gesture. A pseudo-element
-   scaling from transform-origin:left is the same mark, arriving the way a
-   pen would draw it. See .fcol a, which takes the identical treatment. */
+/* 30px between labels, as before — 14px of padding a side plus a 2px gap —
+   so the words sit where they always did. The padding is the box the
+   marker fills, and it makes each link a 36px target where the bare label
+   was 15px. */
+.nlinks{grid-column:2;position:relative;display:flex;gap:2px;align-items:center;}
 /* --t-micro, and on purpose: the 14px floor is for text a person reads,
    and these are one- and two-word uppercase labels, letterspaced — the
    exact family the micro rung was made for. They were set at the meta
@@ -264,14 +281,31 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    no ground behind it, it is held by the photograph's own top darkening
    (.hero-photo::before): 6.4:1 against the brightest pixel behind any nav
    label, measured from 360px to 1920px wide at both ends of the drift. */
-.nlinks a{position:relative;font-family:var(--sans);font-weight:400;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
+.nlinks a{position:relative;z-index:1;display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:18px;
+  font-family:var(--sans);font-weight:400;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color var(--dur-ui) var(--ease-ui);}
-.nlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
-  background:var(--nav-underline);transform:scaleX(0);transform-origin:left center;
-  transition:transform var(--dur-ui) var(--ease-ui);}
-.nlinks a:hover,.nlinks a:focus-visible{color:var(--nav-ink);}
-.nlinks a:hover::after,.nlinks a:focus-visible::after{transform:scaleX(1);}
-@media(prefers-reduced-motion:reduce){.nlinks a::after{transition:none;}}
+.nlinks a:hover,.nlinks a:focus-visible,.nlinks a.on{color:var(--nav-ink);}
+/* the global :focus-visible 6px radius would square the capsule off */
+.nlinks a:focus-visible{border-radius:18px;}
+/* The marker. It used to be an underline each link drew for itself; now it
+   is one object that travels — to the link under the pointer or focus, and
+   otherwise to the section being read (Nav.tsx places it). It changes shape
+   with the bar: on the photograph it is still the 1px drawn underline, in
+   the pill it is a capsule of its own, concentric with the one around it.
+   Silver, not --signal: teal marks live states only, and "you are here" is
+   a position, not a live state. */
+.nmark{position:absolute;left:0;top:50%;height:36px;margin-top:-18px;width:var(--mw,0px);
+  transform:translateX(var(--mx,0px));opacity:0;pointer-events:none;
+  transition:transform var(--dur-ui) var(--ease-ui),width var(--dur-ui) var(--ease-ui),opacity var(--dur-ui) var(--ease-ui);}
+.nmark.no-slide{transition:opacity var(--dur-ui) var(--ease-ui);}
+.nmark.on{opacity:1;}
+.nmark::before{content:"";position:absolute;inset:0;border-radius:18px;
+  background:rgba(215,217,216,.09);border:1px solid rgba(215,217,216,.16);
+  transition:opacity var(--dur-slow-ui) var(--ease-ui),transform var(--dur-slow-ui) var(--ease-ui);}
+.nmark::after{content:"";position:absolute;left:14px;right:14px;bottom:5px;height:1px;
+  background:var(--nav-underline);opacity:0;transition:opacity var(--dur-slow-ui) var(--ease-ui);}
+.nav.on-hero:not(.is-open) .nmark::before{opacity:0;transform:scale(.9);}
+.nav.on-hero:not(.is-open) .nmark::after{opacity:1;}
 .nright{grid-column:3;justify-self:end;display:flex;align-items:center;gap:24px;}
 /* The CTA was a 46px silver block with a 3px corner and an uppercase
    label: the heaviest thing in a bar whose other words are 12px, and it
@@ -353,26 +387,63 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    argument and is a worse case than the dots in every way — it is the ONLY
    route to the menu on a phone, nothing else on the bar duplicates it, and
    it sits in the top corner where a thumb is least accurate. The rail is
-   60px tall, so a 44px target costs nothing but the declaration. */
-.nburger{display:none;align-items:center;justify-content:center;width:44px;height:44px;margin-right:-7px;
-  border:none;background:transparent;color:var(--nav-dim);transition:color .15s linear;}
+   60px tall, so a 44px target costs nothing but the declaration.
+   The three bars turn into the cross rather than being swapped for it, so
+   the control reads as the same thing in both states. On the photograph
+   it is pulled 7px out so its bars align with the CTA's edge; in the pill
+   the pill's own padding does that. */
+.nburger{display:none;position:relative;align-items:center;justify-content:center;width:44px;height:44px;margin-right:0;
+  border:none;background:transparent;color:var(--nav-dim);transition:color .15s linear,margin-right var(--dur-slow-ui) var(--ease-ui);}
+.nav.on-hero:not(.is-open) .nburger{margin-right:-7px;}
 .nburger:hover,.nburger.on{color:var(--nav-ink);}
-.nav-scrim{position:fixed;inset:0;z-index:var(--z-nav);background:var(--scrim);}
-.nav-sheet{position:fixed;z-index:var(--z-sheet);top:calc(var(--nav-total-sm) + 10px);left:var(--gutter);right:var(--gutter);
-  display:flex;flex-direction:column;padding:10px;
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-hard-lg);}
-.nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 18px;
+.nburger i{position:absolute;left:15px;right:15px;top:50%;height:2px;margin-top:-1px;border-radius:1px;background:currentColor;
+  transition:transform var(--dur-slow-ui) var(--ease-ui),opacity var(--dur-ui) var(--ease-ui);}
+.nburger i:nth-child(1){transform:translateY(-5px);}
+.nburger i:nth-child(3){transform:translateY(5px);}
+.nburger.on i:nth-child(1){transform:rotate(45deg);}
+.nburger.on i:nth-child(2){opacity:0;}
+.nburger.on i:nth-child(3){transform:rotate(-45deg);}
+/* the scrim is the pill's sibling, under it in the nav's own stack, so the
+   pill — burger and all — stays above it and stays a toggle */
+.nav-scrim{position:fixed;inset:0;z-index:0;background:var(--scrim);opacity:0;
+  transition:opacity var(--dur-slow-ui) var(--ease-ui);}
+.nav.is-open .nav-scrim{opacity:1;animation:nav-scrim-in var(--dur-slow-ui) var(--ease-ui);}
+@keyframes nav-scrim-in{from{opacity:0;}}
+/* The menu is not a panel under the bar any more: the pill itself grows
+   down into it and folds back. 0fr -> 1fr is what lets a row of auto
+   height animate; the sheet's min-height:0 and overflow:hidden are what
+   let the row close all the way. Its vertical spacing is margins on its
+   children and a 4px first item, not padding on it — padding cannot be clipped, and would hold
+   a closed pill 12px open. Sideways it reaches past the pill's padding to
+   6px from its edge, and each row takes the difference back, so a row's
+   label starts under the wordmark. */
+.nav-drawer{display:none;grid-template-rows:0fr;transition:grid-template-rows var(--dur-slow-ui) var(--ease-reveal);}
+.nav.is-open .nav-drawer{grid-template-rows:1fr;}
+.nav-sheet{min-height:0;overflow:hidden;display:flex;flex-direction:column;
+  margin:0 calc(6px - var(--pill-pad-r)) 0 calc(6px - var(--pill-pad-l));}
+/* the air above the first row, as a first item rather than a margin on
+   the first link: in the two-column layout below, a margin there pushed
+   one column 4px below the other */
+.nav-sheet::before{content:"";display:block;height:4px;grid-column:1 / -1;}
+.nav-sheet a,.nav-sheet button{display:flex;align-items:center;width:100%;min-height:var(--tap);padding:0 calc(var(--pill-pad-l) - 6px);
   border:none;border-radius:var(--r-pill);background:transparent;color:var(--silver);text-align:left;
   font-size:var(--t-meta);font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:.2s var(--ease);}
 .nav-sheet a:hover,.nav-sheet button:hover{background:var(--raised);color:var(--ink);}
-.nav-sheet .sheet-cta{justify-content:center;margin-top:8px;background:var(--sheen);color:var(--on-sheen);}
+.nav-sheet .sheet-cta{justify-content:center;margin:8px 0 6px;background:var(--sheen);color:var(--on-sheen);}
 .nav-sheet .sheet-cta:hover{background:var(--sheen);color:var(--on-sheen);}
+/* Between a phone and the full rail the pill is up to 920px wide, and a
+   single column of rows that wide reads as a list of banners. The links
+   pair up instead; the account, Sign in/out and the CTA keep the width. */
+@media(min-width:561px) and (max-width:1099px){
+  .nav-sheet{display:grid;grid-template-columns:1fr 1fr;column-gap:4px;}
+  .nav-sheet .sheet-who,.nav-sheet button{grid-column:1 / -1;}
+}
 /* 1100, not 1040: the rail carries five links since "How it works"
    joined it, and at 1041px that left 31px between CONTACT and SIGN IN —
    the same gap as between two links, so the account action read as a
    sixth destination. Below 1100 they go into the sheet instead. Keep
    this and the min-width rule for the sheet one pixel apart. */
-@media(max-width:1099px){.nlinks{display:none;}.nburger{display:flex;}}
+@media(max-width:1099px){.nlinks{display:none;}.nburger{display:flex;}.nav-drawer{display:grid;}}
 /* With the links gone the middle track is empty, and two equal halves
    would hold the right cluster to half the bar — at 320px it needs more
    than that. The wordmark takes what is left instead. */
@@ -380,37 +451,33 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
   .nav-inner{grid-template-columns:1fr auto;}
   .nright{grid-column:2;}
 }
-/* On a phone the rail, past the hero, is opaque and reaches the physical
- * top edge. Over the hero it is clear like the desktop's (.nav.on-hero
- * outranks everything below on specificity), and the photograph runs up
- * under it and under the status bar.
+/* On a phone the pill is opaque, a shade up the ladder (--surface) so it
+ * reads as an object over the page, and 12px in from either edge. Over the
+ * hero it is clear like the desktop's, and the photograph runs up under it
+ * and under the status bar.
  *
  * Opaque, because the glass is a desktop effect — on a wide bar a little of
- * the page behind it reads as depth, on a 60px one it is content smearing
- * through the thing meant to be the screen's edge. It also has to match the
- * strip the browser paints around the page, which theme-color sets to
- * #020B14, the same as --nav-solid. Dropping the blur takes a full-width
- * backdrop-filter off every scroll frame on the devices least able to
- * afford one.
+ * the page behind it reads as depth, on a 52px one it is content smearing
+ * through the control. Dropping the blur also takes a backdrop-filter off
+ * every scroll frame on the devices least able to afford one. none, not
+ * blur(0): blur(0) is still a backdrop layer, and the clear state is
+ * restated at its own weight because .nav.on-hero:not(.is-open) .nav-pill
+ * outranks a bare .nav-pill whatever the source order.
  *
- * Height and padding come from --nav-total-sm so the notch is inside the
- * bar rather than on top of its contents. Nothing here lifts, offsets or
- * sticks: earlier attempts moved the box around trying to cover a strip
- * above it, and a fixed element is clipped to the viewport, so none of it
- * painted. Owning the viewport (viewport-fit=cover) is what gives the bar
- * that strip to paint in the first place. */
+ * The notch is inside the nav box's padding (--safe-top), and .nav::before
+ * paints it, so the status bar never shows page text scrolling under it.
+ * Nothing here lifts or offsets the box itself: earlier attempts moved it
+ * around trying to cover a strip above it, and a fixed element is clipped
+ * to the viewport, so none of it painted. Owning the viewport
+ * (viewport-fit=cover) is what gives the bar that strip to paint. */
 @media(max-width:900px){
-  .nav{
-    height:var(--nav-total-tight-sm);
-    padding-top:var(--safe-top);
-    background-color:var(--nav-solid);
-    backdrop-filter:none;-webkit-backdrop-filter:none;}
-  /* .nav.on-hero outranks .nav on specificity whatever the source order,
-     so the phone's hero height cannot live in the block above — it has to
-     be restated here, at equal weight and later, or the desktop 70px wins
-     on a 375px screen. Its blur(0) is overruled for the same reason: the
-     phone bar never blurs, and has nothing to interpolate from. */
-  .nav.on-hero{height:var(--nav-total-sm);backdrop-filter:none;-webkit-backdrop-filter:none;}
+  .nav{--pill-top:var(--nav-pill-top-sm);--pill-h:var(--nav-pill-h-sm);--rail-h:var(--nav-h-sm);
+    --pill-w:calc(100% - 24px);--pill-max:100%;--pill-pad-l:18px;--pill-pad-r:4px;--pill-bg:var(--surface);}
+  .nav-pill,.nav.on-hero:not(.is-open) .nav-pill{backdrop-filter:none;-webkit-backdrop-filter:none;}
+}
+@media(prefers-reduced-motion:reduce){
+  .nav,.nav::before,.nav-pill,.nav-inner,.nav-drawer,.nav-scrim,.nburger i,
+  .nmark,.nmark::before,.nmark::after{transition:none;animation:none;}
 }
 
 /* ── phones: the two composited layers that ride over the scroller ─────
@@ -454,7 +521,7 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
   .nright{gap:10px;}
   .brand{letter-spacing:.16em;padding-left:.16em;}
 }
-@media(min-width:1100px){.nav-sheet,.nav-scrim{display:none;}}
+@media(min-width:1100px){.nav-drawer,.nav-scrim{display:none;}}
 
 /* ── date + time pickers (Phase 1) ── */
 .dtf-label{display:block;font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;
