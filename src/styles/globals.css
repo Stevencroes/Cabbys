@@ -961,20 +961,33 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .qf:focus-within .combo .cfield,.qf:focus-within .dtf-trigger{border-bottom-color:var(--ink);box-shadow:0 1px 0 var(--ink);}
 
 /* ── the way on ── */
-.qbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;
-  min-height:var(--tap);padding:0 24px;white-space:nowrap;
-  background:var(--sheen);color:var(--on-sheen);border:none;
-  font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;}
+/* the arrow side is tighter, as .jbook's: the glyph carries its own air */
+.qbtn{gap:10px;padding:0 22px 0 26px;}
 /* ── the two silver buttons ────────────────────────────────────────────
-   "View options" in the hero and "Book your transfer" in the closing band
+   "See prices" in the hero and "Book your transfer" in the closing band
    are the same decision asked twice, so they are one rule and not two that
-   happen to match today. Scale, not translateY: a button that rises is a
-   card lifting off a surface, a button that grows is the button answering
-   you. 1.025 is the whole move — at 1.05 the type visibly resamples on a
-   non-retina screen. */
-.qbtn,.closer .cbtn{
+   happen to match today — shape and type included, not only the motion.
+
+   They were soft-cornered slabs with a 600-weight uppercase label tracked
+   .10em, beside a nav whose Book now is a sentence-case pill: two button
+   languages for one action on one screen. They are the nav's pill now —
+   --r-pill, --t-meta at 500, .01em, --sheen. Drawn at the full --tap
+   rather than the nav's 38px: in a card and a band there is room for the
+   target to be the shape, so no ::before is needed to carry it.
+
+   Scale, not translateY: a button that rises is a card lifting off a
+   surface, a button that grows is the button answering you. 1.025 is the
+   whole move — at 1.05 the type visibly resamples on a non-retina screen. */
+.qbtn,.closer .cbtn{display:inline-flex;align-items:center;justify-content:center;
+  min-height:var(--tap);white-space:nowrap;border:none;border-radius:var(--r-pill);
+  background:var(--sheen);color:var(--on-sheen);
+  font-family:var(--sans);font-weight:500;font-size:var(--t-meta);letter-spacing:.01em;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui),
              filter var(--dur-ui) var(--ease-ui);}
+/* --highlight, as .nbtn: the global silver ring 3px off a silver pill reads
+   as part of it, and the global 6px radius later in the file would square
+   the focused pill off into a tab. */
+.qbtn:focus-visible,.closer .cbtn:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;border-radius:var(--r-pill);}
 .qbtn:hover,.closer .cbtn:hover{transform:scale(1.025);box-shadow:var(--shadow-hard);filter:brightness(1.04);}
 .qbtn:active,.closer .cbtn:active{transform:scale(.995);transition-duration:var(--dur-press);}
 /* the arrow leads — it moves further than the button does, which is what
@@ -1476,7 +1489,9 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   border-radius:var(--r-pill);background:var(--sheen);color:var(--on-sheen);font-size:var(--t-meta);font-weight:600;letter-spacing:.02em;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui);}
 .jbook:hover{transform:scale(1.025);box-shadow:var(--shadow-hard);}
-.jbook:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;}
+/* radius restated: without it the global :focus-visible 6px won and the
+   pill squared off the moment a keyboard reached it, as .nbtn's did */
+.jbook:focus-visible{outline:2px solid var(--highlight);outline-offset:3px;border-radius:var(--r-pill);}
 .jbook svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .jbook:hover svg{transform:translateX(3px);}
 
@@ -1818,7 +1833,9 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   padding:clamp(60px,8vh,82px) 0 clamp(56px,7.4vh,78px);border-top:1px solid var(--line);}
 .closer h2{font-family:var(--serif);font-weight:300;font-size:clamp(28px,3.9vw,54px);line-height:1.03;
   letter-spacing:-.02em;margin:0;position:relative;z-index:var(--z-content);}
-.closer h2 em{font-style:italic;color:var(--silver);}
+/* italic carries the stress on its own; in silver the line read as two
+   phrases in two colours, so the em takes the heading's ink */
+.closer h2 em{font-style:italic;color:inherit;}
 .closer .ctag{margin-top:16px;font-weight:600;font-size:var(--t-micro);letter-spacing:.24em;text-transform:uppercase;color:var(--muted);position:relative;z-index:var(--z-content);}
 /* ── the closing band arrives in the hero's order ──────────────────────
    Headline, then the mark under it, then the button. The three are
@@ -1832,12 +1849,12 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 @media(prefers-reduced-motion:reduce){
   .closer .ctag,.closer .cbtn{transition-delay:0ms;}
 }
-.closer .cbtn{margin-top:30px;background:var(--sheen);color:var(--on-sheen);border:none;padding:18px 42px;min-height:var(--tap);
-  font-weight:600;font-size:var(--t-meta);letter-spacing:var(--ls-label);text-transform:uppercase;position:relative;z-index:var(--z-content);}
-/* Transition, hover and active all live with .qbtn further up — the two
-   CTAs are deliberately one rule. Nothing here may set `transition`: this
-   selector is the same weight as the shared one and later in the file, so
-   a shorthand here silently takes the pair back apart. */
+.closer .cbtn{margin-top:30px;padding:0 30px;position:relative;z-index:var(--z-content);}
+/* Shape, type, transition, hover and active all live with .qbtn further up
+   — the two CTAs are deliberately one rule. Nothing here may set
+   `transition`, radius or type: this selector is the same weight as the
+   shared one and later in the file, so restating them here silently takes
+   the pair back apart. */
 
 /* ============ FOOTER — one closing band ============ */
 /* Scoped to the site footer on purpose: a bare `footer{}` selector also
@@ -2077,10 +2094,9 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .pnav{display:flex;gap:12px;margin-top:6px;}
 /* --t-meta, not --t-body. At 16px uppercase, letterspaced .12em, the
    booking flow's Continue / Pay read a size louder than everything around
-   them and the owner found them too big. 14px is the rung every other
-   uppercase action on the site already sits on — the hero's .qbtn and
-   .btn-ghost — so the flow's way on now matches the button that opened
-   it. .btn is the booking flow's alone (StepFoot and the custom-address
+   them and the owner found them too big. 14px is the rung the site's
+   other actions already sit on — the hero's .qbtn and .btn-ghost — so the
+   flow's way on is the size of the button that opened it. .btn is the booking flow's alone (StepFoot and the custom-address
    form), so this changes nothing outside it. The height is the padding
    and --tap, not the type, so the target stays well over 44px. */
 .btn{flex:1;border:none;padding:16px;min-height:var(--tap);font-weight:600;font-size:var(--t-meta);letter-spacing:.12em;
@@ -2590,10 +2606,9 @@ input.txt:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
 /* the trust marks lost their pills with their borders */
 .qcard{border-radius:var(--r-md);}
 .qfld input,.qfld select{border-radius:var(--r-sm);}
-/* §15 restraint: the action is a rectangle with a soft corner, not a
-   lozenge — the pill read as a consumer app rather than a marque. The
-   reference this card follows draws a pill; this rule outranks it. */
-.qbtn{border-radius:var(--r-sm);}
+/* No .qbtn radius here. It was a --r-sm rectangle (§15 restraint) and, at
+   the same weight as the shared pill rule and later, kept squaring it off;
+   the owner reversed §15 for the CTA so it matches the nav's Book now. */
 .fcard{border-radius:var(--r-md);}
 .fcard{border-radius:var(--r-md);overflow:hidden;}
 .fq .qi{border-radius:50%;}
