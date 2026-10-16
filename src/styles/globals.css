@@ -144,27 +144,14 @@ h2.sec em{font-style:italic;}
 .hero .quote{animation-delay:400ms;}
 .hero .hero-trust > *{animation-delay:calc(560ms + var(--i,0) * 70ms);}
 
-/* ---- the photograph is alive, not moving ---------------------------
-   One background move, not two: a slow scale and no parallax. The parallax
-   that used to live here drove `.par`, and `.par` had not been on an
-   element in this page for some time — it was a scroll listener doing
-   arithmetic for nobody.
-
-   linear, deliberately. Every other curve in the system decelerates, which
-   is right for something arriving in 600ms and wrong for something drifting
-   for 20 seconds: an eased drift has a fast middle, and a fast middle is
-   the part you notice. A constant 0.2%/second is under the threshold where
-   the eye reads it as motion at all, which is the whole intent — the frame
-   should feel like it is breathing, not panning.
-
-   It runs once and stops. Nothing on this page loops. */
-@keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.045);}}
-.hero-photo::before{transform-origin:64% 44%;animation:kenburns 20s linear both;}
+/* The hero's slow 20s scale (kenburns) went with the photograph it moved:
+   a gradient has nothing in it to drift, and scaling one only shifts where
+   its light falls. Nothing in the hero's ground animates now. */
 
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
-  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo::before{animation:none !important;}
+  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i{animation:none !important;}
   .tp-skeleton{animation:none !important;}
 }
 
@@ -176,11 +163,11 @@ h2.sec em{font-style:italic;}
    It has two states, and the hero decides which (Nav.tsx):
 
    Over the hero it is not a bar at all. No ground, no blur, no line — the
-   wordmark, the links and the CTA sit straight on the photograph, as the
+   wordmark, the links and the CTA sit straight on the hero's ground, as the
    reference nav the owner pointed at in October 2026 does. A translucent
-   navy band across the top of a photograph read as a strip laid over it;
-   the photograph already carries its own darkening at the top
-   (.hero-photo::before), which is what holds the type.
+   navy band across the top of a photograph read as a strip laid over it.
+   The hero is a gradient now, not a photo (.hero-photo::before), and its
+   brightest point still holds the nav's type on its own.
 
    Past the hero it is a surface: --nav-bg behind a blur on a desktop,
    --nav-solid on a phone, a --nav-rule hairline under it, and 8px less
@@ -261,9 +248,8 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    rung, a step under the 16px wordmark, which left the bar with no
    lead (see .brand). --nav-dim on the rail clears 8:1, so the step down
    costs size, not legibility. Never lower than this. Over the hero, with
-   no ground behind it, it is held by the photograph's own top darkening
-   (.hero-photo::before): 6.4:1 against the brightest pixel behind any nav
-   label, measured from 360px to 1920px wide at both ends of the drift. */
+   no ground behind it, it sits on the moonlight (.hero-photo::before):
+   5.1:1 against its brightest pixel, the top centre the links sit under. */
 .nlinks a{position:relative;font-family:var(--sans);font-weight:400;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color var(--dur-ui) var(--ease-ui);}
 .nlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
@@ -382,7 +368,7 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
 }
 /* On a phone the rail, past the hero, is opaque and reaches the physical
  * top edge. Over the hero it is clear like the desktop's (.nav.on-hero
- * outranks everything below on specificity), and the photograph runs up
+ * outranks everything below on specificity), and the hero's light runs up
  * under it and under the status bar.
  *
  * Opaque, because the glass is a desktop effect — on a wide bar a little of
@@ -718,37 +704,33 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    svh, not vh: on iOS vh measures the screen with the URL bar hidden,
    so 100vh spills past the fold on first paint. A floor, not a cap —
    a phone holds headline plus card and grows past it. */
-/* §07 — the hero photograph. A ground the copy sits on, not a picture in a
-   box. The copy is centred over it now — headline, trip type, the bar — so
-   the scrims are centred too: the old left-hand pull to navy was there for a
-   left-aligned headline and left the centred one half on the photograph,
-   half on a wall of navy. One vertical pull darkens the sky the headline
-   sits in and takes the foot down into the page; a soft vignette holds the
-   edges so the bar never meets a bright patch at its ends.
-   The radial underneath is not decoration — it is what paints while a 240KB
-   photograph is still arriving, and what the section falls back to if it
-   never does. */
-/* The box is the frame and the ::before is the picture in it. The drift
-   above used to scale the box itself, and a scaled box is still counted
-   as page content: by the end of it the photo stood 21px past the right
-   edge, which gave the whole page a sideways scroll, and 23px over the
-   hairline that closes the hero. The frame never moves and clips; only
-   the picture inside it grows. */
+/* §07 — the hero's ground: moonlight on the Night Sea. It was a
+   photograph (the villa, the palms, the car at dusk) under three scrims;
+   the owner chose, from five photo-free mockups in October 2026, a solid
+   ground with one light in it. So: the page's own navy, a shade lifted at
+   the top and settling to --ground by the card, and one soft silver light
+   falling from above the nav that has faded out before the headline. A
+   second, fainter pool sits behind the headline and the card so they do
+   not float on flat black. No image, so nothing to wait for: this was the
+   fallback that painted while a 240KB photo arrived, and it is now the
+   whole picture.
+
+   The light is brightest at the top centre, right where the nav's links
+   sit on no ground of their own: --nav-dim measures 5.1:1 against that
+   brightest pixel (#2C3B4A), and the wordmark's --nav-ink 10.5:1.
+
+   The class keeps its name — .hero-photo is what Hero.tsx renders and what
+   the open booking card dims — though there is no photo in it now. The
+   box clips and the ::before paints, as before. */
 .hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
   transition:opacity var(--dur-reveal) var(--ease-reveal);}
 .hero-photo::before{content:"";position:absolute;inset:0;
   background-image:
-    linear-gradient(180deg,rgba(2,11,20,.72) 0%,rgba(2,11,20,.34) 30%,rgba(2,11,20,.40) 62%,var(--ground) 100%),
-    radial-gradient(85% 75% at 50% 45%,transparent 0%,rgba(2,11,20,.55) 100%),
-    url("/hero.jpg"),
-    radial-gradient(120% 90% at 74% 34%,#12293C 0%,#081726 46%,var(--ground) 78%);
-  background-size:cover,cover,cover,cover;
-  /* the car sits right of centre in the frame; on a narrow screen the crop
-     keeps it rather than centring on empty driveway */
-  background-position:center,center,72% center,center;
+    radial-gradient(62% 58% at 50% 0%,rgba(178,196,214,.22) 0%,rgba(18,41,60,.40) 42%,transparent 74%),
+    radial-gradient(40% 30% at 50% 58%,rgba(215,217,216,.05),transparent 70%),
+    linear-gradient(180deg,#061423 0%,var(--ground) 82%);
   background-repeat:no-repeat;}
-@media(max-width:760px){.hero-photo::before{background-position:center,center,64% center,center;}}
-/* Open, the card is what you are looking at; the photograph steps back. */
+/* Open, the card is what you are looking at; the light steps back. */
 .hero.is-booking .hero-photo{opacity:.6;}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
   padding:var(--nav-total) 0 clamp(40px,10vh,120px);
@@ -774,7 +756,7 @@ body.locked .hero-grid{z-index:auto;}
 body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* §07/§08 — one centred column, the reference's composition: headline,
    trip type, the bar, and the three marks under it. It hangs from the
-   bottom, so the photograph keeps the top of the frame. --maxw and
+   bottom, so the moonlight keeps the top of the frame. --maxw and
    --gutter are exactly what the nav uses, so the bar's ends line up with
    the wordmark and the Book now button above it. */
 .hero-grid{position:relative;z-index:var(--z-content);flex:1;display:flex;flex-direction:column;
@@ -785,7 +767,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   /* PADDING, as on the desktop. This was a margin while the phone bar was
      opaque over the hero too: the photograph behind it could only ever be
      hidden, so the hero started below the bar. The bar is clear over the
-     hero now (.nav.on-hero), and the photograph is meant to run up under
+     hero now (.nav.on-hero), and the hero's ground is meant to run up under
      it to the top of the glass — .hero-photo is inset:0 on this box, so
      padding insets the words and leaves the picture where it is. The box
      is border-box, so the words land exactly where the margin put them. */
@@ -1393,99 +1375,94 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .sec-head .sec{margin:14px 0 0;}
 
 /* ============ HOW IT WORKS + WHY — the route (Journey.tsx) ============ */
-/* The step strip and the pillars, merged into one straight line that the
-   page's scroll drives: Journey reads where the line is on screen and
-   moves the car to match. It once pinned for two and a half screens; it is
-   a band of its own height now, a step taller than the fleet's so the
-   section that carries the most reads as the larger one. No box anywhere: the first version put the words in a card, and the
-   owner found it heavy — the line and the type carry the section alone.
+/* A still map of the trip beside the three reasons to book. Nothing in it
+   moves: every earlier version tied the words or a car to the scroll, and
+   the owner asked for the motion to go with everything still visible (see
+   the head of Journey.tsx). No box anywhere either — the first route put
+   its words in a card and the owner found it heavy; the dotted line, the
+   rings and the type carry the section alone.
 
-   --ground, not --deep. The strip and the pillars were two bands, deep
-   then ground; this is one, and the fleet below it is --deep, so ground
-   keeps the page alternating. The rings sit on the band colour so the
-   road ends AT each circle instead of running visibly through it. */
-.journey-band{--jbg:var(--ground);--ring:58px;background:var(--jbg);position:relative;
-  padding-block:clamp(60px,8vh,100px);}
-/* One gap between the three parts — heading, line, words — so they read
-   as evenly spaced. The words add 28px of their own, the room the labels
-   hung under the rings take, so the space you SEE above them is this gap
-   too, not the gap minus a label. */
-.jwrap{display:flex;flex-direction:column;gap:clamp(36px,4.6vw,56px);}
+   --ground, not --deep: the fleet below is --deep, so ground keeps the
+   page alternating. */
+.journey-band{background:var(--ground);position:relative;padding-block:clamp(60px,8vh,100px);}
+/* One gap between the parts — heading, then the map and reasons — so they
+   read as evenly spaced. */
+.jwrap{display:flex;flex-direction:column;gap:clamp(40px,5vw,64px);}
 .journey-band h2.sec{text-wrap:balance;}
+/* map | reasons, at every width above a phone. The map is a fixed 480px
+   here (see .jmap), so the reasons take the rest, and the two are centred on each other vertically: the reasons
+   are shorter, and top-aligned they left a hole under themselves. */
+.jgrid{display:grid;grid-template-columns:480px minmax(0,1fr);column-gap:clamp(56px,7vw,112px);align-items:center;}
 
-/* ---- the line ---- */
-.jline{display:flex;align-items:center;gap:18px;}
-.jstart{flex:none;padding:5px 12px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--raised);
-  color:var(--silver);white-space:nowrap;font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);
-  text-transform:uppercase;line-height:var(--lh-tight);}
-/* The road is dots in --soft — decoration, so the colour that fails as
-   text is the right one for it. Its height is the ring's, so the stops can
-   centre on it; the dots are drawn on the middle line only. */
-.jroad{position:relative;flex:1;min-width:0;height:var(--ring);
-  background:radial-gradient(circle,var(--soft) 1px,transparent 1.4px) left center/10px 2px repeat-x;}
-.jtrail{position:absolute;left:0;top:50%;height:1.5px;margin-top:-.75px;width:calc(var(--car) * 100%);
-  background:var(--silver);border-radius:2px;}
-.jcar{position:absolute;top:50%;left:calc(var(--car) * 100%);display:grid;place-items:center;width:28px;height:28px;
-  margin:-14px 0 0 -14px;border-radius:50%;background:var(--ink);color:var(--on-sheen);box-shadow:var(--shadow-hard);}
-/* at the end of the road the lit dot is the car — one mark, not two */
-.jcar{transition:opacity var(--dur-press) var(--ease-ui);}
-.jline.arrived .jcar{opacity:0;}
-.jstops{list-style:none;margin:0;padding:0;position:absolute;inset:0;}
-.jstops li{position:absolute;top:0;transform:translateX(-50%);}
-.jstop{position:relative;display:block;padding:0;color:var(--silver);}
-.jring{display:grid;place-items:center;width:var(--ring);height:var(--ring);border-radius:50%;
-  border:1px solid var(--line);background:var(--jbg);color:var(--silver);
-  transition:border-color var(--dur-ui) var(--ease-ui),background-color var(--dur-ui) var(--ease-ui),
-             color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui),
-             transform var(--dur-ui) var(--ease-ui);}
-/* Under the ring, out of the flow, so a long label cannot push the ring
-   off the line it is centred on. */
-.jlabel{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;
-  font-size:var(--t-meta);font-weight:500;line-height:var(--lh-tight);letter-spacing:.01em;color:var(--silver);
-  transition:color var(--dur-ui) var(--ease-ui);}
-.jstop:hover .jring{border-color:var(--silver-deep);background-color:var(--raised);color:var(--ink);}
-.jstop:hover .jlabel{color:var(--ink);}
-.jstop:active .jring{transform:scale(.97);transition-duration:var(--dur-press);}
-/* a stop already driven past keeps a firmer ring — the trail says where
-   you have been, the ring says it too for anyone not following the line */
-.jstop.past .jring{border-color:var(--silver-deep);color:var(--ink);}
-/* --sheen: the system's one "this is the thing" fill, the primary
-   button's material, so it reads as the current stop without a legend */
-.jstop.on .jring{background:var(--sheen);color:var(--on-sheen);border-color:transparent;
-  box-shadow:0 0 0 7px rgba(215,217,216,.07),var(--shadow-hard);}
-.jstop.on .jlabel{color:var(--ink);font-weight:600;}
-.jstop:focus-visible{outline:none;}
-.jstop:focus-visible .jring{outline:2px solid var(--highlight);outline-offset:4px;}
-.jarrive{flex:none;display:flex;align-items:center;gap:10px;white-space:nowrap;}
-.jdot{width:14px;height:14px;border-radius:50%;border:1px solid var(--silver-deep);background:var(--jbg);
-  transition:background-color var(--dur-slow-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui);}
-.jarrive em{font-family:var(--serif);font-size:var(--t-lead);font-style:italic;color:var(--silver);
-  transition:color var(--dur-slow-ui) var(--ease-ui);}
-.jarrive.on .jdot{background:var(--ink);box-shadow:0 0 0 6px rgba(215,217,216,.08);}
-.jarrive.on em{color:var(--ink);}
+/* ---- the map ----
+   A fixed 480 x 440, because the route is an SVG path drawn at exactly
+   that size (ROUTE in Journey.tsx): at 1:1 its dots stay round and evenly
+   spaced, where a path stretched to a fluid box gets dots of two lengths.
+   Every position below is a point on that path, in the same pixels. */
+.jmap{position:relative;width:480px;height:440px;}
+.jpath{position:absolute;inset:0;overflow:visible;}
+/* Dots in --soft, as the road always was — decoration, so the colour that
+   fails as text is the right one for it. A zero dash with round caps is a
+   2px dot every 8px. */
+.jpath path{fill:none;stroke:var(--soft);stroke-width:2;stroke-linecap:round;stroke-dasharray:0 8;}
 
-/* ---- the words ---- */
-.jpanels{display:grid;margin-top:28px;}  /* clears the labels hung under the rings */
-.jpanel{grid-area:1/1;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(28px,5vw,72px);
-  align-items:start;opacity:0;transform:translateY(14px);pointer-events:none;
-  transition:opacity 140ms var(--ease-ui),transform 520ms var(--ease-reveal);}
-.jpanel.gone{transform:translateY(-14px);}
-/* The outgoing words are gone before the incoming ones arrive: crossfaded
-   together, two stops' sentences sat on top of each other for a beat and
-   read as a rendering fault. */
-.jpanel.on{opacity:1;transform:none;pointer-events:auto;
-  transition:opacity var(--dur-slow-ui) var(--ease-ui) 120ms,transform 520ms var(--ease-reveal) 60ms;}
-.jcount{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);}
-.jpanel h3{font-family:var(--serif);font-weight:400;font-size:var(--t-display-sm);line-height:var(--lh-display);
-  letter-spacing:var(--ls-display);color:var(--ink);margin:10px 0 12px;}
-.jbody{font-size:var(--t-lead);line-height:var(--lh-body);color:var(--highlight);max-width:var(--measure-narrow);}
-/* the reason, set apart by a hairline rather than a box */
-.jwhy{padding-left:clamp(22px,3vw,40px);border-left:1px solid var(--line);margin-top:6px;}
-.jwhy-kick{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);margin:0 0 10px;}
-.jwhy p{font-size:var(--t-body);line-height:var(--lh-body);color:var(--muted);max-width:40ch;}
-.jwhy strong{display:block;color:var(--ink);font-weight:600;font-size:var(--t-lead);margin-bottom:4px;}
-/* the end of the route is the one place the section asks for anything */
-.jbook{display:inline-flex;align-items:center;gap:10px;margin-top:22px;min-height:var(--tap);padding:0 22px 0 26px;
+/* The two ends: a pin where the route starts, a dot where it ends, each
+   with its words to the right. Placed so the mark's centre is the path's
+   first and last point (16,12) and (16,420). */
+.jend-node{position:absolute;left:16px;display:flex;align-items:center;gap:14px;transform:translate(-5px,-50%);}
+.jstart{top:12px;}
+.jarrive{top:420px;transform:translate(-7px,-50%);}
+.jpin{flex:none;width:10px;height:10px;border-radius:50%;background:var(--silver-deep);}
+.jnode-label{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;
+  color:var(--silver);line-height:var(--lh-tight);}
+.jdot{flex:none;width:14px;height:14px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 6px rgba(215,217,216,.08);}
+.jarrive em{font-family:var(--serif);font-size:var(--t-lead);font-style:italic;color:var(--highlight);}
+
+/* ---- the stops ----
+   Each ring is centred on its point on the route (--x, --y) and its words
+   hang under it, centred, 196px wide — the widest that keeps two columns
+   of them clear of each other and of the rails. Two short lines at most
+   at that width, which is what keeps row one's words clear of row two's
+   rings. In the DOM they are 1-4; the map places 3 right and 4 left, the
+   snake turning back, and the number on each ring says the order. */
+.jstops{list-style:none;margin:0;padding:0;}
+.jstop{position:absolute;left:var(--x);top:var(--y);width:196px;margin:-32px 0 0 -98px;
+  display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+.jstop-1{--x:136px;--y:96px;}
+.jstop-2{--x:344px;--y:96px;}
+.jstop-3{--x:344px;--y:272px;}
+.jstop-4{--x:136px;--y:272px;}
+/* --surface, opaque: the ring sits ON the route and hides the dots under
+   it, so the line visibly arrives at each stop rather than running
+   through it. Not a button any more — with nothing to bring into view,
+   a ring that took a tap would be a control that does nothing. */
+.jring{position:relative;flex:none;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;
+  border:1px solid var(--line);background:var(--surface);color:var(--highlight);}
+/* The step number, on the ring's shoulder. --raised and --ink rather than
+   --sheen: four silver badges would compete with Book your ride, the one
+   silver thing the section asks you to press. */
+.jnum{position:absolute;top:-3px;right:-5px;display:grid;place-items:center;min-width:24px;height:24px;padding:0 6px;
+  border-radius:var(--r-pill);border:1px solid var(--line);background:var(--raised);color:var(--ink);
+  font-size:var(--t-micro);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+.jlabel{display:flex;flex-direction:column;gap:4px;}
+.jstop h3{font-family:var(--serif);font-weight:500;font-size:var(--t-title);line-height:var(--lh-snug);
+  letter-spacing:var(--ls-display);color:var(--ink);margin:0;}
+.jline{font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);}
+
+/* ---- why ---- */
+.jwhy{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:28px;}
+.jwhy-kick{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);
+  line-height:var(--lh-tight);}
+.jreasons{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:26px;}
+.jreasons li{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:18px;align-items:start;}
+/* a filled disc, not a ring: the rings are the stops on the map, and a
+   reason drawn the same way read as a fifth stop that had wandered off */
+.jreason-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--raised);color:var(--highlight);}
+.jreasons strong{display:block;font-weight:600;font-size:var(--t-lead);line-height:var(--lh-snug);color:var(--ink);margin:2px 0 4px;}
+.jreason-body{display:block;font-size:var(--t-body);line-height:var(--lh-body);color:var(--muted);max-width:42ch;}
+
+/* ---- the one place the section asks for anything ---- */
+.jbook{display:inline-flex;align-items:center;gap:10px;min-height:var(--tap);margin-top:6px;padding:0 22px 0 26px;
   border-radius:var(--r-pill);background:var(--sheen);color:var(--on-sheen);font-size:var(--t-meta);font-weight:600;letter-spacing:.02em;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui);}
 .jbook:hover{transform:scale(1.025);box-shadow:var(--shadow-hard);}
@@ -1495,30 +1472,40 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .jbook svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .jbook:hover svg{transform:translateX(3px);}
 
-@media(max-width:900px){
-  .journey-band{--ring:50px;}
-  .jpanel{grid-template-columns:1fr;gap:22px;}
-  .jwhy{padding-left:0;border-left:none;padding-top:20px;border-top:1px solid var(--line);margin-top:0;}
-}
-/* A phone: the stops keep their icons and lose their names — four names
-   across 340px collide, and the words below already say which stop this
-   is. The start chip and the arrival's word go for the same reason; the
-   two dots stay, so the line still visibly starts and ends somewhere. */
-@media(max-width:560px){
-  .journey-band{--ring:46px;}
-  .jwrap{gap:30px;}
-  .jline{gap:10px;}
-  .jstart{width:8px;height:8px;padding:0;border-radius:50%;font-size:0;background:var(--silver-deep);border:none;}
-  .jarrive em{display:none;}
-  .jlabel{display:none;}
+/* Under 880px a 480px map and a readable column of reasons no longer fit
+   side by side. Rather than stack the map over the reasons — which at
+   1000px left the map alone on the left of an empty band, the reasons a
+   screen further down — the map straightens into a line down the page,
+   rings on the left and words beside them, and that narrower route keeps
+   the reasons beside it. Only on a phone (below) do the two stack. The
+   SVG goes; the line is a column of the same dots, drawn by the map itself
+   from the start pin's centre to the end dot's. */
+@media(max-width:879px){
+  .jgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:48px;}
+  .jmap{width:auto;height:auto;display:flex;flex-direction:column;gap:28px;}
+  .jpath{display:none;}
+  .jmap::before{content:"";position:absolute;left:23px;top:12px;bottom:12px;width:2px;
+    background:radial-gradient(circle,var(--soft) 1px,transparent 1.4px) center top/2px 8px repeat-y;}
+  .jend-node{position:relative;left:auto;top:auto;transform:none;min-height:24px;padding-left:19px;}
+  .jarrive{padding-left:17px;transform:none;}
+  .jstops{display:flex;flex-direction:column;gap:28px;}
+  .jstop{position:relative;left:auto;top:auto;width:auto;margin:0;flex-direction:row;align-items:flex-start;
+    gap:18px;text-align:left;}
+  .jring{width:48px;height:48px;}
   .jring svg{width:20px;height:20px;}
-  .jcar{width:24px;height:24px;margin:-12px 0 0 -12px;}
-  .jpanels{margin-top:0;}
+  .jnum{top:-6px;right:-8px;}
+  .jlabel{padding-top:3px;}
+}
+/* A phone: the reasons go under the route, and the button takes the width
+   a thumb expects. */
+@media(max-width:600px){
+  .jgrid{grid-template-columns:minmax(0,1fr);row-gap:48px;}
   .jbook{width:100%;justify-content:center;}
 }
 @media(prefers-reduced-motion:reduce){
-  .jring,.jlabel,.jdot,.jarrive em,.jpanel,.jbook,.jbook svg{transition:none;}
-  .jpanel,.jpanel.gone{transform:none;}
+  .jbook,.jbook svg{transition:none;}
+  .jbook:hover{transform:none;}
+  .jbook:hover svg{transform:none;}
 }
 
 /* ============ §11 — VEHICLE CARDS ============ */

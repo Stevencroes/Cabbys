@@ -31,9 +31,10 @@ export default function Hero() {
 
   return (
     <header className={`hero${booking ? " is-booking" : ""}`} id="top" ref={ref}>
-      {/* The photograph is the hero's ground, not an element inside it: the
-          copy and the booking card sit over it, and it fades into the navy
-          rather than ending on an edge. */}
+      {/* The hero's ground — moonlight on navy, a gradient since the photo
+          went (see .hero-photo in globals.css). Not an element inside the
+          hero: the copy and the booking card sit over it, and it settles
+          into the page's navy rather than ending on an edge. */}
       <div className="hero-photo" aria-hidden="true" />
 
       <div className="hero-grid">
