@@ -60,14 +60,20 @@ export function useAuth() {
 
   const redirectTo = `${window.location.origin}/auth/callback`;
 
-  const signUpWithPassword = useCallback(async (email: string, password: string, fullName?: string) => {
+  const signUpWithPassword = useCallback(async (email: string, password: string, fullName?: string, next?: string) => {
     const name = fullName?.trim().replace(/\s+/g, " ");
     const res = await supabase.auth.signUp({
       email,
       password,
       // `data` lands in user_metadata, which is where Google puts full_name
       // too — so the nav reads one field no matter which door they came in.
-      options: { emailRedirectTo: redirectTo, data: name ? { full_name: name } : undefined },
+      // `next` is where the confirmation link should land: a driver who
+      // signs up at /drive and confirms from their inbox belongs back in
+      // the application, not on the passenger home page.
+      options: {
+        emailRedirectTo: next ? `${redirectTo}?next=${encodeURIComponent(next)}` : redirectTo,
+        data: name ? { full_name: name } : undefined,
+      },
     });
     // With confirmations ON, Supabase hides "already registered" behind a
     // decoy user carrying no identities rather than returning an error.

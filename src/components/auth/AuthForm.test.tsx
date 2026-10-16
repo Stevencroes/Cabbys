@@ -85,7 +85,21 @@ describe("AuthForm", () => {
     type(/^your name$/i, "Ada Lovelace");
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
     await waitFor(() =>
-      expect(signUpWithPassword).toHaveBeenCalledWith("ada@example.com", "longenough1", "Ada Lovelace"),
+      // no return path: a passenger's confirmation link lands on the home page
+      expect(signUpWithPassword).toHaveBeenCalledWith("ada@example.com", "longenough1", "Ada Lovelace", undefined),
+    );
+  });
+
+  // A driver who signs up at /drive and confirms from their inbox belongs
+  // back in the application, not on the passenger home page.
+  it("sends a new account's confirmation link back where the form was", async () => {
+    render(<AuthForm oauthNext="/drive" initialMode="signup" />);
+    type(/^your name$/i, "Ana Croes");
+    type(/^email$/i, "ana@example.com");
+    type(/^password$/i, "longenough1");
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+    await waitFor(() =>
+      expect(signUpWithPassword).toHaveBeenCalledWith("ana@example.com", "longenough1", "Ana Croes", "/drive"),
     );
   });
 

@@ -7,6 +7,8 @@ const state: {
 } = { user: null, driver: null, error: null, documents: [], documentsError: null };
 let lookups = 0;
 const signOut = vi.fn();
+const applyAsDriver = vi.fn();
+const saveVehicle = vi.fn();
 
 vi.mock("./lib/driver", () => ({
   getAuthedUser: () => Promise.resolve(state.user),
@@ -19,8 +21,12 @@ vi.mock("./lib/driver", () => ({
   // anything. Mocked here so these tests keep asking about the gate.
   loadDriverDocuments: () => Promise.resolve({ documents: state.documents, error: state.documentsError }),
   uploadDriverDocument: () => Promise.resolve({ ok: true }),
+  applyAsDriver: (a: unknown) => applyAsDriver(a),
+  saveVehicle: (v: unknown) => saveVehicle(v),
 }));
-vi.mock("../booking/useAuth", () => ({
+// Partial: the sign-up side of AuthForm reads PASSWORD_MIN and friends.
+vi.mock("../booking/useAuth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../booking/useAuth")>()),
   useAuth: () => ({ signOut }),
 }));
 vi.mock("../lib/supabase", () => ({
@@ -45,6 +51,10 @@ beforeEach(() => {
   state.documentsError = null;
   lookups = 0;
   signOut.mockClear();
+  applyAsDriver.mockReset().mockResolvedValue({ ok: true });
+  saveVehicle.mockReset().mockResolvedValue({ ok: true });
+  // which side the sign-in form opens on is remembered per browser
+  window.localStorage.clear();
 });
 
 const signedInWith = (status: string) => {
@@ -53,25 +63,36 @@ const signedInWith = (status: string) => {
 };
 
 describe("approval gate", () => {
-  it("offers a real sign-in form when nobody is signed in", async () => {
+  it("offers a real sign-in form to a driver who has been in before", async () => {
+    window.localStorage.setItem("cabbys.driver.seen", "1");
     renderGate();
     expect(await screen.findByText(/this is the driver portal/i)).toBeInTheDocument();
     // not just a message — an actual way in
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /forgot your password/i })).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(PORTAL))).toBeNull();
   });
 
-  // Driver accounts are made by Cabby's — the screen says so a line above
-  // the form. A driver who took the offer to create one landed straight in
-  // "No driver profile for this account": a support ticket manufactured by
-  // the button that caused it.
-  it("does not offer to create an account it would then turn away", async () => {
+  // The owner: anyone opening /driver can sign up there. A first visit is
+  // far more likely to be somebody applying than a driver starting a shift.
+  it("opens on applying for somebody who has never been in", async () => {
     renderGate();
-    await screen.findByText(/this is the driver portal/i);
-    expect(screen.queryByRole("button", { name: /create an account/i })).toBeNull();
-    // signing in and recovering a password are untouched
-    expect(screen.getByRole("button", { name: /forgot your password/i })).toBeInTheDocument();
+    expect(await screen.findByText(/drive with cabby's/i)).toBeInTheDocument();
+    const steps = screen.getByRole("list", { name: /your application/i });
+    expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent(/account/i);
+    expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
+    // and a driver who lands here anyway is one tap from signing in
+    fireEvent.click(screen.getByRole("button", { name: /already have an account\? sign in/i }));
+    expect(await screen.findByText(/this is the driver portal/i)).toBeInTheDocument();
+  });
+
+  it("lets a returning visitor switch to applying, and retitles to match", async () => {
+    window.localStorage.setItem("cabbys.driver.seen", "1");
+    renderGate();
+    fireEvent.click(await screen.findByRole("button", { name: /new driver\? apply to drive/i }));
+    expect(await screen.findByText(/drive with cabby's/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
   });
 
   // A guest who lands here by accident: the back button is where they came from.
@@ -80,15 +101,86 @@ describe("approval gate", () => {
     expect(await screen.findByRole("link", { name: /book a ride/i })).toHaveAttribute("href", "/");
   });
 
-  it("tells a signed-in account with no driver row exactly why, so the mismatch can be found", async () => {
-    state.user = { id: "uid-123", email: "ana@example.com" };
-    state.driver = null;
+  // This was "No driver profile for this account" — a dead end while
+  // Cabby's made every driver record by hand.
+  it("hands a signed-in account with no driver row the application", async () => {
+    state.user = { id: "uid-123", email: "ana@example.com", name: "Ana Croes" };
     renderGate();
-    expect(await screen.findByText(/no driver profile for this account/i)).toBeInTheDocument();
+    expect(await screen.findByText(/tell us about you/i)).toBeInTheDocument();
     expect(screen.getByText("ana@example.com")).toBeInTheDocument();
-    expect(screen.getByText("uid-123")).toBeInTheDocument();
+    // the name given when the account was made, carried over
+    expect(screen.getByLabelText(/first name/i)).toHaveValue("Ana");
+    expect(screen.getByLabelText(/last name/i)).toHaveValue("Croes");
+    expect(screen.getByRole("list", { name: /your application/i })
+      .querySelector('[aria-current="step"]')).toHaveTextContent(/your details/i);
     expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
     expect(screen.queryByText(new RegExp(PORTAL))).toBeNull();
+  });
+
+  it("says what is missing, by the field, before sending anything", async () => {
+    state.user = { id: "uid-123", email: "ana@example.com" };
+    renderGate();
+    fireEvent.click(await screen.findByRole("button", { name: /send application/i }));
+    expect(await screen.findByText(/add your first name/i)).toBeInTheDocument();
+    expect(screen.getByText(/add the plate/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^plate/i)).toHaveAttribute("aria-invalid", "true");
+    expect(applyAsDriver).not.toHaveBeenCalled();
+  });
+
+  const fillApplication = async () => {
+    const set = (label: RegExp, value: string) =>
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    await screen.findByText(/tell us about you/i);
+    set(/first name/i, "Ana");
+    set(/last name/i, "Croes");
+    set(/^phone/i, "+297 560 1234");
+    set(/^make/i, "Mercedes");
+    set(/^model/i, "E-Class");
+    set(/^colour/i, "Black");
+    set(/^plate/i, "A-42871");
+    set(/^seats/i, "4");
+  };
+
+  it("sends the application, then the car, then moves on to the documents", async () => {
+    state.user = { id: "uid-123", email: "ana@example.com" };
+    renderGate();
+    await fillApplication();
+    // the row lands with the application, so the re-check finds it pending
+    applyAsDriver.mockImplementation(async () => {
+      state.driver = { id: "uid-123", fullName: "Ana Croes", status: "pending", tripsCount: 0, isOnline: false };
+      return { ok: true };
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send application/i }));
+    expect(await screen.findByText(/application received/i)).toBeInTheDocument();
+    expect(applyAsDriver).toHaveBeenCalledWith({ firstName: "Ana", lastName: "Croes", phone: "+297 560 1234" });
+    expect(saveVehicle).toHaveBeenCalledWith(expect.objectContaining({ make: "Mercedes", plate: "A-42871", seats: 4 }));
+    expect(screen.getByRole("list", { name: /your application/i })
+      .querySelector('[aria-current="step"]')).toHaveTextContent(/documents/i);
+  });
+
+  // A pending driver has no screen where a car can be entered, so moving on
+  // with the car unsaved would strand it.
+  it("stays on the form when the car fails, and the same button tries again", async () => {
+    state.user = { id: "uid-123", email: "ana@example.com" };
+    saveVehicle.mockResolvedValueOnce({ ok: false, detail: "Network down." });
+    renderGate();
+    await fillApplication();
+    fireEvent.click(screen.getByRole("button", { name: /send application/i }));
+    expect(await screen.findByText(/the car didn't save: network down/i)).toBeInTheDocument();
+    expect(screen.getByText(/tell us about you/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /send application/i }));
+    await waitFor(() => expect(saveVehicle).toHaveBeenCalledTimes(2));
+  });
+
+  it("names the setup step when applications are not switched on yet", async () => {
+    state.user = { id: "uid-123", email: "ana@example.com" };
+    applyAsDriver.mockResolvedValue({ ok: false, setup: true, detail: "Applications aren't switched on yet. Message Cabby's and we'll sort it out." });
+    renderGate();
+    await fillApplication();
+    fireEvent.click(screen.getByRole("button", { name: /send application/i }));
+    expect(await screen.findByText(/applications aren't switched on yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/driver-signup-schema\.sql/)).toBeInTheDocument();
+    expect(saveVehicle).not.toHaveBeenCalled();
   });
 
   it("keeps a pending driver out of the portal entirely", async () => {

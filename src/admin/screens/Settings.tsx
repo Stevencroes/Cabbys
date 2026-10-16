@@ -150,6 +150,13 @@ export default function Settings() {
             {DRIVER_DOCUMENTS.map((d) => (
               <Fact key={d.slug} k={d.label}>{d.why}</Fact>
             ))}
+            {/* Said here because it changed: driver records used to be made
+                by hand in the SQL editor, and an operator who remembers that
+                should not go looking for a step that no longer exists. */}
+            <Fact k="Joining">
+              Drivers apply themselves at /driver: an account, their details and car, then the
+              documents. Each one lands here as pending <span className="q">apply_as_driver, docs/driver-signup-schema.sql</span>
+            </Fact>
             <Fact k="Approval">
               By hand, one driver at a time <span className="q">there is no automatic approval, and there should not be</span>
             </Fact>
