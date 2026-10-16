@@ -88,10 +88,10 @@ const TZ = "America/Aruba";
 
 /** src/data/vehicles.ts, by id. src/server/bookingAlerts.test.ts keeps them equal. */
 export const VEHICLE_NAMES: Record<string, string> = {
-  sedan: "Executive Sedan",
-  suv: "Luxury SUV",
-  transit: "Premium Van",
-  sprinter: "Luxury Sprinter",
+  sedan: "Sedan",
+  suv: "SUV",
+  transit: "Passenger Van",
+  sprinter: "Sprinter",
 };
 
 export type AlertKind = "new" | "remind_12h" | "remind_2h" | "guest_confirmation" | "driver_assigned";

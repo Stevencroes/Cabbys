@@ -253,7 +253,7 @@ describe("what a card says", () => {
   it("names the vehicle and labels the money", async () => {
     renderTrips();
     const c = await cardOf("CB-FAR");
-    expect(within(c).getByText("Premium Van")).toBeInTheDocument();
+    expect(within(c).getByText("Passenger Van")).toBeInTheDocument();
     expect(within(c).queryByText(/transit · transit/i)).toBeNull();
     // 100 florin at 1.79 is US$56, labelled — never a lone "$56"
     expect(within(c).getByText("Total")).toBeInTheDocument();

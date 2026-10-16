@@ -154,8 +154,8 @@ describe("payment", () => {
 
 describe("display", () => {
   it("names the vehicle instead of printing its id twice", () => {
-    expect(vehicleName({ vehicle_class: "transit", vehicle_type: "transit" })).toBe("Premium Van");
-    expect(vehicleName({ vehicle_type: "suv" })).toBe("Luxury SUV");
+    expect(vehicleName({ vehicle_class: "transit", vehicle_type: "transit" })).toBe("Passenger Van");
+    expect(vehicleName({ vehicle_type: "suv" })).toBe("SUV");
     expect(vehicleName({})).toBeNull();
   });
 

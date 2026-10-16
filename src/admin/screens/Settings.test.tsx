@@ -46,7 +46,7 @@ describe("settings", () => {
   // change to the commission cannot leave a stale number on screen.
   it("reads the live fleet and the real commission out of the code", async () => {
     await renderSettings();
-    expect(screen.getByText("Executive Sedan")).toBeInTheDocument();
+    expect(screen.getByText("Sedan")).toBeInTheDocument();
     expect(screen.getByText(/25%/)).toBeInTheDocument();
   });
 

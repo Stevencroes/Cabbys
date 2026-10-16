@@ -22,10 +22,15 @@ const PHOTO_V = "?v=2";
 // A tier is a CATEGORY, not a car: drivers arrive in their own vehicles, so
 // `desc` names a representative one and says "or similar" because it means it.
 //
-//   Executive Sedan   Mercedes E-Class     3 guests   $40
-//   Luxury SUV        Lincoln Nautilus     4          $55
-//   Premium Van       Ford Transit         7          $64
-//   Luxury Sprinter   Mercedes Sprinter   12          $82
+//   Sedan           Mercedes E-Class     3 guests   $40
+//   SUV             Lincoln Nautilus     4          $55
+//   Passenger Van   Ford Transit         7          $64
+//   Sprinter        Mercedes Sprinter   12          $82
+//
+// The names are the plain kind of car, as the owner named them. They were
+// "Executive Sedan", "Luxury SUV", "Premium Van" and "Luxury Sprinter" until
+// October 2026. "Passenger Van" keeps its qualifier where the others lost
+// theirs: a bare "Van" reads as a delivery van, not the seven-seater.
 //
 // The first rung was briefly filed as "Executive Van, 1-6, Mercedes V-Class".
 // The photograph settles it: fleet/sedan.webp is a four-door Mercedes saloon,
@@ -39,12 +44,15 @@ const PHOTO_V = "?v=2";
 //
 // Ids key the multipliers and the rides rows the driver dashboard reads. Rows
 // written before this keep their old strings, which those screens render as
-// plain text.
+// plain text. A `name` is display only: no row, price or lookup is keyed on
+// it (rides store the id in vehicle_class / vehicle_type), so renaming one
+// orphans nothing. api/booking-alerts.ts keeps its own copy, VEHICLE_NAMES,
+// which src/server/bookingAlerts.test.ts holds equal to this list.
 export const VEHICLES: Vehicle[] = [
-  { id: "sedan",    name: "Executive Sedan", pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: `/fleet/sedan.webp${PHOTO_V}` },
-  { id: "suv",      name: "Luxury SUV",      pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: `/fleet/suv.webp${PHOTO_V}` },
-  { id: "transit",  name: "Premium Van",     pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: `/fleet/transit.webp${PHOTO_V}` },
-  { id: "sprinter", name: "Luxury Sprinter", pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: `/fleet/sprinter.webp${PHOTO_V}` },
+  { id: "sedan",    name: "Sedan",         pax: 3,  bags: 3,  mult: 1.0,  note: "",            desc: "Mercedes E-Class or similar",  photo: `/fleet/sedan.webp${PHOTO_V}` },
+  { id: "suv",      name: "SUV",           pax: 4,  bags: 5,  mult: 1.38, note: "Most chosen", desc: "Lincoln Nautilus or similar",  photo: `/fleet/suv.webp${PHOTO_V}` },
+  { id: "transit",  name: "Passenger Van", pax: 7,  bags: 8,  mult: 1.6,  note: "",            desc: "Ford Transit or similar",      photo: `/fleet/transit.webp${PHOTO_V}` },
+  { id: "sprinter", name: "Sprinter",      pax: 12, bags: 12, mult: 2.05, note: "",            desc: "Mercedes Sprinter or similar", photo: `/fleet/sprinter.webp${PHOTO_V}` },
 ];
 
 /** The largest party and load the fleet can take — what the guest and bag

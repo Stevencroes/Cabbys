@@ -119,7 +119,7 @@ describe("BookingOverlay — the booking flow", () => {
     expect(screen.getByText(/Who's coming/)).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("button", { name: /flight lands at/i })).toBeNull();
-    expect(screen.getByRole("radio", { name: /Premium Van/ })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Passenger Van/ })).toBeInTheDocument();
 
     // Continue is never disabled; nothing here can block it
     toDetails();
@@ -244,8 +244,8 @@ describe("BookingOverlay — the booking flow", () => {
     fireEvent.click(screen.getByText("launch"));
 
     // a car that is not the default, so going back and forth can lose it
-    fireEvent.click(screen.getByRole("radio", { name: /Luxury SUV/ }));
-    expect(screen.getByRole("radio", { name: /Luxury SUV/ })).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(screen.getByRole("radio", { name: /SUV/ }));
+    expect(screen.getByRole("radio", { name: /SUV/ })).toHaveAttribute("aria-checked", "true");
     // step 1 is the first step: there is nowhere further back to go inside
     expect(screen.queryByRole("button", { name: /^back$/i })).toBeNull();
 
@@ -254,7 +254,7 @@ describe("BookingOverlay — the booking flow", () => {
 
     // Back is one step, not out of the modal
     fireEvent.click(screen.getByRole("button", { name: /^back$/i }));
-    await waitFor(() => expect(screen.getByRole("radio", { name: /Luxury SUV/ })).toHaveAttribute("aria-checked", "true"));
+    await waitFor(() => expect(screen.getByRole("radio", { name: /SUV/ })).toHaveAttribute("aria-checked", "true"));
   });
 
   it("keeps the step indicator a status rather than a control", () => {
