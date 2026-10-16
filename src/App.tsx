@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import ResetPassword from "./pages/ResetPassword";
 import PolicyPage from "./pages/PolicyPage";
 import DriverPortal from "./driver/DriverPortal";
+import DriverAlias from "./driver/DriverAlias";
 import AdminPortal from "./admin/AdminPortal";
 import Confirmation from "./components/Confirmation";
 import type { ConfirmedBooking } from "./booking/types";
@@ -48,6 +49,9 @@ function AppRoutes() {
         <Route path="/cancellation" element={<PolicyPage slug="cancellation" />} />
         {/* the driver portal is its own world: dark ground, own shell, own guard */}
         <Route path="/drive/*" element={<DriverPortal />} />
+        {/* /driver too — the address people guess. A redirect, so the
+            portal keeps one home (see DriverAlias). */}
+        <Route path="/driver/*" element={<DriverAlias />} />
         {/* and so is the board. Same grounds, same identity system, its
             own guard — /admin is gated on a row in `admins`, not on a
             separate login. See docs/admin-schema.sql. */}
