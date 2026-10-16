@@ -22,6 +22,7 @@ import {
 import type { DocumentRecord } from "../../driver/lib/documents";
 import { addDays, todayInAruba } from "../../lib/datetime";
 import { rowSeatsUsd } from "../../lib/quote";
+import { vehicleDisplayName } from "../../data/vehicles";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 const nStr = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
@@ -169,7 +170,8 @@ function toRide(r: Row): AdminRide {
     scheduledAt: effectiveScheduledAt(r),
     pickup: str(r.pickup_location),
     dropoff: str(r.dropoff_location),
-    vehicle: nStr(r.vehicle_class) ?? nStr(r.vehicle_type),
+    // the guest-facing name, not the stored id (see vehicleDisplayName)
+    vehicle: vehicleDisplayName(nStr(r.vehicle_class) ?? nStr(r.vehicle_type)),
     passengers: nNum(r.passengers_count),
     luggage: nNum(r.luggage_count),
     childSeats: nNum(r.child_seats),

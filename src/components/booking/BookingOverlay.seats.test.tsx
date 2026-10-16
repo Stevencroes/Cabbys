@@ -149,7 +149,7 @@ describe("child seats — the age is required, the price is shown", () => {
     expect(screen.getByText(`Child seat ×1 · ${usd(CHILD_SEAT_USD)} each way`)).toBeInTheDocument();
     expect(screen.getByText(/\+\$10, already in every fare below/)).toBeInTheDocument();
     // the car's own row carries the same number as the foot
-    expect(within(screen.getByRole("radio", { name: /Executive Sedan/ })).getByText(usd(bare.totalUsd + CHILD_SEAT_USD))).toBeInTheDocument();
+    expect(within(screen.getByRole("radio", { name: /Sedan/ })).getByText(usd(bare.totalUsd + CHILD_SEAT_USD))).toBeInTheDocument();
   });
 
   it("charges both legs on a return, and says so", () => {

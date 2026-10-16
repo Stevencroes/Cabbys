@@ -28,7 +28,7 @@ const ride = (id: string, isoDay: string, hhmm: string, retailUsd: number, to = 
     scheduledAt: `${isoDay}T${hhmm}:00.000Z`,
     completedAt: `${isoDay}T${hhmm}:00.000Z`,
     pickup: "Queen Beatrix International Airport", dropoff: to,
-    vehicle: "Executive Sedan", passengers: 2, luggage: 2, childSeats: 0,
+    vehicle: "Sedan", passengers: 2, luggage: 2, childSeats: 0,
     fareAwg: awg, payoutUsd: driverPayoutUsd(awg), bookingRef: "CB-" + id,
     contactName: null, contactPhone: null, flightNumber: null,
     pickupLat: null, pickupLng: null, pickupNote: null,

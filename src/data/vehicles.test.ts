@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MAX_PAX, VEHICLES, fitsParty } from "./vehicles";
+import { MAX_PAX, VEHICLES, fitsParty, vehicleDisplayName } from "./vehicles";
 
 describe("vehicles", () => {
   it("has the four classes", () => {
@@ -38,5 +38,21 @@ describe("vehicles", () => {
     expect(fitsParty(suv, 4, 6)).toBe(false); // nor six bags
     const sprinter = VEHICLES.find(v => v.id === "sprinter")!;
     expect(fitsParty(sprinter, 12, 12)).toBe(true);
+  });
+});
+
+// Staff read "transit" on the admin desk and in the driver portal where the
+// guest's own receipt said "Passenger Van": both passed the stored id through.
+describe("vehicleDisplayName", () => {
+  it("names a stored id the way the guest saw it", () => {
+    expect(vehicleDisplayName("transit")).toBe("Passenger Van");
+    expect(vehicleDisplayName(" SUV ")).toBe("SUV");
+  });
+  it("shows an older free-text value exactly as it was stored", () => {
+    expect(vehicleDisplayName("Executive Van")).toBe("Executive Van");
+  });
+  it("says nothing when nothing was recorded", () => {
+    expect(vehicleDisplayName(null)).toBeNull();
+    expect(vehicleDisplayName("")).toBeNull();
   });
 });

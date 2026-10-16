@@ -51,7 +51,7 @@ describe("what the alert says", () => {
     expect(e.subject).toBe("New booking — no driver yet · Sat 3 Oct, 2:00 PM · CB-7KM4Q");
     expect(e.to).toBe("cabbystransfer@gmail.com");
     expect(e.from).toMatch(/@cabbystransfer\.com>$/);
-    expect(e.text).toContain("Vehicle: Luxury SUV");
+    expect(e.text).toContain("Vehicle: SUV");
     expect(e.text).toContain("Fare: US$58");
     expect(e.text).toContain("Driver: Nobody yet");
   });
@@ -131,7 +131,7 @@ describe("the guest's copy", () => {
     expect(e.text).toContain("Thanks, Ana. Your transfer is booked.");
     expect(e.text).toContain("Pickup: Sat 3 Oct, 2:00 PM (Aruba time)");
     expect(e.text).toContain("From: Queen Beatrix Airport");
-    expect(e.text).toContain("Car: Luxury SUV");
+    expect(e.text).toContain("Car: SUV");
     expect(e.text).toContain("Flight: B6 1234, tracked");
     expect(e.text).toContain("Total: US$58");
     // cash to the driver while card payment is off — and in what, and

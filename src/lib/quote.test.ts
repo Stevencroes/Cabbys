@@ -203,7 +203,7 @@ describe("a typed address on the rate card", () => {
  * was owed, so nothing could complain.
  *
  * These are the three published tariffs we have, for 1–3 passengers, which
- * is the Executive Sedan. Its multiplier is 1.0, so the base IS the sedan
+ * is the Sedan. Its multiplier is 1.0, so the base IS the sedan
  * fare and these rows are the rate card values directly.
  */
 import { COMMISSION_RATE, driverPayoutUsd, usdToAwg, awgToUsd } from "./quote";

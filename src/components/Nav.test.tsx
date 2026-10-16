@@ -76,6 +76,21 @@ describe("Nav", () => {
     expect(onSignIn).toHaveBeenCalledOnce();
   });
 
+  // The owner: the wordmark reloads home. A router <Link> cancels the click
+  // and moves the URL itself, which on "/" did nothing at all; this must
+  // leave the click to the browser, as a full page load. Read on window,
+  // after React's own handlers have run, then cancelled there so jsdom
+  // does not try to navigate.
+  it("takes the wordmark home as a full page load, not a router hop", () => {
+    renderNav();
+    const wordmark = screen.getByRole("link", { name: /Cabby's — Home/i });
+    expect(wordmark).toHaveAttribute("href", "/");
+    let cancelledByApp: boolean | undefined;
+    window.addEventListener("click", (e) => { cancelledByApp = e.defaultPrevented; e.preventDefault(); }, { once: true });
+    fireEvent.click(wordmark);
+    expect(cancelledByApp).toBe(false);
+  });
+
   it("puts every destination behind one tap on a phone (Phase 2)", () => {
     renderNav();
     const burger = screen.getByRole("button", { name: /open menu/i });

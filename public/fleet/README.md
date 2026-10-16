@@ -6,10 +6,10 @@ booking flow's car step (`.vthumb`).
 
 | file            | tier            | the car in the shot          |
 | --------------- | --------------- | ---------------------------- |
-| `sedan.webp`    | Executive Sedan | Mercedes S-Class type saloon |
-| `suv.webp`      | Luxury SUV      | Mercedes GLS type SUV        |
-| `transit.webp`  | Premium Van     | Mercedes V-Class type MPV    |
-| `sprinter.webp` | Luxury Sprinter | Mercedes Sprinter            |
+| `sedan.webp`    | Sedan           | Mercedes S-Class type saloon |
+| `suv.webp`      | SUV             | Mercedes GLS type SUV        |
+| `transit.webp`  | Passenger Van   | Mercedes V-Class type MPV    |
+| `sprinter.webp` | Sprinter        | Mercedes Sprinter            |
 
 A tier is a category, not a car — drivers arrive in their own vehicles, so the
 shot shows a representative one, and each carries a "Cabbys" plate.

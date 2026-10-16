@@ -155,9 +155,9 @@ export default function Fleet() {
                     <span className="fname">{v.name}</span>
                     {/* What it holds on the left, what it costs on the right.
                         The reference puts the fare beside the name; four
-                        across, "Luxury Sprinter" and "From $82" do not both
-                        fit one line, and the name is the one that cannot be
-                        cut. Guests AND bags: two people with four suitcases
+                        across, a long name ("Passenger Van") and its fare
+                        would fight for one narrow line, and the name is the
+                        one that cannot be cut. Guests AND bags: two people with four suitcases
                         do not fit the car that seats three. */}
                     <span className="fline">
                       <Holds pax={v.pax} bags={v.bags} />

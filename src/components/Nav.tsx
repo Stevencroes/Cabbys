@@ -155,7 +155,12 @@ export default function Nav({ onSignIn }: { onSignIn: () => void }) {
           outer two equal, so the links sit on the page's centre line and
           not on whatever is left between the wordmark and the CTA. */}
       <div className="nav-inner">
-      <Link to="/" className="brand" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</Link>
+      {/* A plain link, not a router <Link>: the owner wants the wordmark to
+          reload the home page. As a <Link> it did nothing on the landing
+          page itself — already at "/", the router swallowed the click — and
+          from /#faq it changed the URL without leaving the section. A real
+          navigation lands at the top of a fresh page from anywhere. */}
+      <a href="/" className="brand" aria-label="Cabby's — Home">Cabby<span className="ap">'</span>s</a>
 
       <div className="nlinks">
         {LINKS.map((l) => (
