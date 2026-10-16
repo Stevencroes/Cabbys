@@ -264,22 +264,16 @@
      values read a shade hot through it. */
   --nav-h:70px;
   --nav-h-sm:60px;
-  /* Once the hero is behind you the rail draws in to a pill that floats
-     clear of the top edge (see .nav-pill in globals.css). --nav-pill-h is
-     the capsule; Book now is 38px, so on a desktop it sits 8px in from the
-     capsule on every side and the two curves run parallel. The radius is
-     half the height, rounded up — a capsule, not a rounded box. */
-  --nav-pill-top:14px;
-  --nav-pill-h:54px;
-  --nav-pill-w:920px;
-  --nav-pill-r:28px;
-  --nav-pill-top-sm:10px;
-  --nav-pill-h-sm:52px;
+  /* The rail tightens once the hero is behind you — 8px on a desktop, 6 on a
+     phone. Small enough that nobody catches it moving, large enough that the
+     bar over a scrolling page is visibly not the bar over the photograph. */
+  --nav-h-tight:62px;
+  --nav-h-tight-sm:54px;
   --nav-clear:calc(var(--nav-total) + 26px);
   --nav-ink:#F5F5F3;                              /* wordmark, active link, step number */
   --nav-dim:#A7ADB4;                              /* resting links, step remainder */
   --nav-underline:#D7D9D8;                        /* link underline, progress fill */
-  --nav-rule:rgba(215,217,216,.14);               /* the pill's edge, and the progress track */
+  --nav-rule:rgba(215,217,216,.14);               /* the hairline, and the progress track */
   --nav-bg:rgba(2,11,20,.62);                     /* --deep at 55%, behind the blur */
   --nav-solid:#020B14;                            /* the same colour, opaque — the phone rail */
   /* The rail's REAL height, notch included. Everything that has to clear the
@@ -291,6 +285,8 @@
   --safe-top:env(safe-area-inset-top,0px);
   --nav-total:calc(var(--nav-h) + var(--safe-top));
   --nav-total-sm:calc(var(--nav-h-sm) + var(--safe-top));
+  --nav-total-tight:calc(var(--nav-h-tight) + var(--safe-top));
+  --nav-total-tight-sm:calc(var(--nav-h-tight-sm) + var(--safe-top));
 
   /* ---------- rounded system ---------- */
   --r-xs:10px;

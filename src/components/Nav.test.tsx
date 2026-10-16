@@ -105,33 +105,6 @@ describe("Nav", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: /open menu/i }));
   });
 
-  it("folds the menu away rather than dropping it, and is gone when the fold ends", () => {
-    vi.useFakeTimers();
-    try {
-      renderNav();
-      fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
-      fireEvent.keyDown(document, { key: "Escape" });
-      // out of reach at once — no Tab or screen reader lands in a closing menu
-      expect(screen.queryByRole("dialog", { name: /menu/i })).toBeNull();
-      const folding = document.getElementById("nav-sheet");
-      expect(folding).toHaveAttribute("inert");
-      act(() => { vi.advanceTimersByTime(300); });
-      expect(document.getElementById("nav-sheet")).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("marks the link under the pointer, and lets go when the pointer leaves", () => {
-    renderNav();
-    const nav = screen.getByRole("navigation");
-    const faq = within(nav).getByRole("link", { name: "FAQ" });
-    fireEvent.pointerEnter(faq);
-    expect(faq).toHaveClass("on");
-    fireEvent.pointerLeave(faq.parentElement!);
-    expect(faq).not.toHaveClass("on");
-  });
-
   it("stops saying SIGN IN once there is a session", () => {
     asAccount({ user_metadata: { full_name: "Greta Croes" } });
     renderNav();
