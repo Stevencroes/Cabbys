@@ -30,13 +30,33 @@
 //   · A way to reach a human, carrying the account id, so the first reply
 //     is an answer rather than a request for details.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import AuthForm from "../components/auth/AuthForm";
+import AuthForm, { type Mode } from "../components/auth/AuthForm";
 import { useAuth } from "../booking/useAuth";
 import { supabase } from "../lib/supabase";
 import { getAuthedUser, loadDriverById, type AuthedUser, type DriverProfile } from "./lib/driver";
 import Documents from "./Documents";
+import Apply from "./Apply";
+import Steps from "./Steps";
 import { whatsappLink } from "../lib/whatsapp";
 import "../styles/driver.css";
+
+/**
+ * Whether this browser has been in the portal before. A driver who has
+ * opens the sign-in side; anyone else opens on "Apply to drive". Most
+ * opens of /drive are drivers starting a shift, and making them switch
+ * sides every morning to reach the form they always use would be a tax on
+ * the people the portal is for; a first visit is far more likely to be
+ * somebody applying. Storage can be blocked or cleared — then everyone
+ * gets the apply side, which still has "Already have an account? Sign in"
+ * one tap below.
+ */
+const SEEN_KEY = "cabbys.driver.seen";
+function hasBeenIn(): boolean {
+  try { return window.localStorage.getItem(SEEN_KEY) === "1"; } catch { return false; }
+}
+function markBeenIn(): void {
+  try { window.localStorage.setItem(SEEN_KEY, "1"); } catch { /* a convenience, not a record */ }
+}
 
 interface GateProps {
   /**
@@ -62,6 +82,8 @@ export default function DriverGuard({ children }: GateProps) {
   const [checking, setChecking] = useState(false);
   const live = useRef(true);
   const { signOut } = useAuth();
+  /** which side of the sign-in form is showing, so the page can say so */
+  const [authMode, setAuthMode] = useState<Mode>(() => (hasBeenIn() ? "signin" : "signup"));
 
   const refresh = useCallback(async () => {
     const user = await getAuthedUser();
@@ -77,6 +99,9 @@ export default function DriverGuard({ children }: GateProps) {
     // driver asking support "which account am I?" has the answer where
     // they are already looking.
     const withEmail = { ...driver, email: user.email ?? driver.email };
+    // An applicant counts as having been in: next time they open the
+    // portal it is to check on the application, which is the sign-in side.
+    markBeenIn();
     if (driver.status !== "approved") { setState({ phase: "blocked", driver: withEmail, user }); return; }
     setState({ phase: "ready", driver: withEmail });
   }, []);
@@ -115,13 +140,28 @@ export default function DriverGuard({ children }: GateProps) {
   }
 
   if (state.phase === "signed-out") {
+    const applying = authMode === "signup";
     return (
       <Gate>
         <Wordmark />
-        <h1>This is the driver portal.</h1>
-        <p>Sign in with the account Cabby's set up for you.</p>
+        {/* Applying is the first step of four, and saying so up front is
+            what makes a form asking for a password feel like a start
+            rather than the whole of it. */}
+        {applying && <Steps current={1} />}
+        <h1>{applying ? "Drive with Cabby's." : "This is the driver portal."}</h1>
+        <p>
+          {applying
+            ? "Create an account to apply. Then tell us about you and your car, send your documents, and we'll approve you."
+            : "Sign in to see your rides. New to Cabby's? You can apply below."}
+        </p>
         <div className="drv-auth-wrap">
-          <AuthForm heading="Driver sign-in" oauthNext="/drive" onSuccess={refresh} allowSignUp={false} />
+          <AuthForm
+            oauthNext="/drive"
+            onSuccess={refresh}
+            initialMode={hasBeenIn() ? "signin" : "signup"}
+            onModeChange={setAuthMode}
+            signUpPrompt="New driver? Apply to drive"
+          />
         </div>
         {/* A guest who lands here by accident had no way out but the back
             button — and the back button is where they came from. */}
@@ -158,24 +198,14 @@ export default function DriverGuard({ children }: GateProps) {
     );
   }
 
+  // Signed in, the table read fine, and no row: somebody who has an
+  // account and has not applied yet. This was a dead end — "No driver
+  // profile for this account" and an id to quote at support — while
+  // Cabby's made every driver record by hand. Now it is the application.
   if (state.phase === "no-driver") {
     return (
       <Gate>
-        <Mark>?</Mark>
-        <h1>No driver profile for this account.</h1>
-        <p>
-          You're signed in, and we read the driver list fine — there's just no record
-          in it matching this account. If Cabby's has only just set you up, check
-          again in a minute. Otherwise the details below will find the mismatch.
-        </p>
-        <Diag user={state.user} id />
-        <Actions
-          user={state.user}
-          checking={checking}
-          onCheck={check}
-          onSignOut={signOut}
-          topic="I'm signed in but there's no driver profile for my account"
-        />
+        <Apply user={state.user} suggestedName={state.user.name ?? ""} onApplied={check} onSignOut={signOut} />
       </Gate>
     );
   }
@@ -183,6 +213,7 @@ export default function DriverGuard({ children }: GateProps) {
   const suspended = state.driver.status === "suspended";
   return (
     <Gate>
+      {!suspended && <Steps current={3} />}
       <Mark tone={suspended ? "alert" : undefined}>{suspended ? <Hold /> : <Clock />}</Mark>
       <h1>{suspended ? "Your account is on hold." : "Application received."}</h1>
       <p>

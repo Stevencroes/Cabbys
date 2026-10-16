@@ -154,6 +154,8 @@ function toAssigned(r: Row): AssignedJob {
 export interface AuthedUser {
   id: string;
   email: string | null;
+  /** the name given when the account was made (user_metadata.full_name) */
+  name?: string | null;
 }
 
 /**
@@ -165,8 +167,64 @@ export interface AuthedUser {
 export async function getAuthedUser(): Promise<AuthedUser | null> {
   const { data } = await supabase.auth.getSession();
   const user = data.session?.user;
-  if (!user) return null;
-  return { id: user.id, email: user.email ?? null };
+  // An ANONYMOUS session is a guest's booking receipt, not an identity
+  // (see useAuth's `account`). Counted as signed in, a guest who booked
+  // and then opened /driver landed on "No driver profile for this account"
+  // with no email to show; now that that screen is an application, they
+  // would have been offered one their account can never complete. They
+  // get the sign-in / apply screen like anyone else without an account.
+  if (!user || user.is_anonymous) return null;
+  const name = user.user_metadata?.full_name;
+  return { id: user.id, email: user.email ?? null, name: typeof name === "string" ? name : null };
+}
+
+/** What an applicant gives before anything else: who to put on a booking. */
+export interface Application {
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
+
+/**
+ * Create the signed-in account's own drivers row, as 'pending'.
+ *
+ * Through apply_as_driver (docs/driver-signup-schema.sql), never a plain
+ * insert: there is no insert policy on drivers, on purpose — one loose
+ * enough to let a driver add their row would let them add it approved.
+ * The function sets user_id and status itself and refuses an anonymous
+ * session; applying again on an account that already has a row changes
+ * nothing.
+ *
+ * A function that is not there yet answers with Postgres' "could not find
+ * the function", which says nothing to a driver and everything to whoever
+ * runs the database — so it is told apart and named, rather than shown
+ * raw or, worse, read as a refusal.
+ */
+/** `setup` marks the one failure that is Cabby's to fix, not the driver's. */
+export type ApplyResult = { ok: true } | { ok: false; detail: string; setup?: boolean };
+
+export async function applyAsDriver(a: Application): Promise<ApplyResult> {
+  const { data, error } = await supabase.rpc("apply_as_driver", {
+    p_first: a.firstName,
+    p_last: a.lastName,
+    p_phone: a.phone,
+  });
+  if (error) {
+    const missing = error.code === "PGRST202" || /could not find the function|does not exist/i.test(error.message ?? "");
+    return missing
+      ? { ok: false, setup: true, detail: "Applications aren't switched on yet. Message Cabby's and we'll sort it out." }
+      : { ok: false, detail: error.message || "Your application didn't send." };
+  }
+  const r = (data ?? {}) as Row;
+  if (r.ok === true) return { ok: true };
+  const why = str(r.error);
+  return {
+    ok: false,
+    detail:
+      why === "missing_details" ? "Add your first name and a phone number we can reach you on."
+      : why === "anonymous" || why === "not_signed_in" ? "Sign in or create an account first, then apply."
+      : why || "Your application didn't send.",
+  };
 }
 
 /**

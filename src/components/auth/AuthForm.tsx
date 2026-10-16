@@ -1,7 +1,7 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { PASSWORD_MIN, authMessage, isAlreadyRegistered, useAuth } from "../../booking/useAuth";
 
-type Mode = "signin" | "signup" | "forgot";
+export type Mode = "signin" | "signup" | "forgot";
 
 interface AuthFormProps {
   /** Called once the user is authenticated (sign-in succeeded). */
@@ -10,18 +10,28 @@ interface AuthFormProps {
   heading?: string;
   /** Compact spacing for use inside the booking flow. */
   compact?: boolean;
-  /** Where Google OAuth should return to. Omit for the default (passenger "/"). */
+  /** Where Google OAuth, and a new account's confirmation link, should
+      return to. Omit for the default (passenger "/"). */
   oauthNext?: string;
   /**
    * Whether this form may also create an account. Default true.
    *
-   * False on the driver gate, where it is worse than useless: driver
-   * accounts are made by Cabby's, the screen says so a line above, and a
-   * driver who takes the offer lands in "No driver profile for this
-   * account" — a support ticket manufactured by the button that caused
-   * it. Signing in and resetting a password still work.
+   * It was false on the driver gate while driver accounts were made by
+   * Cabby's: a driver who took the offer landed in "No driver profile
+   * for this account", a support ticket manufactured by the button. Now
+   * that drivers apply for themselves (docs/driver-signup-schema.sql), the
+   * gate allows it too. Kept for any screen where an account must come
+   * from somewhere else.
    */
   allowSignUp?: boolean;
+  /** Which side the form opens on. The driver gate opens "Apply to drive"
+      on the create-account side. Default "signin". */
+  initialMode?: "signin" | "signup";
+  /** Told whenever the form changes side, including the switch to sign-in
+      after an account is created, so a page can retitle itself to match. */
+  onModeChange?: (mode: Mode) => void;
+  /** The offer to create an account, worded for where the form sits. */
+  signUpPrompt?: string;
 }
 
 /** Deliberately permissive — the server is the authority on deliverability. */
@@ -42,9 +52,11 @@ const HEADINGS: Record<Mode, string> = {
  * control, everything else sits above the button in one alert. Nothing here
  * fails silently, and the button is inert while a request is in flight.
  */
-export default function AuthForm({ onSuccess, heading, compact, oauthNext, allowSignUp = true }: AuthFormProps) {
+export default function AuthForm({
+  onSuccess, heading, compact, oauthNext, allowSignUp = true, initialMode = "signin", onModeChange, signUpPrompt,
+}: AuthFormProps) {
   const { signInWithProvider, signInWithPassword, signUpWithPassword, resetPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -61,6 +73,10 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext, allow
   const pwId = `${uid}-password`;
 
   const needsPassword = mode !== "forgot";
+
+  // An effect rather than a call in go(): the form also changes side on
+  // its own, after an account is created with confirmations on.
+  useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
 
   function clearMessages() {
     setError(null);
@@ -115,7 +131,7 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext, allow
       if (err) setError(authMessage(err));
       else onSuccess?.();
     } else {
-      const { data, error: err } = await signUpWithPassword(mail, password, name);
+      const { data, error: err } = await signUpWithPassword(mail, password, name, oauthNext);
       if (err && isAlreadyRegistered(err)) {
         // Not an error so much as a wrong turn: same email, other door.
         setMode("signin");
@@ -253,7 +269,7 @@ export default function AuthForm({ onSuccess, heading, compact, oauthNext, allow
           type="button"
           onClick={() => go(mode === "signin" ? "signup" : "signin")}
         >
-          {mode === "signin" ? "New here? Create an account" : mode === "signup" ? "Already have an account? Sign in" : "Back to sign in"}
+          {mode === "signin" ? signUpPrompt ?? "New here? Create an account" : mode === "signup" ? "Already have an account? Sign in" : "Back to sign in"}
         </button>
       )}
     </div>

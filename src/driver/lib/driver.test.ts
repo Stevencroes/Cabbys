@@ -12,6 +12,7 @@ const updates: Record<string, unknown>[] = [];
 let uploadError: { message: string } | null = null;
 const uploads: { bucket: string; path: string; opts: Record<string, unknown> }[] = [];
 const publicUrls: { bucket: string; path: string }[] = [];
+let sessionUser: unknown = { id: "d1" };
 
 vi.mock("../../lib/supabase", () => {
   const builder = (table: string) => {
@@ -46,7 +47,7 @@ vi.mock("../../lib/supabase", () => {
         return Promise.resolve({ data: rpcResult, error: rpcError });
       },
       auth: {
-        getSession: () => Promise.resolve({ data: { session: { user: { id: "d1" } } } }),
+        getSession: () => Promise.resolve({ data: { session: sessionUser ? { user: sessionUser } : null } }),
       },
       storage: {
         from: (bucket: string) => ({
@@ -68,6 +69,7 @@ import {
   loadOpen, loadAssigned, claimRide, setRideStatus, loadDriverById, setOnline,
   saveDriverPhone, releaseRide, canRelease, vehicleLabel, identifiable,
   isImminent, IMMINENT_MINUTES, loadDriverDocuments, uploadDriverDocument,
+  getAuthedUser, applyAsDriver,
   type DriverProfile,
 } from "./driver";
 
@@ -81,6 +83,48 @@ beforeEach(() => {
   singleResult = null; singleError = null; orderResult = []; orderError = null;
   updateError = null; updates.length = 0;
   uploadError = null; uploads.length = 0; publicUrls.length = 0;
+  sessionUser = { id: "d1" };
+});
+
+describe("getAuthedUser", () => {
+  it("carries the name given when the account was made", async () => {
+    sessionUser = { id: "u1", email: "ana@example.com", user_metadata: { full_name: "Ana Croes" } };
+    expect(await getAuthedUser()).toEqual({ id: "u1", email: "ana@example.com", name: "Ana Croes" });
+  });
+  // A guest's booking receipt is not an identity: counted as signed in, it
+  // would be handed a driver application it can never complete.
+  it("treats a guest's anonymous session as signed out", async () => {
+    sessionUser = { id: "anon-1", is_anonymous: true };
+    expect(await getAuthedUser()).toBeNull();
+  });
+});
+
+describe("applyAsDriver", () => {
+  const ana = { firstName: "Ana", lastName: "Croes", phone: "+297 560 1234" };
+
+  it("goes through apply_as_driver with exactly the three details", async () => {
+    rpcResult = { ok: true, existing: false };
+    expect(await applyAsDriver(ana)).toEqual({ ok: true });
+    expect(calls.rpc[0]).toEqual(["apply_as_driver", { p_first: "Ana", p_last: "Croes", p_phone: "+297 560 1234" }]);
+  });
+
+  it("names the setup step when the function has not been installed", async () => {
+    rpcError = { code: "PGRST202", message: "Could not find the function public.apply_as_driver" };
+    const r = await applyAsDriver(ana);
+    expect(r).toMatchObject({ ok: false, setup: true });
+  });
+
+  it("says what the database refused, in the driver's words", async () => {
+    rpcResult = { ok: false, error: "missing_details" };
+    expect(await applyAsDriver(ana)).toEqual({ ok: false, detail: "Add your first name and a phone number we can reach you on." });
+    rpcResult = { ok: false, error: "anonymous" };
+    expect(await applyAsDriver(ana)).toMatchObject({ ok: false, detail: expect.stringMatching(/sign in or create an account/i) });
+  });
+
+  it("never reports a failed call as a success", async () => {
+    rpcError = { message: "permission denied for function apply_as_driver" };
+    expect(await applyAsDriver(ana)).toEqual({ ok: false, detail: "permission denied for function apply_as_driver" });
+  });
 });
 
 describe("driver data layer", () => {

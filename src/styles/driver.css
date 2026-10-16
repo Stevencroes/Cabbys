@@ -906,6 +906,58 @@
   text-decoration-color:var(--line);transition:color .25s var(--ease);}
 .drv-wayout:hover{color:var(--silver);}
 
+/* ── the application: steps, then the form ─────────────────────────────
+   Drivers apply for themselves now (Apply.tsx, Steps.tsx). The steps sit
+   at the top of every applicant screen; the form is the gate's own column,
+   left-aligned because it is a form to fill in, not a sentence to read. */
+.drv-steps{list-style:none;margin:0 0 26px;padding:0;display:flex;align-items:flex-start;width:100%;max-width:420px;}
+.drv-steps li{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;min-width:0;}
+/* the rail between two dots, drawn from each dot to the next */
+.drv-steps li + li::before{content:"";position:absolute;top:13px;right:calc(50% + 18px);left:calc(-50% + 18px);
+  height:1px;background:var(--line);}
+.drv-steps li.done + li::before,.drv-steps li.done + li.done::before{background:var(--silver-deep);}
+.drv-steps .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;
+  border:1px solid var(--line);color:var(--muted);font-size:var(--t-micro);font-weight:600;font-variant-numeric:tabular-nums;}
+.drv-steps .done .dot{border-color:var(--silver-deep);color:var(--ink);}
+/* --sheen: the system's one "this is the thing" fill, as the current
+   stop on the landing page's route */
+.drv-steps .now .dot{background:var(--sheen);color:var(--on-sheen);border-color:transparent;}
+.drv-steps .lbl{font-size:var(--t-micro);color:var(--muted);text-align:center;line-height:1.3;}
+.drv-steps .now .lbl{color:var(--ink);font-weight:600;}
+
+.drv-apply{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;}
+.drv-apply > p{margin-bottom:6px;}
+.ap-form{width:100%;margin-top:22px;text-align:left;display:flex;flex-direction:column;gap:18px;}
+.ap-form fieldset{border:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;min-width:0;}
+.ap-form legend{font-size:var(--t-meta);font-weight:600;color:var(--ink);padding:0;margin-bottom:12px;}
+.ap-row{display:grid;gap:12px;}
+.ap-row.two{grid-template-columns:1fr 1fr;}
+.ap-row.three{grid-template-columns:1fr 1fr 1fr;}
+.ap-f{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.ap-f label{font-size:var(--t-meta);color:var(--muted);font-weight:500;}
+.ap-f label .hint{font-weight:400;color:var(--muted);opacity:.85;}
+.ap-f input{width:100%;height:46px;border-radius:var(--d-r-sm);border:1px solid var(--line);background:var(--raised);
+  color:var(--ink);font-family:var(--sans);font-size:var(--d-text);padding:0 12px;}
+.ap-f input::placeholder{color:var(--placeholder);}
+.ap-f input:focus{outline:none;border-color:var(--silver-deep);}
+.ap-f input:focus-visible{outline:2px solid var(--silver);outline-offset:2px;}
+.ap-f input[aria-invalid="true"]{border-color:var(--alert-line);}
+.ap-form .ferr{margin:0;font-size:var(--t-meta);color:var(--alert-ink);}
+.ap-form .drv-refused{margin-top:0;}
+.ap-form .drv-cta{max-width:none;margin-top:0;}
+.ap-form .drv-cta + .drv-cta{margin-top:-8px;}
+/* .drv-gate p sets every paragraph in a gate to a 32ch centred sentence;
+   inside the form a paragraph is an error line or a note, and needs the
+   form's width */
+.drv-gate .ap-form p{max-width:none;}
+.drv-gate .ap-who{margin-top:20px;font-size:var(--t-meta);max-width:none;}
+.ap-who b{color:var(--ink);font-weight:500;}
+.drv-quiet.inline{display:inline;width:auto;padding:0;margin:0;min-height:0;}
+@media(max-width:380px){
+  .ap-row.three{grid-template-columns:1fr 1fr;}
+  .drv-steps .lbl{font-size:var(--t-micro);}
+}
+
 
 /* what the booking was told — facts, one per line, not a paragraph */
 .drv-told{border:1px solid var(--line);border-radius:var(--d-r-md);padding:14px 16px;margin-bottom:16px;}
