@@ -120,10 +120,9 @@ describe("Landing — only promises what is true", () => {
     expect(steps).not.toMatch(/\bcard\b/i);
     expect(steps).not.toMatch(/\bfee\b|late charge/i);
     expect(steps).toMatch(/pay nothing now/i);
-    expect(steps).toMatch(/in cash at the end, in US dollars or florins/);
+    expect(steps).toMatch(/cash at the end, in US dollars or florins/i);
     // the sign is an airport thing — a hotel pickup gets no sign
-    expect(steps).toMatch(/At the airport they wait in arrivals with your name on a sign/);
-    expect(steps).toMatch(/name, car and plate/);
+    expect(steps).toMatch(/At the airport, in arrivals with your name on a sign/);
   });
 
   // Six short answers at most (the owner: "keep it minimal", then "max
@@ -144,9 +143,10 @@ describe("Landing — only promises what is true", () => {
     expect(faq).toContain(`at least ${FREE_CANCEL_HOURS} hours ahead`);
     expect(faq).toContain(`At least ${durationLabel(MIN_NOTICE_HOURS * 60)} before pickup`);
 
+    // The driver's name, car and plate left the route when the owner asked
+    // for it to be kept minimal; the FAQ above still says it in full.
     const route = copyOf("#how-it-works");
     expect(route).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes`);
-    expect(route).toMatch(/name, car and plate/);
     expect(route).toContain(`${FREE_CANCEL_HOURS} hours before pickup`);
   });
 

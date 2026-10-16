@@ -1393,112 +1393,94 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .sec-head .sec{margin:14px 0 0;}
 
 /* ============ HOW IT WORKS + WHY — the route (Journey.tsx) ============ */
-/* The step strip and the pillars, merged into one route that runs down the
-   band, every stop's words beside its ring and all of them on the page at
-   once. It has been, in turn: a winding route with a card (heavy), a line
-   pinned for two and a half screens (too long), and a line across the band
-   whose one cell of words the scroll rewrote (no time to read — see the
-   head of Journey.tsx for what was measured). What is left of the scroll
-   mechanic is the car: it sits on the route level with the middle of the
-   screen, and the words never depend on it. No box anywhere: the first
-   version put the words in a card, and the owner found it heavy — the line
-   and the type carry the section alone.
+/* A still map of the trip beside the three reasons to book. Nothing in it
+   moves: every earlier version tied the words or a car to the scroll, and
+   the owner asked for the motion to go with everything still visible (see
+   the head of Journey.tsx). No box anywhere either — the first route put
+   its words in a card and the owner found it heavy; the dotted line, the
+   rings and the type carry the section alone.
 
-   --ground, not --deep. The strip and the pillars were two bands, deep
-   then ground; this is one, and the fleet below it is --deep, so ground
-   keeps the page alternating. The rings sit on the band colour so the
-   road ends AT each circle instead of running visibly through it.
-
-   --node is the height of the two end rows (Your trip, Enjoy your trip):
-   fixed, so the road can start and end on their dots by arithmetic rather
-   than by measuring them. --jcol is the gap from the rail to the words. */
-.journey-band{--jbg:var(--ground);--ring:58px;--node:28px;--jcol:clamp(18px,2.4vw,32px);
-  --jgap:clamp(36px,4.2vw,52px);background:var(--jbg);position:relative;
-  padding-block:clamp(60px,8vh,100px);}
-/* One gap between the parts — heading, route, button — so they read as
-   evenly spaced. */
-.jwrap{display:flex;flex-direction:column;gap:clamp(36px,4.6vw,56px);}
+   --ground, not --deep: the fleet below is --deep, so ground keeps the
+   page alternating. */
+.journey-band{background:var(--ground);position:relative;padding-block:clamp(60px,8vh,100px);}
+/* One gap between the parts — heading, then the map and reasons — so they
+   read as evenly spaced. */
+.jwrap{display:flex;flex-direction:column;gap:clamp(40px,5vw,64px);}
 .journey-band h2.sec{text-wrap:balance;}
+/* map | reasons, at every width above a phone. The map is a fixed 480px
+   here (see .jmap), so the reasons take the rest, and the two are centred on each other vertically: the reasons
+   are shorter, and top-aligned they left a hole under themselves. */
+.jgrid{display:grid;grid-template-columns:480px minmax(0,1fr);column-gap:clamp(56px,7vw,112px);align-items:center;}
 
-/* ---- the route ---- */
-.jroute{position:relative;display:flex;flex-direction:column;gap:calc(var(--jgap) * .6);}
-/* The road is dots in --soft — decoration, so the colour that fails as
-   text is the right one for it. It runs down the middle of the rail
-   column, from the start dot's centre to the arrival dot's. */
-.jroad{position:absolute;left:calc(var(--ring) / 2 - 1px);width:2px;
-  top:calc(var(--node) / 2);bottom:calc(var(--node) / 2);
-  background:radial-gradient(circle,var(--soft) 1px,transparent 1.4px) center top/2px 10px repeat-y;}
-.jtrail{position:absolute;left:50%;top:0;width:1.5px;margin-left:-.75px;height:var(--car,0px);
-  background:var(--silver);border-radius:2px;}
-/* No transition on top: the car is wherever the scroll puts it, every
-   frame, so it holds still on screen. Eased, it would trail the page and
-   swim — the lag the old dwell-and-drive car had, in miniature. */
-.jcar{position:absolute;left:50%;top:var(--car,0px);display:grid;place-items:center;width:28px;height:28px;
-  margin:-14px 0 0 -14px;border-radius:50%;background:var(--ink);color:var(--on-sheen);box-shadow:var(--shadow-hard);
-  transition:opacity var(--dur-press) var(--ease-ui);}
-/* at the end of the road the lit dot is the car — one mark, not two */
-.jroute.arrived .jcar{opacity:0;}
+/* ---- the map ----
+   A fixed 480 x 440, because the route is an SVG path drawn at exactly
+   that size (ROUTE in Journey.tsx): at 1:1 its dots stay round and evenly
+   spaced, where a path stretched to a fluid box gets dots of two lengths.
+   Every position below is a point on that path, in the same pixels. */
+.jmap{position:relative;width:480px;height:440px;}
+.jpath{position:absolute;inset:0;overflow:visible;}
+/* Dots in --soft, as the road always was — decoration, so the colour that
+   fails as text is the right one for it. A zero dash with round caps is a
+   2px dot every 8px. */
+.jpath path{fill:none;stroke:var(--soft);stroke-width:2;stroke-linecap:round;stroke-dasharray:0 8;}
 
-/* The two ends. Positioned so they paint over the road (it is absolute,
-   and an absolute box paints over in-flow ones that are not). */
-.jnode{position:relative;display:grid;grid-template-columns:var(--ring) minmax(0,1fr);column-gap:var(--jcol);
-  align-items:center;min-height:var(--node);}
-.jpin{justify-self:center;width:10px;height:10px;border-radius:50%;background:var(--silver-deep);}
+/* The two ends: a pin where the route starts, a dot where it ends, each
+   with its words to the right. Placed so the mark's centre is the path's
+   first and last point (16,12) and (16,420). */
+.jend-node{position:absolute;left:16px;display:flex;align-items:center;gap:14px;transform:translate(-5px,-50%);}
+.jstart{top:12px;}
+.jarrive{top:420px;transform:translate(-7px,-50%);}
+.jpin{flex:none;width:10px;height:10px;border-radius:50%;background:var(--silver-deep);}
 .jnode-label{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;
   color:var(--silver);line-height:var(--lh-tight);}
-.jdot{justify-self:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--silver-deep);background:var(--jbg);
-  transition:background-color var(--dur-slow-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui);}
-.jarrive em{font-family:var(--serif);font-size:var(--t-lead);font-style:italic;color:var(--silver);
-  transition:color var(--dur-slow-ui) var(--ease-ui);}
-.jroute.arrived .jdot{background:var(--ink);box-shadow:0 0 0 6px rgba(215,217,216,.08);}
-.jroute.arrived .jarrive em{color:var(--ink);}
+.jdot{flex:none;width:14px;height:14px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 6px rgba(215,217,216,.08);}
+.jarrive em{font-family:var(--serif);font-size:var(--t-lead);font-style:italic;color:var(--highlight);}
 
-/* ---- the stops ---- */
-.jstops{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--jgap);}
-/* ring | the step | why. The ring sits at the top of its row, level with
-   the step's count and title, which together are about its height. */
-.jstep{display:grid;grid-template-columns:var(--ring) minmax(0,1.15fr) minmax(0,1fr);column-gap:var(--jcol);
-  align-items:start;}
-/* positioned for the same reason as .jnode: over the road, so the car
-   passes under each ring as the ring comes up to it */
-.jstop{position:relative;display:grid;place-items:center;width:var(--ring);height:var(--ring);padding:0;
-  border-radius:50%;border:1px solid var(--line);background:var(--jbg);color:var(--silver);
-  transition:border-color var(--dur-ui) var(--ease-ui),background-color var(--dur-ui) var(--ease-ui),
-             color var(--dur-ui) var(--ease-ui),box-shadow var(--dur-slow-ui) var(--ease-ui),
-             transform var(--dur-ui) var(--ease-ui);}
-.jstop:hover{border-color:var(--silver-deep);background-color:var(--raised);color:var(--ink);}
-.jstop:active{transform:scale(.97);transition-duration:var(--dur-press);}
-/* a stop already driven past keeps a firmer ring — the trail says where
-   you have been, the ring says it too for anyone not following the line */
-.jstop.past{border-color:var(--silver-deep);color:var(--ink);}
-/* --sheen: the system's one "this is the thing" fill, the primary
-   button's material, so it reads as the current stop without a legend.
-   Only the ring changes: the words beside it are the same in every state. */
-.jstop.on{background:var(--sheen);color:var(--on-sheen);border-color:transparent;
-  box-shadow:0 0 0 7px rgba(215,217,216,.07),var(--shadow-hard);}
-/* radius restated: .jstop's own 50% ties with the global :focus-visible
-   6px on specificity and loses on order, so the first keyboard user to
-   reach a stop got a square ring round a square button */
-.jstop:focus-visible{outline:2px solid var(--highlight);outline-offset:4px;border-radius:50%;}
+/* ---- the stops ----
+   Each ring is centred on its point on the route (--x, --y) and its words
+   hang under it, centred, 196px wide — the widest that keeps two columns
+   of them clear of each other and of the rails. Two short lines at most
+   at that width, which is what keeps row one's words clear of row two's
+   rings. In the DOM they are 1-4; the map places 3 right and 4 left, the
+   snake turning back, and the number on each ring says the order. */
+.jstops{list-style:none;margin:0;padding:0;}
+.jstop{position:absolute;left:var(--x);top:var(--y);width:196px;margin:-32px 0 0 -98px;
+  display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;}
+.jstop-1{--x:136px;--y:96px;}
+.jstop-2{--x:344px;--y:96px;}
+.jstop-3{--x:344px;--y:272px;}
+.jstop-4{--x:136px;--y:272px;}
+/* --surface, opaque: the ring sits ON the route and hides the dots under
+   it, so the line visibly arrives at each stop rather than running
+   through it. Not a button any more — with nothing to bring into view,
+   a ring that took a tap would be a control that does nothing. */
+.jring{position:relative;flex:none;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;
+  border:1px solid var(--line);background:var(--surface);color:var(--highlight);}
+/* The step number, on the ring's shoulder. --raised and --ink rather than
+   --sheen: four silver badges would compete with Book your ride, the one
+   silver thing the section asks you to press. */
+.jnum{position:absolute;top:-3px;right:-5px;display:grid;place-items:center;min-width:24px;height:24px;padding:0 6px;
+  border-radius:var(--r-pill);border:1px solid var(--line);background:var(--raised);color:var(--ink);
+  font-size:var(--t-micro);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+.jlabel{display:flex;flex-direction:column;gap:4px;}
+.jstop h3{font-family:var(--serif);font-weight:500;font-size:var(--t-title);line-height:var(--lh-snug);
+  letter-spacing:var(--ls-display);color:var(--ink);margin:0;}
+.jline{font-size:var(--t-meta);line-height:var(--lh-body);color:var(--muted);}
 
-.jtext{min-width:0;padding-top:2px;}
-.jcount{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);
-  line-height:var(--lh-tight);}
-.jstep h3{font-family:var(--serif);font-weight:400;font-size:var(--t-display-sm);line-height:var(--lh-display);
-  letter-spacing:var(--ls-display);color:var(--ink);margin:8px 0 10px;}
-.jbody{font-size:var(--t-lead);line-height:var(--lh-body);color:var(--highlight);max-width:var(--measure-narrow);}
-/* the reason, set apart by a hairline rather than a box */
-.jwhy{margin-left:clamp(0px,2vw,28px);padding-left:clamp(22px,3vw,40px);border-left:1px solid var(--line);padding-top:2px;}
+/* ---- why ---- */
+.jwhy{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:28px;}
 .jwhy-kick{font-size:var(--t-micro);font-weight:600;letter-spacing:var(--ls-micro);text-transform:uppercase;color:var(--silver);
-  line-height:var(--lh-tight);margin:0 0 10px;}
-.jwhy p{font-size:var(--t-body);line-height:var(--lh-body);color:var(--muted);max-width:40ch;}
-.jwhy strong{display:block;color:var(--ink);font-weight:600;font-size:var(--t-lead);margin-bottom:4px;}
+  line-height:var(--lh-tight);}
+.jreasons{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:26px;}
+.jreasons li{display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:18px;align-items:start;}
+/* a filled disc, not a ring: the rings are the stops on the map, and a
+   reason drawn the same way read as a fifth stop that had wandered off */
+.jreason-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--raised);color:var(--highlight);}
+.jreasons strong{display:block;font-weight:600;font-size:var(--t-lead);line-height:var(--lh-snug);color:var(--ink);margin:2px 0 4px;}
+.jreason-body{display:block;font-size:var(--t-body);line-height:var(--lh-body);color:var(--muted);max-width:42ch;}
 
-/* ---- the end of the route is the one place the section asks for anything ----
-   Lined up under the words, not the rail, and pulled up to the arrival
-   row: at the band's full gap it read as belonging to the next section. */
-.jend{padding-left:calc(var(--ring) + var(--jcol));margin-top:calc(-1 * clamp(12px,2.4vw,30px));}
-.jbook{display:inline-flex;align-items:center;gap:10px;min-height:var(--tap);padding:0 22px 0 26px;
+/* ---- the one place the section asks for anything ---- */
+.jbook{display:inline-flex;align-items:center;gap:10px;min-height:var(--tap);margin-top:6px;padding:0 22px 0 26px;
   border-radius:var(--r-pill);background:var(--sheen);color:var(--on-sheen);font-size:var(--t-meta);font-weight:600;letter-spacing:.02em;
   transition:transform var(--dur-ui) var(--ease-ui),box-shadow var(--dur-ui) var(--ease-ui);}
 .jbook:hover{transform:scale(1.025);box-shadow:var(--shadow-hard);}
@@ -1508,26 +1490,40 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 .jbook svg{transition:transform var(--dur-ui) var(--ease-ui);}
 .jbook:hover svg{transform:translateX(3px);}
 
-/* Narrower: the reason drops under its step, inside the same column, so
-   the rail stays one straight line and nothing is beside it but words. */
-@media(max-width:900px){
-  .journey-band{--ring:50px;}
-  .jstep{grid-template-columns:var(--ring) minmax(0,1fr);}
-  .jwhy{grid-column:2;margin:18px 0 0;padding:16px 0 0;border-left:none;border-top:1px solid var(--line);}
+/* Under 880px a 480px map and a readable column of reasons no longer fit
+   side by side. Rather than stack the map over the reasons — which at
+   1000px left the map alone on the left of an empty band, the reasons a
+   screen further down — the map straightens into a line down the page,
+   rings on the left and words beside them, and that narrower route keeps
+   the reasons beside it. Only on a phone (below) do the two stack. The
+   SVG goes; the line is a column of the same dots, drawn by the map itself
+   from the start pin's centre to the end dot's. */
+@media(max-width:879px){
+  .jgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:48px;}
+  .jmap{width:auto;height:auto;display:flex;flex-direction:column;gap:28px;}
+  .jpath{display:none;}
+  .jmap::before{content:"";position:absolute;left:23px;top:12px;bottom:12px;width:2px;
+    background:radial-gradient(circle,var(--soft) 1px,transparent 1.4px) center top/2px 8px repeat-y;}
+  .jend-node{position:relative;left:auto;top:auto;transform:none;min-height:24px;padding-left:19px;}
+  .jarrive{padding-left:17px;transform:none;}
+  .jstops{display:flex;flex-direction:column;gap:28px;}
+  .jstop{position:relative;left:auto;top:auto;width:auto;margin:0;flex-direction:row;align-items:flex-start;
+    gap:18px;text-align:left;}
+  .jring{width:48px;height:48px;}
+  .jring svg{width:20px;height:20px;}
+  .jnum{top:-6px;right:-8px;}
+  .jlabel{padding-top:3px;}
 }
-/* A phone. The ring is the tap target, so it stops at --tap and no lower.
-   Everything else on the rail shrinks with it; the words keep their sizes,
-   which are the floors already. */
-@media(max-width:560px){
-  .journey-band{--ring:var(--tap);--jcol:16px;--jgap:40px;}
-  .jwrap{gap:30px;}
-  .jstop svg{width:20px;height:20px;}
-  .jcar{width:24px;height:24px;margin:-12px 0 0 -12px;}
-  .jend{margin-top:-8px;}
+/* A phone: the reasons go under the route, and the button takes the width
+   a thumb expects. */
+@media(max-width:600px){
+  .jgrid{grid-template-columns:minmax(0,1fr);row-gap:48px;}
   .jbook{width:100%;justify-content:center;}
 }
 @media(prefers-reduced-motion:reduce){
-  .jstop,.jdot,.jarrive em,.jcar,.jbook,.jbook svg{transition:none;}
+  .jbook,.jbook svg{transition:none;}
+  .jbook:hover{transform:none;}
+  .jbook:hover svg{transform:none;}
 }
 
 /* ============ §11 — VEHICLE CARDS ============ */

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import Journey, { JOURNEY_ID, readAt } from "./Journey";
+import Journey, { JOURNEY_ID, REASONS, STOPS } from "./Journey";
 import Landing from "../pages/Landing";
 import { BookingProvider } from "../booking/BookingContext";
 import { AIRPORT_FREE_WAIT_MINUTES, FREE_CANCEL_HOURS } from "../lib/policy";
@@ -33,130 +33,60 @@ vi.mock("../lib/supabase", () => {
 const mount = () => render(<MemoryRouter><Journey /></MemoryRouter>);
 const text = () => (document.getElementById(JOURNEY_ID)!.textContent ?? "").replace(/\s+/g, " ");
 
-describe("readAt — where the car is, from where things are on screen", () => {
-  // a road from 100px to 900px down the screen, rings at 150/350/550/750
-  const road = { top: 100, height: 800 };
-  const rings = [150, 350, 550, 750];
-
-  it("waits at the start until the route comes up to the reading line", () => {
-    expect(readAt(road, rings, 40)).toEqual({ car: 0, active: -1, arrived: false });
-  });
-
-  it("is level with the reading line in between, lighting the last ring it has passed", () => {
-    expect(readAt(road, rings, 400)).toEqual({ car: 300, active: 1, arrived: false });
-    expect(readAt(road, rings, 750)).toEqual({ car: 650, active: 3, arrived: false });
-  });
-
-  // A ring brought to the line by its own button lands on it to within
-  // subpixel rounding; it must count as reached, not stay one short.
-  it("counts a ring sitting on the line as reached", () => {
-    expect(readAt(road, rings, 349.7).active).toBe(1);
-  });
-
-  it("parks at the arrival dot once the road has passed the line", () => {
-    expect(readAt(road, rings, 2000)).toEqual({ car: 800, active: 3, arrived: true });
-  });
-
-  it("never reads a road with no length as arrived", () => {
-    expect(readAt({ top: 0, height: 0 }, [], 400).arrived).toBe(false);
-  });
-});
+const startBooking = vi.fn();
+// partial: Landing (below) reads the module's other exports
+vi.mock("../booking/useStartBooking", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../booking/useStartBooking")>()),
+  useStartBooking: () => startBooking,
+}));
 
 describe("the route", () => {
-  it("is an ordered list of four stops, none current before the route is reached", () => {
+  it("is an ordered list of four stops, numbered in order", () => {
     mount();
-    const list = screen.getByRole("list", { name: /step by step/i });
-    expect(list.tagName).toBe("OL");
-    const stops = screen.getAllByRole("button").filter((b) => b.classList.contains("jstop"));
-    expect(stops.map((s) => s.getAttribute("aria-label"))).toEqual(["Book", "Get confirmed", "Meet your driver", "Ride and pay"]);
-    expect(stops.filter((s) => s.hasAttribute("aria-current"))).toEqual([]);
+    const list = screen.getByRole("list", { name: /how it works, step by step/i });
+    const stops = within(list).getAllByRole("listitem");
+    expect(stops).toHaveLength(4);
+    // the map draws stop 4 left of stop 3; the DOM, and the number on each
+    // ring, keep the order a reader follows
+    expect(stops.map((li) => li.querySelector(".jnum")?.textContent)).toEqual(["1", "2", "3", "4"]);
+    expect(stops.map((li) => within(li).getByRole("heading").textContent))
+      .toEqual(["Book online", "Get confirmed", "Meet your driver", "Ride and pay"]);
   });
 
-  // The owner's complaint: the words changed or vanished under a reader
-  // who had scrolled a few pixels, because four stops shared one cell and
-  // the scroll chose which showed. Every stop's words are on the page now,
-  // and nothing about them depends on where the car is.
-  it("shows every stop's words at once, with nothing hidden or faded", () => {
+  // The owner: remove the motion, keep everything visible. These are the
+  // ways the earlier versions moved or hid words, each pinned shut.
+  it("has nothing that moves with the scroll and nothing that hides a word", () => {
+    const listen = vi.spyOn(window, "addEventListener");
+    const { container } = mount();
+    expect(listen.mock.calls.map(([type]) => type)).not.toContain("scroll");
+    listen.mockRestore();
+    expect(container.querySelector(".jcar, .jtrail, .jroad")).toBeNull();
+    expect(container.querySelector("[aria-current], .on, .past")).toBeNull();
+    for (const s of STOPS) expect(screen.getByText(s.line)).toBeVisible();
+    for (const r of REASONS) expect(screen.getByText(r.body)).toBeVisible();
+  });
+
+  // A ring that took a tap would be a control with nothing left to do.
+  it("draws the stops as marks, not buttons, so the only control is Book your ride", () => {
     mount();
-    const titles = screen.getAllByRole("heading", { level: 3 });
-    expect(titles.map((h) => h.textContent)).toEqual(["Book", "Get confirmed", "Meet your driver", "Ride and pay"]);
-    for (const h of titles) {
-      const step = h.closest("li")!;
-      expect(step.closest("[aria-hidden='true'],[hidden]")).toBeNull();
-      for (const el of step.querySelectorAll(".jtext, .jwhy")) expect(el.className).toMatch(/^(jtext|jwhy)$/);
-    }
+    const buttons = screen.getAllByRole("button");
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /book your ride/i }));
+    expect(startBooking).toHaveBeenCalledOnce();
   });
 
-  it("lights the ring the reading line has reached, and leaves the words alone", () => {
-    // jsdom has no layout: place the road and the rings by hand. The
-    // screen is 768px, so the reading line is at 384.
-    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-      const box = (top: number, height: number) => ({ top, height, bottom: top + height, left: 0, right: 0, width: 0, x: 0, y: top, toJSON() {} });
-      if (this.classList.contains("jroad")) return box(100, 800) as DOMRect;
-      const i = ["Book", "Get confirmed", "Meet your driver", "Ride and pay"].indexOf(this.getAttribute("aria-label") ?? "");
-      if (i >= 0) return box(150 + i * 200 - 29, 58) as DOMRect;
-      return box(0, 0) as DOMRect;
-    });
-    try {
-      mount();
-      const before = text();
-      expect(screen.getByRole("button", { name: "Get confirmed" })).toHaveAttribute("aria-current", "step");
-      expect(screen.getByRole("button", { name: "Book" })).toHaveClass("past");
-      expect(screen.getByRole("button", { name: "Meet your driver" })).not.toHaveClass("on");
-      expect((document.querySelector(".jroad") as HTMLElement).style.getPropertyValue("--car")).toBe("284.0px");
-      expect(text()).toBe(before);
-    } finally {
-      spy.mockRestore();
-    }
-  });
-
-  // It used to sit in the last of four faded panels and was taken out of
-  // the tab order until that panel showed.
-  it("keeps the booking button in the tab order all the time", () => {
+  it("keeps it short: one line a stop, three reasons", () => {
     mount();
-    expect(screen.getByRole("button", { name: /book your ride/i })).not.toHaveAttribute("tabindex");
+    expect(REASONS).toHaveLength(3);
+    for (const s of STOPS) expect(s.line.length).toBeLessThanOrEqual(60);
   });
 
-  it("brings a stop up to the reading line when it is clicked", () => {
-    mount();
-    const calls: ScrollToOptions[] = [];
-    const orig = window.scrollTo;
-    window.scrollTo = ((o: ScrollToOptions) => { calls.push(o); }) as typeof window.scrollTo;
-    fireEvent.click(screen.getByRole("button", { name: "Meet your driver" }));
-    window.scrollTo = orig;
-    expect(calls).toHaveLength(1);
-    expect(calls[0].behavior).toBe("smooth");
-  });
-
-  it("jumps rather than glides for a reader who asked for less motion", () => {
-    const mm = window.matchMedia;
-    window.matchMedia = ((q: string) => ({ matches: /reduce/.test(q), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
-    try {
-      mount();
-      const calls: ScrollToOptions[] = [];
-      const orig = window.scrollTo;
-      window.scrollTo = ((o: ScrollToOptions) => { calls.push(o); }) as typeof window.scrollTo;
-      fireEvent.click(screen.getByRole("button", { name: "Book" }));
-      window.scrollTo = orig;
-      expect(calls[0].behavior).toBe("auto");
-    } finally {
-      window.matchMedia = mm;
-    }
-  });
-
-  // The promises the step strip and the pillars were pinned to are pinned
-  // here too, read from the same constants.
-  it("carries every step and every reason, from the constants that decide them", () => {
+  it("carries the reasons from the constants that decide them", () => {
     mount();
     const t = text();
-    expect(t).toMatch(/pay nothing now/i);
-    expect(t).toMatch(/in cash at the end, in US dollars or florins/);
-    expect(t).toMatch(/At the airport they wait in arrivals with your name on a sign/);
-    expect(t).toMatch(/name, car and plate/);
-    expect(t).toContain(`wait up to ${AIRPORT_FREE_WAIT_MINUTES} minutes after you land, free`);
-    expect(t).toContain(`up to ${FREE_CANCEL_HOURS} hours before pickup`);
-    expect(t).toMatch(/Just your group/);
-    expect(t).not.toMatch(/\bcard\b|\bfee\b|photo|\bat the gate\b|\b(he|him|his)\b/i);
+    expect(t).toContain(`${FREE_CANCEL_HOURS} hours before pickup`);
+    expect(t).toContain(`${AIRPORT_FREE_WAIT_MINUTES} minutes after you land, free`);
+    expect(t).toMatch(/Fixed when you book/);
   });
 });
 
