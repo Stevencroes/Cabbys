@@ -1,4 +1,4 @@
-// How it works + Why Cabby's, as one route you scroll along.
+// How it works + Why Cabby's, as one route you read down.
 //
 // The page said the same thing twice. A step strip (Steps.tsx, now gone)
 // walked through what happens after you book; the pillars (HowItWorks.tsx,
@@ -9,24 +9,41 @@
 // cancellation once it is confirmed, the flight being followed when they
 // land, privacy on the ride itself. Eight blocks of copy become four stops.
 //
-// The first version was a winding route with a card beside it, worked by
-// clicking. The owner found the card heavy and the route borrowed, so this
-// one is a straight line that the page's own scroll drives: the car moves
-// as the section passes up the screen, and the words under the line change
-// as it reaches each stop. Nothing is hijacked — the scroll is never
-// slowed, snapped or redirected.
+// WHY IT IS A LIST YOU READ, NOT A SLIDESHOW THE SCROLL PLAYS. The version
+// before this was a straight line across the band with one stop's words
+// under it at a time, all four sharing one grid cell, and the scroll chose
+// which. The owner: "not giving me chance to read". Measured at 390x844,
+// it was three faults stacked:
+//   - the whole journey was keyed to the line crossing 65% of the screen,
+//     so on a phone two of the four stops got ~120px of scroll each — one
+//     flick of a thumb — and a sentence half-read was swapped for the next;
+//   - stop 1 was "showing" while its words were still below the fold, so
+//     by the time the words were where an eye could rest on them the car
+//     had reached stop 3 or 4, and stop 4 was all any later scroll showed;
+//   - the car drove at its own pace behind the scroll (a leg, then a dwell
+//     per stop), so the words also changed AFTER the reader stopped
+//     scrolling — the text moved under someone who was holding still.
+// Tuning the constants could only trade one of those for another, because
+// the fault was the mechanic: one cell of words, rewritten by scroll. So
+// every stop's words are now on the page at once, in order, and never
+// change. The reader's own scroll is the pace — they can stop on a step for
+// as long as they like, and go back to one without anything re-animating.
 //
-// It used to pin: the section held still for two and a half screens of
-// scroll while the car drove. The owner found that too long — a whole
-// screen of one section, with nothing of the next in sight — so it is a
-// band of its own height now, a little taller than the fleet's, and the
-// journey runs while the line crosses the middle of the screen.
+// The car stays, demoted from the thing that decides what you may read to a
+// marker of where you are. It sits where the middle of the screen crosses
+// the route — so on screen it holds still while the stops pass up under it
+// — and the ring it has reached lights. Nothing it does touches the words.
+// The rings are still buttons: one brings its step up to the car, which on
+// a phone (where the route is a screen and a half) is a real shortcut.
+//
+// It runs DOWN, at every width. Across the band, the car's place along a
+// horizontal line could only mean "how far the page has scrolled", which is
+// not where anyone reading four columns is; down the page, scroll position
+// and reading position are the same thing, so the car is honest.
 //
 // Every line is one the old two sections already stood behind, read from
 // the same constants (src/lib/policy.ts), so Landing.test's promise checks
-// apply unchanged. All four panels stay in the DOM in order, only faded,
-// so a screen reader reading down the page gets the whole sequence without
-// having to scroll anything, and a crawler sees all of it.
+// apply unchanged.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { SplitHeading } from "./motion";
 import { useStartBooking } from "../booking/useStartBooking";
@@ -89,92 +106,29 @@ const STOPS: Stop[] = [
 
 const N = STOPS.length;
 
-/** Where each stop sits along the line, 0 (the start) to 1 (arrival).
-    Evenly spaced, with the same gap before the first stop and after the
-    last, so the car has a leg to drive at each end. */
-const AT = STOPS.map((_, i) => (i + 1) / (N + 1));
-
-/** The places the car can stand: 0 is the start, 1..N the stops, N + 1
-    the arrival dot. */
-const LAST = N + 1;
-const posOf = (node: number) => node / LAST;
-
-/** Of the scroll, the sliver at each end that belongs to the start and to
-    the arrival; the stops share the rest evenly. */
-const EDGE = 0.04;
-
-/** Which place the scroll is asking for. The car does not go there
-    directly — see drive() — it is only told where it should be heading. */
-export function nodeAt(p: number): number {
-  if (p < EDGE) return 0;
-  if (p >= 1 - EDGE) return LAST;
-  return 1 + Math.min(N - 1, Math.floor(((p - EDGE) / (1 - 2 * EDGE)) * N));
-}
-
-/* The pace. The car used to sit wherever the scroll put it, so its speed
-   was the reader's scroll speed: one flick of a thumb and four stops went
-   by, each sentence on screen for a frame or two. The owner asked for time
-   to read. So the scroll now only says where the car should be heading,
-   and the car drives there one leg at a time, at its own speed, and stops
-   at every stop on the way for long enough to read what it says. A fast
-   scroll does not skip a stop; the car catches up a beat behind. */
-const LEG_MS = 600;
-const DWELL_MS = 1100;
-
-export type Drive = {
-  /** the place the car is standing at, or last left */
-  at: number;
-  leg: { from: number; to: number; t0: number } | null;
-  /** it may not set off again before this */
-  holdUntil: number;
-  /** a stop someone clicked: driven to straight, without a stop on the way */
-  rush: number | null;
-};
-
-export const parked = (at = 0): Drive => ({ at, leg: null, holdUntil: 0, rush: null });
+/** Where on the screen the car sits, as a share of its height: the middle,
+    where an eye reading down a page rests. The car is placed on the route
+    wherever this line crosses it, so it is always level with the step being
+    read, and a ring lights as its step comes up to it. */
+export const READ = 0.5;
 
 /**
- * One frame of the car, pure so the pace can be tested without a browser.
- * Returns the new state, where the car is along the line (0..1), the place
- * it pulled up at THIS frame if any, and whether it has nothing left to do.
+ * Where the car is and which ring it has reached, from where things are on
+ * screen. Pure, so it can be tested without a browser.
+ *
+ * `road` is the route's box (viewport coordinates), `rings` each stop's
+ * ring centre in the same coordinates, `line` the reading line in px. The
+ * car is the line's place along the road, held at the road's two ends; a
+ * ring counts as reached once its centre is at or above the line. `active`
+ * is -1 until the first one is — the car is still at "Your trip".
  */
-export function drive(s: Drive, want: number, now: number):
-  { s: Drive; car: number; reached: number | null; idle: boolean } {
-  let next = s;
-  let reached: number | null = null;
-  if (next.leg) {
-    const { from, to, t0 } = next.leg;
-    const t = Math.min(1, (now - t0) / LEG_MS);
-    if (t < 1) {
-      const e = t * t * (3 - 2 * t);
-      return { s: next, car: posOf(from) + (posOf(to) - posOf(from)) * e, reached: null, idle: false };
-    }
-    reached = to;
-    const rush = next.rush === to ? null : next.rush;
-    // A stop is read; the start and the arrival dot have nothing to read.
-    const isStop = to >= 1 && to <= N;
-    next = { at: to, leg: null, rush, holdUntil: isStop && rush === null ? now + DWELL_MS : now };
-  }
-  const goal = next.rush ?? want;
-  if (goal === next.at) return { s: next, car: posOf(next.at), reached, idle: true };
-  if (now < next.holdUntil) return { s: next, car: posOf(next.at), reached, idle: false };
-  const to = next.at + Math.sign(goal - next.at);
-  return { s: { ...next, leg: { from: next.at, to, t0: now } }, car: posOf(next.at), reached, idle: false };
-}
-
-/** Where the line's middle is, as a share of the screen's height, when the
-    journey starts and when it ends. It starts low, as the line comes up
-    into view, and ends high, with the words under it still on screen and
-    the next section's heading arriving below: that is the stretch where
-    the whole band can be seen, and the car spends all of it driving. */
-const FROM = 0.85;
-const TO = 0.2;
-
-/** The line's place on screen, to progress along the journey, 0..1. */
-export function progressAt(rect: { top: number; height: number }, vh: number): number {
-  if (!vh) return 0;
-  const y = rect.top + rect.height / 2;
-  return Math.min(1, Math.max(0, (FROM * vh - y) / ((FROM - TO) * vh)));
+export function readAt(road: { top: number; height: number }, rings: number[], line: number):
+  { car: number; active: number; arrived: boolean } {
+  const car = Math.min(road.height, Math.max(0, line - road.top));
+  // half a pixel of give: a ring scrolled to the line by its own button
+  // lands on it to within subpixel rounding, and must count as reached
+  const active = rings.filter((y) => y <= line + 0.5).length - 1;
+  return { car, active, arrived: road.height > 0 && car >= road.height - 0.5 };
 }
 
 const reducedMotion = () =>
@@ -193,80 +147,69 @@ function Mark({ children, size = 24 }: { children: ReactNode; size?: number }) {
 
 export default function Journey() {
   const startBooking = useStartBooking();
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(-1);
   const [arrived, setArrived] = useState(false);
 
-  const line = useRef<HTMLDivElement>(null);
-  const car = useRef<Drive>(parked());
-  const want = useRef(0);
-  const kick = useRef<() => void>(() => {});
+  const road = useRef<HTMLSpanElement>(null);
+  const rings = useRef<(HTMLButtonElement | null)[]>([]);
 
-  /* The car and the trail are written straight to a custom property each
-     frame rather than through React: re-rendering the whole section sixty
-     times a second is the version that stutters on a mid-range phone.
-     React only hears about it when the car pulls up at a stop. */
+  /* The car is written straight to a custom property rather than through
+     React: it moves on every scroll frame, and re-rendering the section
+     sixty times a second is the version that stutters on a mid-range phone.
+     React only hears about it when a ring is reached — four times down the
+     page — and setState with an unchanged value does not re-render.
+
+     There is no animation of its own here any more. The old car drove legs
+     and dwelt at stops on a clock, which is what changed the words after
+     the reader had stopped scrolling; this one is wherever the scroll puts
+     it, so it never moves unless the reader does — which is also why it
+     needs no reduced-motion branch: on screen it holds still. */
   useEffect(() => {
     let raf = 0;
-    let first = true;
-    const draw = (c: number) => line.current?.style.setProperty("--car", c.toFixed(4));
-    const show = (node: number) => {
-      setActive(Math.min(N - 1, Math.max(0, node - 1)));
-      setArrived(node === LAST);
-    };
-    const frame = (now: number) => {
+    const measure = () => {
       raf = 0;
-      const r = drive(car.current, want.current, now);
-      car.current = r.s;
-      draw(r.car);
-      if (r.reached !== null) show(r.reached);
-      if (!r.idle) raf = requestAnimationFrame(frame);
-    };
-    const read = () => {
-      const el = line.current;
+      const el = road.current;
       if (!el) return;
       const box = el.getBoundingClientRect();
       // Not laid out (hidden, or a test DOM with no layout): a zero box
-      // reads as "scrolled past the top" and would open on the last stop.
+      // would read as "already arrived" and light the end of the road.
       if (!box.height) return;
-      want.current = nodeAt(progressAt(box, window.innerHeight));
-      // A page opened, or reloaded, part-way down starts with the car
-      // already where the scroll is — not a drive in from the start — and
-      // a reader who asked for less motion never sees it drive at all.
-      if (first || reducedMotion()) {
-        first = false;
-        car.current = parked(want.current);
-        draw(posOf(want.current));
-        show(want.current);
-        return;
-      }
-      if (!raf) raf = requestAnimationFrame(frame);
+      const centres = rings.current.map((r) => {
+        const b = r?.getBoundingClientRect();
+        return b ? b.top + b.height / 2 : Infinity;
+      });
+      const r = readAt(box, centres, READ * window.innerHeight);
+      el.style.setProperty("--car", `${r.car.toFixed(1)}px`);
+      setActive(r.active);
+      setArrived(r.arrived);
     };
-    kick.current = read;
-    read();
-    window.addEventListener("scroll", read, { passive: true });
-    window.addEventListener("resize", read);
+    const ask = () => { if (!raf) raf = requestAnimationFrame(measure); };
+    measure();
+    window.addEventListener("scroll", ask, { passive: true });
+    window.addEventListener("resize", ask);
+    // The road's length changes without a resize event when the web fonts
+    // land and the words rewrap; the car would sit off its line until the
+    // next scroll.
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(ask) : null;
+    if (road.current) ro?.observe(road.current);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", read);
-      window.removeEventListener("resize", read);
+      window.removeEventListener("scroll", ask);
+      window.removeEventListener("resize", ask);
+      ro?.disconnect();
     };
   }, []);
 
-  /** A stop is still a button: it scrolls the page to where that stop is
-      read, and the car drives straight there — no pause at the stops in
-      between, which the reader has just said they want to skip. */
+  /** A ring brings its step up to the car: the page scrolls until that ring
+      is on the reading line, and the car — which is wherever the line is —
+      arrives with it. The words were already on the page; this only saves
+      a phone reader the thumbing to get to them. */
   const goTo = (i: number) => {
-    const el = line.current;
-    if (!el) return;
-    car.current = { ...car.current, rush: i + 1, holdUntil: 0 };
-    // the middle of the stop's stretch of scroll
-    const p = EDGE + ((i + 0.5) / N) * (1 - 2 * EDGE);
-    const vh = window.innerHeight;
-    const y = (FROM - p * (FROM - TO)) * vh;
-    const r = el.getBoundingClientRect();
-    const top = window.scrollY + (r.top + r.height / 2) - y;
+    const ring = rings.current[i];
+    if (!ring) return;
+    const b = ring.getBoundingClientRect();
+    const top = window.scrollY + b.top + b.height / 2 - READ * window.innerHeight;
     window.scrollTo({ top, behavior: reducedMotion() ? "auto" : "smooth" });
-    kick.current();
   };
 
   return (
@@ -278,61 +221,46 @@ export default function Journey() {
             parts={[{ text: "From booking to drop-off, " }, { text: "no surprises.", em: true }]} />
         </div>
 
-        {/* The line. --car is the car's place along it, 0..1; the trail
-            is the line's own width times the same number, so the two can
-            never disagree. */}
-        <div className={`jline${arrived ? " arrived" : ""}`} ref={line} style={{ ["--car" as string]: "0" }}>
-          <span className="jstart" aria-hidden="true">Your trip</span>
-          <div className="jroad">
-            <span className="jtrail" aria-hidden="true" />
-            {/* Before the stops in the DOM, so it passes UNDER the rings
-                and parks out of sight inside the one it has reached. */}
-            <span className="jcar" aria-hidden="true">
+        <div className={`jroute${arrived ? " arrived" : ""}`}>
+          {/* The road, first in the DOM so the rings paint over it: the car
+              passes UNDER each ring as the ring comes up to it, and parks
+              out of sight inside the arrival dot. --car is its place along
+              the road in px; the trail is the same number, so the two can
+              never disagree. */}
+          <span className="jroad" ref={road} aria-hidden="true">
+            <span className="jtrail" />
+            {/* Drawn head-on, coming down the road at the reader. The side
+                view the across-the-band line used, turned to run down,
+                read as a phone battery. */}
+            <span className="jcar">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="6.5" width="18" height="11" rx="3.4" />
-                <path d="M14.6 7v10M17.6 8.6v6.8" />
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 16.5V12l1.8-4.6A2 2 0 0 1 8.7 6h6.6a2 2 0 0 1 1.9 1.4L19 12v4.5" />
+                <path d="M3.8 12h16.4v4.5H3.8zM6 16.5V19M18 16.5V19" />
               </svg>
             </span>
-            <ol className="jstops" aria-label="How it works, step by step">
-              {STOPS.map((s, i) => (
-                <li key={s.key} style={{ left: `${AT[i] * 100}%` }}>
-                  <button type="button" className={`jstop${i === active ? " on" : ""}${i < active ? " past" : ""}`}
-                    aria-current={i === active ? "step" : undefined} onClick={() => goTo(i)}>
-                    <span className="jring"><Mark>{s.icon}</Mark></span>
-                    <span className="jlabel">{s.title}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <span className={`jarrive${arrived ? " on" : ""}`} aria-hidden="true">
-            <span className="jdot" />
-            <em>Enjoy your trip.</em>
           </span>
-        </div>
 
-        {/* The words, with no box round them. All four share one grid
-            cell so the block never changes height under the reader; the
-            ones not showing are faded, not removed, and lean the way
-            the car is going — the last stop's words leave upward, the
-            next stop's arrive from below. */}
-        <div className="jpanels">
-          {STOPS.map((s, i) => {
-            const on = i === active;
-            const last = i === N - 1;
-            return (
-              <div key={s.key} className={`jpanel${on ? " on" : i < active ? " gone" : ""}`}>
-                <div className="jstep">
+          <div className="jnode jstart" aria-hidden="true">
+            <span className="jpin" />
+            <span className="jnode-label">Your trip</span>
+          </div>
+
+          <ol className="jstops" aria-label="How it works, step by step">
+            {STOPS.map((s, i) => (
+              <li key={s.key} className="jstep">
+                <button type="button" ref={(el) => { rings.current[i] = el; }}
+                  className={`jstop${i === active ? " on" : ""}${i < active ? " past" : ""}`}
+                  aria-label={s.title} aria-current={i === active ? "step" : undefined}
+                  onClick={() => goTo(i)}>
+                  <Mark>{s.icon}</Mark>
+                </button>
+                {/* The words carry no state at all — no class, no fade —
+                    so nothing the car does can move them under a reader. */}
+                <div className="jtext">
                   <div className="jcount">Step {i + 1} of {N}</div>
                   <h3>{s.title}</h3>
                   <p className="jbody">{s.body}</p>
-                  {last && (
-                    <button type="button" className="jbook" tabIndex={on ? 0 : -1} onClick={() => startBooking()}>
-                      Book your ride
-                      <Mark size={18}><path d="M5 12h13M13 6.5 18.5 12 13 17.5" /></Mark>
-                    </button>
-                  )}
                 </div>
                 {/* No icon: the reason is words beside the step, and a
                     second ring here competed with the stops on the line. */}
@@ -340,9 +268,25 @@ export default function Journey() {
                   <div className="jwhy-kick">Why Cabby's</div>
                   <p><strong>{s.why.title}</strong> {s.why.body}</p>
                 </div>
-              </div>
-            );
-          })}
+              </li>
+            ))}
+          </ol>
+
+          <div className="jnode jarrive" aria-hidden="true">
+            <span className="jdot" />
+            <em>Enjoy your trip.</em>
+          </div>
+        </div>
+
+        {/* Outside the route so the road can end on the arrival dot without
+            measuring anything. Always in the tab order now: it used to sit
+            in the last of four faded panels and had to be taken out of the
+            tab order until that panel showed. */}
+        <div className="jend">
+          <button type="button" className="jbook" onClick={() => startBooking()}>
+            Book your ride
+            <Mark size={18}><path d="M5 12h13M13 6.5 18.5 12 13 17.5" /></Mark>
+          </button>
         </div>
       </div>
     </section>
