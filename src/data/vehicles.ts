@@ -64,3 +64,15 @@ export const MAX_BAGS = Math.max(...VEHICLES.map((v) => v.bags));
 export function fitsParty(v: Vehicle, passengers: number, luggage: number): boolean {
   return passengers <= v.pax && luggage <= v.bags;
 }
+
+/** The guest-facing name for a stored vehicle value, for the admin desk and
+    the driver portal. Rides store the id ("transit"), and those screens
+    passed it straight through, so staff read "transit" where the guest's
+    own receipt said "Passenger Van". An id this list knows becomes its
+    name; anything else is shown exactly as stored, because rows written
+    before the ids settled hold free text that is already a label. (Not the
+    driver portal's vehicleLabel, which names a driver's own car.) */
+export function vehicleDisplayName(stored: string | null): string | null {
+  if (!stored) return null;
+  return VEHICLES.find((v) => v.id === stored.trim().toLowerCase())?.name ?? stored;
+}

@@ -9,6 +9,7 @@
 import { supabase } from "../../lib/supabase";
 import { driverPayoutUsd, rowSeatsUsd } from "../../lib/quote";
 import { arubaInstant } from "../../lib/datetime";
+import { vehicleDisplayName } from "../../data/vehicles";
 import {
   DOC_MAX_BYTES, documentPath,
   type DocumentRecord, type DocumentStatus,
@@ -124,7 +125,8 @@ function toOpen(r: Row): OpenJob {
     scheduledAt: effectiveScheduledAt(r),
     pickup: str(r.pickup_location),
     dropoff: str(r.dropoff_location),
-    vehicle: nStr(r.vehicle_class) ?? nStr(r.vehicle_type),
+    // the guest-facing name, not the stored id (see vehicleDisplayName)
+    vehicle: vehicleDisplayName(nStr(r.vehicle_class) ?? nStr(r.vehicle_type)),
     passengers: nNum(r.passengers_count),
     luggage: nNum(r.luggage_count),
     childSeats: nNum(r.child_seats),
