@@ -144,27 +144,14 @@ h2.sec em{font-style:italic;}
 .hero .quote{animation-delay:400ms;}
 .hero .hero-trust > *{animation-delay:calc(560ms + var(--i,0) * 70ms);}
 
-/* ---- the photograph is alive, not moving ---------------------------
-   One background move, not two: a slow scale and no parallax. The parallax
-   that used to live here drove `.par`, and `.par` had not been on an
-   element in this page for some time — it was a scroll listener doing
-   arithmetic for nobody.
-
-   linear, deliberately. Every other curve in the system decelerates, which
-   is right for something arriving in 600ms and wrong for something drifting
-   for 20 seconds: an eased drift has a fast middle, and a fast middle is
-   the part you notice. A constant 0.2%/second is under the threshold where
-   the eye reads it as motion at all, which is the whole intent — the frame
-   should feel like it is breathing, not panning.
-
-   It runs once and stops. Nothing on this page loops. */
-@keyframes kenburns{from{transform:scale(1);}to{transform:scale(1.045);}}
-.hero-photo::before{transform-origin:64% 44%;animation:kenburns 20s linear both;}
+/* The hero's slow 20s scale (kenburns) went with the photograph it moved:
+   a gradient has nothing in it to drift, and scaling one only shifts where
+   its light falls. Nothing in the hero's ground animates now. */
 
 @media(prefers-reduced-motion:reduce){
   .rise,.flow,.stagger > *{opacity:1 !important;transform:none !important;transition:none !important;}
   .wsplit .w i{transform:none !important;opacity:1 !important;transition:none !important;}
-  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i,.hero-photo::before{animation:none !important;}
+  .stagger.in > *,.hero .rise,.hero .stagger > *,.hero .wsplit .w i{animation:none !important;}
   .tp-skeleton{animation:none !important;}
 }
 
@@ -176,11 +163,11 @@ h2.sec em{font-style:italic;}
    It has two states, and the hero decides which (Nav.tsx):
 
    Over the hero it is not a bar at all. No ground, no blur, no line — the
-   wordmark, the links and the CTA sit straight on the photograph, as the
+   wordmark, the links and the CTA sit straight on the hero's ground, as the
    reference nav the owner pointed at in October 2026 does. A translucent
-   navy band across the top of a photograph read as a strip laid over it;
-   the photograph already carries its own darkening at the top
-   (.hero-photo::before), which is what holds the type.
+   navy band across the top of a photograph read as a strip laid over it.
+   The hero is a gradient now, not a photo (.hero-photo::before), and its
+   brightest point still holds the nav's type on its own.
 
    Past the hero it is a surface: --nav-bg behind a blur on a desktop,
    --nav-solid on a phone, a --nav-rule hairline under it, and 8px less
@@ -261,9 +248,8 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    rung, a step under the 16px wordmark, which left the bar with no
    lead (see .brand). --nav-dim on the rail clears 8:1, so the step down
    costs size, not legibility. Never lower than this. Over the hero, with
-   no ground behind it, it is held by the photograph's own top darkening
-   (.hero-photo::before): 6.4:1 against the brightest pixel behind any nav
-   label, measured from 360px to 1920px wide at both ends of the drift. */
+   no ground behind it, it sits on the moonlight (.hero-photo::before):
+   5.1:1 against its brightest pixel, the top centre the links sit under. */
 .nlinks a{position:relative;font-family:var(--sans);font-weight:400;font-size:var(--t-micro);letter-spacing:var(--ls-micro);text-transform:uppercase;
   text-decoration:none;color:var(--nav-dim);white-space:nowrap;transition:color var(--dur-ui) var(--ease-ui);}
 .nlinks a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
@@ -382,7 +368,7 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
 }
 /* On a phone the rail, past the hero, is opaque and reaches the physical
  * top edge. Over the hero it is clear like the desktop's (.nav.on-hero
- * outranks everything below on specificity), and the photograph runs up
+ * outranks everything below on specificity), and the hero's light runs up
  * under it and under the status bar.
  *
  * Opaque, because the glass is a desktop effect — on a wide bar a little of
@@ -718,37 +704,33 @@ body.locked .nav{backdrop-filter:none;-webkit-backdrop-filter:none;transition:no
    svh, not vh: on iOS vh measures the screen with the URL bar hidden,
    so 100vh spills past the fold on first paint. A floor, not a cap —
    a phone holds headline plus card and grows past it. */
-/* §07 — the hero photograph. A ground the copy sits on, not a picture in a
-   box. The copy is centred over it now — headline, trip type, the bar — so
-   the scrims are centred too: the old left-hand pull to navy was there for a
-   left-aligned headline and left the centred one half on the photograph,
-   half on a wall of navy. One vertical pull darkens the sky the headline
-   sits in and takes the foot down into the page; a soft vignette holds the
-   edges so the bar never meets a bright patch at its ends.
-   The radial underneath is not decoration — it is what paints while a 240KB
-   photograph is still arriving, and what the section falls back to if it
-   never does. */
-/* The box is the frame and the ::before is the picture in it. The drift
-   above used to scale the box itself, and a scaled box is still counted
-   as page content: by the end of it the photo stood 21px past the right
-   edge, which gave the whole page a sideways scroll, and 23px over the
-   hairline that closes the hero. The frame never moves and clips; only
-   the picture inside it grows. */
+/* §07 — the hero's ground: moonlight on the Night Sea. It was a
+   photograph (the villa, the palms, the car at dusk) under three scrims;
+   the owner chose, from five photo-free mockups in October 2026, a solid
+   ground with one light in it. So: the page's own navy, a shade lifted at
+   the top and settling to --ground by the card, and one soft silver light
+   falling from above the nav that has faded out before the headline. A
+   second, fainter pool sits behind the headline and the card so they do
+   not float on flat black. No image, so nothing to wait for: this was the
+   fallback that painted while a 240KB photo arrived, and it is now the
+   whole picture.
+
+   The light is brightest at the top centre, right where the nav's links
+   sit on no ground of their own: --nav-dim measures 5.1:1 against that
+   brightest pixel (#2C3B4A), and the wordmark's --nav-ink 10.5:1.
+
+   The class keeps its name — .hero-photo is what Hero.tsx renders and what
+   the open booking card dims — though there is no photo in it now. The
+   box clips and the ::before paints, as before. */
 .hero-photo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
   transition:opacity var(--dur-reveal) var(--ease-reveal);}
 .hero-photo::before{content:"";position:absolute;inset:0;
   background-image:
-    linear-gradient(180deg,rgba(2,11,20,.72) 0%,rgba(2,11,20,.34) 30%,rgba(2,11,20,.40) 62%,var(--ground) 100%),
-    radial-gradient(85% 75% at 50% 45%,transparent 0%,rgba(2,11,20,.55) 100%),
-    url("/hero.jpg"),
-    radial-gradient(120% 90% at 74% 34%,#12293C 0%,#081726 46%,var(--ground) 78%);
-  background-size:cover,cover,cover,cover;
-  /* the car sits right of centre in the frame; on a narrow screen the crop
-     keeps it rather than centring on empty driveway */
-  background-position:center,center,72% center,center;
+    radial-gradient(62% 58% at 50% 0%,rgba(178,196,214,.22) 0%,rgba(18,41,60,.40) 42%,transparent 74%),
+    radial-gradient(40% 30% at 50% 58%,rgba(215,217,216,.05),transparent 70%),
+    linear-gradient(180deg,#061423 0%,var(--ground) 82%);
   background-repeat:no-repeat;}
-@media(max-width:760px){.hero-photo::before{background-position:center,center,64% center,center;}}
-/* Open, the card is what you are looking at; the photograph steps back. */
+/* Open, the card is what you are looking at; the light steps back. */
 .hero.is-booking .hero-photo{opacity:.6;}
 .hero{position:relative;display:flex;flex-direction:column;min-height:100vh;min-height:100svh;
   padding:var(--nav-total) 0 clamp(40px,10vh,120px);
@@ -774,7 +756,7 @@ body.locked .hero-grid{z-index:auto;}
 body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
 /* §07/§08 — one centred column, the reference's composition: headline,
    trip type, the bar, and the three marks under it. It hangs from the
-   bottom, so the photograph keeps the top of the frame. --maxw and
+   bottom, so the moonlight keeps the top of the frame. --maxw and
    --gutter are exactly what the nav uses, so the bar's ends line up with
    the wordmark and the Book now button above it. */
 .hero-grid{position:relative;z-index:var(--z-content);flex:1;display:flex;flex-direction:column;
@@ -785,7 +767,7 @@ body.locked .qcard{-webkit-backdrop-filter:none;backdrop-filter:none;}
   /* PADDING, as on the desktop. This was a margin while the phone bar was
      opaque over the hero too: the photograph behind it could only ever be
      hidden, so the hero started below the bar. The bar is clear over the
-     hero now (.nav.on-hero), and the photograph is meant to run up under
+     hero now (.nav.on-hero), and the hero's ground is meant to run up under
      it to the top of the glass — .hero-photo is inset:0 on this box, so
      padding insets the words and leaves the picture where it is. The box
      is border-box, so the words land exactly where the margin put them. */
