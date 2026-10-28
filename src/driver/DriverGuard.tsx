@@ -40,24 +40,6 @@ import Steps from "./Steps";
 import { whatsappLink } from "../lib/whatsapp";
 import "../styles/driver.css";
 
-/**
- * Whether this browser has been in the portal before. A driver who has
- * opens the sign-in side; anyone else opens on "Apply to drive". Most
- * opens of /drive are drivers starting a shift, and making them switch
- * sides every morning to reach the form they always use would be a tax on
- * the people the portal is for; a first visit is far more likely to be
- * somebody applying. Storage can be blocked or cleared — then everyone
- * gets the apply side, which still has "Already have an account? Sign in"
- * one tap below.
- */
-const SEEN_KEY = "cabbys.driver.seen";
-function hasBeenIn(): boolean {
-  try { return window.localStorage.getItem(SEEN_KEY) === "1"; } catch { return false; }
-}
-function markBeenIn(): void {
-  try { window.localStorage.setItem(SEEN_KEY, "1"); } catch { /* a convenience, not a record */ }
-}
-
 interface GateProps {
   /**
    * `reload` re-reads the drivers row. Profile needs it: saving a car
@@ -83,7 +65,9 @@ export default function DriverGuard({ children }: GateProps) {
   const live = useRef(true);
   const { signOut } = useAuth();
   /** which side of the sign-in form is showing, so the page can say so */
-  const [authMode, setAuthMode] = useState<Mode>(() => (hasBeenIn() ? "signin" : "signup"));
+  const [authMode, setAuthMode] = useState<Mode>("signin");
+  /** bumped to reopen the form on the sign-up side (see "Sign up to drive") */
+  const [signUpKey, setSignUpKey] = useState(0);
 
   const refresh = useCallback(async () => {
     const user = await getAuthedUser();
@@ -99,9 +83,6 @@ export default function DriverGuard({ children }: GateProps) {
     // driver asking support "which account am I?" has the answer where
     // they are already looking.
     const withEmail = { ...driver, email: user.email ?? driver.email };
-    // An applicant counts as having been in: next time they open the
-    // portal it is to check on the application, which is the sign-in side.
-    markBeenIn();
     if (driver.status !== "approved") { setState({ phase: "blocked", driver: withEmail, user }); return; }
     setState({ phase: "ready", driver: withEmail });
   }, []);
@@ -139,6 +120,13 @@ export default function DriverGuard({ children }: GateProps) {
     );
   }
 
+  // Always opens on email and password, with signing up as a button under
+  // the form. It briefly opened on "Apply to drive" for a browser that had
+  // not been in before, remembered in localStorage; the owner found the
+  // portal "goes direct to a sign up" — on every new phone, every cleared
+  // browser and every private window, a driver starting a shift met a
+  // form for somebody else. Signing in is what most opens of /drive are
+  // for, so it is the default for everybody; applying is one tap below it.
   if (state.phase === "signed-out") {
     const applying = authMode === "signup";
     return (
@@ -152,17 +140,31 @@ export default function DriverGuard({ children }: GateProps) {
         <p>
           {applying
             ? "Create an account to apply. Then tell us about you and your car, send your documents, and we'll approve you."
-            : "Sign in to see your rides. New to Cabby's? You can apply below."}
+            : "Sign in with your email and password to see your rides."}
         </p>
         <div className="drv-auth-wrap">
+          {/* allowSignUp off: the form's own small "create an account"
+              link is replaced by the button below, so there is one way to
+              sign up rather than two. On the sign-up side the form still
+              offers "Already have an account? Sign in" to come back. The
+              key reopens it on the sign-up side when the button is used. */}
           <AuthForm
+            key={signUpKey}
             oauthNext="/drive"
             onSuccess={refresh}
-            initialMode={hasBeenIn() ? "signin" : "signup"}
+            initialMode={signUpKey > 0 ? "signup" : "signin"}
             onModeChange={setAuthMode}
-            signUpPrompt="New driver? Apply to drive"
+            allowSignUp={false}
           />
         </div>
+        {authMode === "signin" && (
+          <div className="drv-signup">
+            <span>New driver?</span>
+            <button type="button" className="drv-cta ghost" onClick={() => setSignUpKey((k) => k + 1)}>
+              Sign up to drive
+            </button>
+          </div>
+        )}
         {/* A guest who lands here by accident had no way out but the back
             button — and the back button is where they came from. */}
         <a className="drv-wayout" href="/">Not a driver? Book a ride instead</a>

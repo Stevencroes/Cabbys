@@ -63,36 +63,43 @@ const signedInWith = (status: string) => {
 };
 
 describe("approval gate", () => {
-  it("offers a real sign-in form to a driver who has been in before", async () => {
-    window.localStorage.setItem("cabbys.driver.seen", "1");
+  it("opens on email and password for everybody", async () => {
     renderGate();
     expect(await screen.findByText(/this is the driver portal/i)).toBeInTheDocument();
     // not just a message — an actual way in
     expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /forgot your password/i })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: /your application/i })).toBeNull();
     expect(screen.queryByText(new RegExp(PORTAL))).toBeNull();
   });
 
-  // The owner: anyone opening /driver can sign up there. A first visit is
-  // far more likely to be somebody applying than a driver starting a shift.
-  it("opens on applying for somebody who has never been in", async () => {
+  // The owner: the portal "goes direct to a sign up". It opened on applying
+  // for any browser that had not been in before — every new phone, every
+  // private window — so a driver starting a shift met somebody else's form.
+  it("opens on sign-in even in a browser that has never been in", async () => {
+    window.localStorage.clear();
     renderGate();
+    expect(await screen.findByText(/this is the driver portal/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create account/i })).toBeNull();
+  });
+
+  it("puts signing up under the form as a button, and only once", async () => {
+    renderGate();
+    const button = await screen.findByRole("button", { name: /sign up to drive/i });
+    // one way to sign up: the form's own small link is not offered as well
+    expect(screen.queryByRole("button", { name: /create an account/i })).toBeNull();
+    fireEvent.click(button);
     expect(await screen.findByText(/drive with cabby's/i)).toBeInTheDocument();
     const steps = screen.getByRole("list", { name: /your application/i });
     expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent(/account/i);
     expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
-    // and a driver who lands here anyway is one tap from signing in
+    expect(screen.queryByRole("button", { name: /sign up to drive/i })).toBeNull();
+    // and back again
     fireEvent.click(screen.getByRole("button", { name: /already have an account\? sign in/i }));
     expect(await screen.findByText(/this is the driver portal/i)).toBeInTheDocument();
-  });
-
-  it("lets a returning visitor switch to applying, and retitles to match", async () => {
-    window.localStorage.setItem("cabbys.driver.seen", "1");
-    renderGate();
-    fireEvent.click(await screen.findByRole("button", { name: /new driver\? apply to drive/i }));
-    expect(await screen.findByText(/drive with cabby's/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /create account/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign up to drive/i })).toBeInTheDocument();
   });
 
   // A guest who lands here by accident: the back button is where they came from.
